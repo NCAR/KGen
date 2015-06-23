@@ -1,2 +1,0 @@
-# KGen
-Fortran Kernel Generator
