@@ -738,11 +738,18 @@ def search_Named_Constant_Def(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Saved_Entity(stmt, node):
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
-
     if len(node.items)==3 and node.items[0]=='/' and node.items[2]=='/':
         get_name_or_defer(stmt, node.items[1], res_common)
     else:
         for item in node.items:
             get_name_or_defer(stmt, item, res_value)
+
+def search_Alloc_Opt(stmt, node):
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Dealloc_Opt(stmt, node):
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+    get_name_or_defer(stmt, node.items[1], res_value)
