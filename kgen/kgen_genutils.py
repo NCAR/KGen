@@ -134,8 +134,9 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
                         break
             #split_write(f, comment_str+stmt.tokgen(**kwargs)+unresstr, d=depth)
             if stmt.__class__ in execution_part+[Else, ElseIf, ElseWhere, EndDo, EndSelect, EndForall, EndIfThen]:
-                srclines = '\n'.join(stmt.top.srcfile.prep[stmt.item.span[0]-1:stmt.item.span[1]])
-                write(f, comment_str+srclines+unresstr)
+                if write_stmt.writtenlineno!=stmt.item.span[0]:
+                    srclines = '\n'.join(stmt.top.srcfile.prep[stmt.item.span[0]-1:stmt.item.span[1]])
+                    write(f, comment_str+srclines+unresstr)
             else:
                 split_write(f, comment_str+stmt.tokgen(**kwargs)+unresstr, d=depth)
             write_stmt.writtenlineno = stmt.item.span[0]
@@ -156,8 +157,9 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
                     break
         #split_write(f, comment_str+stmt.tokgen(**kwargs)+unresstr, d=depth)
         if stmt.__class__ in execution_part+[Else, ElseIf, ElseWhere, EndDo, EndSelect, EndForall, EndIfThen]:
-            srclines = '\n'.join(stmt.top.srcfile.prep[stmt.item.span[0]-1:stmt.item.span[1]])
-            write(f, comment_str+srclines+unresstr)
+            if write_stmt.writtenlineno!=stmt.item.span[0]:
+                srclines = '\n'.join(stmt.top.srcfile.prep[stmt.item.span[0]-1:stmt.item.span[1]])
+                write(f, comment_str+srclines+unresstr)
         else:
             split_write(f, comment_str+stmt.tokgen(**kwargs)+unresstr, d=depth)
 

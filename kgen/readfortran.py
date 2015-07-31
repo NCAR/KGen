@@ -678,10 +678,36 @@ class FortranReaderBase(object):
                 for line in item.get_line().split(';'):
                     line = line.strip()
                     if line:
-                        items.append(item.copy(line, apply_map=True))
+                        #items.append(item.copy(line, apply_map=True)) # KGEN deletion
+
+                        # start of KGEN addition
+                        label = None
+                        name = None
+
+                        m = _label_re.match(line)
+                        if m:
+                            assert not label,`label`
+                            label = int(m.group('label'))
+                            line = line[m.end():]
+                        # check for a construct name
+                        m = _construct_name_re.match(line)
+                        if m:
+                            name = m.group('name')
+                            line = line[m.end():].lstrip()
+
+                        copieditem = item.copy(line, apply_map=True)
+                        if label:
+                            copieditem.label = label
+                        if name:
+                            copieditem.name = name
+
+                        items.append(copieditem)
+                        # end of KGEN addition
+
                 items.reverse()
                 for newitem in items:
                     self.fifo_item.insert(0, newitem)
+
                 return fifo_item_pop(0)
             return item
         return item
