@@ -2,7 +2,7 @@
 ! KGEN-generated Fortran source file
 !
 ! Filename    : test5_mod.F90
-! Generated at: 2015-07-31 09:02:43
+! Generated at: 2015-07-31 10:22:43
 ! KGEN version: 0.4.12
 
 
@@ -61,7 +61,7 @@
             kgen_unit = -1
             IF ( ANY(kgen_counter == kgen_counter_at) ) THEN
                 WRITE( kgen_counter_conv, * ) kgen_counter
-                kgen_filepath = "/glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_5/kgen/kernel/add." // TRIM(ADJUSTL(kgen_counter_conv))
+                kgen_filepath = "/glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_5/kgen/kernel/add." // TRIM(ADJUSTL(kgen_counter_conv))
                     kgen_unit = kgen_get_newunit()
                     OPEN (UNIT=kgen_unit, FILE=kgen_filepath, STATUS="REPLACE", ACCESS="STREAM", FORM="UNFORMATTED", ACTION="WRITE", IOSTAT=kgen_ierr, CONVERT="BIG_ENDIAN")
                     IF ( kgen_ierr /= 0 ) THEN

@@ -1,6 +1,6 @@
 
 Pre-processing is done
-Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90
+Reading /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90
 Call-site location is found
 Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/compute.F90
 	in the search of "add" directly from test6_mod.F90 and originally from test6_mod.F90
@@ -10,19 +10,19 @@ Kernel files are generated
 Makefiles are generated
 Post-processing is done
 Completed.
-if [ ! -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90.kgen_org; fi
-if [ ! -f test6_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90 test6_mod.F90.kgen_org; fi
+if [ ! -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90 /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90.kgen_org; fi
+if [ ! -f test6_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90 test6_mod.F90.kgen_org; fi
 #rm -f kernel.exe *.mod *.o
-cp -f test6_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90
-cd /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src; make build
-make[1]: Entering directory `/glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src'
+cp -f test6_mod.F90 /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90
+cd /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src; make build
+make[1]: Entering directory `/glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src'
 ifort -c -o compute.o compute.F90
 ifort -c -o test6_mod.o test6_mod.F90
 ifort -c -o test6.o test6.F90
 ifort -o test6.exe test6.o test6_mod.o compute.o
-make[1]: Leaving directory `/glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src'
-mv -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90.kgen_org /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src/test6_mod.F90
-cd /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_6/src; ./test6.exe
+make[1]: Leaving directory `/glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src'
+mv -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90.kgen_org /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src/test6_mod.F90
+cd /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_6/src; ./test6.exe
  KGEN writes input state variables at count =            1
  kgen_counter =            1
 ifort  -c -o kgen_utils.o kgen_utils.f90
@@ -42,4 +42,4 @@ ifort    -o kernel.exe kernel_driver.o test6_mod.o kgen_utils.o compute.o
  add KGENPrtCheck: Number of fatal errors detected:            0
  add KGENPrtCheck: verification PASSED
  
- Elapsed time (sec):   1.0000000E-07
+ Elapsed time (sec):   0.0000000E+00

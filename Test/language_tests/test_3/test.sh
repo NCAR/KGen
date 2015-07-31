@@ -18,8 +18,8 @@ export SRC_DIR=${CURR_DIR}/src
 export SRC=${SRC_DIR}/test3_mod.F90
 export BUILD_DIR=${SRC_DIR}
 export CALLSITE=test3_mod.test_3.add
-export KGEN_HOME=/glade/p/work/amogh/kgen_dev/kgen/trunk/src
-export KGEN=${KGEN_HOME}/kgen.py
+#export KGEN_HOME=/glade/p/work/amogh/kgen_dev/kgen/trunk/src
+#export KGEN=${KGEN_HOME}/kgen.py
 
 ${CURR_DIR}/allclean.sh
 

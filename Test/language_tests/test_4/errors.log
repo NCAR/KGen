@@ -1,6 +1,6 @@
 
 Pre-processing is done
-Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90
+Reading /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90
 Call-site location is found
 Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/compute.F90
 	in the search of "add" directly from test4_mod.F90 and originally from test4_mod.F90
@@ -10,19 +10,19 @@ Kernel files are generated
 Makefiles are generated
 Post-processing is done
 Completed.
-if [ ! -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90.kgen_org; fi
-if [ ! -f test4_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90 test4_mod.F90.kgen_org; fi
+if [ ! -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90 /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90.kgen_org; fi
+if [ ! -f test4_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90 test4_mod.F90.kgen_org; fi
 #rm -f kernel.exe *.mod *.o
-cp -f test4_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90
-cd /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src; make build
-make[1]: Entering directory `/glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src'
+cp -f test4_mod.F90 /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90
+cd /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src; make build
+make[1]: Entering directory `/glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src'
 ifort -c -o compute.o compute.F90
 ifort -c -o test4_mod.o test4_mod.F90
 ifort -c -o test4.o test4.F90
 ifort -o test4.exe test4.o test4_mod.o compute.o
-make[1]: Leaving directory `/glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src'
-mv -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90.kgen_org /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src/test4_mod.F90
-cd /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_4/src; ./test4.exe
+make[1]: Leaving directory `/glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src'
+mv -f /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90.kgen_org /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src/test4_mod.F90
+cd /glade/p/work/amogh/kgen_dev/KGen/Test/language_tests/test_4/src; ./test4.exe
  KGEN writes input state variables at count =            1
  kgen_counter =            1
 ifort  -c -o kgen_utils.o kgen_utils.f90

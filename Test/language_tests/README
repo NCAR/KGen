@@ -1,3 +1,16 @@
+Amogh Simha
+07/30/2015
+
 This is a suite of fortran language tests for KGEN development.
 Each test implements a specific fortran feature and a kernel using that
 feature is extracted by KGEN.
+
+Please run test.sh in this directory to run all the tests available.
+
+This is still under development. More tests will be added and the testing scripts will be changed soon.
+
+If a test fails, an error.log file is generated inside that test's folder. Please view that file for 
+more details.
+
+To run these tests, you need to modify test.sh inside each folder to point to the appropriate KGEN
+source that you have access to.

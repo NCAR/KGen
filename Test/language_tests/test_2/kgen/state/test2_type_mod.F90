@@ -2,10 +2,15 @@
 ! KGEN-generated Fortran source file
 !
 ! Filename    : test2_type_mod.F90
-! Generated at: 2015-07-31 09:14:32
+! Generated at: 2015-07-31 10:22:33
 ! KGEN version: 0.4.12
 
 
+    ! KGEN-generated Fortran source file
+    !
+    ! Filename    : test2_type_mod.F90
+    ! Generated at: 2015-07-31 09:24:37
+    ! KGEN version: 0.4.12
 
     MODULE test2_type_mod
         IMPLICIT NONE
@@ -31,23 +36,106 @@
             TYPE(elem_mimic) :: elem1
             TYPE(elem_mimic2) :: elem2
         END TYPE complex_type
+        ! write interface
+        PUBLIC kgen_write
 
-    ! write interface
-    PUBLIC kgen_write
-    INTERFACE kgen_write
-        MODULE PROCEDURE kgen_write_level_3
-        MODULE PROCEDURE kgen_write_elem_mimic
-        MODULE PROCEDURE kgen_write_elem_mimic2
-        MODULE PROCEDURE kgen_write_complex_type
-    END INTERFACE kgen_write
+        INTERFACE kgen_write
+            MODULE PROCEDURE kgen_write_level_3
+            MODULE PROCEDURE kgen_write_elem_mimic
+            MODULE PROCEDURE kgen_write_elem_mimic2
+            MODULE PROCEDURE kgen_write_complex_type
+        END INTERFACE kgen_write
 
-    CONTAINS
+        ! write interface
+        PUBLIC kgen_write
+        INTERFACE kgen_write
+            MODULE PROCEDURE kgen_write_level_3
+            MODULE PROCEDURE kgen_write_elem_mimic
+            MODULE PROCEDURE kgen_write_elem_mimic2
+            MODULE PROCEDURE kgen_write_complex_type
+        END INTERFACE kgen_write
 
-    ! write subroutines
-    SUBROUTINE kgen_write_level_3(var, kgen_unit, printvar)
-        INTEGER, INTENT(IN) :: kgen_unit
-        CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
-        TYPE(level_3), INTENT(in) :: var
+        CONTAINS
+
+        ! write subroutines
+        SUBROUTINE kgen_write_level_3(var, kgen_unit, printvar)
+            INTEGER, INTENT(IN) :: kgen_unit
+            CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
+            TYPE(level_3), INTENT(in) :: var
+            WRITE(UNIT=kgen_unit) var%param1
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%param1 **", var%param1
+            END IF
+            WRITE(UNIT=kgen_unit) var%param2
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%param2 **", var%param2
+            END IF
+        END SUBROUTINE
+        SUBROUTINE kgen_write_elem_mimic(var, kgen_unit, printvar)
+            INTEGER, INTENT(IN) :: kgen_unit
+            CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
+            TYPE(elem_mimic), INTENT(in) :: var
+            WRITE(UNIT=kgen_unit) var%a
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%a **", var%a
+            END IF
+            WRITE(UNIT=kgen_unit) var%b
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%b **", var%b
+            END IF
+            WRITE(UNIT=kgen_unit) var%c
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%c **", var%c
+            END IF
+        END SUBROUTINE
+        SUBROUTINE kgen_write_elem_mimic2(var, kgen_unit, printvar)
+            INTEGER, INTENT(IN) :: kgen_unit
+            CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
+            TYPE(elem_mimic2), INTENT(in) :: var
+            WRITE(UNIT=kgen_unit) var%d
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%d **", var%d
+            END IF
+            WRITE(UNIT=kgen_unit) var%e
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%e **", var%e
+            END IF
+            WRITE(UNIT=kgen_unit) var%f
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%f **", var%f
+            END IF
+            IF ( PRESENT(printvar) ) THEN
+                CALL kgen_write_level_3(var%level3_1, kgen_unit, printvar=printvar//"%level3_1")
+            ELSE
+                CALL kgen_write_level_3(var%level3_1, kgen_unit)
+            END IF
+        END SUBROUTINE
+        SUBROUTINE kgen_write_complex_type(var, kgen_unit, printvar)
+            INTEGER, INTENT(IN) :: kgen_unit
+            CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
+            TYPE(complex_type), INTENT(in) :: var
+            WRITE(UNIT=kgen_unit) var%element_1
+            IF ( PRESENT(printvar) ) THEN
+                print *, "** " // printvar // "%element_1 **", var%element_1
+            END IF
+            IF ( PRESENT(printvar) ) THEN
+                CALL kgen_write_elem_mimic(var%elem1, kgen_unit, printvar=printvar//"%elem1")
+            ELSE
+                CALL kgen_write_elem_mimic(var%elem1, kgen_unit)
+            END IF
+            IF ( PRESENT(printvar) ) THEN
+                CALL kgen_write_elem_mimic2(var%elem2, kgen_unit, printvar=printvar//"%elem2")
+            ELSE
+                CALL kgen_write_elem_mimic2(var%elem2, kgen_unit)
+            END IF
+        END SUBROUTINE
+        ! No module extern variables
+        ! write subroutines
+
+        SUBROUTINE kgen_write_level_3(var, kgen_unit, printvar)
+            INTEGER, intent(in) :: kgen_unit
+            CHARACTER(LEN=*), intent(in), optional :: printvar
+            TYPE(level_3), intent(in) :: var
         WRITE(UNIT=kgen_unit) var%param1
         IF ( PRESENT(printvar) ) THEN
             print *, "** " // printvar // "%param1 **", var%param1
@@ -56,11 +144,12 @@
         IF ( PRESENT(printvar) ) THEN
             print *, "** " // printvar // "%param2 **", var%param2
         END IF
-    END SUBROUTINE
-    SUBROUTINE kgen_write_elem_mimic(var, kgen_unit, printvar)
-        INTEGER, INTENT(IN) :: kgen_unit
-        CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
-        TYPE(elem_mimic), INTENT(in) :: var
+        END SUBROUTINE 
+
+        SUBROUTINE kgen_write_elem_mimic(var, kgen_unit, printvar)
+            INTEGER, intent(in) :: kgen_unit
+            CHARACTER(LEN=*), intent(in), optional :: printvar
+            TYPE(elem_mimic), intent(in) :: var
         WRITE(UNIT=kgen_unit) var%a
         IF ( PRESENT(printvar) ) THEN
             print *, "** " // printvar // "%a **", var%a
@@ -73,11 +162,12 @@
         IF ( PRESENT(printvar) ) THEN
             print *, "** " // printvar // "%c **", var%c
         END IF
-    END SUBROUTINE
-    SUBROUTINE kgen_write_elem_mimic2(var, kgen_unit, printvar)
-        INTEGER, INTENT(IN) :: kgen_unit
-        CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
-        TYPE(elem_mimic2), INTENT(in) :: var
+        END SUBROUTINE 
+
+        SUBROUTINE kgen_write_elem_mimic2(var, kgen_unit, printvar)
+            INTEGER, intent(in) :: kgen_unit
+            CHARACTER(LEN=*), intent(in), optional :: printvar
+            TYPE(elem_mimic2), intent(in) :: var
         WRITE(UNIT=kgen_unit) var%d
         IF ( PRESENT(printvar) ) THEN
             print *, "** " // printvar // "%d **", var%d
@@ -95,11 +185,12 @@
         ELSE
             CALL kgen_write_level_3(var%level3_1, kgen_unit)
         END IF
-    END SUBROUTINE
-    SUBROUTINE kgen_write_complex_type(var, kgen_unit, printvar)
-        INTEGER, INTENT(IN) :: kgen_unit
-        CHARACTER(*), INTENT(IN), OPTIONAL :: printvar
-        TYPE(complex_type), INTENT(in) :: var
+        END SUBROUTINE 
+
+        SUBROUTINE kgen_write_complex_type(var, kgen_unit, printvar)
+            INTEGER, intent(in) :: kgen_unit
+            CHARACTER(LEN=*), intent(in), optional :: printvar
+            TYPE(complex_type), intent(in) :: var
         WRITE(UNIT=kgen_unit) var%element_1
         IF ( PRESENT(printvar) ) THEN
             print *, "** " // printvar // "%element_1 **", var%element_1
@@ -114,6 +205,6 @@
         ELSE
             CALL kgen_write_elem_mimic2(var%elem2, kgen_unit)
         END IF
-    END SUBROUTINE
-    ! No module extern variables
+        END SUBROUTINE 
+        ! No module extern variables
     END MODULE test2_type_mod

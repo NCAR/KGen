@@ -2,6 +2,9 @@
 
 CURR_DIR=`pwd`
 
+export KGEN_HOME=/glade/p/work/amogh/kgen_dev/kgen/trunk/src
+export KGEN=${KGEN_HOME}/kgen.py
+
 echo running test 1
 cd test_1
 ./test.sh
