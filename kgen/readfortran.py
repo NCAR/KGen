@@ -883,6 +883,22 @@ class FortranReaderBase(object):
         In-line comments are separated from line and put back to fifo
         sequence where it will be processed as comment line.
         """
+        # start of KGEN additon
+        def is_comment_in_quotes(line, pos_exmark):
+            quote = None
+            isopen = None
+            for ch in line[:pos_exmark]:
+                if ch=='"' or ch=="'":
+                    if quote:
+                        if quote==ch:
+                            quote = None
+                            isopen = False
+                    else:
+                        quote = ch
+                        isopen = True
+            return isopen
+        # end of KGEN additon
+
         had_comment = False
         if quotechar is None and '!' not in line and \
            '"' not in line and "'" not in line:
@@ -892,7 +908,11 @@ class FortranReaderBase(object):
         if quotechar is None and i!=-1:
             # first try a quick method:
             newline = line[:i]
-            if '"' not in newline and '\'' not in newline:
+            #if '"' not in newline and '\'' not in newline: # KGEN deletion
+            # start of KGEN additon
+            if ('"' not in newline and '\'' not in newline) or \
+                not is_comment_in_quotes(line, i):
+            # end of KGEN additon
                 if self.isf77 or not line[i:].startswith('!f2py'):
                     put_item(self.comment_item(line[i:], lineno, lineno))
                     return newline, quotechar, True
@@ -1197,7 +1217,7 @@ class FortranReaderBase(object):
 
         if qc is not None:
             message = self.format_message('ASSERTION FAILURE(free)',
-                'following character continuation: %r, expected None.' % (qc),
+                '3following character continuation: %r, expected None.' % (qc),
                 startlineno, endlineno)
             logger.error(message)
             # self.show_message(message, sys.stderr)
