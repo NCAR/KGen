@@ -1,0 +1,477 @@
+INFO: kgen.py:19 - Pre-processing is done
+INFO: kgen_state.py:148 - Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen.py:22 - Call-site location is found
+INFO: kgen_search.py:130 - compute_add is saved as unknown at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - compute_add is being resolved at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - compute_add is not resolved locally and the request is being defered to parent at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - compute_add is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - compute_add is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - compute_add is not resolved locally and the request is being defered to parent at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - compute_add is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1086 - compute_add is not resolved on this block at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - compute_add is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - compute_add is not resolved locally and the request is being defered to parent at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - compute_add is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1086 - compute_add is not resolved on this block at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1088 - The request is being deferred to use stmt at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1096 - compute_add is found in norenames at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_state.py:148 - Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: statements.py:1095 - 	in the search of "compute_add" directly from test1_mod.F90 and originally from test1_mod.F90
+INFO: base_classes.py:973 - compute_add is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:995 - The request is being resolved by a subprogram or interface at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1001 - compute_add is resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - a is saved as unknown at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - b is saved as unknown at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - c is saved as unknown at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - a is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - a is resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - real_kind is saved as unknown at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - real_kind is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - real_kind is resolved at (4, 4) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:870 - np is being resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:870 - np is being resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:973 - b is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - b is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - real_kind is saved as unknown at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - real_kind is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - real_kind is resolved at (4, 4) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:870 - np is being resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:870 - np is being resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:973 - c is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - c is resolved at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - real_kind is saved as unknown at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - real_kind is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - real_kind is resolved at (4, 4) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:870 - np is being resolved at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:870 - np is being resolved at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: kgen_search.py:130 - i is saved as unknown at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - i is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:973 - np is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: kgen_search.py:130 - j is saved as unknown at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - j is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:973 - np is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1086 - np is not resolved on this block at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - np is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - np is being resolved at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - np is resolved at (5, 5) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: kgen_search.py:130 - c is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - i is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - j is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - a is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - i is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - j is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - b is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - i is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: kgen_search.py:130 - j is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - j is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:870 - i is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - i is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - i is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:870 - i is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - i is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - i is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:870 - j is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - j is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:870 - c is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - c is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - c is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - c is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - c is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - c is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - c is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - c is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - c is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - c is resolved at (13, 13) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - c is resolved
+INFO: base_classes.py:922 - c is resolved
+INFO: base_classes.py:922 - c is resolved
+INFO: base_classes.py:870 - j is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - j is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - j is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - j is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - j is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:922 - j is resolved
+INFO: base_classes.py:870 - a is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - a is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - a is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - a is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - a is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - a is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - a is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - a is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - a is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - a is resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - a is resolved
+INFO: base_classes.py:922 - a is resolved
+INFO: base_classes.py:922 - a is resolved
+INFO: base_classes.py:870 - i is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - i is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - i is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - i is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - i is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - i is resolved at (15, 15) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:922 - i is resolved
+INFO: base_classes.py:870 - b is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - b is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - b is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - b is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - b is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - b is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:870 - b is being resolved at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:902 - b is not resolved locally and the request is being defered to parent at (16, 16) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:973 - b is being resolved at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (10, 10) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:1046 - b is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/compute.F90
+INFO: base_classes.py:922 - b is resolved
+INFO: base_classes.py:922 - b is resolved
+INFO: base_classes.py:922 - b is resolved
+INFO: base_classes.py:1099 - compute_add is resolved in norenames at (2, 2) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - compute_add is resolved
+INFO: base_classes.py:922 - compute_add is resolved
+INFO: base_classes.py:922 - compute_add is resolved
+INFO: kgen_search.py:130 - d1 is saved as unknown at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - d1 is saved as unknown at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - d1 is saved as unknown at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - d1 is being resolved at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - d1 is not resolved locally and the request is being defered to parent at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - d1 is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - d1 is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - d1 is not resolved locally and the request is being defered to parent at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - d1 is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - d1 is resolved at (25, 25) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - derived_type1 is saved as unknown at (25, 25) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - derived_type1 is being resolved at (25, 25) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - derived_type1 is not resolved locally and the request is being defered to parent at (25, 25) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - derived_type1 is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1015 - The request is being resolved by a typedecl at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1020 - derived_type1 is resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - real_kind is saved as unknown at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - real_kind is resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:870 - np is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - np is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:870 - np is being resolved at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (17, 17) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - np is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: kgen_search.py:130 - real_kind is saved as unknown at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - real_kind is resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:870 - np is being resolved at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - np is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:870 - np is being resolved at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (18, 18) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - np is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: kgen_search.py:130 - real_kind is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: kgen_search.py:130 - np is saved as unknown at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - real_kind is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - real_kind is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - real_kind is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - real_kind is resolved at (11, 11) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:922 - real_kind is resolved
+INFO: base_classes.py:870 - np is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - np is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:870 - np is being resolved at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (19, 19) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - np is being resolved at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - np is not resolved locally and the request is being defered to parent at (14, 14) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - np is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - np is resolved at (12, 12) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - np is resolved
+INFO: base_classes.py:922 - derived_type1 is resolved
+INFO: base_classes.py:922 - d1 is resolved
+INFO: base_classes.py:922 - d1 is resolved
+INFO: base_classes.py:870 - d1 is being resolved at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - d1 is not resolved locally and the request is being defered to parent at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - d1 is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - d1 is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - d1 is not resolved locally and the request is being defered to parent at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - d1 is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - d1 is resolved at (25, 25) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - d1 is resolved
+INFO: base_classes.py:922 - d1 is resolved
+INFO: base_classes.py:870 - d1 is being resolved at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - d1 is not resolved locally and the request is being defered to parent at (36, 36) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - d1 is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:870 - d1 is being resolved at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:902 - d1 is not resolved locally and the request is being defered to parent at (35, 35) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:973 - d1 is being resolved at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1041 - The request is being resolved by a variable at (9, 9) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:1046 - d1 is resolved at (25, 25) in /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_1/src/test1_mod.F90
+INFO: base_classes.py:922 - d1 is resolved
+INFO: base_classes.py:922 - d1 is resolved
+INFO: kgen.py:25 - Kernel information is collected
+INFO: kgen.py:28 - Kernel generation information is marked
+INFO: kgen.py:31 - Instrumented files are generated
+INFO: kgen.py:34 - Kernel files are generated
+INFO: kgen.py:37 - Makefiles are generated
+INFO: kgen.py:40 - Post-processing is done
+INFO: kgen.py:42 - Completed.

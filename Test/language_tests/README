@@ -1,0 +1,3 @@
+This is a suite of fortran language tests for KGEN development.
+Each test implements a specific fortran feature and a kernel using that
+feature is extracted by KGEN.

@@ -1,0 +1,3 @@
+This test implements an allocatable array that is passed as an argument to a kernel and
+deallocation of that array with options.
+See orig_tests/test3_mod.F90

@@ -1,0 +1,56 @@
+
+Pre-processing is done
+Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90
+Call-site location is found
+Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90
+	in the search of "compute" directly from test2_mod.F90 and originally from test2_mod.F90
+Reading /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_compute.F90
+	in the search of "compute" directly from test2_mod.F90 and originally from test2_mod.F90
+Kernel information is collected
+Instrumented files are generated
+Kernel files are generated
+Makefiles are generated
+Post-processing is done
+Completed.
+if [ ! -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90.kgen_org; fi
+if [ ! -f test2_type_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90 test2_type_mod.F90.kgen_org; fi
+if [ ! -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90.kgen_org; fi
+if [ ! -f test2_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90 test2_mod.F90.kgen_org; fi
+#rm -f kernel.exe *.mod *.o
+cp -f test2_type_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90
+cp -f test2_mod.F90 /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90
+cd /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src; make build
+make[1]: Entering directory `/glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src'
+ifort -c -o test2_type_mod.o test2_type_mod.F90
+ifort -c -o test2_compute.o test2_compute.F90
+ifort -c -o test2_mod.o test2_mod.F90
+test2_mod.F90(11): remark #6536: All symbols from this module are already visible due to another USE; the ONLY clause will have no effect. Rename clauses, if any, will be honored.   [TEST2_TYPE_MOD]
+    USE test2_type_mod, ONLY : kgen_write_mod2 => kgen_write
+--------^
+ifort -c -o test2.o test2.F90
+ifort -o test2.exe test2.o test2_mod.o test2_type_mod.o test2_compute.o
+make[1]: Leaving directory `/glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src'
+mv -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90.kgen_org /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_type_mod.F90
+mv -f /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90.kgen_org /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src/test2_mod.F90
+cd /glade/p/work/amogh/kgen_dev/regression_tests/unit_tests/test_2/src; ./test2.exe
+ KGEN writes input state variables at count =            1
+ kgen_counter =            1
+ifort  -c -o kgen_utils.o kgen_utils.f90
+ifort  -c -o test2_type_mod.o test2_type_mod.F90
+ifort  -c -o test2_compute.o test2_compute.F90
+ifort  -c -o test2_mod.o test2_mod.F90
+ifort  -c -o kernel_driver.o kernel_driver.f90
+ifort    -o kernel.exe kernel_driver.o test2_mod.o kgen_utils.o test2_compute.o test2_type_mod.o
+./kernel.exe
+ 
+ 
+ ** Verification against './compute.1' **
+ 
+ compute KGENPrtCheck: Tolerance for normalized RMS:   9.999999824516700E-015
+ compute KGENPrtCheck: Number of variables checked:            1
+ compute KGENPrtCheck: Number of Identical results:            1
+ compute KGENPrtCheck: Number of warnings detected:            0
+ compute KGENPrtCheck: Number of fatal errors detected:            0
+ compute KGENPrtCheck: verification PASSED
+ 
+ Elapsed time (sec):   6.0000002E-07
