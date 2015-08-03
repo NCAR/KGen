@@ -105,6 +105,9 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
 
     if node is None: return
 
+    # uncomment below line for debug
+    #print node.__class__, str(node)
+
     if isinstance(node, Fortran2003.Name):
 
         # skip if intrinsic
@@ -201,10 +204,24 @@ def search_Structure_Constructor_2(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Int_Literal_Constant(stmt, node): 
-    get_name_or_defer(stmt, node.items[1], res_typedecl)
+    if node.items[1]:
+        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+    #get_name_or_defer(stmt, node.items[1], res_typedecl)
+
+def search_Signed_Int_Literal_Constant(stmt, node): 
+    if node.items[1]:
+        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+    #get_name_or_defer(stmt, node.items[1], res_typedecl)
 
 def search_Real_Literal_Constant(stmt, node): 
-    get_name_or_defer(stmt, node.items[1], res_typedecl)
+    if node.items[1]:
+        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+    #get_name_or_defer(stmt, node.items[1], res_typedecl)
+
+def search_Signed_Real_Literal_Constant(stmt, node): 
+    if node.items[1]:
+        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+    #get_name_or_defer(stmt, node.items[1], res_typedecl)
 
 def search_Subroutine_Stmt(stmt, node): 
     get_name_or_defer(stmt, node.items[2], res_typedecl) # dummy args
@@ -320,7 +337,9 @@ def search_Call_Stmt(stmt, node):
         defer(stmt, node.items[1])
 
 def search_Char_Literal_Constant(stmt, node): 
-    get_name_or_defer(stmt, node.items[0], res_typedecl)
+    if node.items[1]:
+        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+    #get_name_or_defer(stmt, node.items[0], res_typedecl)
 
 def search_Length_Selector(stmt, node): 
     for item in node.items:
@@ -369,7 +388,9 @@ def search_Prefix_Spec(stmt, node):
         raise ProgramException('Unexpected item or items attr')
 
 def search_Logical_Literal_Constant(stmt, node):
-    get_name_or_defer(stmt, node.items[1], res_typedecl)
+    if node.items[1]:
+        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+    #get_name_or_defer(stmt, node.items[1], res_typedecl)
 
 def search_Access_Spec(stmt, node):
     pass

@@ -66,6 +66,7 @@ def generate_kernel_files():
             mod_stmt = None 
             for stmt, depth in walk(srcfile.tree, -1):
                 # if stmt is module
+
                 if stmt in srcfile.tree.a.module.values():
                     mod_stmt = stmt
                     if hasattr(stmt, 'spec_stmts'):
