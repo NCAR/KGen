@@ -1,0 +1,2 @@
+This test implements a complex derived datatype whose objects are also derived datatypes some of which are passed as a whole to a kernel that has to be extracted.
+See test2_mod.F90 file.
