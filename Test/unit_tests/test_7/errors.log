@@ -1,0 +1,13 @@
+
+Pre-processing is done
+Reading /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_7/src/test7_mod.F90
+Call-site location is found
+Reading /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_7/src/compute.F90
+	in the search of "add" directly from test7_mod.F90 and originally from test7_mod.F90
+
+Error: Fortran specification of Level_5_Expr is not supported yet.
+
+'kgen.log' in output folder contains detail information of this error.
+If you send the log file to 'kgen@ucar.edu', that could be very
+helpful for us to support this Fortran spec. in future KGEN version.
+

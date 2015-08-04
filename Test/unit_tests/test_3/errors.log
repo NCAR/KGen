@@ -1,0 +1,49 @@
+
+Pre-processing is done
+Reading /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90
+Call-site location is found
+Reading /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/compute.F90
+	in the search of "add" directly from test3_mod.F90 and originally from test3_mod.F90
+Kernel information is collected
+Instrumented files are generated
+Kernel files are generated
+Makefiles are generated
+Post-processing is done
+Completed.
+make[2]: Entering directory `/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/kgen/state'
+if [ ! -f /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90 /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90.kgen_org; fi
+if [ ! -f test3_mod.F90.kgen_org ]; then cp -f /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90 test3_mod.F90.kgen_org; fi
+#rm -f kernel.exe *.mod *.o
+cp -f test3_mod.F90 /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90
+cd /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src; make build
+make[3]: Entering directory `/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src'
+ifort -c -o compute.o compute.F90
+ifort -c -o test3_mod.o test3_mod.F90
+ifort -c -o test3.o test3.F90
+ifort -o test3.exe test3.o test3_mod.o compute.o
+make[3]: Leaving directory `/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src'
+mv -f /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90.kgen_org /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src/test3_mod.F90
+cd /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/src; ./test3.exe
+ KGEN writes input state variables at count =            1
+ kgen_counter =            1
+make[2]: Leaving directory `/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/kgen/state'
+make[2]: Entering directory `/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/kgen/kernel'
+ifort  -c -o kgen_utils.o kgen_utils.f90
+ifort  -c -o compute.o compute.F90
+ifort  -c -o test3_mod.o test3_mod.F90
+ifort  -c -o kernel_driver.o kernel_driver.f90
+ifort    -o kernel.exe kernel_driver.o test3_mod.o kgen_utils.o compute.o
+./kernel.exe
+ 
+ 
+ ** Verification against './add.1' **
+ 
+ add KGENPrtCheck: Tolerance for normalized RMS:   9.999999824516700E-015
+ add KGENPrtCheck: Number of variables checked:            1
+ add KGENPrtCheck: Number of Identical results:            1
+ add KGENPrtCheck: Number of warnings detected:            0
+ add KGENPrtCheck: Number of fatal errors detected:            0
+ add KGENPrtCheck: verification PASSED
+ 
+ Elapsed time (sec):   9.3999997E-06
+make[2]: Leaving directory `/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/test_3/kgen/kernel'
