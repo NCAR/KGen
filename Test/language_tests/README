@@ -12,5 +12,5 @@ This is still under development. More tests will be added and the testing script
 If a test fails, an error.log file is generated inside that test's folder. Please view that file for 
 more details.
 
-To run these tests, you need to modify test.sh inside each folder to point to the appropriate KGEN
+To run these tests, you need to modify test.sh inside this folder to point to the appropriate KGEN
 source that you have access to.
