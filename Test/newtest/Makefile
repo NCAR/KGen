@@ -8,12 +8,18 @@ TEST_ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/..
 #${MAKE} test -C $$t TEST_ROOT=${TEST_ROOT} KGEN_ROOT=${KGEN_ROOT} SRC_DIR=${SRC_DIR} || exit 1; done
 #TESTS := $(shell ls -d */src)
 
+all : clean test
+
 test: copy
 	@for t in ${TMP_DIR}; do \
-    echo "###############################################################################"; \
-    echo "                          Executing make test in  $$t                            "; \
-    echo "###############################################################################"; \
-    ${MAKE} test -C $$t TEST_ROOT=${TEST_ROOT} KGEN_ROOT=${KGEN_ROOT} TEST_DIR=$$t ; done
+    		${MAKE} test --no-print-directory -C $$t TEST_ROOT=${TEST_ROOT} KGEN_ROOT=${KGEN_ROOT} TEST_DIR=$$t ; \
+		if grep -q "TEST $$t passed" ./Results.txt ; then \
+			echo Test $$t passed; \
+			rm -rf $$t; \
+		else \
+			echo Test $$t failed; \
+		fi; \
+	done
 
 copy : mktemps
 	@for t in ${TMP_DIR}; do \
@@ -25,4 +31,4 @@ mktemps:
 		echo $$t | (read p1; mkdir $$p1); \
 	done
 clean:
-	rm -r tmp_*
+	-rm -r tmp_* Results.txt
