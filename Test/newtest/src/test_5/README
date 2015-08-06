@@ -1,0 +1,3 @@
+Use of common block to access variables from inside kernel.
+Please see calling_module.F90 and kernel.F90 for more details
+
