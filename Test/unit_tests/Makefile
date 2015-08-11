@@ -1,7 +1,7 @@
 # KGEN Unit Test
 
-SRC_DIR := $(shell find src/ -maxdepth 1 -type d -not -name 'misc' -not -name 'src')
-TMP_DIR := $(shell find src/ -maxdepth 1 -type d -not -name 'misc' -not -name 'src' | sed s:src/:tmp_:)
+SRC_DIR := $(shell find src/ -maxdepth 1 -type d -not -name 'misc' -not -name 'src' -not -name Templates)
+TMP_DIR := $(shell find src/ -maxdepth 1 -type d -not -name 'misc' -not -name 'src' -not -name Templates | sed s:src/:tmp_:)
 TEST_ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/..
 KGEN_ROOT := ${TEST_ROOT}/../kgen
 

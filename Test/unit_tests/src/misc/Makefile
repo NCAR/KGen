@@ -33,16 +33,16 @@ extract: copy
 copy: mkdir
 	@cp -rf ${SRC_DIR}/* ${TMP_DIR}
 	@if [ ! -e ${TMP_DIR}/test_top.F90 ] ; then \
-		cp -f ${SRC_DIR}/test_top.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
+		cp -f ${SRC_DIR}/../Templates/test_top.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
 	fi;
 	@if [ ! -e ${TMP_DIR}/calling_module.F90  ] ; then \
-		cp -f ${SRC_DIR}/calling_module.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
+		cp -f ${SRC_DIR}/../Templates/calling_module.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
 	fi;
 	@if [ ! -e ${TMP_DIR}/kernel.F90 ] ; then \
-		cp -f ${SRC_DIR}/kernel.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
+		cp -f ${SRC_DIR}/../Templates/kernel.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
 	fi;
 	@if [ ! -e ${TMP_DIR}/Makefile ] ; then \
-		cp -f ${SRC_DIR}/Makefile ${TMP_DIR} >>${ERR_FILE} 2>&1; \
+		cp -f ${SRC_DIR}/../Templates/Makefile ${TMP_DIR} >>${ERR_FILE} 2>&1; \
 	fi;
 
 mkdir:
