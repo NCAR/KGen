@@ -1,3 +1,0 @@
-implements signed literal constants in data assignment statement
-Please see calling_module.F90 and kernel.F90 for more details
-

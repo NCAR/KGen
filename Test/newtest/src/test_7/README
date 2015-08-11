@@ -1,2 +1,0 @@
-This test implements a Level-5 expression as specified by the fortran standard.
-Please see calling_module.F90 and kernel.F90 for more details

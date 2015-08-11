@@ -1,2 +1,0 @@
-Use of common block to access variables from inside kernel.
-See orig_tests/test5.F90 and orig_tests/compute.F90

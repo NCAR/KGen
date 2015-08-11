@@ -1,2 +1,0 @@
-This test implements the passing of derived datatype objects as arguments to a kernel that has to be extracted.
-See test1_mod.F90 file.
