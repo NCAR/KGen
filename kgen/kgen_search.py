@@ -751,6 +751,12 @@ def search_Type_Attr_Spec(stmt, node):
         get_name_or_defer(stmt, node.items[0], res_value)
         get_name_or_defer(stmt, node.items[1], res_value)
 
+def search_Level_5_Expr(stmt, node):
+        get_name_or_defer(stmt, node.items[0], res_value)
+
+def search_Generic_Spec(stmt, node):
+        get_name_or_defer(stmt, node.items[0], res_value)
+
 def search_Parameter_Stmt(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
    
