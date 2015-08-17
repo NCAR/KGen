@@ -10,16 +10,16 @@ SRC := ${TMP_DIR}/calling_module.F90
 CALLSITE:=calling_module.calling_subroutine.add
 ERR_FILE:=${CURR_DIR}/errors.log
 test: gendata
-	@cd kernel; make >> ${ERR_FILE} 2>&1;
+	@cd kernel; ${MAKE} -i >> ${ERR_FILE} 2>&1;
 	@if grep -q "verification PASSED" ${ERR_FILE} ; then \
 		echo TEST ${TEST_DIR} passed >> ../Results.txt; \
 		${MAKE} clean; \
 	else \
-		echo TEST ${TEST_DIR} failed. Check errors.log for more details >> ../Results.txt; \
+		echo TEST ${TEST_DIR} FAILED. Check error log for more details >> ../Results.txt; \
 	fi;
 
 gendata: extract
-	@cd state; make >> ${ERR_FILE} 2>&1;
+	@cd state; ${MAKE} -i >> ${ERR_FILE} 2>&1;
 
 extract: copy
 	@python ${KGEN_ROOT}/kgen.py \
