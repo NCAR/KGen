@@ -173,11 +173,13 @@ class Line(object):
         findall = self.f2py_strmap_findall
         str_map = self.strlinemap
         keys = findall(line)
-        for k in keys:
+        #for k in keys: # KGEN deleted
+        for k in sorted(keys, reverse=True): # KGEN added
             line = line.replace(k, str_map[k])
         return line
 
     def copy(self, line = None, apply_map = False):
+
         if line is None:
             line = self.line
         if apply_map:
