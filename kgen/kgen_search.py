@@ -424,11 +424,11 @@ def search_Data_Ref(stmt, node):
     from kgen_utils import KGName
     from Fortran2003 import Name, Part_Ref
 
-    parent = stmt.ancestors()[-1]
-    if not hasattr(parent, 'datarefs'):
-        parent.datarefs = []
-    kgname = KGName(str(node))
-    parent.datarefs.append(kgname)
+#    parent = stmt.ancestors()[-1]
+#    if not hasattr(parent, 'datarefs'):
+#        parent.datarefs = []
+#    kgname = KGName(str(node))
+#    parent.datarefs.append(kgname)
 
     get_name_or_defer(stmt, node.items[0], res_value)
 
@@ -741,8 +741,12 @@ def search_Actual_Arg_Spec(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Data_Pointer_Object(stmt, node):
+    from Fortran2003 import Name
+
     get_name_or_defer(stmt, node.items[0], res_value)
-    get_name_or_defer(stmt, node.items[2], res_value)
+
+    if node.items[2] and not isinstance(node.items[2], Name):
+        get_name_or_defer(stmt, node.items[2], res_value)
 
 def search_Type_Attr_Spec(stmt, node):
     if isinstance(node.items[0], str) and node.items[0]=='EXTENDS':

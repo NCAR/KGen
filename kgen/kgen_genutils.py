@@ -105,6 +105,7 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
             if res.state!=ResState.RESOLVED: unres.append(uname.firstpartname()) 
     if len(unres)>0:
         unresstr = ' ! UNRESOLVED: %s' % ', '.join(unres)
+        import pdb; pdb.set_trace()
         #print '%s at line %d of %s'%(unresstr, stmt.item.span[0], stmt.reader.id)
         print '%s in %s'%(unresstr, stmt.reader.id)
 
@@ -1000,7 +1001,7 @@ def write_kernel_subroutines_type_verify_var(f, depth, dtypelist):
     tempblock['res_stmt'] = {}
 
     for dtype in dtypelist:
-        write(f, 'SUBROUTINE kgen_verify_%s(varname, check_status, var, ref_var)'%dtype.name, d=depth)
+        write(f, 'RECURSIVE SUBROUTINE kgen_verify_%s(varname, check_status, var, ref_var)'%dtype.name, d=depth)
         write(f, 'CHARACTER(*), INTENT(IN) :: varname', d=depth+1)
         write(f, 'TYPE(check_t), INTENT(INOUT) :: check_status', d=depth+1)
         write(f, 'TYPE(check_t) :: dtype_check_status', d=depth+1)
@@ -1591,9 +1592,14 @@ class GenVerification(GenBase):
                 if subrname in verify_subrnames:
                     continue
 
-                write(f, 'SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
+                if res_stmt.is_derived():
+                    write(f, 'RECURSIVE SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
+                else:
+                    write(f, 'SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
+
                 cls.write_specpart(f, depth+1, n, res_stmt, var)
                 cls.write_checkpart(f, depth+1, n, res_stmt, var, tempblock)
+
                 write(f, 'END SUBROUTINE kgen_verify_%s'%subrname, d=depth+1)
                 write(f, '')
 

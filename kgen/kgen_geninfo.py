@@ -49,7 +49,8 @@ def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=Tr
                             entity = Entity_Decl(decl)
                             varname = entity.items[0].string.lower()
                             var = dtype.a.variables[varname]
-                            append_tkdpat(loctype, var, comp, tkdpatlist)
+                            if comp.name!=dtype.name:
+                                append_tkdpat(loctype, var, comp, tkdpatlist)
 
 def process_spec_stmts(parent, is_callsite):
     from statements import Access, Allocatable, Asynchronous, Bind, Common, Data, Dimension, Equivalence, External, Intent, \
