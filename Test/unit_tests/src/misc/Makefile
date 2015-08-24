@@ -19,7 +19,11 @@ test: gendata
 	fi;
 
 gendata: extract
-	@cd state; ${MAKE} -i >> ${ERR_FILE} 2>&1;
+	@if [ -d state ] ; then \
+                cd state; make >> ${ERR_FILE} 2>&1; \
+        else \
+                echo extraction failed >> ${ERR_FILE} 2>&1; exit 1; \
+        fi;
 
 extract: copy
 	@python ${KGEN_ROOT}/kgen.py \
