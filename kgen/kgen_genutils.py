@@ -105,7 +105,6 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
             if res.state!=ResState.RESOLVED: unres.append(uname.firstpartname()) 
     if len(unres)>0:
         unresstr = ' ! UNRESOLVED: %s' % ', '.join(unres)
-        import pdb; pdb.set_trace()
         #print '%s at line %d of %s'%(unresstr, stmt.item.span[0], stmt.reader.id)
         print '%s in %s'%(unresstr, stmt.reader.id)
 
