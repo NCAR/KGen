@@ -766,11 +766,17 @@ def search_Saved_Entity(stmt, node):
             get_name_or_defer(stmt, item, res_value)
 
 def search_Alloc_Opt(stmt, node):
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Dealloc_Opt(stmt, node):
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Assumed_Size_Spec(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Common_Block_Object(stmt, node):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
+    get_name_or_defer(stmt, node.items[0], res_value)
     get_name_or_defer(stmt, node.items[1], res_value)
