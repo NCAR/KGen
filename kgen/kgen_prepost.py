@@ -70,6 +70,7 @@ def check_mode():
         if prep.endswith('fpp'): flags = Config.bin['fpp_flags']
         elif prep.endswith('cpp'): flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
+
         output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, file))
 
         # convert the preprocessed for fparser

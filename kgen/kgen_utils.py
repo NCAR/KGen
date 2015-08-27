@@ -278,7 +278,7 @@ class Config(object):
         # include parameters
         self._attrs['include'] = {}
         self._attrs['include']['macro'] = {}
-        self._attrs['include']['path'] = []
+        self._attrs['include']['path'] = ['.']
         self._attrs['include']['type'] = {}
         self._attrs['include']['file'] = {}
 
