@@ -1068,7 +1068,8 @@ def write_kernel_timing(f, depth):
 
     write(f, 'CALL system_clock(start_clock, rate_clock)', d=depth)
     #write(f, 'start_clock = rdtsc()', d=depth)
-    write(f, 'DO kgen_intvar=1,%d'%Config.timing['repeat'], d=depth)
+    #write(f, 'DO kgen_intvar=1,%d'%Config.timing['repeat'], d=depth)
+    write(f, 'DO kgen_intvar=1,maxiter', d=depth)
     expr = State.callsite['expr']
     if isinstance(State.callsite['stmt'], Assignment):
         lhs = State.callsite['stmt'].f2003.items[0]
@@ -1079,9 +1080,10 @@ def write_kernel_timing(f, depth):
     #write(f, 'stop_clock = rdtsc()', d=depth)
     write(f, 'CALL system_clock(stop_clock, rate_clock)', d=depth)
     write(f, 'WRITE(*,*)', d=depth)
-    write(f, 'PRINT *, "Elapsed time (sec): ", (stop_clock - start_clock)/REAL(rate_clock*%d)'% \
+    write(f, 'PRINT *, "%s : Time per call (usec): ", 1.0e6*(stop_clock - start_clock)/REAL(rate_clock*maxiter)'%\
+        Config.callsite['subpname'].firstpartname(), d=depth)
     #write(f, 'PRINT *, "Elapsed clock (cycles): ", (stop_clock - start_clock)/%d'% \
-        Config.timing['repeat'], d=depth)
+    #    Config.timing['repeat'], d=depth)
 
 def write_kernel_pertcalls(f, depth):
     from typedecl_statements import Real

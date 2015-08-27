@@ -491,6 +491,7 @@ def generate_kernel_module_callsite():
 
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
+                    write(f, 'INTEGER, PARAMETER :: maxiter=%d'%Config.timing['repeat'], depth)
                     write(f, 'TYPE(check_t):: check_status', d=depth)
                     write(f, 'REAL(KIND=kgen_dp) :: tolerance', d=depth)
 
@@ -506,6 +507,7 @@ def generate_kernel_module_callsite():
 
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
+                    write(f, 'INTEGER, PARAMETER :: maxiter=%d'%Config.timing['repeat'], depth)
                     write(f, 'TYPE(check_t):: check_status', d=depth)
                     write(f, 'REAL(KIND=kgen_dp) :: tolerance', d=depth)
 
@@ -522,6 +524,7 @@ def generate_kernel_module_callsite():
 
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
+                    write(f, 'INTEGER, PARAMETER :: maxiter=%d'%Config.timing['repeat'], depth)
                     write(f, 'TYPE(check_t):: check_status', d=depth)
                     write(f, 'REAL(KIND=kgen_dp) :: tolerance', d=depth)
 

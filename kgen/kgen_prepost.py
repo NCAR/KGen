@@ -132,8 +132,11 @@ def check_mode():
         print file
         lines = []
         for stmt in stmts:
-            lines.append('Near line # %d:'%stmt.item.span[0])
-            lines.append(stmt.tokgen()+'\n')
+            if hasattr(stmt, 'item'):
+                lines.append('Near line # %d:'%stmt.item.span[0])
+                lines.append(stmt.tokgen()+'\n')
+            else:
+                lines.append(str(stmt)+'\n')
         print '\n'.join(lines), '\n'
 
     print '*** Not Supported Fortran Statement(s) ***'
