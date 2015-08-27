@@ -1,9 +1,9 @@
 module kernel
         
-        USE types
-        !type matrix
-        !        real elem
-        !end type
+        !USE types
+        type matrix
+                real elem
+        end type
 
         integer(kind=4), parameter :: real_kind=4
         integer(kind=4), parameter :: np = 2

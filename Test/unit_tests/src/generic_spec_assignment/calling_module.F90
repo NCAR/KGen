@@ -1,7 +1,7 @@
 module calling_module
 
         USE kernel
-        USE types
+        !USE types
 
         public :: calling_subroutine
 
