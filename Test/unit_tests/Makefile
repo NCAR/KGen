@@ -33,7 +33,7 @@ test: copy
 
 copy : mktemps
 	@for t in ${TMP_DIR}; do \
-		cp -f src/misc/Makefile $$t; \
+		cp -f ./Makefile.kgen  $$t/Makefile; \
 	done
 
 mktemps:
