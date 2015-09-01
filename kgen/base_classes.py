@@ -851,14 +851,17 @@ class Statement(object):
 
 
     def get_res_stmt(self, uname):
-        if not hasattr(self, 'unknowns'): return None
+        if not hasattr(self, 'unknowns'):
+            return None
 
         if isinstance(uname, str): strname = uname
         elif isinstance(uname, KGName): strname = uname.firstpartname()
 
         for kgname, res in self.unknowns.iteritems():
-            if res is None: return None
-            if kgname.firstpartname()==strname: return res.res_stmt
+            if res is None:
+                return None
+            if kgname.firstpartname()==strname:
+                return res.res_stmt
         return None
 
     def resolve(self, request):

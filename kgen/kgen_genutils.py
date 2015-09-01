@@ -252,26 +252,29 @@ class GenBase(object):
     def vartypename_stmt(cls, stmt, var, is_elem=False, modcall4dtype=False):
         if stmt.is_derived():
             dtype = stmt.get_res_stmt(stmt.name)
-            vtname = dtype.name
-            if not is_elem and (var.is_pointer() or var.is_array()):
-                return stmt.name
-            else:
-                if isinstance(dtype, Use):
-                    if dtype.module is State.topblock['stmt']:
-                        mod_num = 0
-                    elif State.modules.has_key(dtype.module.name):
-                        mod_num = State.modules[dtype.module.name]['num']
-                    else: raise ProgramException('No module is found')
-                    return 'mod%d'%mod_num
-                elif modcall4dtype:
-                    if dtype.name in State.topblock['stmt'].a.type_decls.keys():
-                        mod_num = 0
-                    elif State.modules.has_key(dtype.parent.name):
-                        mod_num = State.modules[dtype.parent.name]['num']
-                    else: raise ProgramException('No module is found')
-                    return 'mod%d'%mod_num
-                else:
+            if dtype:
+                vtname = dtype.name
+                if not is_elem and (var.is_pointer() or var.is_array()):
                     return stmt.name
+                else:
+                    if isinstance(dtype, Use):
+                        if dtype.module is State.topblock['stmt']:
+                            mod_num = 0
+                        elif State.modules.has_key(dtype.module.name):
+                            mod_num = State.modules[dtype.module.name]['num']
+                        else: raise ProgramException('No module is found')
+                        return 'mod%d'%mod_num
+                    elif modcall4dtype:
+                        if dtype.name in State.topblock['stmt'].a.type_decls.keys():
+                            mod_num = 0
+                        elif State.modules.has_key(dtype.parent.name):
+                            mod_num = State.modules[dtype.parent.name]['num']
+                        else: raise ProgramException('No module is found')
+                        return 'mod%d'%mod_num
+                    else:
+                        return stmt.name
+            else:
+                return 'unresolved_name_%s'%stmt.name
         else:
             return '%s_%s'%(stmt.__class__.__name__.lower(), stmt.get_kind())
 
@@ -1516,49 +1519,53 @@ class GenVerification(GenBase):
         else:
             # if dtype
             if res_stmt.is_derived():
-                write(f, '')
-                write(f, 'check_status%numTotal = check_status%numTotal + 1', d=depth+1)
-                write(f, 'CALL kgen_init_check(dtype_check_status)', d=depth+1)
 
                 dtype = res_stmt.get_res_stmt(res_stmt.name)
 
-                if isinstance(dtype, Use):
-                    mod_num = State.modules[dtype.name]['num']
-                    write(f, 'CALL kgen_verify_mod%d(varname, dtype_check_status, var, ref_var)'%mod_num, d=depth)
-                elif isinstance(dtype, Type):
-                    for comp, _depth in walk(dtype):
-                        if isinstance(comp, TypeDeclarationStatement):
-                            decl = Entity_Decl(comp.entity_decls[0])
-                            uname = KGName(decl.items[0].string)
-                            tempblock['names'].append(uname)
-                            tempblock['res_stmt'][uname] = comp
+                if dtype:
+                    write(f, '')
+                    write(f, 'check_status%numTotal = check_status%numTotal + 1', d=depth+1)
+                    write(f, 'CALL kgen_init_check(dtype_check_status)', d=depth+1)
 
-                            var = comp.parent.a.variables[uname.firstpartname()]
-                            subrname = GenBase.subrname_stmt(comp, var, call4arr=True, subr4kind=True)
-                            
-                            if not subrname:
-                                subrname = comp.name
-
-                            for entity in comp.entity_decls:
-                                decl = Entity_Decl(entity)
+                    if isinstance(dtype, Use):
+                        mod_num = State.modules[dtype.name]['num']
+                        write(f, 'CALL kgen_verify_mod%d(varname, dtype_check_status, var, ref_var)'%mod_num, d=depth)
+                    elif isinstance(dtype, Type):
+                        for comp, _depth in walk(dtype):
+                            if isinstance(comp, TypeDeclarationStatement):
+                                decl = Entity_Decl(comp.entity_decls[0])
                                 uname = KGName(decl.items[0].string)
-                                n = uname.firstpartname()
+                                tempblock['names'].append(uname)
+                                tempblock['res_stmt'][uname] = comp
 
-                                write(f, 'CALL kgen_verify_%s("%s", dtype_check_status, var%%%s, ref_var%%%s)'%(subrname, n, n, n), d=depth+1)
-                            #import pdb; pdb.set_trace()
+                                var = comp.parent.a.variables[uname.firstpartname()]
+                                subrname = GenBase.subrname_stmt(comp, var, call4arr=True, subr4kind=True)
+                                
+                                if not subrname:
+                                    subrname = comp.name
+
+                                for entity in comp.entity_decls:
+                                    decl = Entity_Decl(entity)
+                                    uname = KGName(decl.items[0].string)
+                                    n = uname.firstpartname()
+
+                                    write(f, 'CALL kgen_verify_%s("%s", dtype_check_status, var%%%s, ref_var%%%s)'%(subrname, n, n, n), d=depth+1)
+                                #import pdb; pdb.set_trace()
+                    else:
+                        raise ProgramException('Unknown type: %s'%dtype.__class__)
+
+                    #subrname = 'pend'
+                    #write(f, (kgen_verify_dtype_checkpart%subrname).replace('\n', '\n%s'%(TAB*(depth+1))), d=depth+1)
+                    #write(f, 'PRINT *, "NOTE: verification for derived type is not implemented."', d=depth+1)
+                    write(f, 'IF ( dtype_check_status%numTotal == dtype_check_status%numIdentical ) THEN', d=depth+1)
+                    write(f, '    check_status%numIdentical = check_status%numIdentical + 1', d=depth+1)
+                    write(f, 'ELSE IF ( dtype_check_status%numFatal > 0 ) THEN', d=depth+1)
+                    write(f, '    check_status%numFatal = check_status%numFatal + 1', d=depth+1)
+                    write(f, 'ELSE IF ( dtype_check_status%numWarning > 0 ) THEN', d=depth+1)
+                    write(f, '    check_status%numWarning = check_status%numWarning + 1', d=depth+1)
+                    write(f, 'END IF', d=depth+1)
                 else:
-                    raise ProgramException('Unknown type: %s'%dtype.__class__)
-
-                #subrname = 'pend'
-                #write(f, (kgen_verify_dtype_checkpart%subrname).replace('\n', '\n%s'%(TAB*(depth+1))), d=depth+1)
-                #write(f, 'PRINT *, "NOTE: verification for derived type is not implemented."', d=depth+1)
-                write(f, 'IF ( dtype_check_status%numTotal == dtype_check_status%numIdentical ) THEN', d=depth+1)
-                write(f, '    check_status%numIdentical = check_status%numIdentical + 1', d=depth+1)
-                write(f, 'ELSE IF ( dtype_check_status%numFatal > 0 ) THEN', d=depth+1)
-                write(f, '    check_status%numFatal = check_status%numFatal + 1', d=depth+1)
-                write(f, 'ELSE IF ( dtype_check_status%numWarning > 0 ) THEN', d=depth+1)
-                write(f, '    check_status%numWarning = check_status%numWarning + 1', d=depth+1)
-                write(f, 'END IF', d=depth+1)
+                    write(f, '! unresolved_name_%s'%res_stmt.name, d=depth+1) 
             else:
                 write(f, (kgen_verify_intrinsic_checkpart%eqtest).replace('\n', '\n%s'%(TAB*(depth+1))), d=depth+1)
         # end if
