@@ -306,6 +306,7 @@ class Config(object):
 
         # kernel correctness check parameters
         self._attrs['check'] = {}
+        #self._attrs['check']['pert_invar'] = ['*']
         self._attrs['check']['pert_invar'] = []
         self._attrs['check']['pert_lim'] = '1.0E-15'
 
@@ -453,6 +454,8 @@ class Config(object):
                     key, value = skip.split('=')
                     if key=='except':
                         self._attrs['search']['except'].extend(value.split(':'))
+                    elif key=='add_intrinsic':
+                        Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
                     else:
                         raise UserException('Unknown skip_intrinsic option: %s' % comp)
 

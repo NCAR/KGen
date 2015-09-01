@@ -1,6 +1,7 @@
 # kgen_genutils.py
 
 import os
+import logging
 
 from api import walk
 from base_classes import BeginStatement
@@ -13,6 +14,8 @@ from kgen_state import State
 from kgen_utils import Config, Logger, ProgramException, KGName
 from kgen_extra import kgen_file_header, kgen_subprograms, kgen_print_counter, kgen_verify_intrinsic_checkpart, \
     kgen_verify_numeric_array, kgen_verify_nonreal_array, kgen_utils_file_head, kgen_utils_file_checksubr
+
+logger = logging.getLogger('kgen') # KGEN addition
 
 ###############################################################################
 # COMMON
@@ -1090,7 +1093,8 @@ def write_kernel_pertcalls(f, depth):
  
     # perturbation tests
     for uname in State.parentblock['input']['names']:
-        if uname.firstpartname() in Config.check['pert_invar']:
+        if (len(Config.check['pert_invar'])==1 and Config.check['pert_invar'][0]=='*') or \
+            uname.firstpartname() in Config.check['pert_invar']:
             res_stmt = State.parentblock['input']['res_stmt'][uname]
             n = uname.firstpartname()
             var = res_stmt.parent.a.variables[n]
@@ -1100,8 +1104,6 @@ def write_kernel_pertcalls(f, depth):
                 if subrname:
                     write(f, '!Uncomment following call(s) to generate perturbed input(s)', d=depth)
                     write(f, '!CALL kgen_perturb_%s( %s )'%(subrname, n), d=depth)
-            else:
-                logger.warn('%s is not a Real variable or not an arrray.'%n)
     write(f, '')
 
 def write_file_header(f, filename):
@@ -1126,7 +1128,8 @@ def write_kernel_subroutines_perturb_var(f, depth):
  
     # perturbation tests
     for uname in State.parentblock['input']['names']:
-        if uname.firstpartname() in Config.check['pert_invar']:
+        if (len(Config.check['pert_invar'])==1 and Config.check['pert_invar'][0]=='*') or \
+            uname.firstpartname() in Config.check['pert_invar']:
             res_stmt = State.parentblock['input']['res_stmt'][uname]
             n = uname.firstpartname()
             var = res_stmt.parent.a.variables[n]
