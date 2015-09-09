@@ -298,4 +298,24 @@ def mark_generation_info():
     mark_callsite_generation_info()
     mark_modules_generation_info()
 
+    #if State.callsite['actual_arg']['names']:
+    #    State.callsite['actual_arg']['names'].sort()
+    State.callsite['actual_arg']['in_names'].sort()
+    State.callsite['actual_arg']['out_names'].sort()
+    State.callsite['actual_arg']['inout_names'].sort()
+    State.parentblock['dummy_arg']['names'].sort()
+    State.parentblock['dummy_arg']['in_names'].sort()
+    State.parentblock['dummy_arg']['out_names'].sort()
+    State.parentblock['dummy_arg']['inout_names'].sort()
+    State.parentblock['input']['names'].sort()
+    State.parentblock['output']['names'].sort()
+    State.topblock['extern']['names'].sort()
+    #State.kernel['dummy_arg']['names'].sort()
+    State.kernel['dummy_arg']['in_names'].sort()
+    State.kernel['dummy_arg']['out_names'].sort()
+    State.kernel['dummy_arg']['inout_names'].sort()
+    State.kernel_driver['input']['names'].sort()
+    for modname, modattrs in State.modules.iteritems():
+        modattrs['extern']['names'].sort()
+
     State.state = State.GENINFO_MARKED
