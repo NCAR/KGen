@@ -1284,24 +1284,6 @@ class Parameter(Statement):
                         if request.state != ResState.RESOLVED:
                             self.resolve(request)
 
-
-#                if hasattr(self, 'unknowns'):
-#                    if len(self.unknowns)>0:
-#                        pass
-#                        #if any([ req.state!=ResState.RESOLVED for req in self.unknowns.values() ]):
-#                        #    import pdb; pdb.set_trace()
-#                        #    raise ProgramException('unknown attributes is not expected')
-#                    else:
-#                        f2003_search_unknowns(self, node.items[1])
-#                        for unknown, request in self.unknowns.iteritems():
-#                            if request.state != ResState.RESOLVED:
-#                                self.resolve(request)
-#                else:
-#                    f2003_search_unknowns(self, node.items[1])
-#                    for unknown, request in self.unknowns.iteritems():
-#                        if request.state != ResState.RESOLVED:
-#                            self.resolve(request)
-
     def tokgen(self, items=None):
         if not items is None:
             tmpitems = self.items
