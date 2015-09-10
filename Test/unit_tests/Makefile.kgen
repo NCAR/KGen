@@ -2,13 +2,14 @@
 #
 #
 
-FC := ifort
 CURR_DIR := $(shell pwd)
 SRC_DIR := $(shell echo ${CURR_DIR} | sed s:tmp_:src/:)
 TMP_DIR := ${CURR_DIR}/tmp_test
 SRC := ${TMP_DIR}/calling_module.F90
 CALLSITE:=calling_module.calling_subroutine.add
 ERR_FILE:=${CURR_DIR}/errors.log
+FC_FLAGS:=$(shell cat ${SRC_DIR}/flags.txt)
+
 test: gendata
 	@cd kernel; ${MAKE} -i >> ${ERR_FILE} 2>&1;
 	@if grep -q "verification PASSED" ${ERR_FILE} ; then \
@@ -27,12 +28,13 @@ gendata: extract
 
 extract: copy
 	@python ${KGEN_ROOT}/kgen.py \
-    -D ROW=4,COLUMN=4 \
-    -I ${TMP_DIR} \
-    --state-build cmds="cd ${TMP_DIR}; make clean; make build" \
-    --state-run cmds="cd ${TMP_DIR}; make run" \
-    --kernel-compile FC=${FC} \
-    ${SRC}:${CALLSITE} >>${ERR_FILE} 2>&1
+	    -D ROW=4,COLUMN=4 \
+	    -I ${TMP_DIR} \
+	    --state-build cmds="cd ${TMP_DIR}; make clean; make build" \
+	    --state-run cmds="cd ${TMP_DIR}; make run" \
+	    --kernel-compile FC=${FC},FC_FLAGS='${FC_FLAGS}' \
+	    ${SRC}:${CALLSITE} >>${ERR_FILE} 2>&1 ;
+
 
 copy: mkdir
 	@cp -rf ${SRC_DIR}/* ${TMP_DIR}

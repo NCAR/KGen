@@ -4,7 +4,7 @@ SRC_DIR := $(shell find src/ -type d -not -name 'misc' -not -name 'src' -not -na
 TMP_DIR := $(shell find src/ -type d -not -name 'misc' -not -name 'src' -not -name Templates | sed s:src/:tmp_:)
 TEST_ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/..
 KGEN_ROOT := ${TEST_ROOT}/../kgen
-
+FC := ifort
 #${MAKE} test -C $$t TEST_ROOT=${TEST_ROOT} KGEN_ROOT=${KGEN_ROOT} SRC_DIR=${SRC_DIR} || exit 1; done
 #TESTS := $(shell ls -d */src)
 #| (read p1; mkdir $$p1); 
@@ -16,7 +16,7 @@ test: copy
 	m=0 ; \
 	num=`find . -maxdepth 1 -type d -not -name src -not -name . | wc -w` ; \
 	for t in ${TMP_DIR}; do \
-    		${MAKE} test --no-print-directory -C $$t TEST_ROOT=${TEST_ROOT} KGEN_ROOT=${KGEN_ROOT} TEST_DIR=$$t ; \
+    		${MAKE} test --no-print-directory -C $$t TEST_ROOT=${TEST_ROOT} KGEN_ROOT=${KGEN_ROOT} TEST_DIR=$$t FC=${FC} ; \
 		if grep -q "TEST $$t passed" ./Results.txt ; then \
 			echo Test $$t passed; \
 			rm -rf $$t; \
@@ -33,7 +33,7 @@ test: copy
 
 copy : mktemps
 	@for t in ${TMP_DIR}; do \
-		cp -f src/misc/Makefile $$t; \
+		cp -f ./Makefile.kgen  $$t/Makefile; \
 	done
 
 mktemps:
