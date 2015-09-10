@@ -38,7 +38,7 @@ from utils import split_comma, specs_split_comma, AnalyzeError, ParseError,\
 from utils import classes
 
 import Fortran2003 # KGEN addition
-from kgen_utils import Config, pack_namepath, Logger # KGEN addition
+from kgen_utils import Config, pack_namepath, Logger, ProgramException, UserException # KGEN addition
 
 class StatementWithNamelist(Statement):
     """
@@ -1077,7 +1077,7 @@ class Use(Statement):
 
     def resolve(self, request):
         from kgen_state import ResState, SrcFile, State
-        from kgen_utils import Logger, ProgramException, UserException
+        #from kgen_utils import Logger, ProgramException, UserException
 
         src = None
         if self.module is None:
@@ -1258,8 +1258,49 @@ class Parameter(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, res_stmt):
+        from kgen_search import f2003_search_unknowns
+        from kgen_state import ResState
+
         if uname.firstpartname() in self.leftnames:
             self.add_geninfo(uname)
+
+            node = None
+            if isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def):
+                if self.f2003.items[1].items[0].string.lower()==uname.firstpartname():
+                    node = self.f2003.items[1]
+            elif isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def_List):
+                for item in self.f2003.items[1].items:
+                    if isinstance(item, Fortran2003.Named_Constant_Def) and \
+                        item.items[0].string.lower()==uname.firstpartname():
+                        node = item
+                        break
+            else:
+                raise ProgramException('%s is not allowed'%self.f2003.items[1].__class__)
+
+            if node:
+                if not hasattr(self, 'unknowns') or len(self.unknowns)==0:
+                    f2003_search_unknowns(self, node.items[1])
+                    for unknown, request in self.unknowns.iteritems():
+                        if request.state != ResState.RESOLVED:
+                            self.resolve(request)
+
+
+#                if hasattr(self, 'unknowns'):
+#                    if len(self.unknowns)>0:
+#                        pass
+#                        #if any([ req.state!=ResState.RESOLVED for req in self.unknowns.values() ]):
+#                        #    import pdb; pdb.set_trace()
+#                        #    raise ProgramException('unknown attributes is not expected')
+#                    else:
+#                        f2003_search_unknowns(self, node.items[1])
+#                        for unknown, request in self.unknowns.iteritems():
+#                            if request.state != ResState.RESOLVED:
+#                                self.resolve(request)
+#                else:
+#                    f2003_search_unknowns(self, node.items[1])
+#                    for unknown, request in self.unknowns.iteritems():
+#                        if request.state != ResState.RESOLVED:
+#                            self.resolve(request)
 
     def tokgen(self, items=None):
         if not items is None:
