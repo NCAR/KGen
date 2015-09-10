@@ -127,6 +127,9 @@ class ActualArgList(object):
             if arg.has_firstpartname(fpn):
                 return i
         raise ProgramException('Out of index')
+
+    def sort(self):
+        self.arglist.sort()
    
 def collect_intent_names(var, kgname, param):
     if var.is_intent_in():

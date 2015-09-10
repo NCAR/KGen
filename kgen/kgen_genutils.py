@@ -1,6 +1,7 @@
 # kgen_genutils.py
 
 import os
+import logging
 
 from api import walk
 from base_classes import BeginStatement
@@ -13,6 +14,8 @@ from kgen_state import State
 from kgen_utils import Config, Logger, ProgramException, KGName
 from kgen_extra import kgen_file_header, kgen_subprograms, kgen_print_counter, kgen_verify_intrinsic_checkpart, \
     kgen_verify_numeric_array, kgen_verify_nonreal_array, kgen_utils_file_head, kgen_utils_file_checksubr
+
+logger = logging.getLogger('kgen') # KGEN addition
 
 ###############################################################################
 # COMMON
@@ -242,7 +245,7 @@ def write_subroutines_type_rw_var(f, depth, rd, dtypelist):
                     else:
                         write(f, '%s(UNIT=kgen_unit) var%%%s'%(rwstr.upper(), varname), d=depth+1)
                         write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+1)
-                        write(f, 'print *, "** " // printvar // "%%%s **", var%%%s'%(varname, varname), d=depth+2)
+                        write(f, 'print *, "** KGEN DEBUG: " // printvar // "%%%s **", var%%%s'%(varname, varname), d=depth+2)
                         write(f, 'END IF', d=depth+1)
 
         write(f, 'END SUBROUTINE', d=depth)
@@ -430,6 +433,8 @@ class GenIOStmt(GenBase):
         if readflag: rwstr = 'read'
         else: rwstr = 'write'
 
+        #block['names'].sort()
+
         # write non-derived type first
         for uname in block['names']:
             res_stmt = block['res_stmt'][uname]
@@ -450,7 +455,7 @@ class GenIOStmt(GenBase):
                 else:
                     write(f, '%s(UNIT=kgen_unit) %s'%(rwstr.upper(), varprefix+uname.firstpartname()), d=depth)
                     if printvar:
-                        write(f, 'PRINT *, "******* %s *******", %s'%(printvar, printvar), d=depth)
+                        write(f, 'PRINT *, "** KGEN DEBUG: %s **", %s'%(printvar, printvar), d=depth)
 
         # and write derived type next
         for uname in block['names']:
@@ -569,13 +574,16 @@ class GenSubroutines(GenBase):
             else:
                 if varpointer:
                     write(f, 'IF ( .NOT. ASSOCIATED(var) ) THEN', d=depth+2)
+                    #write(f, 'PRINT *, "** KGEN DEBUG PTR CHK 1: " // printvar // " **"', d=depth+3)
                     write(f, 'is_true = .FALSE.', d=depth+3)
                     write(f, 'ELSE IF ( SIZE(var)==1 ) THEN', d=depth+2)
                 else:
                     write(f, 'IF ( SIZE(var)==1 ) THEN', d=depth+2)
                 write(f, 'IF ( UBOUND(var, 1)<LBOUND(var, 1) ) THEN', d=depth+3)
+                #write(f, 'PRINT *, "** KGEN DEBUG PTR CHK 2: " // printvar // " **"', d=depth+3)
                 write(f, 'is_true = .FALSE.', d=depth+4)
                 write(f, 'ELSE IF ( UBOUND(var, 1)==0 .AND. LBOUND(var, 1)==0 ) THEN', d=depth+3)
+                #write(f, 'PRINT *, "** KGEN DEBUG PTR CHK 3: " // printvar // " **"', d=depth+3)
                 write(f, 'is_true = .FALSE.', d=depth+4)
                 write(f, 'ELSE', d=depth+3)
                 write(f, 'is_true = .TRUE.', d=depth+4)
@@ -655,9 +663,8 @@ class GenSubroutines(GenBase):
                 else:
                     write(f, 'READ(UNIT = kgen_unit) var', d=depth+3)
                     write(f, 'IF ( PRESENT(printvar) ) THEN', depth+3)
-                    write(f, 'PRINT *, "** " // printvar // " **", var', d=depth+4)
+                    write(f, 'PRINT *, "** KGEN DEBUG: " // printvar // " **", var', d=depth+4)
                     write(f, 'END IF', depth+3)
-
         else:
             if vardim==0:
                 if dtype:
@@ -672,7 +679,7 @@ class GenSubroutines(GenBase):
                 else:
                     write(f, 'READ(UNIT = kgen_unit) var', d=depth+3)
                     write(f, 'IF ( PRESENT(printvar) ) THEN', depth+3)
-                    write(f, 'PRINT *, "** " // printvar // " **", var', d=depth+4)
+                    write(f, 'PRINT *, "** KGEN DEBUG: " // printvar // " **", var', d=depth+4)
                     write(f, 'END IF', depth+3)
             else:
                 vardim = abs(vardim)
@@ -711,7 +718,7 @@ class GenSubroutines(GenBase):
                 else:
                     write(f, 'WRITE(UNIT = kgen_unit) var(%s)'%','.join(subscripts), d=depth+4)
                     write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+4)
-                    write(f, 'PRINT *, "** " // printvar // &', d=depth+5)
+                    write(f, 'PRINT *, "** KGEN DEBUG: " // printvar // &', d=depth+5)
                     write(f, '&"(%s) **", &'%','.join(subscripts), d=depth+5)
                     write(f, '&var(%s)'%','.join(subscripts), d=depth+5)
                     write(f, 'END IF', d=depth+4)
@@ -747,11 +754,15 @@ class GenSubroutines(GenBase):
                 else:
                     write(f, 'WRITE(UNIT = kgen_unit) var', d=depth+4)
                     write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+4)
-                    write(f, 'PRINT *, "** " // printvar // " **", var', d=depth+5)
+                    write(f, 'PRINT *, "** KGEN DEBUG: " // printvar // " **", var', d=depth+5)
                     write(f, 'END IF', d=depth+4)
 
                 write(f, 'END IF', d=depth+3)
 
+        write(f, 'ELSE', d=depth+2)
+        write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+3)
+        write(f, 'PRINT *, "** KGEN DEBUG: " // printvar // " ** is NOT present"', d=depth+4)
+        write(f, 'END IF', d=depth+3)
         write(f, 'END IF', d=depth+2)
 
     @classmethod
@@ -1090,7 +1101,8 @@ def write_kernel_pertcalls(f, depth):
  
     # perturbation tests
     for uname in State.parentblock['input']['names']:
-        if uname.firstpartname() in Config.check['pert_invar']:
+        if (len(Config.check['pert_invar'])==1 and Config.check['pert_invar'][0]=='*') or \
+            uname.firstpartname() in Config.check['pert_invar']:
             res_stmt = State.parentblock['input']['res_stmt'][uname]
             n = uname.firstpartname()
             var = res_stmt.parent.a.variables[n]
@@ -1100,8 +1112,6 @@ def write_kernel_pertcalls(f, depth):
                 if subrname:
                     write(f, '!Uncomment following call(s) to generate perturbed input(s)', d=depth)
                     write(f, '!CALL kgen_perturb_%s( %s )'%(subrname, n), d=depth)
-            else:
-                logger.warn('%s is not a Real variable or not an arrray.'%n)
     write(f, '')
 
 def write_file_header(f, filename):
@@ -1126,7 +1136,8 @@ def write_kernel_subroutines_perturb_var(f, depth):
  
     # perturbation tests
     for uname in State.parentblock['input']['names']:
-        if uname.firstpartname() in Config.check['pert_invar']:
+        if (len(Config.check['pert_invar'])==1 and Config.check['pert_invar'][0]=='*') or \
+            uname.firstpartname() in Config.check['pert_invar']:
             res_stmt = State.parentblock['input']['res_stmt'][uname]
             n = uname.firstpartname()
             var = res_stmt.parent.a.variables[n]
