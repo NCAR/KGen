@@ -216,7 +216,9 @@ def process_kernel_module_use_stmt(f, stmt, depth):
                         in_renames = True
                         break
                 if not in_renames:
-                        write(f, 'USE %s, only : %s'%(stmt.name, entity), d=depth)
+                    # TODO for rayl issue
+                    #import pdb ;pdb.set_trace()
+                    write(f, 'USE %s, only : %s'%(stmt.name, entity), d=depth)
 
 def add_public_stmt(f, depth):
 
