@@ -1,7 +1,7 @@
 ROW := 4
 COLUMN := 4
 
-FC := ifort
+FC := mpiifort
 FC_FLAGS := -DROW=${ROW} -DCOLUMN=${COLUMN}
 
 run: build
