@@ -4,11 +4,6 @@ include Makefile.inc
 
 SRC_DIR := $(shell find src/ -type d -not -name 'misc' -not -name 'src' -not -name Templates)
 TMP_DIR := $(shell find src/ -type d -not -name 'misc' -not -name 'src' -not -name Templates | sed s:src/:tmp_:)
-#TEST_ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/..
-#KGEN_ROOT := ${TEST_ROOT}/../kgen
-#FC := ifort
-#TESTS := $(shell ls -d */src)
-#| (read p1; mkdir $$p1); 
 
 all : clean test
 

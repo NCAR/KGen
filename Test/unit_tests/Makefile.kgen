@@ -34,7 +34,7 @@ extract: copy
 	    -I ${TMP_DIR} \
 	    --state-build cmds="cd ${TMP_DIR}; make clean; make build" \
 	    --state-run cmds="cd ${TMP_DIR}; make run" \
-	    --kernel-compile FC=ifort,FC_FLAGS='${FC_FLAGS}' \
+	    --kernel-compile FC='${FC}',FC_FLAGS='${FC_FLAGS}' \
 	    ${SRC}:${CALLSITE} >>${ERR_FILE} 2>&1 ;
 
 
