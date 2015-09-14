@@ -10,6 +10,7 @@ test:
 	python ${KGEN} \
 		-D ROW=4,COLUMN=4 \
 		-I ${SRC_DIR}:/ncar/opt/intel/psxe-2015/impi/5.0.1.035/intel64/include/ \
+		--timing repeat=1000 \
 		--kernel-compile FC_FLAGS='-O3' \
 		--state-build cmds="cd ${SRC_DIR}; make build" \
 		--state-run cmds="cd ${SRC_DIR}; make run" \
