@@ -756,8 +756,6 @@ def search_Type_Attr_Spec(stmt, node):
         get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Parameter_Stmt(stmt, node):
-    show_tree(node)
-    import pdb; pdb.set_trace()
     get_name_or_defer(stmt, node.items[1], res_value)
    
 def search_Named_Constant_Def(stmt, node): 

@@ -916,7 +916,7 @@ def write_driver_specpart(f, depth):
     write(f, 'INTEGER :: kgen_counter', d=depth)
     write(f, 'CHARACTER(LEN=16) :: kgen_counter_conv', d=depth)
     line = 'INTEGER, DIMENSION(%s), PARAMETER :: kgen_counter_at = (/ %s /)'
-    write(f, line  % ( Config.ordinal['size'], ', '.join(Config.ordinal['numbers']) ), d=depth)
+    write(f, line  % ( Config.invocation['size'], ', '.join(Config.invocation['numbers']) ), d=depth)
     write(f, 'CHARACTER(LEN=1024) :: kgen_filepath', d=depth)
 
     # write typececls for dummy args
@@ -940,12 +940,12 @@ def write_kernel_interface_read_var_mod(f, depth, tkdpatlist, mod_num, dtypelist
 def write_driver_read_fileopen(f, depth):
     write(f, '')
     if Config.mpi['enabled']:
-        len = Config.mpi['size'] * Config.ordinal['size']
+        len = Config.mpi['size'] * Config.invocation['size']
     else:
-        len = Config.ordinal['size']
+        len = Config.invocation['size']
 
     write(f, 'DO kgen_repeat_counter = 0, %d'%(len-1), d=depth)
-    write(f, '    kgen_counter = kgen_counter_at(mod(kgen_repeat_counter, %d)+1)'%Config.ordinal['size'], d=depth)
+    write(f, '    kgen_counter = kgen_counter_at(mod(kgen_repeat_counter, %d)+1)'%Config.invocation['size'], d=depth)
     write(f, '    WRITE( kgen_counter_conv, * ) kgen_counter', d=depth)
 
     if Config.mpi['enabled']:
@@ -1239,7 +1239,7 @@ def write_state_specpart_kgen(f, depth):
     #write(f, 'LOGICAL, SAVE :: kgen_entered1 = .FALSE., kgen_entered2 = .FALSE.', d=depth)
     write(f, 'CHARACTER(LEN=16) :: kgen_counter_conv', d=depth)
     line = 'INTEGER, DIMENSION(%s), PARAMETER :: kgen_counter_at = (/ %s /)'
-    write(f, line % ( Config.ordinal['size'], ', '.join(Config.ordinal['numbers']) ), d=depth)
+    write(f, line % ( Config.invocation['size'], ', '.join(Config.invocation['numbers']) ), d=depth)
     write(f, 'CHARACTER(LEN=1024) :: kgen_filepath', d=depth)
 
 def write_state_call_module_externs(f, depth):
