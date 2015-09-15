@@ -18,4 +18,5 @@ test:
 		${SRC}:${CALLSITE}
 
 clean:
+	${MAKE} clean -C src
 	rm -rf kernel state kgen.log

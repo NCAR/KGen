@@ -6,12 +6,12 @@ SRC := ${SRC_DIR}/update_mod.F90
 CALLSITE := update_mod:update:calc
 FC := mpiifort
 FC_FLAGS := -O3
-
+MPI_INC := /ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include
 
 test:
 	python ${KGEN} \
 		-D ROW=4,COL=4 \
-		-I ${SRC_DIR} \
+		-I ${SRC_DIR}:${MPI_INC} \
 		-e exclude.ini \
 		--mpi ranks=0:1 \
 		--invocation 1,3 \
@@ -22,4 +22,5 @@ test:
 		${SRC}:${CALLSITE}
 
 clean:
+	${MAKE} clean -C src
 	rm -rf kernel state kgen.log
