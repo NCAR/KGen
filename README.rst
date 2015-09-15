@@ -38,10 +38,6 @@ Building & Installation
 
 Current KGEN does not require to build or to install.
 
-Before Use
-----------
-
-T.B.D.
 
 Instructions & Use
 ------------------
