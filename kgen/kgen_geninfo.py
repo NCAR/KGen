@@ -8,9 +8,12 @@ from base_classes import BeginStatement
 from block_statements import Module, Type
 from statements import Assignment
 
+dtypes_found = []
+
 def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=True):
     from statements import Use
     from Fortran2003 import Entity_Decl
+    from kgen_utils import pack_namepath
 
     if var.is_pointer() or var.is_allocatable() or var.is_array() or stmt.is_derived():
         varpointer = var.is_pointer()
@@ -42,7 +45,9 @@ def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=Tr
             if isinstance(dtype, Use):
                 if (not mod_depends is None) and (not dtype.name.lower() in mod_depends):
                     mod_depends.append(dtype.name.lower()) 
-            elif component:
+            elif component and pack_namepath(dtype, dtype.name) not in dtypes_found:
+                dtypes_found.append(pack_namepath(dtype, dtype.name))
+
                 for comp in dtype.content:
                     if isinstance(comp, TypeDeclarationStatement):
                         for decl in comp.entity_decls:
@@ -292,5 +297,25 @@ def mark_generation_info():
 
     mark_callsite_generation_info()
     mark_modules_generation_info()
+
+    #if State.callsite['actual_arg']['names']:
+    #    State.callsite['actual_arg']['names'].sort()
+    State.callsite['actual_arg']['in_names'].sort()
+    State.callsite['actual_arg']['out_names'].sort()
+    State.callsite['actual_arg']['inout_names'].sort()
+    State.parentblock['dummy_arg']['names'].sort()
+    State.parentblock['dummy_arg']['in_names'].sort()
+    State.parentblock['dummy_arg']['out_names'].sort()
+    State.parentblock['dummy_arg']['inout_names'].sort()
+    State.parentblock['input']['names'].sort()
+    State.parentblock['output']['names'].sort()
+    State.topblock['extern']['names'].sort()
+    #State.kernel['dummy_arg']['names'].sort()
+    State.kernel['dummy_arg']['in_names'].sort()
+    State.kernel['dummy_arg']['out_names'].sort()
+    State.kernel['dummy_arg']['inout_names'].sort()
+    State.kernel_driver['input']['names'].sort()
+    for modname, modattrs in State.modules.iteritems():
+        modattrs['extern']['names'].sort()
 
     State.state = State.GENINFO_MARKED

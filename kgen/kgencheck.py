@@ -48,7 +48,6 @@ def parse_cmdline():
             raise '%s is not a direcotory nor a file'%path
 
 def check_files():
-    import pdb; pdb.set_trace()
     from api import parse, walk
     for file in state.files:
         print file

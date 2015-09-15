@@ -70,6 +70,7 @@ def check_mode():
         if prep.endswith('fpp'): flags = Config.bin['fpp_flags']
         elif prep.endswith('cpp'): flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
+
         output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, file))
 
         # convert the preprocessed for fparser
@@ -132,8 +133,11 @@ def check_mode():
         print file
         lines = []
         for stmt in stmts:
-            lines.append('Near line # %d:'%stmt.item.span[0])
-            lines.append(stmt.tokgen()+'\n')
+            if hasattr(stmt, 'item'):
+                lines.append('Near line # %d:'%stmt.item.span[0])
+                lines.append(stmt.tokgen()+'\n')
+            else:
+                lines.append(str(stmt)+'\n')
         print '\n'.join(lines), '\n'
 
     print '*** Not Supported Fortran Statement(s) ***'

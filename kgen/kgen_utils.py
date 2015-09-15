@@ -13,7 +13,7 @@ from Fortran2003 import Name, Data_Ref
 # Put src folder first in path
 sys.path = sys.path + [ os.path.dirname(__file__) ]
 
-EXTERNAL_NAMELEVEL_SEPERATOR = '.'
+EXTERNAL_NAMELEVEL_SEPERATOR = ':'
 INTERNAL_NAMELEVEL_SEPERATOR = '__kgen__' # lower-case only
 
 def encode_NS(namepath):
@@ -62,10 +62,10 @@ class KGName(object):
         raise Exception('KGName')
 
 def get_namepath(stmt):
-    return '.'.join([ a.name.lower() for a in stmt.ancestors() ])
+    return EXTERNAL_NAMELEVEL_SEPERATOR.join([ a.name.lower() for a in stmt.ancestors() ])
 
 def pack_namepath(stmt, lastname):
-    return '%s.%s'%(get_namepath(stmt), lastname)
+    return '%s%s%s'%(get_namepath(stmt), EXTERNAL_NAMELEVEL_SEPERATOR, lastname)
 
 def singleton(cls):
     """ singleton generator """
@@ -213,7 +213,7 @@ class Config(object):
 
         # kgen parameters
         self._attrs['kgen'] = {}
-        self._attrs['kgen']['version'] = [ 0, 4, '13' ]
+        self._attrs['kgen']['version'] = [ 0, 5, '0' ]
 
         # Fortran parameters
         self._attrs['fort'] = {}
@@ -261,10 +261,10 @@ class Config(object):
         self._attrs['mpi']['header'] = 'mpif.h'
         self._attrs['mpi']['use_stmts'] = []
 
-        # ordinal numbers parameters
-        self._attrs['ordinal'] = {}
-        self._attrs['ordinal']['numbers'] = [ '1' ]
-        self._attrs['ordinal']['size'] = len(self._attrs['ordinal']['numbers'])
+        # invocation parameters
+        self._attrs['invocation'] = {}
+        self._attrs['invocation']['numbers'] = [ '1' ]
+        self._attrs['invocation']['size'] = len(self._attrs['invocation']['numbers'])
 
         # timing parameters
         self._attrs['timing'] = {}
@@ -278,7 +278,7 @@ class Config(object):
         # include parameters
         self._attrs['include'] = {}
         self._attrs['include']['macro'] = {}
-        self._attrs['include']['path'] = []
+        self._attrs['include']['path'] = ['.']
         self._attrs['include']['type'] = {}
         self._attrs['include']['file'] = {}
 
@@ -306,6 +306,7 @@ class Config(object):
 
         # kernel correctness check parameters
         self._attrs['check'] = {}
+        #self._attrs['check']['pert_invar'] = ['*']
         self._attrs['check']['pert_invar'] = []
         self._attrs['check']['pert_lim'] = '1.0E-15'
 
@@ -322,7 +323,7 @@ class Config(object):
         parser.add_option("-I", dest="include", action='append', type='string', default=None, help="include path information used for analysis")
         parser.add_option("-D", dest="macro", action='append', type='string', default=None, help="macro information used for analysis")
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
-        parser.add_option("--ordinal-numbers", dest="ordinal", action='store', type='string', default=None, help="Nth invocation of kernel for data collection")
+        parser.add_option("--invocation", dest="invocation", action='store', type='string', default=None, help="Nth invocation of kernel for data collection")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
         parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='append', type='string', default=None, help="Skip intrinsic procedures during searching")
@@ -347,7 +348,7 @@ class Config(object):
             self._attrs['check_mode'] = args
             return
 
-        callsite = args[0].split(':')
+        callsite = args[0].split(':', 1)
         if not os.path.isfile(callsite[0]):
             print 'ERROR: %s can not be found.' % callsite[0]
             sys.exit(-1)
@@ -453,6 +454,8 @@ class Config(object):
                     key, value = skip.split('=')
                     if key=='except':
                         self._attrs['search']['except'].extend(value.split(':'))
+                    elif key=='add_intrinsic':
+                        Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
                     else:
                         raise UserException('Unknown skip_intrinsic option: %s' % comp)
 
@@ -489,14 +492,14 @@ class Config(object):
 
         self._process_analysis_flags(opts)
 
-        # parsing ordinal numbers parameters
-        if opts.ordinal:
-            self._attrs['ordinal']['numbers'] = []
-            for ord in opts.ordinal.split(','):
+        # parsing invocation parameters
+        if opts.invocation:
+            self._attrs['invocation']['numbers'] = []
+            for ord in opts.invocation.split(','):
                 if ord.isdigit():
-                    self._attrs['ordinal']['numbers'].append(ord)
-            self._attrs['ordinal']['numbers'].sort()
-            self._attrs['ordinal']['size'] = len(self._attrs['ordinal']['numbers'])
+                    self._attrs['invocation']['numbers'].append(ord)
+            self._attrs['invocation']['numbers'].sort()
+            self._attrs['invocation']['size'] = len(self._attrs['invocation']['numbers'])
 
         # parsing MPI parameters
         if opts.mpi:
@@ -610,7 +613,7 @@ class Config(object):
                 param_path, value = dbg.split('=')
                 param_split = param_path.lower().split('.')
                 value_split = value.lower().split(',')
-                curdict = self._attrs
+                curdict = self._attrs['debug']
                 for param in param_split[:-1]:
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')

@@ -1106,6 +1106,7 @@ class BeginStatement(Statement):
                                 if len(rename)>1:
                                     raise ProgramException('More than one result: %s'%str(rename))
                                 elif len(rename)==1:
+                                    # TODO for rayl issue 
                                     newname = KGName(rename[0][1], node=use_stmt.f2003, stmt=use_stmt)
                                     request.set_uname(newname)
                                     use_stmt.resolve(request)
