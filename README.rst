@@ -4,7 +4,7 @@ KGEN: Fortran Kernel Generator
 A package for extracting a part of Fortran source codes out of a large Fortran application.
 
 :AUTHORS: Youngsung Kim, John Dennis, Raghu R. Kumar and Amogh Simha
-:VERSION: 0.4.13
+:VERSION: 0.5.0
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
@@ -21,14 +21,8 @@ Overview
 Dependencies
 ------------
 
-This section should list, with version numbers, all of the
-dependencies of the project package.  These dependencies may
-be Python-based tools themselves, or other libraries that this
-package uses.
-
-These dependencies should, ideally, be listed for clarity:
-
-* Python #1 (>=2.6.6)
+* Python (>=2.6.6) and Python standard library
+* Fortran Pre-Processor(fpp) or C Pre-Processor(cpp)
 
 
 Obtaining the Source Code
@@ -42,7 +36,7 @@ The latest KGEN can be obtained from the Git repository.
 Building & Installation
 -----------------------
 
-T.B.D.
+Current KGEN does not require to build or to install.
 
 Before Use
 ----------
@@ -52,5 +46,18 @@ T.B.D.
 Instructions & Use
 ------------------
 
-T.B.D.
+1. Download from KGen Github repository.
+	>> git clone https://github.com/NCAR-CISL-ASAP/KGen.git
 
+2. Read Kgen documentation in "doc" directory under the top Kgen directory.
+	>> evince KGEN_Users_Guide_V0.5.0.pdf 
+
+3. Try "simple" in "example/simple" directory
+	>> cd example/simple;	# move to an example directory
+	>> vi Makefile;			# Modify FC and FC_FLAGS if required
+	>> vi src/Makefile;		# Modify FC and FC_FLAGS if required
+	>> make;				# extract a kernel
+	>> cd state;			# move to a directory for instrumentation files
+	>> make;				# generate state data files
+	>> cd ../kernel;		# move to a kernel directory
+	>> make;				# build and run a kernel
