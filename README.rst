@@ -53,6 +53,7 @@ Instructions & Use
 	>> evince KGEN_Users_Guide_V0.5.0.pdf 
 
 3. Try "simple" in "example/simple" directory
+```
 	>> cd example/simple;	# move to an example directory
 	>> vi Makefile;			# Modify FC and FC_FLAGS if required
 	>> vi src/Makefile;		# Modify FC and FC_FLAGS if required
@@ -61,3 +62,4 @@ Instructions & Use
 	>> make;				# generate state data files
 	>> cd ../kernel;		# move to a kernel directory
 	>> make;				# build and run a kernel
+```
