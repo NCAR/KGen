@@ -13,7 +13,7 @@ dtypes_found = []
 def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=True):
     from statements import Use
     from Fortran2003 import Entity_Decl
-    from kgen_utils import pack_namepath
+    from kgen_utils import pack_innamepath
 
     if var.is_pointer() or var.is_allocatable() or var.is_array() or stmt.is_derived():
         varpointer = var.is_pointer()
@@ -45,8 +45,8 @@ def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=Tr
             if isinstance(dtype, Use):
                 if (not mod_depends is None) and (not dtype.name.lower() in mod_depends):
                     mod_depends.append(dtype.name.lower()) 
-            elif component and pack_namepath(dtype, dtype.name) not in dtypes_found:
-                dtypes_found.append(pack_namepath(dtype, dtype.name))
+            elif component and pack_innamepath(dtype, dtype.name) not in dtypes_found:
+                dtypes_found.append(pack_innamepath(dtype, dtype.name))
 
                 for comp in dtype.content:
                     if isinstance(comp, TypeDeclarationStatement):

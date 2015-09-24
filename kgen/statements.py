@@ -38,7 +38,7 @@ from utils import split_comma, specs_split_comma, AnalyzeError, ParseError,\
 from utils import classes
 
 import Fortran2003 # KGEN addition
-from kgen_utils import Config, pack_namepath, Logger, ProgramException, UserException # KGEN addition
+from kgen_utils import Config, pack_innamepath, Logger, ProgramException, UserException # KGEN addition
 
 class StatementWithNamelist(Statement):
     """
@@ -891,11 +891,11 @@ class Save(Statement):
         for item in self.items:
             if item.startswith('/') and item.endswith('/'):
                 if uname.firstpartname()==item[1:-1]:
-                    newname = KGName(pack_namepath(self, item))
+                    newname = KGName(pack_innamepath(self, item))
                     self.add_geninfo(newname)
             else:
                 if uname.firstpartname()==item:
-                    newname = KGName(pack_namepath(self, item))
+                    newname = KGName(pack_innamepath(self, item))
                     self.add_geninfo(newname)
     # end of KGEN addition
 

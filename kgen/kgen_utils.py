@@ -5,6 +5,7 @@ import os
 import re
 import sys
 from Fortran2003 import Name, Data_Ref
+from ConfigParser import RawConfigParser
 
 #############################################################################
 ## COMMON
@@ -61,11 +62,29 @@ class KGName(object):
     def __str__(self):
         raise Exception('KGName')
 
-def get_namepath(stmt):
-    return EXTERNAL_NAMELEVEL_SEPERATOR.join([ a.name.lower() for a in stmt.ancestors() ])
+def _get_namepath(stmt, external):
+    if external:
+        return EXTERNAL_NAMELEVEL_SEPERATOR.join([ a.name.lower() for a in stmt.ancestors() ])
+    else:
+        return INTERNAL_NAMELEVEL_SEPERATOR.join([ a.name.lower() for a in stmt.ancestors() ])
 
-def pack_namepath(stmt, lastname):
-    return '%s%s%s'%(get_namepath(stmt), EXTERNAL_NAMELEVEL_SEPERATOR, lastname)
+def _pack_namepath(stmt, lastname, external):
+    if external:
+        return '%s%s%s'%(_get_namepath(stmt, True), EXTERNAL_NAMELEVEL_SEPERATOR, lastname)
+    else:
+        return '%s%s%s'%(_get_namepath(stmt, False), INTERNAL_NAMELEVEL_SEPERATOR, lastname)
+
+def pack_innamepath(stmt, lastname):
+    return _pack_namepath(stmt, lastname, False)
+
+def pack_exnamepath(stmt, lastname):
+    return _pack_namepath(stmt, lastname, True)
+
+def get_innamepath(stmt):
+    return _get_namepath(stmt, False)
+
+def get_exnamepath(stmt):
+    return _get_namepath(stmt, True)
 
 def singleton(cls):
     """ singleton generator """
@@ -136,6 +155,47 @@ def show_tree(node, prevent_print=False):
         lines.append(line+'\n')
     return lines
 
+class KgenConfigParser(RawConfigParser):
+    def __init__(self, *args, **kwargs):
+        RawConfigParser.__init__(self, *args, **kwargs)
+        self.optionxform = str
+
+    def _optname_colon_to_dot(self, line):
+        newline = line.strip()
+
+        if len(newline)>0:
+            if newline[0]==';':
+                return line
+            elif newline[0]=='[' and newline[-1]==']':
+                return line.replace(':', INTERNAL_NAMELEVEL_SEPERATOR)
+            else:
+                pos = line.find('=')
+                if pos>0:
+                    return line[:pos].replace(':', INTERNAL_NAMELEVEL_SEPERATOR) + line[pos:]
+                else:
+                    raise UserException('KGEN requires an equal symbol at each option line')
+        else:
+            return line
+
+    def read(self, filenames):
+        from StringIO import StringIO
+
+        if isinstance(filenames, basestring):
+            filenames = [filenames]
+        for filename in filenames:
+            try:
+                fp = open(filename)
+            except IOError:
+                continue
+
+            lines = []
+            for line in fp.readlines():
+                lines.append(self._optname_colon_to_dot(line))
+            fp.close()
+
+            buf = StringIO(''.join(lines))
+            self._read(buf, filename)
+
 #############################################################################
 ## EXCEPTION
 #############################################################################
@@ -154,11 +214,10 @@ class ProgramException(KGException):
 #############################################################################
 
 def process_include_option(include_option, incattrs):
-    import ConfigParser
 
     # collect include configuration information
-    Inc = ConfigParser.RawConfigParser()
-    Inc.optionxform = str
+    Inc = KgenConfigParser()
+    #Inc.optionxform = str
     Inc.read(include_option)
     for section in Inc.sections():
         lsection = section.lower().strip()
@@ -185,11 +244,10 @@ def process_include_option(include_option, incattrs):
             print '%s is either not suppored keyword or can not be found. Ignored.' % section
 
 def process_exclude_option(exclude_option, excattrs):
-    import ConfigParser
 
     # collect exclude configuration information
-    Exc = ConfigParser.RawConfigParser()
-    Exc.optionxform = str
+    Exc = KgenConfigParser()
+    #Exc.optionxform = str
     Exc.read(exclude_option)
     for section in Exc.sections():
         lsection = section.lower().strip()

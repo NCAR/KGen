@@ -100,7 +100,7 @@ def f2003_search_unknowns(stmt, node, resolvers=None):
             sys.exit(-1)
 
 def get_name_or_defer(stmt, node, resolvers, defer=True):
-    from kgen_utils import KGName, pack_namepath, get_namepath
+    from kgen_utils import KGName, pack_innamepath, get_innamepath
     from kgen_state import ResState
 
     if node is None: return
@@ -121,7 +121,7 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
 
         # skip if excluded
         for pname, namepath in Config.exclude.iteritems():
-            if pname in [ 'common', get_namepath(stmt) ]:
+            if pname in [ 'namepath', get_innamepath(stmt) ]:
                 for name, action in namepath.iteritems():
                     if name==node.string.lower():
                         stmt.exclude_names = { name: action }
@@ -130,7 +130,7 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
                         #print '%s is skipped'%name
                         return
 
-        ukey = KGName(pack_namepath(stmt, node.string.lower()), node=node, stmt=stmt)
+        ukey = KGName(pack_innamepath(stmt, node.string.lower()), node=node, stmt=stmt)
 
         if resolvers is None:
             stmt.unknowns[ukey] = ResState(ukey, stmt, res_default)
