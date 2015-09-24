@@ -466,7 +466,7 @@ def generate_kernel_module_callsite():
                 if stmt is subp_stmt:
                     mod_stage = SrcStage.AFTER_SUBP_STMT
 
-                    items = [ n.firstpartname() for n in State.kernel_driver['input']['names']]+['kgen_unit']
+                    items = [ n.firstpartname() for n in State.kernel_driver['input']['names']]+['kgen_unit', 'total_time']
                     if isinstance(stmt, Function):
                         write_kernel_stmt(f, stmt, depth, items=items, to_subr=True)
                     else:
@@ -505,7 +505,9 @@ def generate_kernel_module_callsite():
 
                 elif stmt.__class__ in  declaration_construct:
                     mod_stage = SrcStage.AFTER_SUBP_USE_PART
-                    write(f, 'integer, intent(in) :: kgen_unit', d=depth)
+                    write(f, 'INTEGER, INTENT(IN) :: kgen_unit', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp), INTENT(INOUT) :: total_time', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp) :: elapsed_time', d=depth)
 
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
@@ -522,7 +524,9 @@ def generate_kernel_module_callsite():
                     #continue
                 elif stmt.__class__ in execution_part:
                     mod_stage = SrcStage.AFTER_SUBP_SPEC_PART
-                    write(f, 'integer, intent(in) :: kgen_unit', d=depth)
+                    write(f, 'INTEGER, INTENT(IN) :: kgen_unit', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp), INTENT(INOUT) :: total_time', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp) :: elapsed_time', d=depth)
 
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
@@ -691,9 +695,9 @@ def generate_kernel_module_callsite():
 def process_driver_call_callsite_stmt(f, stmt, depth):
     args = ', '.join([ n.firstpartname() for n in State.kernel_driver['input']['names']])
     if len(args)>0:
-        write(f, 'call %s(%s, kgen_unit)'%(State.parentblock['stmt'].name, args), d=depth)
+        write(f, 'call %s(%s, kgen_unit, total_time)'%(State.parentblock['stmt'].name, args), d=depth)
     else:
-        write(f, 'call %s(kgen_unit)'%State.parentblock['stmt'].name, d=depth)
+        write(f, 'call %s(kgen_unit, total_time)'%State.parentblock['stmt'].name, d=depth)
 
 def generate_kernel_module_driver():
     """ Generate kernel driver file with module type parent"""
