@@ -755,6 +755,10 @@ def search_Type_Attr_Spec(stmt, node):
         get_name_or_defer(stmt, node.items[0], res_value)
         get_name_or_defer(stmt, node.items[1], res_value)
 
+def search_Level_5_Expr(stmt, node):
+        get_name_or_defer(stmt, node.items[0], res_value)
+        get_name_or_defer(stmt, node.items[2], res_value)
+
 def search_Parameter_Stmt(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
    
@@ -775,12 +779,30 @@ def search_Alloc_Opt(stmt, node):
 def search_Dealloc_Opt(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
+def search_Level_5_Expr(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[2], res_value)
+
+def search_Generic_Spec(stmt, node):
+    pass
+
 def search_Assumed_Size_Spec(stmt, node):
     get_name_or_defer(stmt, node.items[0], res_value)
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Common_Block_Object(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Ac_Implied_Do(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Ac_Implied_Do_Control(stmt, node):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_value)
-    get_name_or_defer(stmt, node.items[1], res_value)
+    if node.items[1]:
+        for item in node.items[1]:
+            get_name_or_defer(stmt, item, res_value)
+
