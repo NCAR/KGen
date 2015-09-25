@@ -680,7 +680,7 @@ class GenSubroutines(GenBase):
                     write(f, 'CALL kgen_write_%s(var, kgen_unit)'%subrname, depth+4)
                     write(f, 'END IF', depth+3)
                 else:
-                    write(f, 'READ(UNIT = kgen_unit) var', d=depth+3)
+                    write(f, 'WRITE(UNIT = kgen_unit) var', d=depth+3)
                     write(f, 'IF ( PRESENT(printvar) ) THEN', depth+3)
                     write(f, 'PRINT *, "** KGEN DEBUG: " // printvar // " **", var', d=depth+4)
                     write(f, 'END IF', depth+3)
