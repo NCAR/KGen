@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+from copy import deepcopy
 from Fortran2003 import Name, Data_Ref
 from ConfigParser import RawConfigParser
 
@@ -308,7 +309,6 @@ class Config(object):
         self._attrs['path']['outdir'] = '.'
         self._attrs['path']['state'] = 'state'
         self._attrs['path']['kernel'] = 'kernel'
-        self._attrs['path']['alias'] = {}
 
         # mpi parameters
         self._attrs['mpi'] = {}
@@ -327,6 +327,13 @@ class Config(object):
         # timing parameters
         self._attrs['timing'] = {}
         self._attrs['timing']['repeat'] = 10
+
+        # source file parameters
+        self._attrs['source'] = {}
+        self._attrs['source']['isfree'] = None
+        self._attrs['source']['isstrict'] = None
+        self._attrs['source']['alias'] = {}
+        self._attrs['source']['file'] = {}
 
         # verification parameters
         self._attrs['verify'] = {}
@@ -384,6 +391,7 @@ class Config(object):
         parser.add_option("--invocation", dest="invocation", action='store', type='string', default=None, help="Nth invocation of kernel for data collection")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
+        parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
         parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='append', type='string', default=None, help="Skip intrinsic procedures during searching")
         parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='append', type='string', default=None, help="Do not skip intrinsic procedures during searching")
         parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
@@ -391,8 +399,6 @@ class Config(object):
         parser.add_option("--state-switch", dest="state_switch", action='append', type='string', help="Specifying how to switch orignal sources with instrumented ones.")
         parser.add_option("--state-build", dest="state_build", action='append', type='string', help="Build information to generate makefile")
         parser.add_option("--state-run", dest="state_run", action='append', type='string', help="Run information to generate makefile")
-        #parser.add_option("--alias", dest="alias", action='append', type='string', help="Name aliasing information")
-        parser.add_option("--alias", dest="alias", action='append', type='string', help=optparse.SUPPRESS_HELP)
         parser.add_option("--check", dest="check", action='append', type='string', help="Kernel correctness check information")
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
 
@@ -546,6 +552,79 @@ class Config(object):
                         self._attrs['include']['macro'][macro_eq[0]] = macro_eq[1]
                     else: raise UserException('Wrong format include: %s'%inc)
 
+        if opts.source:
+            for line in opts.source:
+                flags = {}
+                for subflag in line.lower().split(','):
+                    key, value = subflag.split('=')
+                    if key=='file':
+                        flags[key] = value.split(':')
+                    elif key=='alias':
+                        p1, p2 = value.split(':')
+                        if p1.endswith('/'): p1 = p1[:-1]
+                        if p2.endswith('/'): p2 = p2[:-1]
+                        self._attrs['source']['alias'][p1] = p2
+                    else:
+                        flags[key] = value 
+
+                isfree = None
+                isstrict = None
+                if flags.has_key('format'):
+                    if flags['format']=='free': isfree = True 
+                    elif flags['format']=='fixed': isfree = False 
+                    else: raise UserException('format subflag of source flag should be either free or fixed.')
+
+                if flags.has_key('strict'):
+                    if flags['strict']=='yes': isstrict = True 
+                    elif flags['strict']=='no': isstrict = False 
+                    else: raise UserException('strict subflag of source flag should be either yes or no.')
+
+                if flags.has_key('file'):
+                    subflags = {}
+                    if isfree: subflags['isfree'] = isfree
+                    if isstrict: subflags['isstrict'] = isstrict
+                    for file in flags['file']:
+                        self._attrs['source']['file'][os.path.abspath(file)] = subflags
+                else:
+                    if isfree: self._attrs['source']['isfree'] = isfree
+                    if isstrict: self._attrs['source']['isstrict'] = isstrict
+
+        # dupulicate paths per each alias
+        #import pdb; pdb.set_trace()
+        newpath = set() 
+        for path in self._attrs['include']['path']:
+            newpath.add(path)
+            for p1, p2 in self._attrs['source']['alias'].iteritems():
+                if path.startswith(p1):
+                    newpath.add(p2+path[len(p1):])
+                elif path.startswith(p2):
+                    newpath.add(p1+path[len(p2):])
+        self._attrs['include']['path'] = list(newpath)
+
+        newfile = {} 
+        for path, value in self._attrs['include']['file'].iteritems():
+            newfile[path] = value
+            for p1, p2 in self._attrs['source']['alias'].iteritems():
+                if path.startswith(p1):
+                    newpath = p2+path[len(p1):]
+                    newfile[newpath] = deepcopy(value) 
+                elif path.startswith(p2):
+                    newpath = p1+path[len(p2):]
+                    newfile[newpath] = deepcopy(value) 
+        self._attrs['include']['file'] = newfile
+
+        for path, value in self._attrs['include']['file'].iteritems():
+            if value.has_key('path'):
+                newpath = set()
+                for path in value['path']:
+                    newpath.add(path)
+                    for p1, p2 in self._attrs['source']['alias'].iteritems():
+                        if path.startswith(p1):
+                            newpath.add(p2+path[len(p1):])
+                        elif path.startswith(p2):
+                            newpath.add(p1+path[len(p2):])
+                value['path'] = list(newpath)
+
     def process_commandline(self, opts):
 
         self._process_analysis_flags(opts)
@@ -643,13 +722,6 @@ class Config(object):
         if not os.path.exists(self._attrs['path']['outdir']):
             os.makedirs(self._attrs['path']['outdir'])
         os.chdir(self._attrs['path']['outdir'])
-
-        # path nicknames
-        if opts.alias:
-            for line in opts.alias:
-                for pathalias in line.split(','):
-                    key, value = pathalias.split('=')
-                    self._attrs['path']['alias'][key] = value
 
         # kernel correctness checks 
         if opts.check:

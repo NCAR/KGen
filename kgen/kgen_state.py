@@ -135,6 +135,18 @@ class SrcFile(object):
         self.abspath = os.path.abspath(self.srcpath)
         self.used4genstate = False
 
+        # set source file format
+        isfree = True
+        isstrict = False
+        if self.abspath in Config.source['file'].keys():
+            if Config.source['file'][self.abspath].has_key('isfree'):
+                isfree = Config.source['file'][self.abspath]['isfree']
+            if Config.source['file'][self.abspath].has_key('isstrict'):
+                isstrict = Config.source['file'][self.abspath]['isstrict']
+        else:
+            if Config.source['isstrict']: isstrict = Config.source['isstrict']
+            if Config.source['isfree']: isfree = Config.source['isfree']
+
         # prepare include paths and macro definitions
         path_src = []
         macros_src = ''
@@ -147,8 +159,12 @@ class SrcFile(object):
         # execute preprocessing
         Logger.info('Reading %s'%self.srcpath, stdout=True)
         prep = Config.bin['pp']
-        if prep.endswith('fpp'): flags = Config.bin['fpp_flags']
-        elif prep.endswith('cpp'): flags = Config.bin['cpp_flags']
+        if prep.endswith('fpp'):
+            if isfree: srcfmt = ' -free'
+            else: srcfmt = ' -fixed'
+            flags = Config.bin['fpp_flags'] + srcfmt
+        elif prep.endswith('cpp'):
+            flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
         output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, self.abspath))
 
@@ -156,8 +172,8 @@ class SrcFile(object):
         self.prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
 
         # fparse
-        self.tree = parse('\n'.join(self.prep), ignore_comments=False, analyze=True, isfree=True, isstrict=False, \
-            include_dirs=None, source_only=None )
+        self.tree = parse('\n'.join(self.prep), ignore_comments=False, analyze=True, isfree=isfree, \
+            isstrict=isstrict, include_dirs=None, source_only=None )
         self.tree.srcfile = self
 
         # parse f2003
