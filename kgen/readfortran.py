@@ -393,23 +393,22 @@ class FortranReaderBase(object):
             fn = None
             #for d in self.include_dirs: # KGEN deletion
             for d in self.include_dirs+Config.include['path']: # KGEN addition
-
                 fn = get_module_file(mod_name, d)
                 if fn is not None:
                     return fn
 
             # start of KGEN addition
-            if mod_name=='pio': import pdb; pdb.set_trace()
-            if self.id in Config.include['file'].keys():
-                if Config.include['file'][self.id].has_key():
-                    for path in Config.include['file'][self.id]['path']:
-                        fn = get_module_file(mod_name, path) 
-                        if fn is not None:
-                            return fn
-            #for sf in Config.include['file'].keys():
-            #    if module_in_file(mod_name, sf):
-            #        if sf is not None:
-            #            return sf
+            #if mod_name=='pio': import pdb; pdb.set_trace()
+            if Config.include['file'].has_key(self.id):
+                for path in Config.include['file'][self.id]['path']:
+                    fn = get_module_file(mod_name, path) 
+                    if fn is not None:
+                        return fn
+
+            for fn in Config.include['file'].keys():
+                if module_in_file(mod_name, fn):
+                    if fn is not None:
+                        return fn
             # end of KGEN addition
 
     def set_mode(self, isfree, isstrict):

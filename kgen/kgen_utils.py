@@ -625,6 +625,8 @@ class Config(object):
                             newpath.add(p1+path[len(p2):])
                 value['path'] = list(newpath)
 
+        #import pdb; pdb.set_trace()
+
     def process_commandline(self, opts):
 
         self._process_analysis_flags(opts)
