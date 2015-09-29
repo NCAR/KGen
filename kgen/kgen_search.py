@@ -114,14 +114,14 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
         if node.string.lower() in Intrinsic_Procedures:
             if  Config.search['skip_intrinsic'] and not is_except(node, stmt):
                 if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref):
-                    Logger.info('Suspicious intrinsic function of "%s" is skipped from name resolution'% \
+                    Logger.info('Suspicious intrinsic procedure name of "%s" is skipped from name resolution'% \
                         (node.string.lower()), stdout=True)
                     Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
                     Logger.info('\tin %s'% stmt.reader.id, stdout=True)
                 return
             elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
                 if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref):
-                    Logger.info('Suspicious intrinsic function of "%s" is skipped from name resolution'% \
+                    Logger.info('Suspicious intrinsic procedure name of "%s" is skipped from name resolution'% \
                         (node.string.lower()), stdout=True)
                     Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
                     Logger.info('\tin %s'% stmt.reader.id, stdout=True)
