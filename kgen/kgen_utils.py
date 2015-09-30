@@ -392,8 +392,9 @@ class Config(object):
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
         parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
-        parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='append', type='string', default=None, help="Skip intrinsic procedures during searching")
-        parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='append', type='string', default=None, help="Do not skip intrinsic procedures during searching")
+        #parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='append', type='string', default=[], help="Skip intrinsic procedures during searching")
+        #parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='append', type='string', default=None, help="Do not skip intrinsic procedures during searching")
+        parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
         parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
         parser.add_option("--state-switch", dest="state_switch", action='append', type='string', help="Specifying how to switch orignal sources with instrumented ones.")
@@ -501,27 +502,24 @@ class Config(object):
                 sys.exit(-1)
 
         # parsing intrinsic skip option
-        if opts.noskip_intrinsic:
-            self._attrs['search']['skip_intrinsic'] = False
-            for line in opts.noskip_intrinsic:
-                for noskip in line.lower().split(','):
-                    key, value = noskip.split('=')
-                    if key=='except':
-                        self._attrs['search']['except'].extend(value.split(':'))
-                    else:
-                        raise UserException('Unknown noskip_intrinsic option: %s' % comp)
+        if opts.intrinsic:
+            if 'skip' in opts.intrinsic:
+                self._attrs['search']['skip_intrinsic'] = True
+            elif 'noskip' in opts.intrinsic:
+                self._attrs['search']['skip_intrinsic'] = False
+            else:
+                raise UserException('Unknown intrinsic option(s) in %s' % opts.intrinsic)
 
-        if opts.skip_intrinsic:
-            self._attrs['search']['skip_intrinsic'] = True
-            for line in opts.skip_intrinsic:
-                for skip in line.lower().split(','):
-                    key, value = skip.split('=')
-                    if key=='except':
-                        self._attrs['search']['except'].extend(value.split(':'))
-                    elif key=='add_intrinsic':
-                        Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
-                    else:
-                        raise UserException('Unknown skip_intrinsic option: %s' % comp)
+            for line in opts.intrinsic:
+                for subf in line.lower().split(','):
+                    if subf and subf.find('=')>0:
+                        key, value = subf.split('=')
+                        if key=='except':
+                            self._attrs['search']['except'].extend(value.split(':'))
+                        elif key=='add_intrinsic':
+                            Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
+                        else:
+                            raise UserException('Unknown intrinsic sub option: %s' % subf)
 
         # parsing include parameters
         if opts.include:
