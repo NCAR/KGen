@@ -100,7 +100,7 @@ def f2003_search_unknowns(stmt, node, resolvers=None):
             sys.exit(-1)
 
 def get_name_or_defer(stmt, node, resolvers, defer=True):
-    from kgen_utils import KGName, pack_innamepath, get_innamepath
+    from kgen_utils import KGName, pack_innamepath, get_innamepath, match_namepath
     from kgen_state import ResState
 
     if node is None: return
@@ -113,14 +113,18 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
         # skip if intrinsic
         if node.string.lower() in Intrinsic_Procedures:
             if  Config.search['skip_intrinsic'] and not is_except(node, stmt):
-                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref):
+                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
                     Logger.info('Suspicious intrinsic procedure name of "%s" is skipped from name resolution'% \
                         (node.string.lower()), stdout=True)
                     Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
                     Logger.info('\tin %s'% stmt.reader.id, stdout=True)
                 return
             elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
-                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref):
+                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
                     Logger.info('Suspicious intrinsic procedure name of "%s" is skipped from name resolution'% \
                         (node.string.lower()), stdout=True)
                     Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
@@ -130,31 +134,14 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
         # skip if excluded
         for section, options in Config.exclude.iteritems():
             if section in [ 'namepath' ]:
-                import pdb; pdb.set_trace()
-                for namepath, actions in options.iteritems():
-                    namelist = namepath.split()
-                    l = len(namelist)
-#                    if l==0:
-#                    elif l==1:
-#                    elif l==2:
-#                    elif l==3:
-#                    else: 
-#name -> name in the beginning and the end
-#:name: -> name in any location
-#name: -> name at the beginning
-#:name -> name at the end
-#name1:name2 -> two level name
-#name1:name2: -> more than two level name starts with the two names
-#:name1:name2 -> more than two level name ends with the two names
-#:name1:name2: -> more than two level name that the two name locates in the middle
-#eventually data slicing
-
-                    if namepath==node.string.lower():
-                        get_innamepath(stmt)
-                        stmt.exclude_names = { namepath: actions }
+                #import pdb; pdb.set_trace()
+                for pattern, actions in options.iteritems():
+                    name = node.string.lower()
+                    namepath = pack_innamepath(stmt, name) 
+                    if match_namepath(pattern, namepath):
+                        stmt.exclude_names = { name: actions }
                         node.skip_search = True
                         if hasattr(node, 'parent'): node.parent.skip_search = True
-                        #print '%s is skipped'%name
                         return
 
         ukey = KGName(pack_innamepath(stmt, node.string.lower()), node=node, stmt=stmt)
@@ -826,10 +813,17 @@ def search_Ac_Implied_Do(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Ac_Implied_Do_Control(stmt, node):
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_value)
     if node.items[1]:
         for item in node.items[1]:
             get_name_or_defer(stmt, item, res_value)
 
+def search_Specific_Binding(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_subprogram)
+    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[3], res_subprogram)
+
+def search_Binding_Attr(stmt, node):
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+    pass

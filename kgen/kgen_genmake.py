@@ -112,7 +112,7 @@ def generate_kernel_makefile():
         write(f, '')
            
         write(f, 'clean:')
-        write(f, 'rm -f kernel.exe *.mod *.o', t=True)
+        write(f, 'rm -f kernel.exe *.mod ${ALL_OBJS}', t=True)
     pass
 
 def generate_state_makefile():

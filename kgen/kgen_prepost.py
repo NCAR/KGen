@@ -187,4 +187,8 @@ def preprocess():
 
 def postprocess():
     # TODO: display summary for kernel generation
-    pass
+    from kgen_utils import exec_cmd
+
+    # copy object files into kernel folder 
+    for obj in Config.kernel_link['obj']:
+        exec_cmd('cp -f %s %s'%(obj, Config.path['kernel']))

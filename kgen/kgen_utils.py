@@ -75,11 +75,11 @@ def _pack_namepath(stmt, lastname, external):
     else:
         return '%s%s%s'%(_get_namepath(stmt, False), INTERNAL_NAMELEVEL_SEPERATOR, lastname)
 
-def pack_innamepath(stmt, lastname):
-    return _pack_namepath(stmt, lastname, False)
+def pack_innamepath(stmt, name):
+    return _pack_namepath(stmt, name, False)
 
-def pack_exnamepath(stmt, lastname):
-    return _pack_namepath(stmt, lastname, True)
+def pack_exnamepath(stmt, name):
+    return _pack_namepath(stmt, name, True)
 
 def get_innamepath(stmt):
     return _get_namepath(stmt, False)
@@ -87,6 +87,66 @@ def get_innamepath(stmt):
 def get_exnamepath(stmt):
     return _get_namepath(stmt, True)
 
+def match_namepath(pattern, namepath, internal=True):
+
+#name -> name in the beginning and the end
+#:name: -> name in any location
+#name: -> name at the beginning
+#:name -> name at the end
+#name1:name2 -> two level name
+#name1:name2: -> more than two level name starts with the two names
+#:name1:name2 -> more than two level name ends with the two names
+#:name1:name2: -> more than two level name that the two name locates in the middle
+#eventually data slicing
+
+    if not pattern or not namepath: return False
+
+    if internal:
+        split_pattern = pattern.split(INTERNAL_NAMELEVEL_SEPERATOR)
+        split_namepath = namepath.split(INTERNAL_NAMELEVEL_SEPERATOR)
+    else:
+        split_pattern = pattern.split(EXTERNAL_NAMELEVEL_SEPERATOR)
+        split_namepath = namepath.split(EXTERNAL_NAMELEVEL_SEPERATOR)
+
+    p = list(split_pattern)
+
+    leading_mark = False
+    if len(p[0])==0:
+        leading_mark = True
+        p = p[1:]
+
+    ending_mark = False
+    if len(p[-1])==0:
+        ending_mark = True
+        p = p[:-1]
+        if len(p)==0:
+            raise UserException('Wrong namepath format: %s'%split_pattern)
+
+    n = list(split_namepath)
+    while len(p)>0 and len(n)>0:
+        if p[0]==n[0]:
+            p = p[1:]
+            n = n[1:]
+        elif leading_mark:
+            n = n[1:]
+        elif len(p[0])==0:
+            leading_mark = True
+            p = p[1:]
+        else:
+            return False
+
+    if len(p)==0:
+        if len(n)>0:
+            if ending_mark: return True
+            return False
+        else:
+            return True
+    else:
+        if len(n)>0:
+            raise ProgramException('Incorrect namepath match: (%s, %s)'%(split_pattern, split_namepath))
+        else:
+            return False
+        
 def singleton(cls):
     """ singleton generator """
 
@@ -359,6 +419,7 @@ class Config(object):
         self._attrs['kernel_link']['include'] = []
         self._attrs['kernel_link']['pre_cmds'] = []
         self._attrs['kernel_link']['lib'] = []
+        self._attrs['kernel_link']['obj'] = []
 
         # make state parameters
         self._attrs['state_build'] = {}

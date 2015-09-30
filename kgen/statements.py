@@ -1077,7 +1077,7 @@ class Use(Statement):
 
     def resolve(self, request):
         from kgen_state import ResState, SrcFile, State
-        #from kgen_utils import Logger, ProgramException, UserException
+        from kgen_utils import match_namepath
 
         src = None
         if self.module is None:
@@ -1087,6 +1087,14 @@ class Use(Statement):
                 if self.nature and self.nature=='INTRINSIC':
                     self.module = self.intrinsic_module(self.name)
                 else:
+                    # skip if excluded
+                    for section, options in Config.exclude.iteritems():
+                        if section in [ 'namepath' ]:
+                            for pattern, actions in options.iteritems():
+                                if match_namepath(pattern, self.name):
+                                    if 'skip_module' in actions:
+                                        return
+
                     fn = self.reader.find_module_source_file(self.name)
                     if fn:
                         src = SrcFile(fn)
@@ -1097,17 +1105,8 @@ class Use(Statement):
                             State.modfiles[src.abspath] = ( src, [] )
                         self.module = src.tree.a.module[self.name]
                     else:
-                        Logger.warn('Module, %s, is not found at %s'%(self.name, self.reader.id), stdout=True)
-
-                        # skip if excluded
-                        for pname, modnames in Config.exclude.iteritems():
-                            if pname=='module':
-                                for name, action in modnames.iteritems():
-                                    if name==self.name:
-                                        Logger.info('Module %s is skipped'%self.name, stdout=True)
-                                        return
-
-                        raise UserException('Please check include paths for searching module files.')
+                        raise UserException('Module, %s, is not found at %s. Please check include paths for searching module files.' % \
+                            (self.name, self.reader.id))
 
         if self.module:
             self.module.resolve(request)

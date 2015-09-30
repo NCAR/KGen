@@ -135,6 +135,14 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
                             write_stmt.endblock = stmt.content[-1]
                         comment_str = '!kgen_excluded '
                         break
+                    elif any([act.startswith('use_object') for act in actions]):
+                        for act in actions:
+                            if act.startswith('use_object'):
+                                pos1 = act.find('(')
+                                pos2 = act.rfind(')')
+                                Config.kernel_link['obj'].append(act[pos1+1:pos2])
+                                break
+
             #split_write(f, comment_str+stmt.tokgen(**kwargs)+unresstr, d=depth)
             if stmt.__class__ in execution_part+[Else, ElseIf, ElseWhere, EndDo, EndSelect, EndForall, EndIfThen]:
                 if write_stmt.writtenlineno!=stmt.item.span[0]:
@@ -158,6 +166,14 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
                         write_stmt.endblock = stmt.content[-1]
                     comment_str = '!kgen_excluded '
                     break
+                elif any([act.startswith('use_object') for act in actions]):
+                    for act in actions:
+                        if act.startswith('use_object'):
+                            pos1 = act.find('(')
+                            pos2 = act.rfind(')')
+                            Config.kernel_link['obj'].append(act[pos1+1:pos2])
+                            break
+
         #split_write(f, comment_str+stmt.tokgen(**kwargs)+unresstr, d=depth)
         if stmt.__class__ in execution_part+[Else, ElseIf, ElseWhere, EndDo, EndSelect, EndForall, EndIfThen]:
             if write_stmt.writtenlineno!=stmt.item.span[0]:
