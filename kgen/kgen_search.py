@@ -126,20 +126,20 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
                 for namepath, actions in options.iteritems():
                     namelist = namepath.split()
                     l = len(namelist)
-                    if l==0:
-                    elif l==1:
-                    elif l==2:
-                    elif l==3:
-                    else: 
-name -> name in the beginning and the end
-:name: -> name in any location
-name: -> name at the beginning
-:name -> name at the end
-name1:name2 -> two level name
-name1:name2: -> more than two level name starts with the two names
-:name1:name2 -> more than two level name ends with the two names
-:name1:name2: -> more than two level name that the two name locates in the middle
-eventually data slicing
+#                    if l==0:
+#                    elif l==1:
+#                    elif l==2:
+#                    elif l==3:
+#                    else: 
+#name -> name in the beginning and the end
+#:name: -> name in any location
+#name: -> name at the beginning
+#:name -> name at the end
+#name1:name2 -> two level name
+#name1:name2: -> more than two level name starts with the two names
+#:name1:name2 -> more than two level name ends with the two names
+#:name1:name2: -> more than two level name that the two name locates in the middle
+#eventually data slicing
 
                     if namepath==node.string.lower():
                         get_innamepath(stmt)
