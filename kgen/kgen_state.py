@@ -111,16 +111,28 @@ class ResState(object):
         self.uname = uname
         self.originator = org
         self.resolvers = resolvers
-        self.temp_uname = None
+        #self.temp_uname = None
         self.res_stmt = None
+        self.unamelist = [uname]
 
-    def set_uname(self, uname):
-        self.temp_uname = self.uname
+    def push_uname(self, uname):
+        self.unamelist.append(uname)
         self.uname = uname
 
-    def reset_uname(self):
-        self.uname = self.temp_uname
-        self.temp_uname = None
+    def pop_uname(self, reset_uname=False):
+        newname = self.unamelist.pop()
+        self.uname = self.unamelist[-1]
+        if self.res_stmt and reset_uname:
+            newlist = []
+            for resuname in self.res_stmt.geninfo.values()[0]:
+                if resuname==newname:
+                    newlist.append(self.uname)
+                else:
+                    newlist.append(resuname)
+                    pass
+            self.res_stmt.geninfo.values()[0] = newlist
+            #import pdb; pdb.set_trace()
+            
 
 class SrcFile(object):
     def __init__(self, srcpath):

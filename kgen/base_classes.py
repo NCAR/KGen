@@ -966,6 +966,7 @@ class BeginStatement(Statement):
     def resolve(self, request):
         from kgen_state import ResState
         from kgen_search import f2003_search_unknowns
+        from kgen_utils import pack_exnamepath
         from block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine
         from typedecl_statements import TypeDeclarationStatement
         from statements import External, Use
@@ -1109,16 +1110,17 @@ class BeginStatement(Statement):
                                 if len(rename)>1:
                                     raise ProgramException('More than one result: %s'%str(rename))
                                 elif len(rename)==1:
-                                    # TODO for rayl issue 
-                                    newname = KGName(rename[0][1], node=use_stmt.f2003, stmt=use_stmt)
-                                    request.set_uname(newname)
+                                    newname = KGName(pack_exnamepath(request.originator, rename[0][1]), node=use_stmt.f2003, stmt=use_stmt)
+                                    request.push_uname(newname)
                                     use_stmt.resolve(request)
-                                    request.reset_uname()
                                     if request.state == ResState.RESOLVED:
+                                        request.pop_uname(reset_uname=True)
                                         request.res_stmt = use_stmt
                                         request.res_stmt.add_geninfo(request.uname)
                                         self.check_spec_stmts(request.uname, request.res_stmt)
                                         break
+                                    else:
+                                        request.pop_uname()
                         if request.state==ResState.RESOLVED: break
 
                     # and then, try with use stmts not having only keyword
@@ -1139,42 +1141,49 @@ class BeginStatement(Statement):
                                     if len(rename)>1:
                                         raise ProgramException('More than one result: %s'%str(rename))
                                     elif len(rename)==1:
-                                        request.uname.set_name(rename[0][1])
+                                        newname = KGName(pack_exnamepath(request.originator, rename[0][1]), node=use_stmt.f2003, stmt=use_stmt)
+                                        request.push_uname(newname)
                                         use_stmt.resolve(request)
-                                        request.uname.reset_name()
+
+                                        #request.uname.set_name(rename[0][1])
+                                        #use_stmt.resolve(request)
+                                        #request.uname.reset_name()
                                         if request.state == ResState.RESOLVED:
+                                            request.pop_uname(reset_uname=True)
                                             request.res_stmt = use_stmt
                                             request.res_stmt.add_geninfo(request.uname)
                                             self.check_spec_stmts(request.uname, request.res_stmt)
                                             break
+                                        else:
+                                            request.pop_uname()
                             if request.state==ResState.RESOLVED: break
 
-                    # and then, try with use stmts that has an analyzed-module
-                    if request.state != ResState.RESOLVED:
-                        for mod_name, use_stmts in self.use_stmts.iteritems():
-                            for use_stmt in use_stmts:
-                                if use_stmt.module:
-                                    if uname in use_stmt.module.a.module_provides:
-                                        use_stmt.resolve(request)
-                                        if request.state == ResState.RESOLVED:
-                                            request.res_stmt = use_stmt
-                                            request.res_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, request.res_stmt)
-                                            break
-
-                                    rename = [r for r in use_stmt.renames if r[0]==uname]
-                                    if len(rename)>1:
-                                        raise ProgramException('More than one result: %s'%str(rename))
-                                    elif len(rename)==1 and uname in use_stmt.module.a.module_provides:
-                                        request.uname.set_name(rename[0][1])
-                                        use_stmt.resolve(request)
-                                        request.uname.reset_name()
-                                        if request.state == ResState.RESOLVED:
-                                            request.res_stmt = use_stmt
-                                            request.res_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, request.res_stmt)
-                                            break
-                            if request.state==ResState.RESOLVED: break
+#                    # and then, try with use stmts that has an analyzed-module
+#                    if request.state != ResState.RESOLVED:
+#                        for mod_name, use_stmts in self.use_stmts.iteritems():
+#                            for use_stmt in use_stmts:
+#                                if use_stmt.module:
+#                                    if uname in use_stmt.module.a.module_provides:
+#                                        use_stmt.resolve(request)
+#                                        if request.state == ResState.RESOLVED:
+#                                            request.res_stmt = use_stmt
+#                                            request.res_stmt.add_geninfo(request.uname)
+#                                            self.check_spec_stmts(request.uname, request.res_stmt)
+#                                            break
+#
+#                                    rename = [r for r in use_stmt.renames if r[0]==uname]
+#                                    if len(rename)>1:
+#                                        raise ProgramException('More than one result: %s'%str(rename))
+#                                    elif len(rename)==1 and uname in use_stmt.module.a.module_provides:
+#                                        request.uname.set_name(rename[0][1])
+#                                        use_stmt.resolve(request)
+#                                        request.uname.reset_name()
+#                                        if request.state == ResState.RESOLVED:
+#                                            request.res_stmt = use_stmt
+#                                            request.res_stmt.add_geninfo(request.uname)
+#                                            self.check_spec_stmts(request.uname, request.res_stmt)
+#                                            break
+#                            if request.state==ResState.RESOLVED: break
 
                     # and then, try with use stmts not having only keyword
                     # and not has renames or norenames

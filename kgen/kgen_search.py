@@ -139,7 +139,11 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
                     name = node.string.lower()
                     namepath = pack_innamepath(stmt, name) 
                     if match_namepath(pattern, namepath):
-                        stmt.exclude_names = { name: actions }
+                        if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = {}
+                        if stmt.exclude_names.has_key(name):
+                            stmt.exclude_names[name].extend(actions)
+                        else:
+                            stmt.exclude_names[name] = actions
                         node.skip_search = True
                         if hasattr(node, 'parent'): node.parent.skip_search = True
                         return

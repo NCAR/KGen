@@ -564,23 +564,27 @@ class Config(object):
 
         # parsing intrinsic skip option
         if opts.intrinsic:
-            if 'skip' in opts.intrinsic:
-                self._attrs['search']['skip_intrinsic'] = True
-            elif 'noskip' in opts.intrinsic:
-                self._attrs['search']['skip_intrinsic'] = False
-            else:
-                raise UserException('Unknown intrinsic option(s) in %s' % opts.intrinsic)
-
+            subflags = []
             for line in opts.intrinsic:
-                for subf in line.lower().split(','):
-                    if subf and subf.find('=')>0:
-                        key, value = subf.split('=')
-                        if key=='except':
-                            self._attrs['search']['except'].extend(value.split(':'))
-                        elif key=='add_intrinsic':
-                            Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
-                        else:
-                            raise UserException('Unknown intrinsic sub option: %s' % subf)
+                subflags.extend(line.split(','))
+
+            for subf in subflags:
+                if subf and subf.find('=')>0:
+                    key, value = subf.split('=')
+                    if key=='except':
+                        self._attrs['search']['except'].extend(value.split(':'))
+                    elif key=='add_intrinsic':
+                        Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
+                    else:
+                        raise UserException('Unknown intrinsic sub option: %s' % subf)
+                else:
+                    if subf=='skip':
+                        self._attrs['search']['skip_intrinsic'] = True
+                    elif subf=='noskip':
+                        self._attrs['search']['skip_intrinsic'] = False
+                    else:
+                        raise UserException('Unknown intrinsic option(s) in %s' % subf)
+                       
 
         # parsing include parameters
         if opts.include:
@@ -649,7 +653,6 @@ class Config(object):
                     if isstrict: self._attrs['source']['isstrict'] = isstrict
 
         # dupulicate paths per each alias
-        #import pdb; pdb.set_trace()
         newpath = set() 
         for path in self._attrs['include']['path']:
             newpath.add(path)
@@ -683,8 +686,6 @@ class Config(object):
                         elif path.startswith(p2):
                             newpath.add(p1+path[len(p2):])
                 value['path'] = list(newpath)
-
-        #import pdb; pdb.set_trace()
 
     def process_commandline(self, opts):
 

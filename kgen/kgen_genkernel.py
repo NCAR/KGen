@@ -283,7 +283,7 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
                     entities.append(kgname.firstpartname())
         # for each entity
         for entity in entities:
-
+            if entity=='flx_upsw': import pdb; pdb.set_trace()
             org_decl = [e for e in stmt.entity_decls if EntityDecl(e)==entity.lower()]
             decl = [EntityDecl(e).get_name() for e in stmt.entity_decls if EntityDecl(e)==entity.lower()]
             #org_decl = [e for e in stmt.entity_decls if e.split('(')[0].strip()==entity.lower()]
