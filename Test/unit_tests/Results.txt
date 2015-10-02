@@ -1,0 +1,12 @@
+TEST tmp_alloc_dealloc_opt passed
+TEST tmp_common_block passed
+TEST tmp_complex_datatypes FAILED. Check error log for more details
+TEST tmp_elems_of_complex_datatypes passed
+TEST tmp_generic_spec_assignment passed
+TEST tmp_implicit_do_loop_data passed
+TEST tmp_level_5_expr passed
+TEST tmp_param_stmt_search passed
+TEST tmp_recursion_derivedtype passed
+TEST tmp_signed_lit_const_data passed
+
+9/10 tests passed. 1 FAILED.
