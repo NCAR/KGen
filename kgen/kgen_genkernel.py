@@ -281,35 +281,21 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
             for kgname in stmt.geninfo[KGName]:
                 if kgname.firstpartname() not in entities:
                     entities.append(kgname.firstpartname())
+
+        # output names
+        outnames = [ name.firstpartname() for name in State.parentblock['output']['names']]
+
         # for each entity
         for entity in entities:
-            if entity=='flx_upsw': import pdb; pdb.set_trace()
             org_decl = [e for e in stmt.entity_decls if EntityDecl(e)==entity.lower()]
             decl = [EntityDecl(e).get_name() for e in stmt.entity_decls if EntityDecl(e)==entity.lower()]
-            #org_decl = [e for e in stmt.entity_decls if e.split('(')[0].strip()==entity.lower()]
-            #decl = [e.split('(')[0].strip() for e in stmt.entity_decls if e.split('(')[0].strip()==entity.lower()]
             if len(decl)>1: raise ProgramException('More than one entity is found: %s'%str(decl))
             var = stmt.parent.a.variables[decl[0]]
-            if var.is_intent_out():
-                dimattr = []
-                for attr in var.parent.attrspec:
-                    if attr.startswith('dimension'):
-                        dimattr.append(attr)
-                delattrs = ['intent(out)'] + dimattr
-                if var.is_array():
-                    dim = '(%s)'%','.join([':']*var.rank)
-                    if var.is_pointer():
-                        write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim) ], delattr=delattrs)
-                    else:
-                        write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim) ], delattr=delattrs, \
-                            addattr=['allocatable'])
-                else:
-                    write_kernel_stmt(f, stmt, depth, items=[ decl[0] ], delattr=delattrs)
-            else:
+            if not decl[0] in outnames:
                 write_kernel_stmt(f, stmt, depth, items=org_decl)
 
-            for outname in State.parentblock['output']['names']:
-                if outname.firstpartname()==decl[0]:
+            for outname in outnames:
+                if outname==decl[0]:
                     res_stmt = State.parentblock['output']['res_stmt'][outname]
                     var = res_stmt.parent.a.variables[decl[0]]
                     dimattr = []
@@ -317,7 +303,6 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
                         if attr.startswith('dimension'):
                             dimattr.append(attr)
                     delattrs = ['intent(in)', 'intent(out)', 'intent(inout)'] + dimattr
-                    #delattrs = ['intent(in)', 'intent(out)', 'intent(inout)']
                     if var.is_array():
                         addattrs = []
                         if var.is_explicit_shape_array():
@@ -329,13 +314,17 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
                                 addattrs = ['allocatable']
 
                         if var.is_pointer():
+                            write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim)+' => NULL()' ], delattr=delattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_%s%s'%(decl[0],dim)+' => NULL()' ], delattr=delattrs)
                         else:
+                            write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim) ], delattr=delattrs, addattr=addattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_%s%s'%(decl[0],dim) ], delattr=delattrs, addattr=addattrs)
                     else:
                         if var.is_pointer():
+                            write_kernel_stmt(f, stmt, depth, items=[ decl[0]+' => NULL()' ], delattr=delattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_'+decl[0]+' => NULL()' ], delattr=delattrs)
                         else:
+                            write_kernel_stmt(f, stmt, depth, items=[ decl[0] ], delattr=delattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_'+decl[0] ], delattr=delattrs)
                     break
 
@@ -355,10 +344,6 @@ def generate_kernel_module_callsite():
     with open('%s/%s'%(Config.path['kernel'], cs_filename), 'wb') as f:
         write_file_header(f, cs_filename)
         for stmt, depth in walk(cs_tree, -1):
-            #print str(mod_stage), stmt.tokgen()
-            #if isinstance(stmt, Use) and stmt.parent.name=='compute_and_apply_rhs' and stmt.name=='control_mod':
-            #    import pdb; pdb.set_trace()
-
             if mod_stage==SrcStage.BEFORE_MODULE_STMT:
                 if stmt is mod_stmt:
                     mod_stage = SrcStage.AFTER_MODULE_STMT
@@ -387,8 +372,6 @@ def generate_kernel_module_callsite():
                     if len(State.topblock['extern']['names'])>0:
                         write(f, 'PUBLIC %s'%('kgen_read_externs_%s'%mod_stmt.name), depth)
 
-                    #write(f, 'INTEGER, PARAMETER :: kgen_dp = selected_real_kind(15, 307)', d=depth)
-
                     add_public_stmt(f, depth)
 
 
@@ -402,8 +385,6 @@ def generate_kernel_module_callsite():
                     if len(State.topblock['extern']['names'])>0:
                         write(f, 'PUBLIC %s'%('kgen_read_externs_%s'%mod_stmt.name), depth)
 
-                    #write(f, 'INTEGER, PARAMETER :: kgen_dp = selected_real_kind(15, 307)', d=depth)
- 
                     add_public_stmt(f, depth)
 
                     write_kernel_interface_read_var_mod(f, depth, [], 0, \
