@@ -1,6 +1,6 @@
 # kgen_genfiles.py
 
-from kgen_utils import KGName, ProgramException
+from kgen_utils import KGName, Config, ProgramException, pack_innamepath, match_namepath
 from kgen_state import State
 from api import walk
 from typedecl_statements import TypeDeclarationStatement
@@ -13,7 +13,6 @@ dtypes_found = []
 def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=True):
     from statements import Use
     from Fortran2003 import Entity_Decl
-    from kgen_utils import pack_innamepath
 
     if var.is_pointer() or var.is_allocatable() or var.is_array() or stmt.is_derived():
         varpointer = var.is_pointer()
@@ -232,13 +231,54 @@ def mark_callsite_generation_info():
             if stmt_parent is State.topblock['stmt']:
                 State.topblock['dtype'].append(stmt)
                 for varname, var in stmt.a.variables.iteritems():
-                    append_tkdpat(State.DT_CALLMODULE, var, var.parent, State.topblock['extern']['tkdpat'], \
-                                State.topblock['mod_rw_var_depends'])
+                    remove = False
+                    if Config.exclude.has_key('namepath'):
+                        for pattern, actions in Config.exclude['namepath'].iteritems():
+                            namepath = pack_innamepath(var.parent, var.parent.name) 
+                            #if var.parent.name=='file_desc_t':import pdb; pdb.set_trace()
+                            if match_namepath(pattern, namepath) and 'remove' in actions:
+                                remove = True
+                                if not hasattr(var.parent, 'nosave_state_names'):
+                                    var.parent.nosave_state_names = []
+                                var.parent.nosave_state_names.append(var.parent.name)
+
+                                if not hasattr(var.parent, 'exclude_names'): var.parent.exclude_names = {}
+                                if var.parent.exclude_names.has_key(var.parent.name):
+                                    var.parent.exclude_names[var.parent.name].append('comment')
+                                else:
+                                    var.parent.exclude_names[var.parent.name] = ['comment']
+
+                                break
+
+                    if not remove:
+                        append_tkdpat(State.DT_CALLMODULE, var, var.parent, State.topblock['extern']['tkdpat'], \
+                            State.topblock['mod_rw_var_depends'])
+
             elif stmt_parent is State.parentblock['stmt']:
                 State.parentblock['dtype'].append(stmt)
                 for varname, var in stmt.a.variables.iteritems():
-                    append_tkdpat(State.DT_CALLPARENT, var, var.parent, State.parentblock['writesubr']['tkdpat'], \
-                                State.parentblock['mod_rw_var_depends'])
+                    remove = False
+                    if Config.exclude.has_key('namepath'):
+                        for pattern, actions in Config.exclude['namepath'].iteritems():
+                            namepath = pack_innamepath(var.parent, var.parent.name) 
+                            #if var.parent.name=='file_desc_t':import pdb; pdb.set_trace()
+                            if match_namepath(pattern, namepath) and 'remove' in actions:
+                                remove = True
+                                if not hasattr(var.parent, 'nosave_state_names'):
+                                    var.parent.nosave_state_names = []
+                                var.parent.nosave_state_names.append(var.parent.name)
+
+                                if not hasattr(var.parent, 'exclude_names'): var.parent.exclude_names = {}
+                                if var.parent.exclude_names.has_key(var.parent.name):
+                                    var.parent.exclude_names[var.parent.name].append('comment')
+                                else:
+                                    var.parent.exclude_names[var.parent.name] = ['comment']
+
+                                break
+
+                    if not remove:
+                        append_tkdpat(State.DT_CALLPARENT, var, var.parent, State.parentblock['writesubr']['tkdpat'], \
+                            State.parentblock['mod_rw_var_depends'])
 
 def mark_modules_generation_info():
     """ Mark each statement objects with kernel generation information """
@@ -288,9 +328,30 @@ def mark_modules_generation_info():
                 mod_name = stmt.parent.name
                 srcfile.used4genstate = True
                 State.modules[mod_name]['dtype'].append(stmt)
+
                 for varname, var in stmt.a.variables.iteritems():
-                    append_tkdpat(State.DT_MODULE, var, var.parent, State.modules[mod_name]['extern']['tkdpat'], \
-                        State.modules[mod_name]['mod_rw_var_depends'])
+                    remove = False
+                    if Config.exclude.has_key('namepath'):
+                        for pattern, actions in Config.exclude['namepath'].iteritems():
+                            namepath = pack_innamepath(var.parent, var.parent.name) 
+                            #if var.parent.name=='file_desc_t':import pdb; pdb.set_trace()
+                            if match_namepath(pattern, namepath) and 'remove' in actions:
+                                remove = True
+                                if not hasattr(var.parent, 'nosave_state_names'):
+                                    var.parent.nosave_state_names = []
+                                var.parent.nosave_state_names.append(var.parent.name)
+
+                                if not hasattr(var.parent, 'exclude_names'): var.parent.exclude_names = {}
+                                if var.parent.exclude_names.has_key(var.parent.name):
+                                    var.parent.exclude_names[var.parent.name].append('comment')
+                                else:
+                                    var.parent.exclude_names[var.parent.name] = ['comment']
+
+                                break
+
+                    if not remove:
+                        append_tkdpat(State.DT_MODULE, var, var.parent, State.modules[mod_name]['extern']['tkdpat'], \
+                            State.modules[mod_name]['mod_rw_var_depends'])
 
 def mark_generation_info():
     """ Mark each statement objects with kernel generation information """

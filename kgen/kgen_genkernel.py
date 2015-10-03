@@ -129,7 +129,6 @@ def generate_kernel_files():
                 remove_modfiles.append(filepath)
 
     for remove_modfile in remove_modfiles:
-        #import pdb; pdb.set_trace()
         del State.modfiles[remove_modfile]
 
 def generate_kernel_program():
@@ -216,8 +215,6 @@ def process_kernel_module_use_stmt(f, stmt, depth):
                         in_renames = True
                         break
                 if not in_renames:
-                    # TODO for rayl issue
-                    #import pdb ;pdb.set_trace()
                     write(f, 'USE %s, only : %s'%(stmt.name, entity), d=depth)
 
 def add_public_stmt(f, depth):
@@ -294,8 +291,8 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
             if not decl[0] in outnames:
                 write_kernel_stmt(f, stmt, depth, items=org_decl)
 
-            for outname in outnames:
-                if outname==decl[0]:
+            for outname in State.parentblock['output']['names']:
+                if outname.firstpartname()==decl[0]:
                     res_stmt = State.parentblock['output']['res_stmt'][outname]
                     var = res_stmt.parent.a.variables[decl[0]]
                     dimattr = []

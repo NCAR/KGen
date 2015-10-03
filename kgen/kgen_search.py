@@ -132,21 +132,19 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
                 return
 
         # skip if excluded
-        for section, options in Config.exclude.iteritems():
-            if section in [ 'namepath' ]:
-                #import pdb; pdb.set_trace()
-                for pattern, actions in options.iteritems():
-                    name = node.string.lower()
-                    namepath = pack_innamepath(stmt, name) 
-                    if match_namepath(pattern, namepath):
-                        if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = {}
-                        if stmt.exclude_names.has_key(name):
-                            stmt.exclude_names[name].extend(actions)
-                        else:
-                            stmt.exclude_names[name] = actions
-                        node.skip_search = True
-                        if hasattr(node, 'parent'): node.parent.skip_search = True
-                        return
+        if Config.exclude.has_key('namepath'):
+            for pattern, actions in Config.exclude['namepath'].iteritems():
+                name = node.string.lower()
+                namepath = pack_innamepath(stmt, name) 
+                if match_namepath(pattern, namepath):
+                    if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = {}
+                    if stmt.exclude_names.has_key(name):
+                        stmt.exclude_names[name].extend(actions)
+                    else:
+                        stmt.exclude_names[name] = actions
+                    node.skip_search = True
+                    if hasattr(node, 'parent'): node.parent.skip_search = True
+                    return
 
         ukey = KGName(pack_innamepath(stmt, node.string.lower()), node=node, stmt=stmt)
 
@@ -281,6 +279,7 @@ def search_str(stmt, string):
     pass
 
 def search_Function_Stmt(stmt, node): 
+    #if hasattr(stmt, 'parent') and stmt.parent.__class__.__name__=='Interface': import pdb; pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_derivedtype ) # prefix
     get_name_or_defer(stmt, node.items[2], res_typedecl) # dummy args
     get_name_or_defer(stmt, node.items[3], res_typedecl)
@@ -823,6 +822,8 @@ def search_Ac_Implied_Do_Control(stmt, node):
             get_name_or_defer(stmt, item, res_value)
 
 def search_Specific_Binding(stmt, node):
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_subprogram)
     get_name_or_defer(stmt, node.items[1], res_value)
     get_name_or_defer(stmt, node.items[3], res_subprogram)

@@ -463,6 +463,7 @@ class Config(object):
         parser.add_option("--state-run", dest="state_run", action='append', type='string', help="Run information to generate makefile")
         parser.add_option("--check", dest="check", action='append', type='string', help="Kernel correctness check information")
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
+        parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
 
         opts, args = parser.parse_args()
         if len(args)<1:
@@ -810,6 +811,17 @@ class Config(object):
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
 
+        # parsing logging options
+        if opts.logging:
+            for log in opts.logging:
+                param_path, value = log.split('=')
+                param_split = param_path.lower().split('.')
+                value_split = value.lower().split(',')
+                curdict = self._attrs['logging']
+                for param in param_split[:-1]:
+                    curdict = curdict[param] 
+                exec('curdict[param_split[-1]] = value_split')
+
     def __getattr__(self, name):
         return self._attrs[name]
 
@@ -825,12 +837,8 @@ def check_logging(func):
         if Config.logging['select'].has_key('name'):
             exe_func = False
             if kwargs.has_key('name'):
-                np1 = kwargs['name'].namepath.lower()
-                for np2 in Config.logging['select']['name']:
-                    np1_split = decode_NS(np1).split('.')
-                    np2_split = np2.split('.')
-                    minlen = min(len(np1_split), len(np2_split))
-                    if np1_split[-1*minlen:]==np2_split[-1*minlen:]:
+                for pattern in Config.logging['select']['name']:
+                    if match_namepath(encode_NS(pattern), kwargs['name'].namepath):
                         exe_func = True
                         break
 

@@ -666,13 +666,13 @@ class Statement(object):
             return self.item.apply_map(self.tofortran().lstrip())
 
     def ancestors(self):
-        from block_statements import BeginSource, HasUseStmt
+        from block_statements import BeginSource, HasUseStmt, Type
 
         anc = []
 
         parent = self.parent
         while not isinstance(parent, BeginSource):
-            if isinstance(parent, HasUseStmt):
+            if isinstance(parent, HasUseStmt) or parent.__class__ in [Type]:
                 anc.append(parent)
             parent = parent.parent
 

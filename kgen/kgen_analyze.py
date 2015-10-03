@@ -1,4 +1,4 @@
-# kgen_callsite.py
+# kgen_analyze.py
 
 from kgen_utils import KGName, Logger, Config, ProgramException, UserException, show_tree
 from kgen_state import State, SrcFile
@@ -45,6 +45,10 @@ class ActualArg(object):
         pass
 
     def kgname_Add_Operand(self, node, part_collected=False):
+        self.collect_kgnames(node.items[0])
+        self.collect_kgnames(node.items[2])
+
+    def kgname_Level_2_Expr(self, node, part_collected=False):
         self.collect_kgnames(node.items[0])
         self.collect_kgnames(node.items[2])
 

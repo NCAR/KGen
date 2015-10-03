@@ -130,7 +130,7 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
                 comment_str = '!kgen_excluded '
             elif hasattr(stmt, 'exclude_names') and State.state==State.STATE_GENERATED:
                 for excname, actions in stmt.exclude_names.iteritems():
-                    if 'comment' in actions:
+                    if 'comment' in actions or 'remove' in actions:
                         if isinstance(stmt, BeginStatement):
                             write_stmt.endblock = stmt.content[-1]
                         comment_str = '!kgen_excluded '
@@ -161,7 +161,7 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
             comment_str = '!kgen_excluded '
         elif hasattr(stmt, 'exclude_names') and State.state==State.STATE_GENERATED:
             for excname, actions in stmt.exclude_names.iteritems():
-                if 'comment' in actions:
+                if 'comment' in actions or 'remove' in actions:
                     if isinstance(stmt, BeginStatement):
                         write_stmt.endblock = stmt.content[-1]
                     comment_str = '!kgen_excluded '
@@ -249,20 +249,24 @@ def write_subroutines_type_rw_var(f, depth, rd, dtypelist):
                     varname = entity.items[0].string.lower()
                     var = dtype.a.variables[varname]
 
-                    # generate dtype subroutine name to use in call stmt 
-                    subrname = GenBase.subrname_stmt(comp, var)
-
-                    if subrname:
-                        write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+1)
-                        write(f, 'CALL kgen_%s_%s(var%%%s, kgen_unit, printvar=printvar//"%%%s")'%(rwstr, subrname, varname, varname), d=depth+2)
-                        write(f, 'ELSE', d=depth+1)
-                        write(f, 'CALL kgen_%s_%s(var%%%s, kgen_unit)'%(rwstr, subrname, varname), d=depth+2)
-                        write(f, 'END IF', d=depth+1)
+                    if hasattr(comp, 'nosave_state_names') and var.parent.name in comp.nosave_state_names:
+                        #import pdb; pdb.set_trace()
+                        pass
                     else:
-                        write(f, '%s(UNIT=kgen_unit) var%%%s'%(rwstr.upper(), varname), d=depth+1)
-                        write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+1)
-                        write(f, 'print *, "** KGEN DEBUG: " // printvar // "%%%s **", var%%%s'%(varname, varname), d=depth+2)
-                        write(f, 'END IF', d=depth+1)
+                        # generate dtype subroutine name to use in call stmt 
+                        subrname = GenBase.subrname_stmt(comp, var)
+
+                        if subrname:
+                            write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+1)
+                            write(f, 'CALL kgen_%s_%s(var%%%s, kgen_unit, printvar=printvar//"%%%s")'%(rwstr, subrname, varname, varname), d=depth+2)
+                            write(f, 'ELSE', d=depth+1)
+                            write(f, 'CALL kgen_%s_%s(var%%%s, kgen_unit)'%(rwstr, subrname, varname), d=depth+2)
+                            write(f, 'END IF', d=depth+1)
+                        else:
+                            write(f, '%s(UNIT=kgen_unit) var%%%s'%(rwstr.upper(), varname), d=depth+1)
+                            write(f, 'IF ( PRESENT(printvar) ) THEN', d=depth+1)
+                            write(f, 'print *, "** KGEN DEBUG: " // printvar // "%%%s **", var%%%s'%(varname, varname), d=depth+2)
+                            write(f, 'END IF', d=depth+1)
 
         write(f, 'END SUBROUTINE', d=depth)
 
@@ -1041,30 +1045,33 @@ def write_kernel_subroutines_type_verify_var(f, depth, dtypelist):
         write(f, 'check_status%numTotal = check_status%numTotal + 1', d=depth+1)
         write(f, 'CALL kgen_init_check(dtype_check_status)', d=depth+1)
 
-        #import pdb; pdb.set_trace()
         for comp, _depth in walk(dtype):
             if isinstance(comp, TypeDeclarationStatement):
                 # any one of decls
                 decl = Entity_Decl(comp.entity_decls[0])
                 uname = KGName(decl.items[0].string)
                 var = comp.parent.a.variables[uname.firstpartname()]
-                subrname = GenBase.subrname_stmt(comp, var, call4arr=True, subr4kind=True)
 
-                if not subrname:
-                    subrname = comp.name
+                if hasattr(comp, 'nosave_state_names') and comp.name in comp.nosave_state_names:
+                    pass
+                else:
+                    subrname = GenBase.subrname_stmt(comp, var, call4arr=True, subr4kind=True)
 
-                for entity in comp.entity_decls:
-                    decl = Entity_Decl(entity)
-                    uname = KGName(decl.items[0].string)
-                    n = uname.firstpartname()
+                    if not subrname:
+                        subrname = comp.name
 
-                    write(f, 'CALL kgen_verify_%s("%s", dtype_check_status, var%%%s, ref_var%%%s)'%(subrname, n, n, n), d=depth+1)
+                    for entity in comp.entity_decls:
+                        decl = Entity_Decl(entity)
+                        uname = KGName(decl.items[0].string)
+                        n = uname.firstpartname()
 
-                if subrname in verify_subrnames:
-                    continue
+                        write(f, 'CALL kgen_verify_%s("%s", dtype_check_status, var%%%s, ref_var%%%s)'%(subrname, n, n, n), d=depth+1)
 
-                tempblock['names'].append(uname)
-                tempblock['res_stmt'][uname] = comp
+                    if subrname in verify_subrnames:
+                        continue
+
+                    tempblock['names'].append(uname)
+                    tempblock['res_stmt'][uname] = comp
 
         verify_subrnames.append(dtype.name)
 
@@ -1566,18 +1573,21 @@ class GenVerification(GenBase):
                                 tempblock['res_stmt'][uname] = comp
 
                                 var = comp.parent.a.variables[uname.firstpartname()]
-                                subrname = GenBase.subrname_stmt(comp, var, call4arr=True, subr4kind=True)
-                                
-                                if not subrname:
-                                    subrname = comp.name
+                                if hasattr(comp, 'nosave_state_names') and comp.name in comp.nosave_state_names:
+                                    pass
+                                else:
+                                    subrname = GenBase.subrname_stmt(comp, var, call4arr=True, subr4kind=True)
+                                    
+                                    if not subrname:
+                                        subrname = comp.name
 
-                                for entity in comp.entity_decls:
-                                    decl = Entity_Decl(entity)
-                                    uname = KGName(decl.items[0].string)
-                                    n = uname.firstpartname()
+                                    for entity in comp.entity_decls:
+                                        decl = Entity_Decl(entity)
+                                        uname = KGName(decl.items[0].string)
+                                        n = uname.firstpartname()
 
-                                    write(f, 'CALL kgen_verify_%s("%s", dtype_check_status, var%%%s, ref_var%%%s)'%(subrname, n, n, n), d=depth+1)
-                                #import pdb; pdb.set_trace()
+                                        write(f, 'CALL kgen_verify_%s("%s", dtype_check_status, var%%%s, ref_var%%%s)'%(subrname, n, n, n), d=depth+1)
+                                    #import pdb; pdb.set_trace()
                     else:
                         raise ProgramException('Unknown type: %s'%dtype.__class__)
 
@@ -1614,30 +1624,33 @@ class GenVerification(GenBase):
                 res_stmt = block['res_stmt'][uname]
                 n = uname.firstpartname()
                 var = res_stmt.parent.a.variables[n]
-                subrname = GenBase.subrname_stmt(res_stmt, var, call4arr=True, subr4kind=True)
-                
-                if subrname:
-                    # remove subroutine contains mod<number>
-                    modcall = re.search(r'mod[\d]+$', subrname, re.I)
-                    if modcall:
+                #if res_stmt.name=='file_desc_t': import pdb; pdb.set_trace()
+                if hasattr(res_stmt, 'nosave_state_names') and res_stmt.name in res_stmt.nosave_state_names:
+                    pass
+                else:
+
+                    subrname = GenBase.subrname_stmt(res_stmt, var, call4arr=True, subr4kind=True)
+                    
+                    if subrname:
+                        # remove subroutine contains mod<number>
+                        modcall = re.search(r'mod[\d]+$', subrname, re.I)
+                        if modcall:
+                            continue
+                    else:
+                        subrname = res_stmt.name
+
+                    if subrname in verify_subrnames:
                         continue
-                else:
-                    subrname = res_stmt.name
 
-                if subrname in verify_subrnames:
-                    continue
+                    if res_stmt.is_derived():
+                        write(f, 'RECURSIVE SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
+                    else:
+                        write(f, 'SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
 
-                if res_stmt.is_derived():
-                    write(f, 'RECURSIVE SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
-                else:
-                    write(f, 'SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
+                    cls.write_specpart(f, depth+1, n, res_stmt, var)
+                    cls.write_checkpart(f, depth+1, n, res_stmt, var, tempblock)
 
-                cls.write_specpart(f, depth+1, n, res_stmt, var)
-                cls.write_checkpart(f, depth+1, n, res_stmt, var, tempblock)
+                    write(f, 'END SUBROUTINE kgen_verify_%s'%subrname, d=depth+1)
+                    write(f, '')
 
-                write(f, 'END SUBROUTINE kgen_verify_%s'%subrname, d=depth+1)
-                write(f, '')
-
-                verify_subrnames.append(subrname)
-
-
+                    verify_subrnames.append(subrname)
