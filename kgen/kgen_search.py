@@ -636,7 +636,7 @@ def search_Flush_Stmt(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Import_Stmt(stmt, node):
-    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[1], res_anything)
 
 def search_Block_Data_Stmt(stmt, node):
     # NOTE: Temporary solution
@@ -824,7 +824,7 @@ def search_Ac_Implied_Do_Control(stmt, node):
 def search_Specific_Binding(stmt, node):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
-    get_name_or_defer(stmt, node.items[0], res_subprogram)
+    get_name_or_defer(stmt, node.items[0], res_typespec + [ Interface ])
     get_name_or_defer(stmt, node.items[1], res_value)
     get_name_or_defer(stmt, node.items[3], res_subprogram)
 
