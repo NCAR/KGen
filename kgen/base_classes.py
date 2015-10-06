@@ -933,8 +933,6 @@ class Statement(object):
                                                 _stmt.resolve(req) 
 
                                 # if newly found program unit is not in depfiles
-                                if not State.depfiles.has_key(self.top.reader.id):
-                                    State.depfiles[self.top.reader.id] = ( src, [], [] )
                                 if not request.res_stmt in State.depfiles[self.top.reader.id][2]:
                                     State.depfiles[self.top.reader.id][2].append(request.res_stmt)
                     if request.state==ResState.RESOLVED:

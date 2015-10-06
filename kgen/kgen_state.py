@@ -69,7 +69,7 @@ class State(object):
         self._attrs['topblock']['extern']['names'] = []
         self._attrs['topblock']['extern']['res_stmt'] = {}
         self._attrs['topblock']['extern']['tkdpat'] = []
-        self._attrs['topblock']['mod_depends'] = [] # dependency for compile
+        #self._attrs['topblock']['mod_depends'] = [] # dependency for compile
         self._attrs['topblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
         self._attrs['topblock']['dtype'] = [] # derived types
 
@@ -224,6 +224,9 @@ class SrcFile(object):
                 if item.reader.id not in State.program_units.keys():
                     State.program_units[item.reader.id] = []
                 State.program_units[item.reader.id].append(item)
+
+        # create a tuple for file dependency
+        State.depfiles[self.abspath] = ( self, [], [] )
 
     def stmt_by_name(self, name, cls=None, lineafter=-1):
         from statements import Comment

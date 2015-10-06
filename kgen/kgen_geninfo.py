@@ -5,7 +5,7 @@ from kgen_state import State
 from api import walk
 from typedecl_statements import TypeDeclarationStatement
 from base_classes import BeginStatement
-from block_statements import Module, Type
+from block_statements import BeginSource, Module, Type
 from statements import Assignment
 
 dtypes_found = []
@@ -109,15 +109,9 @@ def process_spec_stmts(parent, is_callsite):
             if hasattr(parent, 'geninfo') and not hasattr(spec_stmt, 'geninfo'):
                 spec_stmt.geninfo = {}
 
-def mark_callsite_generation_info():
-    """ Mark each statement objects with kernel generation information """
-
-    cs_tree = State.topblock['file'].tree
-    actual_args = State.callsite['actual_arg']['names']
-    dummy_args = [ n.firstpartname() for n in State.parentblock['dummy_arg']['names'] ]
-
+def preprocess_generation_info(tree):
     # mark high level stmts and process spec. stmts
-    for stmt, depth in walk(cs_tree, -1):
+    for stmt, depth in walk(tree, -1):
         # mark end statements and higher level block
         if hasattr(stmt, 'unknowns') or hasattr(stmt, 'geninfo'):
             if not hasattr(stmt, 'geninfo'): stmt.geninfo = {}
@@ -135,6 +129,16 @@ def mark_callsite_generation_info():
         # process sepc. stmts
         if hasattr(stmt, 'spec_stmts'):
             process_spec_stmts(stmt, True)
+
+def mark_callsite_generation_info():
+    """ Mark each statement objects with kernel generation information """
+
+    cs_tree = State.topblock['file'].tree
+    actual_args = State.callsite['actual_arg']['names']
+    dummy_args = [ n.firstpartname() for n in State.parentblock['dummy_arg']['names'] ]
+
+
+    preprocess_generation_info(cs_tree)
 
     # mark input state in callsite
     for stmt, depth in walk(cs_tree, -1):
@@ -287,80 +291,60 @@ def mark_programunits_generation_info():
 
     # mark info for all files other than callsite file
     for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
-        # mark high level stmts and process spec. stmts
-        processed_files.append(filepath)
+        if filepath!=State.topblock['path']:
+            # mark high level stmts and process spec. stmts
+            processed_files.append(filepath)
 
-        for stmt, depth in walk(srcfile.tree, -1):
-            # mark end statements and higher level block
-            if hasattr(stmt, 'unknowns') or hasattr(stmt, 'geninfo'):
-                if not hasattr(stmt, 'geninfo'): stmt.geninfo = {}
-                if isinstance(stmt, BeginStatement) and not hasattr(stmt.content[-1], 'geninfo'):
-                    stmt.content[-1].geninfo = {}
-                ancestors = stmt.ancestors()
-                for ancestor in ancestors:
-                    if not hasattr(ancestor, 'geninfo'):
-                        ancestor.geninfo = {}
-                    if not hasattr(ancestor.content[-1], 'geninfo'):
-                        ancestor.content[-1].geninfo = {}
-                    if hasattr(ancestor, 'spec_stmts'):
-                        process_spec_stmts(ancestor, False)
+            preprocess_generation_info(srcfile.tree)
 
-            # process sepc. stmts
-            if hasattr(stmt, 'spec_stmts'):
-                process_spec_stmts(stmt, False)
+            for stmt, depth in walk(srcfile.tree, -1):
+                if isinstance(stmt.parent, Module):
+                    if hasattr(stmt, 'geninfo') and isinstance(stmt, TypeDeclarationStatement) and \
+                        stmt.geninfo.has_key(KGName):
+                        mod_name = stmt.parent.name
+                        used = []
+                        for kgname in stmt.geninfo[KGName]:
+                            if kgname.firstpartname() in used:continue
+                            else: used.append(kgname.firstpartname())
 
-        for stmt, depth in walk(srcfile.tree, -1):
-            # if marked
-            if hasattr(stmt, 'geninfo') and isinstance(stmt, TypeDeclarationStatement) and \
-                isinstance(stmt.parent, Module) and stmt.geninfo.has_key(KGName):
-                mod_name = stmt.parent.name
-                used = []
-                for kgname in stmt.geninfo[KGName]:
-                    if kgname.firstpartname() in used:continue
-                    else: used.append(kgname.firstpartname())
+                            var = stmt.parent.a.variables[kgname.firstpartname()]
+                            if not var.is_parameter():
+                                srcfile.used4genstate = True
+                                State.modules[mod_name]['extern']['names'].append(kgname)
+                                State.modules[mod_name]['extern']['res_stmt'][kgname] = stmt
+                                append_tkdpat(State.MOD_EXTERN, var, stmt, State.modules[mod_name]['extern']['tkdpat'], \
+                                    State.modules[mod_name]['mod_rw_var_depends'])
 
-                    var = stmt.parent.a.variables[kgname.firstpartname()]
-                    if not var.is_parameter():
+                    elif hasattr(stmt, 'geninfo') and isinstance(stmt, Type) and stmt.geninfo.has_key(KGName):
+                        mod_name = stmt.parent.name
                         srcfile.used4genstate = True
-                        State.modules[mod_name]['extern']['names'].append(kgname)
-                        State.modules[mod_name]['extern']['res_stmt'][kgname] = stmt
-                        append_tkdpat(State.MOD_EXTERN, var, stmt, State.modules[mod_name]['extern']['tkdpat'], \
-                            State.modules[mod_name]['mod_rw_var_depends'])
+                        State.modules[mod_name]['dtype'].append(stmt)
 
-            elif hasattr(stmt, 'geninfo') and isinstance(stmt, Type) and stmt.geninfo.has_key(KGName):
-                mod_name = stmt.parent.name
-                srcfile.used4genstate = True
-                State.modules[mod_name]['dtype'].append(stmt)
+                        for varname, var in stmt.a.variables.iteritems():
+                            remove = False
+                            if Config.exclude.has_key('namepath'):
+                                for pattern, actions in Config.exclude['namepath'].iteritems():
+                                    namepath = pack_innamepath(var.parent, var.parent.name) 
+                                    if match_namepath(pattern, namepath) and 'remove' in actions:
+                                        remove = True
+                                        if not hasattr(var.parent, 'nosave_state_names'):
+                                            var.parent.nosave_state_names = []
+                                        var.parent.nosave_state_names.append(var.parent.name)
 
-                for varname, var in stmt.a.variables.iteritems():
-                    remove = False
-                    if Config.exclude.has_key('namepath'):
-                        for pattern, actions in Config.exclude['namepath'].iteritems():
-                            namepath = pack_innamepath(var.parent, var.parent.name) 
-                            if match_namepath(pattern, namepath) and 'remove' in actions:
-                                remove = True
-                                if not hasattr(var.parent, 'nosave_state_names'):
-                                    var.parent.nosave_state_names = []
-                                var.parent.nosave_state_names.append(var.parent.name)
+                                        if not hasattr(var.parent, 'exclude_names'): var.parent.exclude_names = {}
+                                        if var.parent.exclude_names.has_key(var.parent.name):
+                                            var.parent.exclude_names[var.parent.name].append('comment')
+                                        else:
+                                            var.parent.exclude_names[var.parent.name] = ['comment']
 
-                                if not hasattr(var.parent, 'exclude_names'): var.parent.exclude_names = {}
-                                if var.parent.exclude_names.has_key(var.parent.name):
-                                    var.parent.exclude_names[var.parent.name].append('comment')
-                                else:
-                                    var.parent.exclude_names[var.parent.name] = ['comment']
+                                        break
 
-                                break
+                            if not remove:
+                                append_tkdpat(State.DT_MODULE, var, var.parent, State.modules[mod_name]['extern']['tkdpat'], \
+                                    State.modules[mod_name]['mod_rw_var_depends'])
 
-                    if not remove:
-                        append_tkdpat(State.DT_MODULE, var, var.parent, State.modules[mod_name]['extern']['tkdpat'], \
-                            State.modules[mod_name]['mod_rw_var_depends'])
-
-    # mark info for all files other than callsite file
-    for filepath, units in State.program_units.iteritems():
-        if filepath not in processed_files:
-            import pdb; pdb.set_trace()
-            for unit in units:
-                pass
+                elif any( any(stmt==unit for unit in units) for units in State.program_units.values() ):
+                    pass
 
 def mark_generation_info():
     """ Mark each statement objects with kernel generation information """
