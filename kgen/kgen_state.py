@@ -90,7 +90,7 @@ class State(object):
         self._attrs['modules'] = {}
 
         # module files
-        self._attrs['modfiles'] = {}
+        self._attrs['depfiles'] = {}
 
         # kernel_driver attributes
         self._attrs['kernel_driver'] = {}
@@ -99,6 +99,9 @@ class State(object):
         self._attrs['kernel_driver']['input']['res_stmt'] = {}
         self._attrs['kernel_driver']['input']['tkdpat'] = []
         self._attrs['kernel_driver']['mod_rw_var_depends'] = []
+
+        # program units
+        self._attrs['program_units'] = {}
 
     def __getattr__(self, name):
         return self._attrs[name]
@@ -139,6 +142,7 @@ class SrcFile(object):
         import os.path
         from kgen_utils import exec_cmd
         from statements import Comment
+        from block_statements import Module, Program
 
         # set default values
         self.prep = None
@@ -147,6 +151,7 @@ class SrcFile(object):
         self.abspath = os.path.abspath(self.srcpath)
         self.used4genstate = False
 
+        
         # set source file format
         isfree = True
         isstrict = False
@@ -192,23 +197,12 @@ class SrcFile(object):
         lineno = 0
         linediff = 0
         for stmt, depth in walk(self.tree, -1):
-            #if srcpath.find('mo_rad_fastmath.f90')>0 and str(stmt.item).find('FUNCTION inv_expon')>0:
-            #    import pdb; pdb.set_trace()
-#            if isinstance(stmt, Comment) and stmt.item.comment.startswith('!KGEN#'):
-#                comment_split = stmt.item.comment.split(' ')
-#                lineno = int(comment_split[1])
-#                stmt.item.span = ( 0, 0 )
-#            else:
-#                if lineno>0:
-#                    linediff = stmt.item.span[0] - lineno
-#                    #import pdb; pdb.set_trace()
-#                    lineno = 0
-#                stmt.item.span = ( stmt.item.span[0]-linediff, stmt.item.span[1]-linediff )
             stmt.parse_f2003()
 
         # rename reader.id
         self.tree.reader.id = self.abspath
 
+        # collect module information
         for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
             if not State.modules.has_key(mod_name):
                 State.modules[mod_name] = {}
@@ -224,6 +218,13 @@ class SrcFile(object):
                 State.modules[mod_name]['mod_rw_var_depends'] = []
                 State.modules[mod_name]['dtype'] = []
         
+        # collect program unit information
+        for item in self.tree.content:
+            if item.__class__ not in [ Module, Comment, Program ]:
+                if item.reader.id not in State.program_units.keys():
+                    State.program_units[item.reader.id] = []
+                State.program_units[item.reader.id].append(item)
+
     def stmt_by_name(self, name, cls=None, lineafter=-1):
         from statements import Comment
 

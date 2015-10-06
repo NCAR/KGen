@@ -280,12 +280,15 @@ def mark_callsite_generation_info():
                         append_tkdpat(State.DT_CALLPARENT, var, var.parent, State.parentblock['writesubr']['tkdpat'], \
                             State.parentblock['mod_rw_var_depends'])
 
-def mark_modules_generation_info():
+def mark_programunits_generation_info():
     """ Mark each statement objects with kernel generation information """
 
+    processed_files = []
+
     # mark info for all files other than callsite file
-    for filepath, (srcfile, mods_used) in State.modfiles.iteritems():
+    for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
         # mark high level stmts and process spec. stmts
+        processed_files.append(filepath)
 
         for stmt, depth in walk(srcfile.tree, -1):
             # mark end statements and higher level block
@@ -334,7 +337,6 @@ def mark_modules_generation_info():
                     if Config.exclude.has_key('namepath'):
                         for pattern, actions in Config.exclude['namepath'].iteritems():
                             namepath = pack_innamepath(var.parent, var.parent.name) 
-                            #if var.parent.name=='file_desc_t':import pdb; pdb.set_trace()
                             if match_namepath(pattern, namepath) and 'remove' in actions:
                                 remove = True
                                 if not hasattr(var.parent, 'nosave_state_names'):
@@ -353,11 +355,18 @@ def mark_modules_generation_info():
                         append_tkdpat(State.DT_MODULE, var, var.parent, State.modules[mod_name]['extern']['tkdpat'], \
                             State.modules[mod_name]['mod_rw_var_depends'])
 
+    # mark info for all files other than callsite file
+    for filepath, units in State.program_units.iteritems():
+        if filepath not in processed_files:
+            import pdb; pdb.set_trace()
+            for unit in units:
+                pass
+
 def mark_generation_info():
     """ Mark each statement objects with kernel generation information """
 
     mark_callsite_generation_info()
-    mark_modules_generation_info()
+    mark_programunits_generation_info()
 
     #if State.callsite['actual_arg']['names']:
     #    State.callsite['actual_arg']['names'].sort()

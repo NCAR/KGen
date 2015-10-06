@@ -34,13 +34,14 @@ def generate_state():
 def generate_state_files():
     """ Generate instrumented files except callsite file """
 
-    for filepath, (srcfile, mods_used) in State.modfiles.iteritems():
+    for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
         if not srcfile.used4genstate: continue
         filename = os.path.basename(srcfile.abspath)
         with open('%s/%s'%(Config.path['state'], filename), 'wb') as f:
 
             write_file_header(f, filename)
 
+            # for modules
             target_stmt = None
             mod_name = ''
             for stmt, depth in walk(srcfile.tree, -1):
@@ -92,6 +93,12 @@ def generate_state_files():
                     mod_name = ''
                 else: 
                     write_stmt(f, stmt, depth)
+
+            # for program units
+            # TODO: need to refactor 
+            for stmt, depth in walk(srcfile.tree, -1):
+                if stmt in State.program_units and hasattr(stmt, 'geninfo'):
+                    import pdb; pdb.set_trace() 
 
 def generate_callsite_program():
     """ Generate kernel and state files with program type parent"""
@@ -431,3 +438,4 @@ def generate_callsite_module():
 
             else: raise ProgramException('Unknown module stage: %d'%mod_stage)
 
+        # TODO: handle program units

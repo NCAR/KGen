@@ -865,9 +865,11 @@ class Statement(object):
         return None
 
     def resolve(self, request):
-        from kgen_state import ResState
+        from kgen_state import ResState, State
         from block_statements import BeginSource
         from typedecl_statements import TypeDeclarationStatement
+        from kgen_search import f2003_search_unknowns
+        from api import walk
 
         if request is None: return
         Logger.info('%s is being resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
@@ -910,6 +912,34 @@ class Statement(object):
         # if not resolved,
         if request.state != ResState.RESOLVED:
             if self is request.originator:
+                # check if program units can resolve the request
+                for filepath, units in State.program_units.iteritems():
+                    for unit in units:
+                        if any( isinstance(unit, resolver) for resolver in request.resolvers) and \
+                            hasattr(unit, 'name') and request.uname.firstpartname()==unit.name:
+                            Logger.info('The request is being resolved by a program unit', name=request.uname, stmt=unit)
+                            if unit not in request.originator.ancestors():
+                                request.res_stmt = unit
+                                request.state = ResState.RESOLVED
+                                request.res_stmt.add_geninfo(request.uname)
+                                self.check_spec_stmts(request.uname, request.res_stmt)
+                                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                                for _stmt, _depth in walk(request.res_stmt, -1):
+                                    if not hasattr(_stmt, 'unknowns'):
+                                        f2003_search_unknowns(_stmt, _stmt.f2003)
+                                    if hasattr(_stmt, 'unknowns'):
+                                        for unk, req in _stmt.unknowns.iteritems():
+                                            if req.state != ResState.RESOLVED:
+                                                _stmt.resolve(req) 
+
+                                # if newly found program unit is not in depfiles
+                                if not State.depfiles.has_key(self.top.reader.id):
+                                    State.depfiles[self.top.reader.id] = ( src, [], [] )
+                                if not request.res_stmt in State.depfiles[self.top.reader.id][2]:
+                                    State.depfiles[self.top.reader.id][2].append(request.res_stmt)
+                    if request.state==ResState.RESOLVED:
+                        break
+
                 # tries to apply implicit rules
                 if request.state != ResState.RESOLVED:
                     Logger.info('Parent could not resolve %s and the request is being resolved using implicit rules'%request.uname.firstpartname(), \

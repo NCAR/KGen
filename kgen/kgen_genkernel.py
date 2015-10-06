@@ -47,15 +47,15 @@ def generate_kernel():
     else:
         raise ProgramException('Unknown top module type: %s' % State.topblock['stmt'].__class__)
 
-    generate_kernel_files()
+    generate_kernel_module_files()
 
     State.state = State.KERNEL_GENERATED
 
-def generate_kernel_files():
+def generate_kernel_module_files():
 
-    remove_modfiles = []
+    remove_depfiles = []
 
-    for filepath, (srcfile, mods_used) in State.modfiles.iteritems():
+    for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
         filename = os.path.basename(srcfile.abspath)
         is_blank = True
         kernel_file = '%s/%s'%(Config.path['kernel'], filename)
@@ -126,10 +126,10 @@ def generate_kernel_files():
 
             if is_blank:
                 os.remove(kernel_file)
-                remove_modfiles.append(filepath)
+                remove_depfiles.append(filepath)
 
-    for remove_modfile in remove_modfiles:
-        del State.modfiles[remove_modfile]
+    for remove_depfile in remove_depfiles:
+        del State.depfiles[remove_depfile]
 
 def generate_kernel_program():
     """ Generate kernel and state files with program type parent"""

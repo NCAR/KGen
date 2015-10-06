@@ -286,6 +286,12 @@ def process_include_option(include_option, incattrs):
         if lsection in [ 'type', 'macro' ]:
             for option in Inc.options(section):
                 incattrs[lsection][option] = Inc.get(section, option).strip()
+        elif lsection=='import':
+            for option in Inc.options(section):
+                subflags = {}
+                for subf in Inc.get(section, option).split(','):
+                    subflags[subf.strip()] = None
+                incattrs[lsection][option] = subflags
         elif lsection=='include':
             for option in Inc.options(section):
                 incattrs['path'].append(option.strip())
@@ -405,6 +411,7 @@ class Config(object):
         self._attrs['include']['macro'] = {}
         self._attrs['include']['path'] = ['.']
         self._attrs['include']['type'] = {}
+        self._attrs['include']['import'] = {}
         self._attrs['include']['file'] = {}
 
         # exclude parameters
@@ -616,20 +623,24 @@ class Config(object):
                         self._attrs['include']['macro'][macro_eq[0]] = macro_eq[1]
                     else: raise UserException('Wrong format include: %s'%inc)
 
+        files = None
         if opts.source:
             for line in opts.source:
                 flags = {}
                 for subflag in line.lower().split(','):
-                    key, value = subflag.split('=')
-                    if key=='file':
-                        flags[key] = value.split(':')
-                    elif key=='alias':
-                        p1, p2 = value.split(':')
-                        if p1.endswith('/'): p1 = p1[:-1]
-                        if p2.endswith('/'): p2 = p2[:-1]
-                        self._attrs['source']['alias'][p1] = p2
+                    if subflag.find('=')>0:
+                        key, value = subflag.split('=')
+                        if key=='file':
+                            flags[key] = value.split(':')
+                        elif key=='alias':
+                            p1, p2 = value.split(':')
+                            if p1.endswith('/'): p1 = p1[:-1]
+                            if p2.endswith('/'): p2 = p2[:-1]
+                            self._attrs['source']['alias'][p1] = p2
+                        else:
+                            flags[key] = value 
                     else:
-                        flags[key] = value 
+                        flags[subflag] = None
 
                 isfree = None
                 isstrict = None
@@ -648,21 +659,25 @@ class Config(object):
                     if isfree: subflags['isfree'] = isfree
                     if isstrict: subflags['isstrict'] = isstrict
                     for file in flags['file']:
-                        self._attrs['source']['file'][os.path.abspath(file)] = subflags
+                        abspath = os.path.abspath(file)
+                        if files is None: files = []
+                        files.append(abspath)
+                        self._attrs['source']['file'][abspath] = subflags
                 else:
                     if isfree: self._attrs['source']['isfree'] = isfree
                     if isstrict: self._attrs['source']['isstrict'] = isstrict
 
         # dupulicate paths per each alias
-        newpath = set() 
-        for path in self._attrs['include']['path']:
-            newpath.add(path)
-            for p1, p2 in self._attrs['source']['alias'].iteritems():
-                if path.startswith(p1):
-                    newpath.add(p2+path[len(p1):])
-                elif path.startswith(p2):
-                    newpath.add(p1+path[len(p2):])
-        self._attrs['include']['path'] = list(newpath)
+        if files is None:
+            newpath = set() 
+            for path in self._attrs['include']['path']:
+                newpath.add(path)
+                for p1, p2 in self._attrs['source']['alias'].iteritems():
+                    if path.startswith(p1):
+                        newpath.add(p2+path[len(p1):])
+                    elif path.startswith(p2):
+                        newpath.add(p1+path[len(p2):])
+            self._attrs['include']['path'] = list(newpath)
 
         newfile = {} 
         for path, value in self._attrs['include']['file'].iteritems():
@@ -695,7 +710,7 @@ class Config(object):
         # parsing invocation parameters
         if opts.invocation:
             self._attrs['invocation']['numbers'] = []
-            for ord in opts.invocation.split(','):
+            for ord in opts.invocation.split(':'):
                 if ord.isdigit():
                     self._attrs['invocation']['numbers'].append(ord)
             self._attrs['invocation']['numbers'].sort()

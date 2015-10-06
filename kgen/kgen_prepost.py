@@ -153,37 +153,44 @@ def check_mode():
         print 'Current KGEN version can support all source code lines.'
 
 def preprocess():
+    from kgen_state import SrcFile
 
     if Config.check_mode:
         check_mode()
         sys.exit(0)
-    elif Config.mpi['enabled']:
-        # get path of mpif.h
-        mpifpath = ''
-        if os.path.isabs(Config.mpi['header']):
-            if os.path.exists(Config.mpi['header']):
-                mpifpath = Config.mpi['header']
+    else:
+        if Config.mpi['enabled']:
+            # get path of mpif.h
+            mpifpath = ''
+            if os.path.isabs(Config.mpi['header']):
+                if os.path.exists(Config.mpi['header']):
+                    mpifpath = Config.mpi['header']
+                else:
+                    raise UserException('Can not find %s'%Config.mpi['header'])
             else:
-                raise UserException('Can not find %s'%Config.mpi['header'])
-        else:
-            for p in Config.include['path']: # KGEN addition
-                fp = os.path.join(p, Config.mpi['header'])
-                if os.path.exists(fp):
-                    mpifpath = fp
-                    break
+                for p in Config.include['path']: # KGEN addition
+                    fp = os.path.join(p, Config.mpi['header'])
+                    if os.path.exists(fp):
+                        mpifpath = fp
+                        break
 
-        # collect required information
-        if mpifpath:
-            reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
-            spec = Specification_Part(reader)
-            comm = []
-            traverse(spec, get_MPI_COMM_WORLD, comm, attr='content')
-            if comm:
-                Config.mpi['comm'] = comm[-1]
+            # collect required information
+            if mpifpath:
+                reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
+                spec = Specification_Part(reader)
+                comm = []
+                traverse(spec, get_MPI_COMM_WORLD, comm, attr='content')
+                if comm:
+                    Config.mpi['comm'] = comm[-1]
+                else:
+                    raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
             else:
-                raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
-        else:
-            raise UserException('Can not find mpif.h. Please provide a path to the file')
+                raise UserException('Can not find mpif.h. Please provide a path to the file')
+
+        # parse imported source files through include.ini
+        for path, flags in Config.include['import'].iteritems(): 
+            if flags.has_key('source') and flags['source'] is None:
+                flags['source'] = SrcFile(path)
 
 def postprocess():
     # TODO: display summary for kernel generation

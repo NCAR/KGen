@@ -36,7 +36,7 @@ def generate_kernel_makefile():
 
     #basenames
     callsite_base = os.path.basename(State.topblock['path'])
-    mod_bases = [ os.path.basename(path) for path in State.modfiles.keys() ]
+    mod_bases = [ os.path.basename(path) for path in State.depfiles.keys() ]
 
     # all object files
     #all_objs = [ obj(kernel_driver_file), obj(kgen_utils_file), obj(callsite_base) ] + \
@@ -54,9 +54,9 @@ def generate_kernel_makefile():
     #callsite_depends.append(obj(kgen_utils_file))
 
     mod_depends = {}
-    for abspath, (srcfile, depends) in State.modfiles.iteritems():
+    for abspath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
         dep = [ obj(kgen_utils_file) ] 
-        for mod in depends:
+        for mod in mods_used:
             if mod.reader.id!=abspath and \
                 not obj(os.path.basename(mod.reader.id)) in dep:
                 dep.append(obj(os.path.basename(mod.reader.id)))
@@ -117,7 +117,7 @@ def generate_kernel_makefile():
 
 def generate_state_makefile():
 
-    org_files = [ filepath for filepath, (srcfile, mods_used) in State.modfiles.iteritems() if srcfile.used4genstate ] + [ State.topblock['path'] ]
+    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems() if srcfile.used4genstate ] + [ State.topblock['path'] ]
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
         write(f, 'run: build')
         if Config.state_run['cmds']>0:

@@ -1101,8 +1101,8 @@ class Use(Statement):
                         Logger.info('\tin the search of "%s" directly from %s and originally from %s' % \
                             (request.uname.firstpartname(), os.path.basename(self.reader.id), \
                             os.path.basename(request.originator.reader.id)), stdout=True)
-                        if not State.modfiles.has_key(src.abspath):
-                            State.modfiles[src.abspath] = ( src, [] )
+                        if not State.depfiles.has_key(src.abspath):
+                            State.depfiles[src.abspath] = ( src, [], [] )
                         self.module = src.tree.a.module[self.name]
                     else:
                         raise UserException('Module, %s, is not found at %s. Please check include paths for searching module files.' % \
@@ -1112,18 +1112,22 @@ class Use(Statement):
             self.module.resolve(request)
 
         if request.state == ResState.RESOLVED:
-            # if current file is in modfiles
+            # if intrinsic module
             if self.nature=='INTRINSIC':
                 pass
-            elif self.top.reader.id in State.modfiles:
-                # if newly found moudle is not in modfiles
-                if not self.module in State.modfiles[self.top.reader.id][1]:
-                    State.modfiles[self.top.reader.id][1].append(self.module)
+            # if current file is in depfiles
+            elif self.top.reader.id in State.depfiles:
+                # if newly found moudle is not in depfiles
+                if not self.module in State.depfiles[self.top.reader.id][1]:
+                    State.depfiles[self.top.reader.id][1].append(self.module)
             # else if current file is callsite file
             elif self.top.reader.id == State.topblock['path']:
                 # if newly found moudle is not in callsite file
                 if not self.module in State.topblock['mod_depends']:
                     State.topblock['mod_depends'].append(self.module)
+            elif any( any(request.uname.first()==unit.name for unit in units) for units in State.program_units.values() ):
+                import pdb; pdb.set_trace()
+                pass
             else:
                 raise ProgramException('Unknown module: %s -> %s' % (self.top.reader.id, self.module.reader.id))
 
