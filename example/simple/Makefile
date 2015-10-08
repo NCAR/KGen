@@ -11,7 +11,7 @@ test:
 	python ${KGEN} \
 		-D ROW=4,COLUMN=4 \
 		-I ${SRC_DIR} \
-		--verify verboselevel=1 \
+		--verify verboselevel=2 \
 		--timing repeat=1000 \
 		--kernel-compile FC='${FC}',FC_FLAGS='${FC_FLAGS}' \
 		--state-build cmds="cd ${SRC_DIR}; make build" \

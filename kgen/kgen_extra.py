@@ -193,19 +193,21 @@ subroutine kgen_print_check(kname, check)
 	write (*,*)
    else if(check%VerboseLevel == 1) then
 	write (*,*)
-	!write (*,*) TRIM(kname),':' check%numFatal 'errors detected out of' check%numTotal 'checked'
-        write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
-        write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
-	write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
+	write (*,*) TRIM(kname),':',check%numFatal,'fatal errors detected out of',check%numTotal,'variables checked'
+        !write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+        !write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
+	!write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
    else if(check%VerboseLevel == 2) then
 	write (*,*)
         write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+	!write (*,*) TRIM(kname),':',check%numFatal,'fatal errors and',check%numWarning,'warnings detected out of',check%numTotal,'variables checked'
         write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
         write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
         write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
    else if(check%VerboseLevel == 3) then
         write (*,*)
         write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+	!write (*,*) TRIM(kname),':',check%numFatal,'fatal errors,',check%numWarning,'warnings detected, and',check%numIdentical,'identical out of',check%numTotal,'variables checked'
         write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
         write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
         write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
