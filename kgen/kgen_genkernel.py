@@ -286,7 +286,7 @@ def process_kernel_module_typedecl_stmt(f, stmt, depth):
             if len(decl)>1: raise ProgramException('More than one entity is found: %s'%str(decl))
 
             if stmt.parent is State.topblock['stmt'] and \
-                stmt in State.parentblock['output']['res_stmt'].values():
+                stmt in State.parentblock['output']['typedecl_stmt'].values():
                 ref_decl = [ 'ref_'+org_decl[0] ]
                 write_kernel_stmt(f, stmt, depth, items=ref_decl)
             
@@ -317,8 +317,8 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
 
             for outname in State.parentblock['output']['names']:
                 if outname.firstpartname()==decl[0]:
-                    res_stmt = State.parentblock['output']['res_stmt'][outname]
-                    var = res_stmt.parent.a.variables[decl[0]]
+                    typedecl_stmt = State.parentblock['output']['typedecl_stmt'][outname]
+                    var = typedecl_stmt.parent.a.variables[decl[0]]
                     dimattr = []
                     for attr in var.parent.attrspec:
                         if attr.startswith('dimension'):

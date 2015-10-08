@@ -318,6 +318,10 @@ def process_exclude_option(exclude_option, excattrs):
     Exc.read(exclude_option)
     for section in Exc.sections():
         lsection = section.lower().strip()
+        if lsection=='common':
+            print 'ERROR: a section of "common" is discarded in INI file for inclusion. Please use "namepath" section instead'
+            sys.exit(-1)
+
         excattrs[lsection] = {}
         for option in Exc.options(section):
             loption = option.lower().strip()
@@ -460,8 +464,8 @@ class Config(object):
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
         parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
-        #parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='append', type='string', default=[], help="Skip intrinsic procedures during searching")
-        #parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='append', type='string', default=None, help="Do not skip intrinsic procedures during searching")
+        parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
+        parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
         parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
@@ -481,6 +485,14 @@ class Config(object):
             self._process_analysis_flags(opts)
             self._attrs['check_mode'] = args
             return
+
+        # old options
+        if opts.skip_intrinsic:
+            print "skip-intrinsic flag is discarded. Please use --intrinsic skip instead"
+            sys.exit(-1)
+        if opts.noskip_intrinsic:
+            print "noskip-intrinsic flag is discarded. Please use --intrinsic noskip instead"
+            sys.exit(-1)
 
         callsite = args[0].split(':', 1)
         if not os.path.isfile(callsite[0]):
@@ -710,6 +722,10 @@ class Config(object):
         # parsing invocation parameters
         if opts.invocation:
             self._attrs['invocation']['numbers'] = []
+            if opts.invocation.find(',')>0:
+                print 'ERROR: Please use colon to separate invocation numbers of invocation flag instead of comma.'
+                sys.exit(-1)
+
             for ord in opts.invocation.split(':'):
                 if ord.isdigit():
                     self._attrs['invocation']['numbers'].append(ord)

@@ -154,12 +154,12 @@ def mark_callsite_generation_info():
                     var = stmt.parent.a.variables[kgname.firstpartname()]
                     if not var.is_parameter():
                         State.topblock['extern']['names'].append(kgname)
-                        State.topblock['extern']['res_stmt'][kgname] = stmt
+                        State.topblock['extern']['typedecl_stmt'][kgname] = stmt
                         append_tkdpat(State.TB_EXTERN, var, stmt, State.topblock['extern']['tkdpat'], \
                             State.topblock['mod_rw_var_depends'])
                         if State.kernel['stmt'] in kgname.stmt.ancestors():
                             State.parentblock['output']['names'].append(kgname)
-                            State.parentblock['output']['res_stmt'][kgname] = stmt
+                            State.parentblock['output']['typedecl_stmt'][kgname] = stmt
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat'])
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
@@ -173,7 +173,7 @@ def mark_callsite_generation_info():
                         if darg in State.parentblock['dummy_arg']['in_names'] or \
                             State.parentblock['dummy_arg']['inout_names']:
                             State.kernel_driver['input']['names'].append(kgname)
-                            State.kernel_driver['input']['res_stmt'][kgname] = stmt
+                            State.kernel_driver['input']['typedecl_stmt'][kgname] = stmt
                             append_tkdpat(State.KD_INPUT, var, stmt, State.kernel_driver['input']['tkdpat'], \
                                 State.kernel_driver['mod_rw_var_depends'], component=False)
                             append_tkdpat(State.KD_INPUT, var, stmt, State.parentblock['writesubr']['tkdpat'], \
@@ -184,7 +184,7 @@ def mark_callsite_generation_info():
                     if not kgname in State.kernel_driver['input']['names'] and \
                         not var.is_parameter():
                         State.parentblock['input']['names'].append(kgname)
-                        State.parentblock['input']['res_stmt'][kgname] = stmt
+                        State.parentblock['input']['typedecl_stmt'][kgname] = stmt
                         append_tkdpat(State.PB_INPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
                         append_tkdpat(State.PB_INPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
 
@@ -208,7 +208,7 @@ def mark_callsite_generation_info():
                         elif darg in State.kernel['dummy_arg']['out_names'] or \
                             darg in State.kernel['dummy_arg']['inout_names']:
                             State.parentblock['output']['names'].append(kgname)
-                            State.parentblock['output']['res_stmt'][kgname] = stmt
+                            State.parentblock['output']['typedecl_stmt'][kgname] = stmt
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat']) 
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
@@ -217,7 +217,7 @@ def mark_callsite_generation_info():
                     # check if org in kernel
                     elif State.kernel['stmt'] in kgname.stmt.ancestors():
                         State.parentblock['output']['names'].append(kgname)
-                        State.parentblock['output']['res_stmt'][kgname] = stmt
+                        State.parentblock['output']['typedecl_stmt'][kgname] = stmt
                         append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
                         append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat'])
                         append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
@@ -225,7 +225,7 @@ def mark_callsite_generation_info():
                     elif kgname.stmt is State.callsite['stmt'] and isinstance(kgname.stmt, Assignment):
                         if kgname.stmt.variable.startswith(kgname.firstpartname()):
                             State.parentblock['output']['names'].append(kgname)
-                            State.parentblock['output']['res_stmt'][kgname] = stmt
+                            State.parentblock['output']['typedecl_stmt'][kgname] = stmt
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat'])
                             append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
@@ -311,7 +311,7 @@ def mark_programunits_generation_info():
                             if not var.is_parameter():
                                 srcfile.used4genstate = True
                                 State.modules[mod_name]['extern']['names'].append(kgname)
-                                State.modules[mod_name]['extern']['res_stmt'][kgname] = stmt
+                                State.modules[mod_name]['extern']['typedecl_stmt'][kgname] = stmt
                                 append_tkdpat(State.MOD_EXTERN, var, stmt, State.modules[mod_name]['extern']['tkdpat'], \
                                     State.modules[mod_name]['mod_rw_var_depends'])
 

@@ -19,18 +19,40 @@ class ActualArg(object):
             self.kgnames.append(KGName(node.string.lower()))
             return
 
-        if clsname.endswith('_List'):
-            for item in node.items:
-                if item is None: continue
-                itemclsname = item.__class__.__name__
-                if itemclsname=='Name':
-                    self.kgnames.append(KGName(item.string.lower()))
-                else:
-                    exec('self.kgname_%s(item, part_collected)' % itemclsname)
-        elif clsname.startswith('End_'):
-            pass
-        else:
-            exec('self.kgname_%s(node, part_collected)' % clsname)
+        try:
+            if clsname.endswith('_List'):
+                for item in node.items:
+                    if item is None: continue
+                    itemclsname = item.__class__.__name__
+                    if itemclsname=='Name':
+                        self.kgnames.append(KGName(item.string.lower()))
+                    else:
+                        exec('self.kgname_%s(item, part_collected)' % itemclsname)
+            elif clsname.startswith('End_'):
+                pass
+            else:
+                exec('self.kgname_%s(node, part_collected)' % clsname)
+        except Exception as e:
+            errname = clsname
+            if itemclsname:
+                errname = itemclsname
+            errmsg = "Error: Fortran specification of %s at callsite is not supported yet."%errname
+
+            Logger.exception(errmsg, node=node)
+
+            if Config.search['promote_exception']:
+                raise
+            else:
+                print ''
+                print errmsg
+                print ''
+                print "'kgen.log' in output folder contains detail information of this error."
+                print "If you send the log file to 'kgen@ucar.edu', that could be very"
+                print "helpful for us to support this Fortran spec. in future KGEN version."
+                print ''
+                import sys
+                sys.exit(-1)
+
 
     def kgname_NoneType(self, node, part_collected=False):
         pass
@@ -156,7 +178,7 @@ def collect_args_from_subpstmt(stmt, param):
         kgname = KGName(arg)
         param['names'].append(kgname)
         var = stmt.a.variables[kgname.firstpartname()]
-        param['res_stmt'][kgname] = var.parent
+        param['typedecl_stmt'][kgname] = var.parent
         collect_intent_names(var, kgname, param)
 
 def collect_args_from_expr(expr, param, stmt):
@@ -173,15 +195,12 @@ def collect_args_from_expr(expr, param, stmt):
         actual_arg = ActualArg(expr.items[1].string.lower())
         param['names'] = ActualArgList()
         param['names'].add_arg(actual_arg)
-        #param['names'].append(actual_arg)
-        #kgname = KGName(expr.items[1].string.lower())
-        #param['names'].append(kgname)
         for kgname in actual_arg.get_kgnames():
             if kgname.firstpartname() in unames:
                 idx = unames.index(kgname.firstpartname())
-                param['res_stmt'][kgname] = res_stmts[idx]
-                if isinstance(param['res_stmt'][kgname], TypeDeclarationStatement):
-                    var = param['res_stmt'][kgname].parent.a.variables[kgname.firstpartname()]
+                param['typedecl_stmt'][kgname] = res_stmts[idx]
+                if isinstance(param['typedecl_stmt'][kgname], TypeDeclarationStatement):
+                    var = param['typedecl_stmt'][kgname].parent.a.variables[kgname.firstpartname()]
                     collect_intent_names(var, kgname, param)
     # if there are multiple actual arguments
     elif hasattr(expr.items[1], 'items'):
@@ -190,14 +209,12 @@ def collect_args_from_expr(expr, param, stmt):
             if isinstance(item, str): continue
             actual_arg = ActualArg(item.string.lower())
             param['names'].add_arg(actual_arg)
-            #kgname = KGName(str(item).lower())
-            #param['names'].append(kgname)
             for kgname in actual_arg.get_kgnames():
                 if kgname.firstpartname() in unames:
                     idx = unames.index(kgname.firstpartname())
-                    param['res_stmt'][kgname] = res_stmts[idx]
-                    if isinstance(param['res_stmt'][kgname], TypeDeclarationStatement):
-                        var = param['res_stmt'][kgname].parent.a.variables[kgname.firstpartname()]
+                    param['typedecl_stmt'][kgname] = res_stmts[idx]
+                    if isinstance(param['typedecl_stmt'][kgname], TypeDeclarationStatement):
+                        var = param['typedecl_stmt'][kgname].parent.a.variables[kgname.firstpartname()]
                         collect_intent_names(var, kgname, param)
 
 def locate_callsite():

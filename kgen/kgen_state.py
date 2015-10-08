@@ -33,7 +33,7 @@ class State(object):
         self._attrs['callsite']['actual_arg']['in_names'] = []
         self._attrs['callsite']['actual_arg']['out_names'] = []
         self._attrs['callsite']['actual_arg']['inout_names'] = []
-        self._attrs['callsite']['actual_arg']['res_stmt'] = {}
+        self._attrs['callsite']['actual_arg']['typedecl_stmt'] = {}
 
         # parent subprogram of callsite stmt attributes
         self._attrs['parentblock'] = {}
@@ -44,13 +44,13 @@ class State(object):
         self._attrs['parentblock']['dummy_arg']['in_names'] = []
         self._attrs['parentblock']['dummy_arg']['out_names'] = []
         self._attrs['parentblock']['dummy_arg']['inout_names'] = []
-        self._attrs['parentblock']['dummy_arg']['res_stmt'] = {}
+        self._attrs['parentblock']['dummy_arg']['typedecl_stmt'] = {}
         self._attrs['parentblock']['input'] = {} # variables for callsite actual args and kernel externs
         self._attrs['parentblock']['input']['names'] = []
-        self._attrs['parentblock']['input']['res_stmt'] = {}
+        self._attrs['parentblock']['input']['typedecl_stmt'] = {}
         self._attrs['parentblock']['output'] = {} # variables for callsite outputs
         self._attrs['parentblock']['output']['names'] = []
-        self._attrs['parentblock']['output']['res_stmt'] = {}
+        self._attrs['parentblock']['output']['typedecl_stmt'] = {}
         self._attrs['parentblock']['output']['tkdpat'] = []
         self._attrs['parentblock']['inout'] = {}
         self._attrs['parentblock']['inout']['tkdpat'] = []
@@ -67,7 +67,7 @@ class State(object):
         self._attrs['topblock']['expr'] = None
         self._attrs['topblock']['extern'] = {}
         self._attrs['topblock']['extern']['names'] = []
-        self._attrs['topblock']['extern']['res_stmt'] = {}
+        self._attrs['topblock']['extern']['typedecl_stmt'] = {}
         self._attrs['topblock']['extern']['tkdpat'] = []
         #self._attrs['topblock']['mod_depends'] = [] # dependency for compile
         self._attrs['topblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
@@ -84,7 +84,7 @@ class State(object):
         self._attrs['kernel']['dummy_arg']['in_names'] = []
         self._attrs['kernel']['dummy_arg']['out_names'] = []
         self._attrs['kernel']['dummy_arg']['inout_names'] = []
-        self._attrs['kernel']['dummy_arg']['res_stmt'] = {}
+        self._attrs['kernel']['dummy_arg']['typedecl_stmt'] = {}
 
         # modules
         self._attrs['modules'] = {}
@@ -96,7 +96,7 @@ class State(object):
         self._attrs['kernel_driver'] = {}
         self._attrs['kernel_driver']['input'] = {}
         self._attrs['kernel_driver']['input']['names'] = []
-        self._attrs['kernel_driver']['input']['res_stmt'] = {}
+        self._attrs['kernel_driver']['input']['typedecl_stmt'] = {}
         self._attrs['kernel_driver']['input']['tkdpat'] = []
         self._attrs['kernel_driver']['mod_rw_var_depends'] = []
 
@@ -213,7 +213,7 @@ class SrcFile(object):
                 State.modules[mod_name]['path'] = self.abspath
                 State.modules[mod_name]['extern'] = {}
                 State.modules[mod_name]['extern']['names'] = []
-                State.modules[mod_name]['extern']['res_stmt'] = {}
+                State.modules[mod_name]['extern']['typedecl_stmt'] = {}
                 State.modules[mod_name]['extern']['tkdpat'] = []
                 State.modules[mod_name]['mod_rw_var_depends'] = []
                 State.modules[mod_name]['dtype'] = []

@@ -460,15 +460,15 @@ class GenIOStmt(GenBase):
 
         # write non-derived type first
         for uname in block['names']:
-            res_stmt = block['res_stmt'][uname]
-            if not res_stmt.is_derived():
+            typedecl_stmt = block['typedecl_stmt'][uname]
+            if not typedecl_stmt.is_derived():
                 printvar = ''
                 if varprefix+uname.firstpartname() in Config.debug['printvar']:
                     printvar = varprefix+uname.firstpartname()
 
-                var = res_stmt.parent.a.variables[uname.firstpartname()]
+                var = typedecl_stmt.parent.a.variables[uname.firstpartname()]
                 # generate non-dtype write subroutine to use in call stmt
-                subrname = cls.subrname_stmt(res_stmt, var, call4arr=call4arr)
+                subrname = cls.subrname_stmt(typedecl_stmt, var, call4arr=call4arr)
 
                 if subrname:
                     if printvar:
@@ -482,15 +482,15 @@ class GenIOStmt(GenBase):
 
         # and write derived type next
         for uname in block['names']:
-            res_stmt = block['res_stmt'][uname]
-            if res_stmt.is_derived():
+            typedecl_stmt = block['typedecl_stmt'][uname]
+            if typedecl_stmt.is_derived():
                 printvar = ''
                 if varprefix+uname.firstpartname() in Config.debug['printvar']:
                     printvar = varprefix+uname.firstpartname()
 
-                var = res_stmt.parent.a.variables[uname.firstpartname()]
+                var = typedecl_stmt.parent.a.variables[uname.firstpartname()]
                 # generate dtype write subroutine to use in call stmt
-                subrname = cls.subrname_stmt(res_stmt, var, call4arr=call4arr, modcall4dtype=modcall4dtype)
+                subrname = cls.subrname_stmt(typedecl_stmt, var, call4arr=call4arr, modcall4dtype=modcall4dtype)
                 if subrname:
                     if readflag:
                         if printvar:
@@ -866,14 +866,14 @@ def write_kernel_read_outputs(f, depth):
 def write_kernel_verify_outputs(f, depth):
     write(f, '! kernel verification for output variables', d=depth)
     for uname in State.parentblock['output']['names']:
-        res_stmt = State.parentblock['output']['res_stmt'][uname]
+        typedecl_stmt = State.parentblock['output']['typedecl_stmt'][uname]
         n = uname.firstpartname()
-        var = res_stmt.parent.a.variables[n]
-        subrname = GenBase.subrname_stmt(res_stmt, var, call4arr=True, subr4kind=True)
+        var = typedecl_stmt.parent.a.variables[n]
+        subrname = GenBase.subrname_stmt(typedecl_stmt, var, call4arr=True, subr4kind=True)
         if subrname:
             write(f, 'CALL kgen_verify_%s( "%s", check_status, %s, ref_%s)'%(subrname, n, n, n), d=depth)
         else:
-            write(f, 'CALL kgen_verify_%s( "%s", check_status, %s, ref_%s)'%(res_stmt.name, n, n, n), d=depth)
+            write(f, 'CALL kgen_verify_%s( "%s", check_status, %s, ref_%s)'%(typedecl_stmt.name, n, n, n), d=depth)
 
 def _recursive_write(f, depth, stmt, used):
 
@@ -906,8 +906,8 @@ def write_driver_usepart_kgen(f, depth):
 
     # collect names and resolutions to resolve
     used = []
-    for uname, res_stmt in State.kernel_driver['input']['res_stmt'].iteritems():
-        _recursive_write(f, depth, res_stmt, used)
+    for uname, typedecl_stmt in State.kernel_driver['input']['typedecl_stmt'].iteritems():
+        _recursive_write(f, depth, typedecl_stmt, used)
 
     # use stmts for write_externs for topblock
     if len(State.topblock['extern']['names'])>0:
@@ -943,8 +943,8 @@ def write_driver_specpart(f, depth):
     write(f, 'CHARACTER(LEN=1024) :: kgen_filepath', d=depth)
 
     # write typececls for dummy args
-    for uname, res_stmt in State.kernel_driver['input']['res_stmt'].iteritems():
-        var = res_stmt.parent.a.variables[uname.firstpartname()]
+    for uname, typedecl_stmt in State.kernel_driver['input']['typedecl_stmt'].iteritems():
+        var = typedecl_stmt.parent.a.variables[uname.firstpartname()]
         dimattr = []
         for attr in var.parent.attrspec:
             if attr.startswith('dimension'):
@@ -952,10 +952,10 @@ def write_driver_specpart(f, depth):
         delattrs = ['intent(in)', 'intent(out)', 'intent(inout)'] + dimattr
         if var.is_array():
             dim = '(%s)'%','.join([':']*var.rank)
-            write_kernel_stmt(f, res_stmt, depth, items=[ uname.firstpartname()+dim ], delattr=delattrs, \
+            write_kernel_stmt(f, typedecl_stmt, depth, items=[ uname.firstpartname()+dim ], delattr=delattrs, \
                 addattr=['allocatable'])
         else:
-            write_kernel_stmt(f, res_stmt, depth, items=[ uname.firstpartname() ], delattr=delattrs)
+            write_kernel_stmt(f, typedecl_stmt, depth, items=[ uname.firstpartname() ], delattr=delattrs)
 
 def write_kernel_interface_read_var_mod(f, depth, tkdpatlist, mod_num, dtypelist=None):
     write_interface_rw_var(f, depth, True, tkdpatlist, mod_num, dtypelist)
@@ -1031,7 +1031,7 @@ def write_kernel_subroutines_type_verify_var(f, depth, dtypelist):
 
     tempblock = {}
     tempblock['names'] = []
-    tempblock['res_stmt'] = {}
+    tempblock['typedecl_stmt'] = {}
 
     for dtype in dtypelist:
         write(f, 'RECURSIVE SUBROUTINE kgen_verify_%s(varname, check_status, var, ref_var)'%dtype.name, d=depth)
@@ -1071,7 +1071,7 @@ def write_kernel_subroutines_type_verify_var(f, depth, dtypelist):
                         continue
 
                     tempblock['names'].append(uname)
-                    tempblock['res_stmt'][uname] = comp
+                    tempblock['typedecl_stmt'][uname] = comp
 
         verify_subrnames.append(dtype.name)
 
@@ -1129,12 +1129,12 @@ def write_kernel_pertcalls(f, depth):
     for uname in State.parentblock['input']['names']:
         if (len(Config.check['pert_invar'])==1 and Config.check['pert_invar'][0]=='*') or \
             uname.firstpartname() in Config.check['pert_invar']:
-            res_stmt = State.parentblock['input']['res_stmt'][uname]
+            typedecl_stmt = State.parentblock['input']['typedecl_stmt'][uname]
             n = uname.firstpartname()
-            var = res_stmt.parent.a.variables[n]
+            var = typedecl_stmt.parent.a.variables[n]
 
-            if isinstance(res_stmt, Real) and var.is_array():
-                subrname = GenBase.subrname_stmt(res_stmt, var, call4arr=True, subr4kind=True)
+            if isinstance(typedecl_stmt, Real) and var.is_array():
+                subrname = GenBase.subrname_stmt(typedecl_stmt, var, call4arr=True, subr4kind=True)
                 if subrname:
                     write(f, '!Uncomment following call(s) to generate perturbed input(s)', d=depth)
                     write(f, '!CALL kgen_perturb_%s( %s )'%(subrname, n), d=depth)
@@ -1164,16 +1164,16 @@ def write_kernel_subroutines_perturb_var(f, depth):
     for uname in State.parentblock['input']['names']:
         if (len(Config.check['pert_invar'])==1 and Config.check['pert_invar'][0]=='*') or \
             uname.firstpartname() in Config.check['pert_invar']:
-            res_stmt = State.parentblock['input']['res_stmt'][uname]
+            typedecl_stmt = State.parentblock['input']['typedecl_stmt'][uname]
             n = uname.firstpartname()
-            var = res_stmt.parent.a.variables[n]
+            var = typedecl_stmt.parent.a.variables[n]
 
-            if isinstance(res_stmt, Real) and var.is_array():
-                subrname = GenBase.subrname_stmt(res_stmt, var, call4arr=True, subr4kind=True)
+            if isinstance(typedecl_stmt, Real) and var.is_array():
+                subrname = GenBase.subrname_stmt(typedecl_stmt, var, call4arr=True, subr4kind=True)
                 if subrname:
                     write(f, 'subroutine kgen_perturb_%s( var )'%subrname, d=depth)
 
-                    kindstr = res_stmt.get_kind()
+                    kindstr = typedecl_stmt.get_kind()
                     if isinstance(kindstr, int): kindstr = str(kindstr)
                     dimstr = ','.join([':']*var.rank)
 
@@ -1425,7 +1425,7 @@ def write_state_subroutines_type_write_var(f, depth, dtypelist):
 class GenVerification(GenBase):
 
     @classmethod
-    def write_specpart(cls, f, depth, varname, res_stmt, var):
+    def write_specpart(cls, f, depth, varname, typedecl_stmt, var):
         write(f, 'character(*), intent(in) :: varname', d=depth+1)
         write(f, 'type(check_t), intent(inout) :: check_status', d=depth+1)
 
@@ -1442,13 +1442,13 @@ class GenVerification(GenBase):
         if var.is_array():
             vardim = ', DIMENSION(%s)'%','.join([':']*var.rank)
 
-        if res_stmt.is_derived():
+        if typedecl_stmt.is_derived():
             vartype = 'TYPE'
         else:
-            vartype = res_stmt.name
+            vartype = typedecl_stmt.name
 
         varkind = ''
-        length, kind = res_stmt.selector
+        length, kind = typedecl_stmt.selector
         if vartype=='character':
             if length and kind:
                 varkind = '(LEN=%s, KIND=%s)' % (length,kind)
@@ -1457,7 +1457,7 @@ class GenVerification(GenBase):
             elif kind:
                 varkind = '(KIND=%s)' % (kind)
         else:
-            if res_stmt.is_derived():
+            if typedecl_stmt.is_derived():
                 write(f, 'type(check_t) :: dtype_check_status', d=depth+1)
                 varkind = '(%s)' % (kind)
             else:
@@ -1477,7 +1477,7 @@ class GenVerification(GenBase):
             elif vartype=='TYPE':
                 write(f, 'integer :: %s'%','.join([ 'idx%d'%(r+1) for r in range(var.rank)]), d=depth+1)
     @classmethod
-    def write_checkpart(cls, f, depth, varname, res_stmt, var, tempblock):
+    def write_checkpart(cls, f, depth, varname, typedecl_stmt, var, tempblock):
 
         #import pdb; pdb.set_trace()
         chkptr = ''
@@ -1495,7 +1495,7 @@ class GenVerification(GenBase):
             write(f, 'IF ( %s%s ) THEN'%(chkptr, chkalloc), d=depth+1)
 
         eqtest = '=='
-        if res_stmt.name=='logical':
+        if typedecl_stmt.name=='logical':
             eqtest = '.EQV.'
 
         #if array
@@ -1503,7 +1503,7 @@ class GenVerification(GenBase):
             #import pdb; pdb.set_trace()
             allocshape = ','.join(['SIZE(var,dim=%d)'%(dim+1) for dim in range(var.rank)])
             # if dtype
-            if res_stmt.is_derived():
+            if typedecl_stmt.is_derived():
                 #import pdb; pdb.set_trace()
 
                 #write(f, '! check all elements of var', d=depth+1)
@@ -1517,7 +1517,7 @@ class GenVerification(GenBase):
                 for d in range(var.rank):
                     write(f, 'DO idx%(d)d=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1}, d=depth+d+1)
 
-                dtype = res_stmt.get_res_stmt(res_stmt.name)
+                dtype = typedecl_stmt.get_res_stmt(typedecl_stmt.name)
 
                 arrshape = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
                 if isinstance(dtype, Use):
@@ -1544,7 +1544,7 @@ class GenVerification(GenBase):
                 write(f, 'END IF', d=depth+1)
 
             else:
-                if res_stmt.name in [ 'real', 'double precision', 'complex' ]:
+                if typedecl_stmt.name in [ 'real', 'double precision', 'complex' ]:
                     write(f, (kgen_verify_numeric_array%{'eqtest':eqtest, \
                         'allocshape':allocshape}).replace('\n', '\n%s'%(TAB*(depth+1))), d=depth+1)
                 else:
@@ -1552,9 +1552,9 @@ class GenVerification(GenBase):
 
         else:
             # if dtype
-            if res_stmt.is_derived():
+            if typedecl_stmt.is_derived():
 
-                dtype = res_stmt.get_res_stmt(res_stmt.name)
+                dtype = typedecl_stmt.get_res_stmt(typedecl_stmt.name)
 
                 if dtype:
                     write(f, '')
@@ -1570,7 +1570,7 @@ class GenVerification(GenBase):
                                 decl = Entity_Decl(comp.entity_decls[0])
                                 uname = KGName(decl.items[0].string)
                                 tempblock['names'].append(uname)
-                                tempblock['res_stmt'][uname] = comp
+                                tempblock['typedecl_stmt'][uname] = comp
 
                                 var = comp.parent.a.variables[uname.firstpartname()]
                                 if hasattr(comp, 'nosave_state_names') and comp.name in comp.nosave_state_names:
@@ -1602,7 +1602,7 @@ class GenVerification(GenBase):
                     write(f, '    check_status%numWarning = check_status%numWarning + 1', d=depth+1)
                     write(f, 'END IF', d=depth+1)
                 else:
-                    write(f, '! unresolved_name_%s'%res_stmt.name, d=depth+1) 
+                    write(f, '! unresolved_name_%s'%typedecl_stmt.name, d=depth+1) 
             else:
                 write(f, (kgen_verify_intrinsic_checkpart%eqtest).replace('\n', '\n%s'%(TAB*(depth+1))), d=depth+1)
         # end if
@@ -1617,19 +1617,18 @@ class GenVerification(GenBase):
 
         tempblock = {}
         tempblock['names'] = []
-        tempblock['res_stmt'] = {}
+        tempblock['typedecl_stmt'] = {}
 
         for block in [ srcblock, tempblock ]:
             for uname in block['names']:
-                res_stmt = block['res_stmt'][uname]
+                typedecl_stmt = block['typedecl_stmt'][uname]
                 n = uname.firstpartname()
-                var = res_stmt.parent.a.variables[n]
-                #if res_stmt.name=='file_desc_t': import pdb; pdb.set_trace()
-                if hasattr(res_stmt, 'nosave_state_names') and res_stmt.name in res_stmt.nosave_state_names:
+                var = typedecl_stmt.parent.a.variables[n]
+                if hasattr(typedecl_stmt, 'nosave_state_names') and typedecl_stmt.name in typedecl_stmt.nosave_state_names:
                     pass
                 else:
 
-                    subrname = GenBase.subrname_stmt(res_stmt, var, call4arr=True, subr4kind=True)
+                    subrname = GenBase.subrname_stmt(typedecl_stmt, var, call4arr=True, subr4kind=True)
                     
                     if subrname:
                         # remove subroutine contains mod<number>
@@ -1637,18 +1636,18 @@ class GenVerification(GenBase):
                         if modcall:
                             continue
                     else:
-                        subrname = res_stmt.name
+                        subrname = typedecl_stmt.name
 
                     if subrname in verify_subrnames:
                         continue
 
-                    if res_stmt.is_derived():
+                    if typedecl_stmt.is_derived():
                         write(f, 'RECURSIVE SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
                     else:
                         write(f, 'SUBROUTINE kgen_verify_%s( varname, check_status, var, ref_var)'%subrname, d=depth+1)
 
-                    cls.write_specpart(f, depth+1, n, res_stmt, var)
-                    cls.write_checkpart(f, depth+1, n, res_stmt, var, tempblock)
+                    cls.write_specpart(f, depth+1, n, typedecl_stmt, var)
+                    cls.write_checkpart(f, depth+1, n, typedecl_stmt, var, tempblock)
 
                     write(f, 'END SUBROUTINE kgen_verify_%s'%subrname, d=depth+1)
                     write(f, '')
