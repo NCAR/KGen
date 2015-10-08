@@ -158,6 +158,7 @@ def process_kernel_callsite_stmt(f, stmt, depth):
     from Fortran2003 import Name, Call_Stmt, Part_Ref, Assignment_Stmt
 
     write(f, 'tolerance = %s'%Config.verify['tolerance'], d=depth)
+    write(f, 'check_status%%VerboseLevel = %d'%Config.verify['verboselevel'], d=depth)
     write(f, 'CALL kgen_init_check(check_status, tolerance)', d=depth)
 
     write_kernel_read_inputs(f, depth)

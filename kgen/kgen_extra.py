@@ -50,15 +50,15 @@ kgen_verify_intrinsic_checkpart = \
 """check_status%%numTotal = check_status%%numTotal + 1
 IF ( var %s ref_var ) THEN
     check_status%%numIdentical = check_status%%numIdentical + 1
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is IDENTICAL( ", var, " )."
     endif
 ELSE
-    if(check_status%%verboseLevel > 0) then
+    if(check_status%%VerboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
-        if(check_status%%verboseLevel > 2) then
+        if(check_status%%VerboseLevel == 3) then
             WRITE(*,*) "KERNEL: ", var
             WRITE(*,*) "REF.  : ", ref_var
         end if
@@ -71,13 +71,13 @@ kgen_verify_numeric_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
         !WRITE(*,*) "REF.  : ", ref_var
         IF ( ALL( var == 0 ) ) THEN
-            if(check_status%%verboseLevel > 2) then
+            if(check_status%%VerboseLevel == 3) then
                 WRITE(*,*) "All values are zero."
             end if
         END IF
@@ -97,11 +97,11 @@ ELSE
     nrmsdiff = sqrt(sum(temp)/real(n))
     rmsdiff = sqrt(sum(temp2)/real(n))
 
-    if(check_status%%verboseLevel > 0) then
+    if(check_status%%VerboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
         WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
-        if(check_status%%verboseLevel > 1) then
+        if(check_status%%VerboseLevel >= 2 .AND. check_status%%VerboseLevel < 4) then
             WRITE(*,*) "Average - kernel ", sum(var)/real(size(var))
             WRITE(*,*) "Average - reference ", sum(ref_var)/real(size(ref_var))
         endif
@@ -123,19 +123,17 @@ kgen_verify_nonreal_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
         !WRITE(*,*) "REF.  : ", ref_var
         IF ( ALL( var == 0 ) ) THEN
-            if(check_status%%verboseLevel > 2) then
                 WRITE(*,*) "All values are zero."
-            end if
         END IF
     end if
 ELSE
-    if(check_status%%verboseLevel > 0) then
+    if(check_status%%VerboseLevel > 1) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
         WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
@@ -174,7 +172,7 @@ subroutine kgen_init_check(check, tolerance, minvalue)
   check%numWarning = 0
   check%numTotal = 0
   check%numIdentical = 0
-  check%VerboseLevel = 1
+  !check%VerboseLevel = 1
   if(present(tolerance)) then
      check%tolerance = tolerance
   else
@@ -191,12 +189,31 @@ subroutine kgen_print_check(kname, check)
    character(len=*) :: kname
    type(check_t), intent(in) ::  check
 
-   write (*,*)
-   write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
-   write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
-   write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
-   write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
-   write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
+   if(check%VerboseLevel == 0) then
+	write (*,*)
+   else if(check%VerboseLevel == 1) then
+	write (*,*)
+	!write (*,*) TRIM(kname),':' check%numFatal 'errors detected out of' check%numTotal 'checked'
+        write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+        write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
+	write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
+   else if(check%VerboseLevel == 2) then
+	write (*,*)
+        write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+        write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
+        write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
+        write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
+   else if(check%VerboseLevel == 3) then
+        write (*,*)
+        write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+        write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
+        write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
+        write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
+        write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
+   else
+	write (*,*), 'Illegal Verbose level: ', check%VerboseLevel, 'Verbose Level flag must be between 0 and 3'
+	STOP
+   end if
 
    if (check%numFatal> 0) then
         write(*,*) TRIM(kname),': Verification FAILED'

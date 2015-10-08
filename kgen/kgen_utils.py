@@ -273,7 +273,7 @@ class Config(object):
         # verification parameters
         self._attrs['verify'] = {}
         self._attrs['verify']['tolerance'] = '1.E-14'
-        self._attrs['verify']['verboselevel'] = 1
+        self._attrs['verify']['verboselevel'] = 3
 
         # include parameters
         self._attrs['include'] = {}
@@ -326,6 +326,7 @@ class Config(object):
         parser.add_option("--invocation", dest="invocation", action='store', type='string', default=None, help="Nth invocation of kernel for data collection")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
+	parser.add_option("--verify", dest="verify", action='store', type='string', default=None, help="Kernel variables verification information")
         parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='append', type='string', default=None, help="Skip intrinsic procedures during searching")
         parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='append', type='string', default=None, help="Do not skip intrinsic procedures during searching")
         parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
@@ -577,6 +578,20 @@ class Config(object):
                         raise UserException('repeat sub-flag should be integer value: %s'%value)
                 else:
                     raise UserException('Unknown timing option: %s' % time)
+
+	# parsing verification parameters
+	    for verify in opts.verify.split(' '):
+		key, value = verify.split('=')
+		if key in [ 'verboselevel'] :
+		    try:
+			self._attrs['verify'][key] = int(value)
+			#if value < 0 || value >3:
+			 #   raise UserException('verboselevel sub-flag should be integer value: %s'%value)
+		    except:
+			raise UserException('verboselevel sub-flag should be integer value: %s'%value)
+		else:
+		    raise UserException('Unknown verification option : %s' %verify)
+		
 
         if opts.outdir:
             self._attrs['path']['outdir'] = opts.outdir
