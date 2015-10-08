@@ -842,15 +842,15 @@ class Statement(object):
         if geninfo not in self.geninfo[geninfo.__class__]:
             self.geninfo[geninfo.__class__].append(geninfo)
 
-    def check_spec_stmts(self, uname, res_stmt):
+    def check_spec_stmts(self, uname, stmt):
         if not hasattr(self, 'spec_stmts'):
             return
 
         for spec_stmt in self.spec_stmts:
-            spec_stmt.resolve_uname(uname, res_stmt)
+            spec_stmt.resolve_uname(uname, stmt)
 
 
-    def get_res_stmt(self, uname):
+    def get_res_stmts(self, uname):
         if not hasattr(self, 'unknowns'):
             return None
 
@@ -861,7 +861,7 @@ class Statement(object):
             if res is None:
                 return None
             if kgname.firstpartname()==strname:
-                return res.res_stmt
+                return res.res_stmts
         return None
 
     def resolve(self, request):
@@ -882,20 +882,20 @@ class Statement(object):
         # check if this stmt can resolve the request
         if self.can_resolve(request):
             if isinstance(self, TypeDeclarationStatement):
-                res_stmt  = self
+                typedecl_stmt  = self
                 Logger.info('The request is being resolved by a variable', name=request.uname, stmt=self)
-                request.res_stmt = res_stmt
+                request.res_stmts.append(typedecl_stmt)
                 request.state = ResState.RESOLVED
-                request.res_stmt.add_geninfo(request.uname)
-                self.check_spec_stmts(request.uname, request.res_stmt)
-                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                typedecl_stmt.add_geninfo(request.uname)
+                self.check_spec_stmts(request.uname, typedecl_stmt)
+                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=typedecl_stmt)
 
-                if not hasattr(request.res_stmt, 'unknowns'):
-                    f2003_search_unknowns(request.res_stmt, request.res_stmt.f2003)
-                if hasattr(request.res_stmt, 'unknowns'):
-                    for unk, req in request.res_stmt.unknowns.iteritems():
+                if not hasattr(typedecl_stmt, 'unknowns'):
+                    f2003_search_unknowns(typedecl_stmt, typedecl_stmt.f2003)
+                if hasattr(typedecl_stmt, 'unknowns'):
+                    for unk, req in typedecl_stmt.unknowns.iteritems():
                         if req.state != ResState.RESOLVED:
-                            request.res_stmt.resolve(req) 
+                            typedecl_stmt.resolve(req) 
 
             else:
                 Logger.info('%s can be resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
@@ -919,12 +919,12 @@ class Statement(object):
                             hasattr(unit, 'name') and request.uname.firstpartname()==unit.name:
                             Logger.info('The request is being resolved by a program unit', name=request.uname, stmt=unit)
                             if unit not in request.originator.ancestors():
-                                request.res_stmt = unit
+                                request.res_stmts.append(unit)
                                 request.state = ResState.RESOLVED
-                                request.res_stmt.add_geninfo(request.uname)
-                                self.check_spec_stmts(request.uname, request.res_stmt)
-                                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
-                                for _stmt, _depth in walk(request.res_stmt, -1):
+                                unit.add_geninfo(request.uname)
+                                self.check_spec_stmts(request.uname, unit)
+                                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=unit)
+                                for _stmt, _depth in walk(unit, -1):
                                     if not hasattr(_stmt, 'unknowns'):
                                         f2003_search_unknowns(_stmt, _stmt.f2003)
                                     if hasattr(_stmt, 'unknowns'):
@@ -933,8 +933,8 @@ class Statement(object):
                                                 _stmt.resolve(req) 
 
                                 # if newly found program unit is not in depfiles
-                                if not request.res_stmt in State.depfiles[self.top.reader.id][2]:
-                                    State.depfiles[self.top.reader.id][2].append(request.res_stmt)
+                                if not unit in State.depfiles[self.top.reader.id][2]:
+                                    State.depfiles[self.top.reader.id][2].append(unit)
                     if request.state==ResState.RESOLVED:
                         break
 
@@ -1026,12 +1026,12 @@ class BeginStatement(Statement):
                     # skip recursive call - NEED TO CHECK
                     Logger.info('The request is being resolved by a subprogram or interface', name=request.uname, stmt=self)
                     if subp not in request.originator.ancestors():
-                        request.res_stmt = subp
+                        request.res_stmts.append(subp)
                         request.state = ResState.RESOLVED
-                        request.res_stmt.add_geninfo(request.uname)
-                        self.check_spec_stmts(request.uname, request.res_stmt)
-                        Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
-                        for _stmt, _depth in walk(request.res_stmt, -1):
+                        subp.add_geninfo(request.uname)
+                        self.check_spec_stmts(request.uname, subp)
+                        Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
+                        for _stmt, _depth in walk(subp, -1):
                             if not hasattr(_stmt, 'unknowns'):
                                 f2003_search_unknowns(_stmt, _stmt.f2003)
                             if hasattr(_stmt, 'unknowns'):
@@ -1048,13 +1048,13 @@ class BeginStatement(Statement):
                             if item.__class__ in [ Function, Subroutine ] and request.uname.firstpartname()==item.name:
                                 Logger.info('The request is being resolved by a Subprogram in abstract interface', \
                                     name=request.uname, stmt=self)
-                                request.res_stmt = item
+                                request.res_stmts.append(item)
                                 request.state = ResState.RESOLVED
-                                request.res_stmt.add_geninfo(request.uname)
-                                self.check_spec_stmts(request.uname, request.res_stmt)
-                                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                                item.add_geninfo(request.uname)
+                                self.check_spec_stmts(request.uname, item)
+                                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=item)
 
-                                for _stmt, _depth in walk(request.res_stmt, -1):
+                                for _stmt, _depth in walk(item, -1):
                                     if not hasattr(_stmt, 'unknowns'):
                                         f2003_search_unknowns(_stmt, _stmt.f2003)
                                     if hasattr(_stmt, 'unknowns'):
@@ -1065,16 +1065,16 @@ class BeginStatement(Statement):
             # check if a type can resolve
             if request.state != ResState.RESOLVED and hasattr(self.a, 'type_decls') and \
                 request.uname.firstpartname() in self.a.type_decls.keys():
-                res_stmt  = self.a.type_decls[request.uname.firstpartname()]
-                if any( isinstance(res_stmt, resolver) for resolver in request.resolvers ):
+                type_stmt  = self.a.type_decls[request.uname.firstpartname()]
+                if any( isinstance(type_stmt, resolver) for resolver in request.resolvers ):
                     Logger.info('The request is being resolved by a typedecl', name=request.uname, stmt=self)
-                    request.res_stmt = res_stmt
+                    request.res_stmts.append(type_stmt)
                     request.state = ResState.RESOLVED
-                    request.res_stmt.add_geninfo(request.uname)
-                    self.check_spec_stmts(request.uname, request.res_stmt)
-                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                    type_stmt.add_geninfo(request.uname)
+                    self.check_spec_stmts(request.uname, type_stmt)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=type_stmt)
 
-                    for _stmt, _depth in walk(request.res_stmt, -1):
+                    for _stmt, _depth in walk(type_stmt, -1):
                         if not hasattr(_stmt, 'unknowns'):
                             f2003_search_unknowns(_stmt, _stmt.f2003)
                         if hasattr(_stmt, 'unknowns'):
@@ -1088,53 +1088,54 @@ class BeginStatement(Statement):
                 request.uname.firstpartname() in self.a.variables.keys():
                 #self.a.variables[request.uname.firstpartname()].is_public():
 
-                res_stmt  = self.a.variables[request.uname.firstpartname()].parent
+                typedecl_stmt  = self.a.variables[request.uname.firstpartname()].parent
 
                 #if ((isinstance(res_stmt, TypeDeclarationStatement) and request.uname.firstpartname() in res_stmt.entity_decls) or \
                 #    res_stmt is not request.originator) and any( isinstance(res_stmt, resolver) for resolver in request.resolvers ):
-                if any( isinstance(res_stmt, resolver) for resolver in request.resolvers ):
+                if any( isinstance(typedecl_stmt, resolver) for resolver in request.resolvers ):
                     Logger.info('The request is being resolved by a variable', name=request.uname, stmt=self)
-                    request.res_stmt = res_stmt
+                    request.res_stmts.append(typedecl_stmt)
                     request.state = ResState.RESOLVED
-                    request.res_stmt.add_geninfo(request.uname)
-                    self.check_spec_stmts(request.uname, request.res_stmt)
-                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                    typedecl_stmt.add_geninfo(request.uname)
+                    self.check_spec_stmts(request.uname, typedecl_stmt)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=typedecl_stmt)
 
-                    if not hasattr(request.res_stmt, 'unknowns'):
-                        f2003_search_unknowns(request.res_stmt, request.res_stmt.f2003)
-                    if hasattr(request.res_stmt, 'unknowns'):
-                        for unk, req in request.res_stmt.unknowns.iteritems():
+                    if not hasattr(typedecl_stmt, 'unknowns'):
+                        f2003_search_unknowns(typedecl_stmt, typedecl_stmt.f2003)
+                    if hasattr(typedecl_stmt, 'unknowns'):
+                        for unk, req in typedecl_stmt.unknowns.iteritems():
                             if req.state != ResState.RESOLVED:
-                                request.res_stmt.resolve(req) 
+                                typedecl_stmt.resolve(req) 
 
             # check if a common statement can resolve
             #if request.state != ResState.RESOLVED and hasattr(self.a, 'common_stmts') and \
             #    len(self.a.common_stmts)>0:
             if request.state != ResState.RESOLVED and hasattr(self.a, 'common_stmts') and \
                 request.uname.firstpartname() in self.a.common_stmts.keys():
-                res_stmt  = self.a.common_stmts[request.uname.firstpartname()]
-                if any( isinstance(res_stmt, resolver) for resolver in request.resolvers ):
+                common_stmt  = self.a.common_stmts[request.uname.firstpartname()]
+                if any( isinstance(common_stmt, resolver) for resolver in request.resolvers ):
                     Logger.info('The request is being resolved by a common stmt', name=request.uname, stmt=self)
-                    request.res_stmt = res_stmt
+                    request.res_stmts.append(common_stmt)
                     request.state = ResState.RESOLVED
-                    request.res_stmt.add_geninfo(request.uname)
+                    common_stmt.add_geninfo(request.uname)
                     #self.check_spec_stmts(request.uname, request.res_stmt)
-                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=common_stmt)
 
-                    if not hasattr(request.res_stmt, 'unknowns'):
-                        f2003_search_unknowns(request.res_stmt, request.res_stmt.f2003)
-                    if hasattr(request.res_stmt, 'unknowns'):
-                        for unk, req in request.res_stmt.unknowns.iteritems():
+                    if not hasattr(common_stmt, 'unknowns'):
+                        f2003_search_unknowns(common_stmt, common_stmt.f2003)
+                    if hasattr(common_stmt, 'unknowns'):
+                        for unk, req in common_stmt.unknowns.iteritems():
                             if req.state != ResState.RESOLVED:
-                                request.res_stmt.resolve(req) 
+                                common_stmt.resolve(req) 
 
             # handle external
             if request.state != ResState.RESOLVED and isinstance(request.originator, External) and \
                 self.__class__ in [ Function, Subroutine ] and request.uname.firstpartname() in self.args:
-                request.res_stmt = self
+                external_stmt = self
+                request.res_stmts.append(external_stmt)
                 request.state = ResState.RESOLVED
-                request.res_stmt.add_geninfo(request.uname)
-                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                external_stmt.add_geninfo(request.uname)
+                Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=external_stmt)
 
             # check if use stmt can resolve
             if request.state != ResState.RESOLVED:
@@ -1152,9 +1153,9 @@ class BeginStatement(Statement):
                                     use_stmt.resolve(request)
                                     if request.state == ResState.RESOLVED:
                                         Logger.info('%s is resolved in norenames'%uname, name=request.uname, stmt=self)
-                                        request.res_stmt = use_stmt
-                                        request.res_stmt.add_geninfo(request.uname)
-                                        self.check_spec_stmts(request.uname, request.res_stmt)
+                                        request.res_stmts.append(use_stmt)
+                                        use_stmt.add_geninfo(request.uname)
+                                        self.check_spec_stmts(request.uname, use_stmt)
                                         break
 
                                 rename = [r for r in use_stmt.renames if r[0]==uname]
@@ -1166,9 +1167,9 @@ class BeginStatement(Statement):
                                     use_stmt.resolve(request)
                                     if request.state == ResState.RESOLVED:
                                         request.pop_uname(reset_uname=True)
-                                        request.res_stmt = use_stmt
-                                        request.res_stmt.add_geninfo(request.uname)
-                                        self.check_spec_stmts(request.uname, request.res_stmt)
+                                        request.res_stmts.append(use_stmt)
+                                        use_stmt.add_geninfo(request.uname)
+                                        self.check_spec_stmts(request.uname, use_stmt)
                                         break
                                     else:
                                         request.pop_uname()
@@ -1183,9 +1184,9 @@ class BeginStatement(Statement):
                                     if uname in use_stmt.norenames:
                                         use_stmt.resolve(request)
                                         if request.state == ResState.RESOLVED:
-                                            request.res_stmt = use_stmt
-                                            request.res_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, request.res_stmt)
+                                            request.res_stmts.append(use_stmt)
+                                            use_stmt.add_geninfo(request.uname)
+                                            self.check_spec_stmts(request.uname, use_stmt)
                                             break
 
                                     rename = [r for r in use_stmt.renames if r[0]==uname]
@@ -1201,9 +1202,9 @@ class BeginStatement(Statement):
                                         #request.uname.reset_name()
                                         if request.state == ResState.RESOLVED:
                                             request.pop_uname(reset_uname=True)
-                                            request.res_stmt = use_stmt
-                                            request.res_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, request.res_stmt)
+                                            request.res_stmts.append(use_stmt)
+                                            use_stmt.add_geninfo(request.uname)
+                                            self.check_spec_stmts(request.uname, use_stmt)
                                             break
                                         else:
                                             request.pop_uname()
@@ -1245,29 +1246,29 @@ class BeginStatement(Statement):
                                     if len(use_stmt.norenames)==0 and len(use_stmt.renames)==0:
                                         use_stmt.resolve(request)
                                         if request.state == ResState.RESOLVED:
-                                            request.res_stmt = use_stmt
-                                            request.res_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, request.res_stmt)
+                                            request.res_stmts.append(use_stmt)
+                                            use_stmt.add_geninfo(request.uname)
+                                            self.check_spec_stmts(request.uname, use_stmt)
                                             break
                             if request.state==ResState.RESOLVED: break
 
         elif self.__class__ in [ Type, TypeDecl ]:
             # check if a type can resolve
             if request.state != ResState.RESOLVED and request.uname.firstpartname()==self.name:
-                res_stmt  = self
-                if any( isinstance(res_stmt, resolver) for resolver in request.resolvers ):
+                type_stmt  = self
+                if any( isinstance(type_stmt, resolver) for resolver in request.resolvers ):
                     Logger.info('The request is being resolved by a typedecl', name=request.uname, stmt=self)
-                    request.res_stmt = res_stmt
+                    request.res_stmts.append(type_stmt)
                     request.state = ResState.RESOLVED
-                    request.res_stmt.add_geninfo(request.uname)
-                    self.check_spec_stmts(request.uname, request.res_stmt)
-                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=request.res_stmt)
+                    type_stmt.add_geninfo(request.uname)
+                    self.check_spec_stmts(request.uname, type_stmt)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=type_stmt)
 
                     #if self not in request.originator.ancestors():
                     if self is request.originator.parent:
                         pass
                     else:
-                        for _stmt, _depth in walk(request.res_stmt, -1):
+                        for _stmt, _depth in walk(type_stmt, -1):
                             if not hasattr(_stmt, 'unknowns'):
                                 f2003_search_unknowns(_stmt, _stmt.f2003)
                             if hasattr(_stmt, 'unknowns'):

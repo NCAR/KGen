@@ -274,7 +274,13 @@ class GenBase(object):
     @classmethod
     def vartypename_stmt(cls, stmt, var, is_elem=False, modcall4dtype=False):
         if stmt.is_derived():
-            dtype = stmt.get_res_stmt(stmt.name)
+
+            res_stmts = stmt.get_res_stmts(stmt.name)
+            if res_stmts is None or len(res_stmts)==0:
+                dtype = None
+            else:
+                dtype = res_stmts[-1]
+
             if dtype:
                 vtname = dtype.name
                 if not is_elem and (var.is_pointer() or var.is_array()):
@@ -879,8 +885,13 @@ def _recursive_write(f, depth, stmt, used):
 
     if hasattr(stmt, 'unknowns'):
         for uname, res in stmt.unknowns.iteritems():
+
             strname = uname.firstpartname()
-            res_stmt = res.res_stmt
+            if len(res.res_stmts)==0:
+                res_stmt = None
+            else:
+                res_stmt = res.res_stmts[-1]
+
             if not strname in used and res_stmt:
                 if isinstance(res_stmt, Use):
                     if strname in res_stmt.norenames:
@@ -1517,7 +1528,11 @@ class GenVerification(GenBase):
                 for d in range(var.rank):
                     write(f, 'DO idx%(d)d=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1}, d=depth+d+1)
 
-                dtype = typedecl_stmt.get_res_stmt(typedecl_stmt.name)
+                res_stmts = typedecl_stmt.get_res_stmts(typedecl_stmt.name)
+                if res_stmts is None or len(res_stmts)==0:
+                    dtype = None
+                else:
+                    dtype = res_stmts[-1]
 
                 arrshape = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
                 if isinstance(dtype, Use):
@@ -1554,7 +1569,11 @@ class GenVerification(GenBase):
             # if dtype
             if typedecl_stmt.is_derived():
 
-                dtype = typedecl_stmt.get_res_stmt(typedecl_stmt.name)
+                res_stmts = typedecl_stmt.get_res_stmts(typedecl_stmt.name)
+                if res_stmts is None or len(res_stmts)==0:
+                    dtype = None
+                else:
+                    dtype = res_stmts[-1]
 
                 if dtype:
                     write(f, '')

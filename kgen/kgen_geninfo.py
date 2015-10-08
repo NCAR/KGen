@@ -6,12 +6,11 @@ from api import walk
 from typedecl_statements import TypeDeclarationStatement
 from base_classes import BeginStatement
 from block_statements import BeginSource, Module, Type
-from statements import Assignment
+from statements import Assignment, Use
 
 dtypes_found = []
 
 def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=True):
-    from statements import Use
     from Fortran2003 import Entity_Decl
 
     if var.is_pointer() or var.is_allocatable() or var.is_array() or stmt.is_derived():
@@ -27,7 +26,11 @@ def append_tkdpat(loctype, var, stmt, tkdpatlist, mod_depends=None, component=Tr
         if stmt.is_derived():
             vartype = stmt.name
             varkind = ''
-            dtype = stmt.get_res_stmt(stmt.name)
+            res_stmts = stmt.get_res_stmts(stmt.name)
+            if res_stmts is None or len(res_stmts)==0:
+                dtype = None
+            else:
+                dtype = res_stmts[-1]
         else:
             vartype = stmt.__class__.__name__.lower()
             varkind = stmt.get_kind()
@@ -142,6 +145,21 @@ def mark_callsite_generation_info():
 
     # mark input state in callsite
     for stmt, depth in walk(cs_tree, -1):
+
+        # collect use stmt usage
+        if hasattr(stmt, 'unknowns') and len(stmt.unknowns)>0:
+            for unknown, res in stmt.unknowns.iteritems():
+                cur_name = unknown.firstpartname()
+                if res.res_stmts and len(res.res_stmts)>0:
+                    for res_stmt in res.res_stmts:
+                        if isinstance(res_stmt, Use):
+                            if cur_name not in res_stmt.used:
+                                res_stmt.used.append(cur_name)
+                            for rename, orig in res_stmt.renames:
+                                if cur_name==rename:
+                                    cur_name = orig
+                                    break
+
         # if marked
         if hasattr(stmt, 'geninfo') and isinstance(stmt, TypeDeclarationStatement) and \
             stmt.geninfo.has_key(KGName):
@@ -298,6 +316,20 @@ def mark_programunits_generation_info():
             preprocess_generation_info(srcfile.tree)
 
             for stmt, depth in walk(srcfile.tree, -1):
+                # collect use stmt usage
+                if hasattr(stmt, 'unknowns') and len(stmt.unknowns)>0:
+                    for unknown, res in stmt.unknowns.iteritems():
+                        cur_name = unknown.firstpartname()
+                        if res.res_stmts and len(res.res_stmts)>0:
+                            for res_stmt in res.res_stmts:
+                                if isinstance(res_stmt, Use):
+                                    if cur_name not in res_stmt.used:
+                                        res_stmt.used.append(cur_name)
+                                    for rename, orig in res_stmt.renames:
+                                        if cur_name==rename:
+                                            cur_name = orig
+                                            break
+
                 if isinstance(stmt.parent, Module):
                     if hasattr(stmt, 'geninfo') and isinstance(stmt, TypeDeclarationStatement) and \
                         stmt.geninfo.has_key(KGName):

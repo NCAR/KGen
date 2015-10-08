@@ -185,7 +185,7 @@ def collect_args_from_expr(expr, param, stmt):
     from typedecl_statements import TypeDeclarationStatement
 
     unames = [ n.firstpartname() for n in stmt.unknowns.keys() ]    
-    res_stmts = [ v.res_stmt for v in stmt.unknowns.values() ]    
+    res_stmts = [ v.res_stmts[-1] for v in stmt.unknowns.values() ]    
 
     # if there is no actual argument
     if expr.items[1] is None:
@@ -278,7 +278,7 @@ def collect_kernel_info():
     # populate kernel parameters
     if len(State.callsite['stmt'].unknowns)==1:
 
-        State.kernel['stmt'] = State.callsite['stmt'].unknowns.values()[0].res_stmt
+        State.kernel['stmt'] = State.callsite['stmt'].unknowns.values()[0].res_stmts[0]
         if isinstance(State.kernel['stmt'], SubProgramStatement):
             pass
         elif isinstance(State.kernel['stmt'], Use):

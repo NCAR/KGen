@@ -115,7 +115,8 @@ class ResState(object):
         self.originator = org
         self.resolvers = resolvers
         #self.temp_uname = None
-        self.res_stmt = None
+        #self.res_stmt = None
+        self.res_stmts = []
         self.unamelist = [uname]
 
     def push_uname(self, uname):
@@ -125,15 +126,15 @@ class ResState(object):
     def pop_uname(self, reset_uname=False):
         newname = self.unamelist.pop()
         self.uname = self.unamelist[-1]
-        if self.res_stmt and reset_uname:
+        if len(self.res_stmts)>0 and reset_uname:
             newlist = []
-            for resuname in self.res_stmt.geninfo.values()[0]:
+            for resuname in self.res_stmts[-1].geninfo.values()[0]:
                 if resuname==newname:
                     newlist.append(self.uname)
                 else:
                     newlist.append(resuname)
                     pass
-            self.res_stmt.geninfo.values()[0] = newlist
+            self.res_stmts[-1].geninfo.values()[0] = newlist
             #import pdb; pdb.set_trace()
             
 

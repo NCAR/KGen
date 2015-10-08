@@ -658,6 +658,7 @@ class Access(Statement):
 
     def analyze(self):
         # start of KGEN addition
+        from block_statements import TypeDecl
         if not hasattr(self.parent, 'spec_stmts'):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
@@ -672,11 +673,12 @@ class Access(Statement):
             if '' not in l:
                 l.append('')
             if not isinstance(self.parent, classes.Module):
-                parentclsname = self.parent.__class__.__name__
-                message = 'C548 violation: %s statement only allowed in the'\
-                          ' specification-part of a module, not in a %s.'\
-                          % (clsname.upper(), parentclsname.lower())
-                self.warning(message)
+                if not isinstance(self.parent, TypeDecl) or self.is_public: # KGEN addition
+                    parentclsname = self.parent.__class__.__name__
+                    message = 'C548 violation: %s statement only allowed in the'\
+                              ' specification-part of a module, not in a %s.'\
+                              % (clsname.upper(), parentclsname.lower())
+                    self.warning(message)
         access_id_list = self.parent.a.private_id_list + self.parent.a.public_id_list
         if access_id_list.count('')>1:
             message = 'C548 violation: only one access-stmt with omitted'\
@@ -1068,6 +1070,9 @@ class Use(Statement):
 
         if not hasattr(self, 'module'):
             self.module = None
+
+        if not hasattr(self, 'used'):
+            self.used = []
 
     def intrinsic_module(self, modname):
         from kgen_extra import Intrinsic_Modules
@@ -2016,6 +2021,11 @@ class SpecificBinding(Statement):
         else:
             s += self.name
         return tab + s
+
+    # start of KGEN addtion
+    def analyze(self):
+        return
+    # end of KGEN addtion
 
 class GenericBinding(Statement):
     """
