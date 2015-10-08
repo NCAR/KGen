@@ -97,22 +97,34 @@ ELSE
     nrmsdiff = sqrt(sum(temp)/real(n))
     rmsdiff = sqrt(sum(temp2)/real(n))
 
-    if(check_status%%VerboseLevel > 0) then
-        WRITE(*,*)
-        WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
-        WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
-        if(check_status%%VerboseLevel >= 2 .AND. check_status%%VerboseLevel < 4) then
-            WRITE(*,*) "Average - kernel ", sum(var)/real(size(var))
-            WRITE(*,*) "Average - reference ", sum(ref_var)/real(size(ref_var))
-        endif
-        WRITE(*,*) "RMS of difference is ",rmsdiff
-        WRITE(*,*) "Normalized RMS of difference is ",nrmsdiff
-    end if
-
     if (nrmsdiff > check_status%%tolerance) then
         check_status%%numFatal = check_status%%numFatal+1
+        if(check_status%%VerboseLevel > 0 .AND. check_status%%VerboseLevel < 4) then
+            WRITE(*,*)
+            WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
+            WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
+            if(check_status%%VerboseLevel >= 2 .AND. check_status%%VerboseLevel < 4) then
+                WRITE(*,*) "Average - kernel ", sum(var)/real(size(var))
+                WRITE(*,*) "Average - reference ", sum(ref_var)/real(size(ref_var))
+            endif
+            WRITE(*,*) "RMS of difference is ",rmsdiff
+            WRITE(*,*) "Normalized RMS of difference is ",nrmsdiff
+        end if
+
     else
         check_status%%numWarning = check_status%%numWarning+1
+        if(check_status%%VerboseLevel > 1 .AND. check_status%%VerboseLevel < 4) then
+            WRITE(*,*)
+            WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
+            WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
+            if(check_status%%VerboseLevel >= 2 .AND. check_status%%VerboseLevel < 4) then
+                WRITE(*,*) "Average - kernel ", sum(var)/real(size(var))
+                WRITE(*,*) "Average - reference ", sum(ref_var)/real(size(ref_var))
+            endif
+            WRITE(*,*) "RMS of difference is ",rmsdiff
+            WRITE(*,*) "Normalized RMS of difference is ",nrmsdiff
+        end if
+
     endif
 
     deallocate(temp,temp2)
@@ -133,7 +145,7 @@ IF ( ALL( var %(eqtest)s ref_var ) ) THEN
         END IF
     end if
 ELSE
-    if(check_status%%VerboseLevel > 1) then
+    if(check_status%%VerboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
         WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
@@ -162,10 +174,11 @@ public kgen_dp, check_t, kgen_init_check, kgen_print_check
 
 kgen_utils_file_checksubr = \
 """
-subroutine kgen_init_check(check, tolerance, minvalue)
+subroutine kgen_init_check(check, tolerance, verbosity, minvalue)
   type(check_t), intent(inout) :: check
   real(kind=kgen_dp), intent(in), optional :: tolerance
   real(kind=kgen_dp), intent(in), optional :: minvalue
+  integer, intent(in), optional :: verbosity
 
   check%Passed   = .TRUE.
   check%numFatal = 0
@@ -178,6 +191,16 @@ subroutine kgen_init_check(check, tolerance, minvalue)
   else
       check%tolerance = 1.0D-15
   endif
+  if(present(verbosity)) then
+     if(verbosity >= 0 .AND. verbosity < 4) then
+     	check%VerboseLevel = verbosity
+     else
+	WRITE(*,*), 'Invalid Verbosity Level ', verbosity, 'Verbosity should be between 0 and 3'
+	STOP
+     end if
+  else
+     check%VerboseLevel = 3
+  end if
   if(present(minvalue)) then
      check%minvalue = minvalue
   else
@@ -189,33 +212,12 @@ subroutine kgen_print_check(kname, check)
    character(len=*) :: kname
    type(check_t), intent(in) ::  check
 
-   if(check%VerboseLevel == 0) then
-	write (*,*)
-   else if(check%VerboseLevel == 1) then
-	write (*,*)
-	write (*,*) TRIM(kname),':',check%numFatal,'fatal errors detected out of',check%numTotal,'variables checked'
-        !write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
-        !write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
-	!write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
-   else if(check%VerboseLevel == 2) then
-	write (*,*)
-        write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
-	!write (*,*) TRIM(kname),':',check%numFatal,'fatal errors and',check%numWarning,'warnings detected out of',check%numTotal,'variables checked'
-        write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
-        write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
-        write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
-   else if(check%VerboseLevel == 3) then
-        write (*,*)
-        write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
-	!write (*,*) TRIM(kname),':',check%numFatal,'fatal errors,',check%numWarning,'warnings detected, and',check%numIdentical,'identical out of',check%numTotal,'variables checked'
-        write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
-        write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
-        write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
-        write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
-   else
-	write (*,*), 'Illegal Verbose level: ', check%VerboseLevel, 'Verbose Level flag must be between 0 and 3'
-	STOP
-   end if
+   write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+   !write (*,*) TRIM(kname),':',check%numFatal,'fatal errors,',check%numWarning,'warnings detected, and',check%numIdentical,'identical out of',check%numTotal,'variables checked'
+   write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
+   write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
+   write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
+   write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
 
    if (check%numFatal> 0) then
         write(*,*) TRIM(kname),': Verification FAILED'
