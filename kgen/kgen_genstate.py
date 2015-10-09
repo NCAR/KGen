@@ -31,67 +31,79 @@ def generate_state():
 
     State.state = State.STATE_GENERATED
 
+def generate_program_unit(fd, tree, depth):
+    from base_classes import BeginStatement
+
+    # probably there is no state data that a program unit generates
+    if isinstance(tree, BeginStatement):
+        return tree.content[-1]
+    else:
+        raise ProgramException('A program unit of %s is not block type'%stmt.name)
+
 def generate_state_files():
     """ Generate instrumented files except callsite file """
 
-    for filepath, (srcfile, mods_used) in State.modfiles.iteritems():
+    for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
         if not srcfile.used4genstate: continue
-        filename = os.path.basename(srcfile.abspath)
-        with open('%s/%s'%(Config.path['state'], filename), 'wb') as f:
 
-            write_file_header(f, filename)
+        if filepath!=State.topblock['path']:
+            filename = os.path.basename(srcfile.abspath)
+            with open('%s/%s'%(Config.path['state'], filename), 'wb') as f:
 
-            target_stmt = None
-            mod_name = ''
-            for stmt, depth in walk(srcfile.tree, -1):
+                write_file_header(f, filename)
 
-                if stmt in srcfile.tree.a.module.values():
-                    mod_name = stmt.name
+                # for modules
+                target_stmt = None
+                mod_name = ''
+                end_punit_stmt = None
+                for stmt, depth in walk(srcfile.tree, -1):
 
-                    if hasattr(stmt, 'spec_stmts'):
-                        contains_stmt = [ s for s in stmt.spec_stmts if isinstance(s, Contains) ]
-                        if len(contains_stmt)>1: raise ProgramException('More than on Contains stmts: %s'%contains_stmt)
-                        elif len(contains_stmt)==1:
-                            target_stmt = contains_stmt[0]
+                    if stmt in srcfile.tree.a.module.values():
+                        mod_name = stmt.name
+
+                        if hasattr(stmt, 'spec_stmts'):
+                            contains_stmt = [ s for s in stmt.spec_stmts if isinstance(s, Contains) ]
+                            if len(contains_stmt)>1: raise ProgramException('More than on Contains stmts: %s'%contains_stmt)
+                            elif len(contains_stmt)==1:
+                                target_stmt = contains_stmt[0]
+                            else:
+                                target_stmt = stmt.content[-1]
                         else:
                             target_stmt = stmt.content[-1]
-                    else:
-                        target_stmt = stmt.content[-1]
 
-                    write_stmt(f, stmt, depth)
-                    write_state_usepart_module(f, depth, State.modules[mod_name])
-
-                elif target_stmt and stmt is target_stmt:
-                    mod_num = State.modules[mod_name]['num']
-
-                    write_state_interface_write_var_mod(f, depth, State.modules[mod_name]['extern']['tkdpat'], mod_num, \
-                        dtypelist=State.modules[mod_name]['dtype'])
-
-                    if len(State.modules[mod_name]['extern']['names'])>0:
-                        write(f, 'PUBLIC %s'%('kgen_write_externs_%s'%mod_name), depth)
-
-#                    if len(State.modules[mod_name]['extern']['names'])>0 or State.modules[mod_name]['extern']['tkdpat']>0 or \
-#                        isinstance(target_stmt, Contains):
-#                        #write(f, 'CONTAINS', d=depth)
-#                        write_state_subroutines_write_var(f, depth, State.modules[mod_name]['extern']['tkdpat'], contains=True)
-#                    else:
-#                        write_state_subroutines_write_var(f, depth, State.modules[mod_name]['extern']['tkdpat'])
-
-                    if isinstance(target_stmt, Contains) or len(State.modules[mod_name]['extern']['names'])>0 or len(State.modules[mod_name]['dtype'])>0:
-                        write(f, 'CONTAINS', d=depth)
-                        write_state_subroutines_write_var(f, depth, State.modules[mod_name]['extern']['tkdpat'], contains=False)
-                    else:
-                        write_state_subroutines_write_var(f, depth, State.modules[mod_name]['extern']['tkdpat'], contains=True)
-
-                    write_state_subroutines_type_write_var(f, depth, State.modules[mod_name]['dtype'])
-                    write_state_subroutine_module_externs(f, depth, State.modules[mod_name]['extern'], mod_name)
-
-                    if isinstance(stmt, EndModule):
                         write_stmt(f, stmt, depth)
-                    target_stmt = None
-                    mod_name = ''
-                else: 
-                    write_stmt(f, stmt, depth)
+                        write_state_usepart_module(f, depth, State.modules[mod_name])
+
+                    elif target_stmt and stmt is target_stmt:
+                        mod_num = State.modules[mod_name]['num']
+
+                        write_state_interface_write_var_mod(f, depth, State.modules[mod_name]['extern']['tkdpat'], mod_num, \
+                            dtypelist=State.modules[mod_name]['dtype'])
+
+                        if len(State.modules[mod_name]['extern']['names'])>0:
+                            write(f, 'PUBLIC %s'%('kgen_write_externs_%s'%mod_name), depth)
+
+                        if isinstance(target_stmt, Contains) or len(State.modules[mod_name]['extern']['names'])>0 or len(State.modules[mod_name]['dtype'])>0:
+                            write(f, 'CONTAINS', d=depth)
+                            write_state_subroutines_write_var(f, depth, State.modules[mod_name]['extern']['tkdpat'], contains=False)
+                        else:
+                            write_state_subroutines_write_var(f, depth, State.modules[mod_name]['extern']['tkdpat'], contains=True)
+
+                        write_state_subroutines_type_write_var(f, depth, State.modules[mod_name]['dtype'])
+                        write_state_subroutine_module_externs(f, depth, State.modules[mod_name]['extern'], mod_name)
+
+                        if isinstance(stmt, EndModule):
+                            write_stmt(f, stmt, depth)
+                        target_stmt = None
+                        mod_name = ''
+                    elif any( any(stmt==unit for unit in units) for units in State.program_units.values() ):
+                        end_punit_stmt = generate_program_unit(f, stmt, depth)
+                    elif end_punit_stmt is not None:
+                        if stmt==end_punit_stmt:
+                            end_punit_stmt = None
+                    elif end_punit_stmt is None:
+                        write_stmt(f, stmt, depth)
+                    else: raise ProgramException('Wrong path for end_punit_stmt in kernel generation')
 
 def generate_callsite_program():
     """ Generate kernel and state files with program type parent"""
@@ -172,6 +184,8 @@ def generate_callsite_module():
     endsubp_stmt = subp_stmt.content[-1]
     contains_stmt_added = False
     parentblock_subroutine_written = False 
+    end_punit_stmt = None
+    end_punit_stmt2 = None
     with open('%s/%s'%(statepath, cs_filename), 'wb') as f:
         write_file_header(f, cs_filename)
         for stmt, depth in walk(cs_tree, -1):
@@ -183,7 +197,14 @@ def generate_callsite_module():
                     continue
 
                 # place action
-                write_stmt(f, stmt, depth)
+                if any( any(stmt==unit for unit in units) for units in State.program_units.values() ):
+                    end_punit_stmt = generate_program_unit(f, stmt, depth)
+                elif end_punit_stmt is not None:
+                    if stmt==end_punit_stmt:
+                        end_punit_stmt = None
+                elif end_punit_stmt is None:
+                    write_stmt(f, stmt, depth)
+                else: raise ProgramException('Wrong path for end_punit_stmt in kernel generation')
 
             elif mod_stage==SrcStage.AFTER_MODULE_STMT:
                 if stmt.__class__ in  [ Use, Import ] + implicit_part:
@@ -426,8 +447,15 @@ def generate_callsite_module():
 
             elif mod_stage==SrcStage.AFTER_ENDMODULE_STMT:
 
-                # place action
-                write_stmt(f, stmt, depth)
+                if any( any(stmt==unit for unit in units) for units in State.program_units.values() ):
+                    end_punit_stmt2 = generate_program_unit(f, stmt, depth)
+                elif end_punit_stmt2 is not None:
+                    if stmt==end_punit_stmt2:
+                        end_punit_stmt2 = None
+                elif end_punit_stmt2 is None:
+                    write_stmt(f, stmt, depth)
+                else: raise ProgramException('Wrong path for end_punit_stmt in kernel generation')
 
             else: raise ProgramException('Unknown module stage: %d'%mod_stage)
 
+        # TODO: handle program units

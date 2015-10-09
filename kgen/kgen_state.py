@@ -33,7 +33,7 @@ class State(object):
         self._attrs['callsite']['actual_arg']['in_names'] = []
         self._attrs['callsite']['actual_arg']['out_names'] = []
         self._attrs['callsite']['actual_arg']['inout_names'] = []
-        self._attrs['callsite']['actual_arg']['res_stmt'] = {}
+        self._attrs['callsite']['actual_arg']['typedecl_stmt'] = {}
 
         # parent subprogram of callsite stmt attributes
         self._attrs['parentblock'] = {}
@@ -44,13 +44,13 @@ class State(object):
         self._attrs['parentblock']['dummy_arg']['in_names'] = []
         self._attrs['parentblock']['dummy_arg']['out_names'] = []
         self._attrs['parentblock']['dummy_arg']['inout_names'] = []
-        self._attrs['parentblock']['dummy_arg']['res_stmt'] = {}
+        self._attrs['parentblock']['dummy_arg']['typedecl_stmt'] = {}
         self._attrs['parentblock']['input'] = {} # variables for callsite actual args and kernel externs
         self._attrs['parentblock']['input']['names'] = []
-        self._attrs['parentblock']['input']['res_stmt'] = {}
+        self._attrs['parentblock']['input']['typedecl_stmt'] = {}
         self._attrs['parentblock']['output'] = {} # variables for callsite outputs
         self._attrs['parentblock']['output']['names'] = []
-        self._attrs['parentblock']['output']['res_stmt'] = {}
+        self._attrs['parentblock']['output']['typedecl_stmt'] = {}
         self._attrs['parentblock']['output']['tkdpat'] = []
         self._attrs['parentblock']['inout'] = {}
         self._attrs['parentblock']['inout']['tkdpat'] = []
@@ -67,9 +67,9 @@ class State(object):
         self._attrs['topblock']['expr'] = None
         self._attrs['topblock']['extern'] = {}
         self._attrs['topblock']['extern']['names'] = []
-        self._attrs['topblock']['extern']['res_stmt'] = {}
+        self._attrs['topblock']['extern']['typedecl_stmt'] = {}
         self._attrs['topblock']['extern']['tkdpat'] = []
-        self._attrs['topblock']['mod_depends'] = [] # dependency for compile
+        #self._attrs['topblock']['mod_depends'] = [] # dependency for compile
         self._attrs['topblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
         self._attrs['topblock']['dtype'] = [] # derived types
 
@@ -84,21 +84,24 @@ class State(object):
         self._attrs['kernel']['dummy_arg']['in_names'] = []
         self._attrs['kernel']['dummy_arg']['out_names'] = []
         self._attrs['kernel']['dummy_arg']['inout_names'] = []
-        self._attrs['kernel']['dummy_arg']['res_stmt'] = {}
+        self._attrs['kernel']['dummy_arg']['typedecl_stmt'] = {}
 
         # modules
         self._attrs['modules'] = {}
 
         # module files
-        self._attrs['modfiles'] = {}
+        self._attrs['depfiles'] = {}
 
         # kernel_driver attributes
         self._attrs['kernel_driver'] = {}
         self._attrs['kernel_driver']['input'] = {}
         self._attrs['kernel_driver']['input']['names'] = []
-        self._attrs['kernel_driver']['input']['res_stmt'] = {}
+        self._attrs['kernel_driver']['input']['typedecl_stmt'] = {}
         self._attrs['kernel_driver']['input']['tkdpat'] = []
         self._attrs['kernel_driver']['mod_rw_var_depends'] = []
+
+        # program units
+        self._attrs['program_units'] = {}
 
     def __getattr__(self, name):
         return self._attrs[name]
@@ -111,22 +114,36 @@ class ResState(object):
         self.uname = uname
         self.originator = org
         self.resolvers = resolvers
-        self.temp_uname = None
-        self.res_stmt = None
+        #self.temp_uname = None
+        #self.res_stmt = None
+        self.res_stmts = []
+        self.unamelist = [uname]
 
-    def set_uname(self, uname):
-        self.temp_uname = self.uname
+    def push_uname(self, uname):
+        self.unamelist.append(uname)
         self.uname = uname
 
-    def reset_uname(self):
-        self.uname = self.temp_uname
-        self.temp_uname = None
+    def pop_uname(self, reset_uname=False):
+        newname = self.unamelist.pop()
+        self.uname = self.unamelist[-1]
+        if len(self.res_stmts)>0 and reset_uname:
+            newlist = []
+            for resuname in self.res_stmts[-1].geninfo.values()[0]:
+                if resuname==newname:
+                    newlist.append(self.uname)
+                else:
+                    newlist.append(resuname)
+                    pass
+            self.res_stmts[-1].geninfo.values()[0] = newlist
+            #import pdb; pdb.set_trace()
+            
 
 class SrcFile(object):
     def __init__(self, srcpath):
         import os.path
         from kgen_utils import exec_cmd
         from statements import Comment
+        from block_statements import Module, Program
 
         # set default values
         self.prep = None
@@ -134,6 +151,19 @@ class SrcFile(object):
         self.srcpath = srcpath
         self.abspath = os.path.abspath(self.srcpath)
         self.used4genstate = False
+
+        
+        # set source file format
+        isfree = True
+        isstrict = False
+        if self.abspath in Config.source['file'].keys():
+            if Config.source['file'][self.abspath].has_key('isfree'):
+                isfree = Config.source['file'][self.abspath]['isfree']
+            if Config.source['file'][self.abspath].has_key('isstrict'):
+                isstrict = Config.source['file'][self.abspath]['isstrict']
+        else:
+            if Config.source['isstrict']: isstrict = Config.source['isstrict']
+            if Config.source['isfree']: isfree = Config.source['isfree']
 
         # prepare include paths and macro definitions
         path_src = []
@@ -147,8 +177,12 @@ class SrcFile(object):
         # execute preprocessing
         Logger.info('Reading %s'%self.srcpath, stdout=True)
         prep = Config.bin['pp']
-        if prep.endswith('fpp'): flags = Config.bin['fpp_flags']
-        elif prep.endswith('cpp'): flags = Config.bin['cpp_flags']
+        if prep.endswith('fpp'):
+            if isfree: srcfmt = ' -free'
+            else: srcfmt = ' -fixed'
+            flags = Config.bin['fpp_flags'] + srcfmt
+        elif prep.endswith('cpp'):
+            flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
         output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, self.abspath))
 
@@ -156,31 +190,20 @@ class SrcFile(object):
         self.prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
 
         # fparse
-        self.tree = parse('\n'.join(self.prep), ignore_comments=False, analyze=True, isfree=True, isstrict=False, \
-            include_dirs=None, source_only=None )
+        self.tree = parse('\n'.join(self.prep), ignore_comments=False, analyze=True, isfree=isfree, \
+            isstrict=isstrict, include_dirs=None, source_only=None )
         self.tree.srcfile = self
 
         # parse f2003
         lineno = 0
         linediff = 0
         for stmt, depth in walk(self.tree, -1):
-            #if srcpath.find('mo_rad_fastmath.f90')>0 and str(stmt.item).find('FUNCTION inv_expon')>0:
-            #    import pdb; pdb.set_trace()
-#            if isinstance(stmt, Comment) and stmt.item.comment.startswith('!KGEN#'):
-#                comment_split = stmt.item.comment.split(' ')
-#                lineno = int(comment_split[1])
-#                stmt.item.span = ( 0, 0 )
-#            else:
-#                if lineno>0:
-#                    linediff = stmt.item.span[0] - lineno
-#                    #import pdb; pdb.set_trace()
-#                    lineno = 0
-#                stmt.item.span = ( stmt.item.span[0]-linediff, stmt.item.span[1]-linediff )
             stmt.parse_f2003()
 
         # rename reader.id
         self.tree.reader.id = self.abspath
 
+        # collect module information
         for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
             if not State.modules.has_key(mod_name):
                 State.modules[mod_name] = {}
@@ -191,11 +214,21 @@ class SrcFile(object):
                 State.modules[mod_name]['path'] = self.abspath
                 State.modules[mod_name]['extern'] = {}
                 State.modules[mod_name]['extern']['names'] = []
-                State.modules[mod_name]['extern']['res_stmt'] = {}
+                State.modules[mod_name]['extern']['typedecl_stmt'] = {}
                 State.modules[mod_name]['extern']['tkdpat'] = []
                 State.modules[mod_name]['mod_rw_var_depends'] = []
                 State.modules[mod_name]['dtype'] = []
         
+        # collect program unit information
+        for item in self.tree.content:
+            if item.__class__ not in [ Module, Comment, Program ]:
+                if item.reader.id not in State.program_units.keys():
+                    State.program_units[item.reader.id] = []
+                State.program_units[item.reader.id].append(item)
+
+        # create a tuple for file dependency
+        State.depfiles[self.abspath] = ( self, [], [] )
+
     def stmt_by_name(self, name, cls=None, lineafter=-1):
         from statements import Comment
 

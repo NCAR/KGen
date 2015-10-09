@@ -14,7 +14,7 @@ test:
 		-I ${SRC_DIR}:${MPI_INC} \
 		-e exclude.ini \
 		--mpi ranks=0:1 \
-		--invocation 1,3 \
+		--invocation 1:3 \
 		--kernel-compile FC='${FC}',FC_FLAGS='${FC_FLAGS}' \
 		--timing repeat=1000 \
 		--state-build cmds="cd ${SRC_DIR}; make build" \

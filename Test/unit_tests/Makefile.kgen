@@ -7,10 +7,55 @@ include ../Makefile.inc
 CURR_DIR := $(shell pwd)
 SRC_DIR := $(shell echo ${CURR_DIR} | sed s:tmp_:src/:)
 TMP_DIR := ${CURR_DIR}/tmp_test
-SRC := ${TMP_DIR}/calling_module.F90
 CALLSITE:=calling_module:calling_subroutine:add
 ERR_FILE:=${CURR_DIR}/errors.log
 FC_FLAGS:=$(shell cat ${SRC_DIR}/flags.txt &> /dev/null)
+
+ifneq ("$(wildcard ${SRC_DIR}/kernel.f)", "")
+	F77_TEST_UNPR := 1
+	F77_TEST_PR := 0
+	F90_TEST_UNPR := 0
+	F90_TEST_PR := 0
+endif
+
+ifneq ("$(wildcard ${SRC_DIR}/kernel.f90)", "")
+        F77_TEST_UNPR := 0
+        F77_TEST_PR := 1
+        F90_TEST_UNPR := 0
+        F90_TEST_PR := 0
+endif
+
+ifneq ("$(wildcard ${SRC_DIR}/kernel.F)", "")
+        F77_TEST_UNPR := 0
+        F77_TEST_PR := 0
+        F90_TEST_UNPR := 1
+        F90_TEST_PR := 0
+endif
+
+ifneq ("$(wildcard ${SRC_DIR}/kernel.F90)", "")
+        F77_TEST_UNPR := 0
+        F77_TEST_PR := 0
+        F90_TEST_UNPR := 0
+        F90_TEST_PR := 1
+endif
+
+ifeq (${F77_TEST_UNPR}, 1)
+	SRC := ${TMP_DIR}/calling_module.f
+endif
+
+ifeq (${F77_TEST_PR}, 1)
+        SRC := ${TMP_DIR}/calling_module.f90
+endif
+
+ifeq (${F90_TEST_UNPR}, 1)
+        SRC := ${TMP_DIR}/calling_module.F
+endif
+
+ifeq (${F90_TEST_PR}, 1)
+        SRC := ${TMP_DIR}/calling_module.F90
+endif
+
+
 
 test: gendata
 	@cd kernel; ${MAKE} -i >> ${ERR_FILE} 2>&1;
@@ -40,18 +85,6 @@ extract: copy
 
 copy: mkdir
 	@cp -rf ${SRC_DIR}/* ${TMP_DIR}
-	@if [ ! -e ${TMP_DIR}/test_top.F90 ] ; then \
-		cp -f ${SRC_DIR}/../Templates/test_top.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
-	fi;
-	@if [ ! -e ${TMP_DIR}/calling_module.F90  ] ; then \
-		cp -f ${SRC_DIR}/../Templates/calling_module.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
-	fi;
-	@if [ ! -e ${TMP_DIR}/kernel.F90 ] ; then \
-		cp -f ${SRC_DIR}/../Templates/kernel.F90 ${TMP_DIR} >>${ERR_FILE} 2>&1; \
-	fi;
-	@if [ ! -e ${TMP_DIR}/Makefile ] ; then \
-		cp -f ${SRC_DIR}/../Templates/Makefile ${TMP_DIR} >>${ERR_FILE} 2>&1; \
-	fi;
 
 mkdir:
 	@mkdir -p ${TMP_DIR} >${ERR_FILE} 2>&1

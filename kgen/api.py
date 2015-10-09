@@ -15,8 +15,10 @@ from block_statements import *
 
 # CHAR_BIT is used to convert object bit sizes to byte sizes
 from utils import CHAR_BIT
+from kgen_utils import Config
 
-def get_reader(input, isfree=None, isstrict=None, include_dirs = None, source_only = None,
+#def get_reader(input, isfree=None, isstrict=None, include_dirs = None, source_only = None,
+def get_reader(input, isfree=Config.source['isfree'], isstrict=Config.source['isstrict'], include_dirs = None, source_only = None,
                ignore_comments = True):
     """ Returns Fortran reader instance.
 

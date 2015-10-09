@@ -38,7 +38,7 @@ from utils import split_comma, specs_split_comma, AnalyzeError, ParseError,\
 from utils import classes
 
 import Fortran2003 # KGEN addition
-from kgen_utils import Config, pack_namepath, Logger, ProgramException, UserException # KGEN addition
+from kgen_utils import Config, pack_innamepath, Logger, ProgramException, UserException # KGEN addition
 
 class StatementWithNamelist(Statement):
     """
@@ -658,6 +658,7 @@ class Access(Statement):
 
     def analyze(self):
         # start of KGEN addition
+        from block_statements import TypeDecl
         if not hasattr(self.parent, 'spec_stmts'):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
@@ -672,11 +673,12 @@ class Access(Statement):
             if '' not in l:
                 l.append('')
             if not isinstance(self.parent, classes.Module):
-                parentclsname = self.parent.__class__.__name__
-                message = 'C548 violation: %s statement only allowed in the'\
-                          ' specification-part of a module, not in a %s.'\
-                          % (clsname.upper(), parentclsname.lower())
-                self.warning(message)
+                if not isinstance(self.parent, TypeDecl) or self.is_public: # KGEN addition
+                    parentclsname = self.parent.__class__.__name__
+                    message = 'C548 violation: %s statement only allowed in the'\
+                              ' specification-part of a module, not in a %s.'\
+                              % (clsname.upper(), parentclsname.lower())
+                    self.warning(message)
         access_id_list = self.parent.a.private_id_list + self.parent.a.public_id_list
         if access_id_list.count('')>1:
             message = 'C548 violation: only one access-stmt with omitted'\
@@ -891,11 +893,11 @@ class Save(Statement):
         for item in self.items:
             if item.startswith('/') and item.endswith('/'):
                 if uname.firstpartname()==item[1:-1]:
-                    newname = KGName(pack_namepath(self, item))
+                    newname = KGName(pack_innamepath(self, item))
                     self.add_geninfo(newname)
             else:
                 if uname.firstpartname()==item:
-                    newname = KGName(pack_namepath(self, item))
+                    newname = KGName(pack_innamepath(self, item))
                     self.add_geninfo(newname)
     # end of KGEN addition
 
@@ -1069,6 +1071,9 @@ class Use(Statement):
         if not hasattr(self, 'module'):
             self.module = None
 
+        if not hasattr(self, 'used'):
+            self.used = []
+
     def intrinsic_module(self, modname):
         from kgen_extra import Intrinsic_Modules
 
@@ -1077,7 +1082,7 @@ class Use(Statement):
 
     def resolve(self, request):
         from kgen_state import ResState, SrcFile, State
-        #from kgen_utils import Logger, ProgramException, UserException
+        from kgen_utils import match_namepath
 
         src = None
         if self.module is None:
@@ -1087,46 +1092,35 @@ class Use(Statement):
                 if self.nature and self.nature=='INTRINSIC':
                     self.module = self.intrinsic_module(self.name)
                 else:
+                    # skip if excluded
+                    for section, options in Config.exclude.iteritems():
+                        if section in [ 'namepath' ]:
+                            for pattern, actions in options.iteritems():
+                                if match_namepath(pattern, self.name):
+                                    if 'skip_module' in actions:
+                                        return
+
                     fn = self.reader.find_module_source_file(self.name)
                     if fn:
                         src = SrcFile(fn)
                         Logger.info('\tin the search of "%s" directly from %s and originally from %s' % \
                             (request.uname.firstpartname(), os.path.basename(self.reader.id), \
                             os.path.basename(request.originator.reader.id)), stdout=True)
-                        if not State.modfiles.has_key(src.abspath):
-                            State.modfiles[src.abspath] = ( src, [] )
                         self.module = src.tree.a.module[self.name]
                     else:
-                        Logger.warn('Module, %s, is not found at %s'%(self.name, self.reader.id), stdout=True)
-
-                        # skip if excluded
-                        for pname, modnames in Config.exclude.iteritems():
-                            if pname=='module':
-                                for name, action in modnames.iteritems():
-                                    if name==self.name:
-                                        Logger.info('Module %s is skipped'%self.name, stdout=True)
-                                        return
-
-                        raise UserException('Please check include paths for searching module files.')
+                        raise UserException('Module, %s, is not found at %s. Please check include paths for searching module files.' % \
+                            (self.name, self.reader.id))
 
         if self.module:
             self.module.resolve(request)
 
         if request.state == ResState.RESOLVED:
-            # if current file is in modfiles
+            # if intrinsic module
             if self.nature=='INTRINSIC':
                 pass
-            elif self.top.reader.id in State.modfiles:
-                # if newly found moudle is not in modfiles
-                if not self.module in State.modfiles[self.top.reader.id][1]:
-                    State.modfiles[self.top.reader.id][1].append(self.module)
-            # else if current file is callsite file
-            elif self.top.reader.id == State.topblock['path']:
-                # if newly found moudle is not in callsite file
-                if not self.module in State.topblock['mod_depends']:
-                    State.topblock['mod_depends'].append(self.module)
-            else:
-                raise ProgramException('Unknown module: %s -> %s' % (self.top.reader.id, self.module.reader.id))
+            # if newly found moudle is not in depfiles
+            elif not self.module in State.depfiles[self.top.reader.id][1]:
+                State.depfiles[self.top.reader.id][1].append(self.module)
 
     def tokgen(self, items=None):
         if not items is None:
@@ -2027,6 +2021,11 @@ class SpecificBinding(Statement):
         else:
             s += self.name
         return tab + s
+
+    # start of KGEN addtion
+    def analyze(self):
+        return
+    # end of KGEN addtion
 
 class GenericBinding(Statement):
     """
