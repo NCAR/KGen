@@ -848,6 +848,15 @@ def search_Complex_Literal_Constant(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Char_Length(stmt, node):
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Data_Implied_Do(stmt, node):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
+    get_name_or_defer(stmt, node.items[0], res_value)
     get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[2], res_value)
+    get_name_or_defer(stmt, node.items[3], res_value)
+    get_name_or_defer(stmt, node.items[4], res_value)
+
+
