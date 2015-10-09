@@ -6,13 +6,14 @@ module kernel
        
         contains
 
-        subroutine add(a, b, c)
+        function add(a, b, c) result(d)
                 real(kind=real_kind), dimension(np,np), intent(in) :: a
                 real(kind=real_kind), dimension(np,np), intent(in) :: b
-                real(kind=real_kind), dimension(np,np), intent(out) :: c
+                real(kind=real_kind), dimension(np,np), intent(in) :: c
+                real(kind=real_kind), dimension(np,np) :: d
 
-                c = a + b
+                d = c + a + b
 
-        end subroutine add
+        end function add
 
 end module kernel
