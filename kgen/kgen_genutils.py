@@ -952,6 +952,7 @@ def write_driver_specpart(f, depth):
     line = 'INTEGER, DIMENSION(%s), PARAMETER :: kgen_counter_at = (/ %s /)'
     write(f, line  % ( Config.invocation['size'], ', '.join(Config.invocation['numbers']) ), d=depth)
     write(f, 'CHARACTER(LEN=1024) :: kgen_filepath', d=depth)
+    write(f, 'REAL(KIND=kgen_dp) :: total_time', d=depth)
 
     # write typececls for dummy args
     for uname, typedecl_stmt in State.kernel_driver['input']['typedecl_stmt'].iteritems():
@@ -973,6 +974,9 @@ def write_kernel_interface_read_var_mod(f, depth, tkdpatlist, mod_num, dtypelist
 
 def write_driver_read_fileopen(f, depth):
     write(f, '')
+    write(f, 'total_time = 0.0_kgen_dp', d=depth)
+    write(f, '')
+
     if Config.mpi['enabled']:
         len = Config.mpi['size'] * Config.invocation['size']
     else:
@@ -1013,9 +1017,22 @@ def write_driver_call_module_externs(f, depth):
             write(f, 'CALL kgen_read_externs_%s(kgen_unit)'%mod_name, d=depth)
 
 def write_driver_read_fileclose(f, depth):
+
+    if Config.mpi['enabled']:
+        len = Config.mpi['size'] * Config.invocation['size']
+    else:
+        len = Config.invocation['size']
+
     write(f, '')
     write(f, '    CLOSE (UNIT=kgen_unit)', d=depth)
     write(f, 'END DO', d=depth)
+    write(f, '')
+    write(f, 'PRINT *, ""')
+    write(f, 'PRINT *, "******************************************************************************"')
+    write(f, 'PRINT *, "%s summary: Total number of verification cases: %d"'%(Config.callsite['subpname'].firstpartname(), len))
+    write(f, 'PRINT *, "%s summary: Total time of all calls (usec): ", total_time'%Config.callsite['subpname'].firstpartname())
+    write(f, 'PRINT *, "******************************************************************************"')
+    
 
 def write_kernel_subroutine_module_externs(f, depth, block, mod_name):
 
@@ -1127,9 +1144,10 @@ def write_kernel_timing(f, depth):
     write(f, 'END DO', d=depth)
     #write(f, 'stop_clock = rdtsc()', d=depth)
     write(f, 'CALL system_clock(stop_clock, rate_clock)', d=depth)
+    write(f, 'elapsed_time = 1.0e6*(stop_clock - start_clock)/REAL(rate_clock*maxiter)', d=depth)
+    write(f, 'total_time = total_time + elapsed_time', d=depth)
     write(f, 'WRITE(*,*)', d=depth)
-    write(f, 'PRINT *, "%s : Time per call (usec): ", 1.0e6*(stop_clock - start_clock)/REAL(rate_clock*maxiter)'%\
-        Config.callsite['subpname'].firstpartname(), d=depth)
+    write(f, 'PRINT *, "%s : Time per call (usec): ", elapsed_time'% Config.callsite['subpname'].firstpartname(), d=depth)
     #write(f, 'PRINT *, "Elapsed clock (cycles): ", (stop_clock - start_clock)/%d'% \
     #    Config.timing['repeat'], d=depth)
 
