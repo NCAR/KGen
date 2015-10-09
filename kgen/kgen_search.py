@@ -844,8 +844,10 @@ def search_Binding_Attr(stmt, node):
     pass
 
 def search_Complex_Literal_Constant(stmt, node):
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_value)
     get_name_or_defer(stmt, node.items[1], res_value)
 
+def search_Char_Length(stmt, node):
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+    get_name_or_defer(stmt, node.items[1], res_value)
