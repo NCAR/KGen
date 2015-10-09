@@ -120,7 +120,7 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
                 write_stmt.writtenlineno = stmt.item.span[0]
                 f.seek(0,2)
             else:
-                split_write(f, stmt.tokgen(**kwargs), d=depth)
+                split_write(f, stmt.tokgen(**kwargs), d=0)
                 write_stmt.writtenlineno = stmt.item.span[0]
     # write only if kgen-marked
     elif genonly:
