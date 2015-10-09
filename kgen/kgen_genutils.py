@@ -190,7 +190,7 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
 def write_rw_usepart_module(f, depth, rd, module):
     if rd:
         rwstr = 'read'
-        write(f, 'USE kgen_utils_mod, ONLY : kgen_dp, check_t, kgen_init_check, kgen_print_check', d=depth+1)
+        write(f, 'USE kgen_utils_mod, ONLY : kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb', d=depth+1)
     else:
         rwstr = 'write'
 
@@ -1135,6 +1135,11 @@ def write_kernel_timing(f, depth):
 
 def write_kernel_pertcalls(f, depth):
     from typedecl_statements import Real
+
+    write(f, '!Perturbation ', d=depth)
+    write(f, '!Add calls to kgen_perturb to perturbation test similar to below line.', d=depth)
+    write(f, '!CALL kgen_perturb(variable_name, perturbation_value)', d=depth)
+    write(f, '!EXAMPLE: CALL kgen_perturb(var, 1.0E-15_8)', d=depth)
  
     # perturbation tests
     for uname in State.parentblock['input']['names']:
