@@ -836,13 +836,16 @@ def search_Ac_Implied_Do_Control(stmt, node):
             get_name_or_defer(stmt, item, res_value)
 
 def search_Specific_Binding(stmt, node):
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_typespec + [ Interface ])
     get_name_or_defer(stmt, node.items[1], res_value)
     get_name_or_defer(stmt, node.items[3], res_subprogram)
 
 def search_Binding_Attr(stmt, node):
+    pass
+
+def search_Complex_Literal_Constant(stmt, node):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
-    pass
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value)
+
