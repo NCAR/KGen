@@ -342,7 +342,7 @@ class Config(object):
 
         # kgen parameters
         self._attrs['kgen'] = {}
-        self._attrs['kgen']['version'] = [ 0, 5, '2' ]
+        self._attrs['kgen']['version'] = [ 0, 5, '3' ]
 
         # Fortran parameters
         self._attrs['fort'] = {}
