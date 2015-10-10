@@ -853,6 +853,10 @@ def search_Associate_Stmt(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Association(stmt, node):
+    get_name_or_defer(stmt, node.items[2], res_value)
+
+def search_Generic_Binding(stmt, node):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
-    get_name_or_defer(stmt, node.items[2], res_value)
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[2], [ Fortran2003.Specific_Binding ])
