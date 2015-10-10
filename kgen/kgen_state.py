@@ -232,9 +232,6 @@ class SrcFile(object):
     def stmt_by_name(self, name, cls=None, lineafter=-1):
         from statements import Comment
 
-        _stmt = None
-        _expr = None
-
         for stmt, depth in walk(self.tree, -1):
             if isinstance(cls, list):
                 if not stmt.__class__ in cls: continue 
@@ -244,12 +241,9 @@ class SrcFile(object):
                 if isinstance(stmt, Comment): continue
  
             expr = stmt.expr_by_name(name, stmt.f2003)
-            if lineafter>0 or expr is not None:
-                _stmt = stmt
-                _expr = expr
-                break
+            if expr: return stmt, expr
 
-        return _stmt, _expr
+        return None, None
 
 import unittest
 class Test_kgen_state(unittest.TestCase):

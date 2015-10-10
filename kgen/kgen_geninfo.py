@@ -136,6 +136,8 @@ def preprocess_generation_info(tree):
 def mark_callsite_generation_info():
     """ Mark each statement objects with kernel generation information """
 
+    from Fortran2003 import Part_Ref, Assignment_Stmt
+
     cs_tree = State.topblock['file'].tree
     actual_args = State.callsite['actual_arg']['names']
     dummy_args = [ n.firstpartname() for n in State.parentblock['dummy_arg']['names'] ]
@@ -240,13 +242,26 @@ def mark_callsite_generation_info():
                         append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat'])
                         append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
                     # check if org in callsite stmt
-                    elif kgname.stmt is State.callsite['stmt'] and isinstance(kgname.stmt, Assignment):
-                        if kgname.stmt.variable.startswith(kgname.firstpartname()):
-                            State.parentblock['output']['names'].append(kgname)
-                            State.parentblock['output']['typedecl_stmt'][kgname] = stmt
-                            append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
-                            append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat'])
-                            append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
+                    elif kgname.stmt is State.callsite['stmt'] and isinstance(State.callsite['expr'], Part_Ref):
+                        expr = State.callsite['expr']
+                        if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
+                            if expr.parent.items[0].tofortran().lower().startswith(kgname.firstpartname()):
+                                State.parentblock['output']['names'].append(kgname)
+                                State.parentblock['output']['typedecl_stmt'][kgname] = stmt
+                                append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
+                                append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat'])
+                                append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
+                        else:
+                            raise ProgramException("Only assignment statement is allowed for Function callsite yet.")
+
+#                    elif kgname.stmt is State.callsite['stmt'] and isinstance(kgname.stmt, Assignment):
+#                        if kgname.stmt.variable.startswith(kgname.firstpartname()):
+#                            State.parentblock['output']['names'].append(kgname)
+#                            State.parentblock['output']['typedecl_stmt'][kgname] = stmt
+#                            append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['inout']['tkdpat'], State.topblock['mod_rw_var_depends'])
+#                            append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['output']['tkdpat'])
+#                            append_tkdpat(State.PB_OUTPUT, var, stmt, State.parentblock['writesubr']['tkdpat'])
+
 
         elif hasattr(stmt, 'geninfo') and isinstance(stmt, Type) and stmt.geninfo.has_key(KGName):
             stmt_parent = stmt.ancestors()[-1]

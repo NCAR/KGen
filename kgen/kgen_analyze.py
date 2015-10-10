@@ -218,13 +218,14 @@ def collect_args_from_expr(expr, param, stmt):
                         collect_intent_names(var, kgname, param)
 
 def locate_callsite():
-    from block_statements import Module
+    from block_statements import Module, action_stmt
     from statements import Assignment, Call
 
     # read source file that contains callsite stmt
     cs_file = SrcFile(Config.callsite['filename'])
 
-    State.callsite['stmt'], State.callsite['expr'] = cs_file.stmt_by_name(Config.callsite['subpname'], cls=[Call, Assignment], \
+    #[Call, Assignment]
+    State.callsite['stmt'], State.callsite['expr'] = cs_file.stmt_by_name(Config.callsite['subpname'], cls=action_stmt, \
         lineafter=Config.callsite['lineafter'])
     if State.callsite['stmt'] is None or State.callsite['expr'] is None:
         raise UserException('Subprogram %s is not found.' % Config.callsite['subpname'].list())
@@ -259,7 +260,7 @@ def collect_kernel_info():
     from kgen_search import f2003_search_unknowns
     from block_statements import SubProgramStatement, Subroutine, Function, Interface, Type, TypeDecl
     from statements import Use, Assignment
-    from Fortran2003 import Call_Stmt, Part_Ref, Procedure_Designator, Name
+    from Fortran2003 import Call_Stmt, Part_Ref, Procedure_Designator, Name, Assignment_Stmt
     from kgen_state import ResState
 
     # resolve kernel subprogram and save arguments matching
@@ -313,11 +314,24 @@ def collect_kernel_info():
             State.callsite['stmt'].resolve(request)
 
     # resolve lhs of assignment stmt
-    if isinstance(State.callsite['stmt'], Assignment):
-        f2003_search_unknowns(State.callsite['stmt'], State.callsite['stmt'].f2003.items[0])
-        for unknown, request in State.callsite['stmt'].unknowns.iteritems():
-            if request.state != ResState.RESOLVED:
-                State.callsite['stmt'].resolve(request)
+#    if isinstance(State.callsite['stmt'], Assignment):
+#        f2003_search_unknowns(State.callsite['stmt'], State.callsite['stmt'].f2003.items[0])
+#        for unknown, request in State.callsite['stmt'].unknowns.iteritems():
+#            if request.state != ResState.RESOLVED:
+#                State.callsite['stmt'].resolve(request)
+
+    expr = State.callsite['expr']
+    if isinstance(expr, Part_Ref):
+        if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
+            f2003_search_unknowns(State.callsite['stmt'], expr.parent.items[0])
+            for unknown, request in State.callsite['stmt'].unknowns.iteritems():
+                if request.state != ResState.RESOLVED:
+                    State.callsite['stmt'].resolve(request)
+        else:
+            raise ProgramException("Only assignment statement is allowed for Function callsite yet.")
+
+
+
 
     # populate callsite parameters
     collect_args_from_expr(State.callsite['expr'], State.callsite['actual_arg'], State.callsite['stmt'])

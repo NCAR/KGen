@@ -178,6 +178,7 @@ def generate_kernel_module():
 
 def process_kernel_callsite_stmt(f, stmt, depth):
     #from statements import Assignment
+    from api import parse
     from Fortran2003 import Name, Call_Stmt, Part_Ref, Assignment_Stmt
 
     write(f, 'tolerance = %s'%Config.verify['tolerance'], d=depth)
@@ -186,17 +187,34 @@ def process_kernel_callsite_stmt(f, stmt, depth):
     write_kernel_read_inputs(f, depth)
     write_kernel_read_outputs(f, depth)
     write_kernel_pertcalls(f, depth)
+
     write(f, '! call to kernel', d=depth)
-    if isinstance(State.callsite['expr'], Call_Stmt):
-        write_kernel_stmt(f, stmt, depth)
-        #write(f, str(State.callsite['expr']), d=depth)
-    elif isinstance(State.callsite['expr'], Part_Ref):
-    #if isinstance(stmt, Assignment):
-        lhs = State.callsite['stmt'].f2003.items[0]
-        expr = State.callsite['expr']
-        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
+
+    expr = State.callsite['expr']
+    if isinstance(expr, Call_Stmt):
+        tree = parse(expr.tofortran(), ignore_comments=True, analyze=False, isfree=True, \
+            isstrict=False, include_dirs=None, source_only=None )
+
+        write(f, tree.content[0].tofortran().strip(), depth)
+    elif isinstance(expr, Part_Ref):
+        if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
+            lhs = expr.parent.items[0]
+            write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
+        else:
+            raise ProgramException("Only assignment statement is allowed for Function callsite yet.")
     else:
         raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
+
+#    if isinstance(State.callsite['expr'], Call_Stmt):
+#        write_kernel_stmt(f, stmt, depth)
+#        #write(f, str(State.callsite['expr']), d=depth)
+#    elif isinstance(State.callsite['expr'], Part_Ref):
+#    #if isinstance(stmt, Assignment):
+#        lhs = State.callsite['stmt'].f2003.items[0]
+#        expr = State.callsite['expr']
+#        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
+#    else:
+#        raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
 
     write_kernel_verify_outputs(f, depth)
     write(f, 'CALL kgen_print_check("%s", check_status)'%State.kernel['stmt'].name, d=depth)

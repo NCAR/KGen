@@ -123,16 +123,17 @@ def generate_callsite_program():
     pass
 
 def process_call_line(f, depth, stmt):
-    from Fortran2003 import Name, Call_Stmt, Part_Ref, Assignment_Stmt
-
-    if isinstance(State.callsite['expr'], Call_Stmt):
-        write_stmt(f, stmt, depth)
-    elif isinstance(State.callsite['expr'], Part_Ref):
-        lhs = State.callsite['stmt'].f2003.items[0]
-        expr = State.callsite['expr']
-        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
-    else:
-        raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
+#    from Fortran2003 import Name, Call_Stmt, Part_Ref, Assignment_Stmt
+#
+#    if isinstance(State.callsite['expr'], Call_Stmt):
+#        write_stmt(f, stmt, depth)
+#    elif isinstance(State.callsite['expr'], Part_Ref):
+#        lhs = State.callsite['stmt'].f2003.items[0]
+#        expr = State.callsite['expr']
+#        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
+#    else:
+#        raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
+    write_stmt(f, stmt, depth)
 
 def process_callsite_stmt(f, depth, stmt):
 

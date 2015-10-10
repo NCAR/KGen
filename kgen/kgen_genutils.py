@@ -1129,18 +1129,37 @@ def write_subroutines_kgen(f, depth):
     write(f, '')
 
 def write_kernel_timing(f, depth):
-    from statements import Assignment
+    #from statements import Assignment
+    from api import parse
+    from Fortran2003 import Call_Stmt, Part_Ref, Assignment_Stmt
 
     write(f, 'CALL system_clock(start_clock, rate_clock)', d=depth)
     #write(f, 'start_clock = rdtsc()', d=depth)
     #write(f, 'DO kgen_intvar=1,%d'%Config.timing['repeat'], d=depth)
     write(f, 'DO kgen_intvar=1,maxiter', d=depth)
+
     expr = State.callsite['expr']
-    if isinstance(State.callsite['stmt'], Assignment):
-        lhs = State.callsite['stmt'].f2003.items[0]
-        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth+1)
+    if isinstance(expr, Call_Stmt):
+        tree = parse(expr.tofortran(), ignore_comments=True, analyze=False, isfree=True, \
+            isstrict=False, include_dirs=None, source_only=None )
+
+        write(f, tree.content[0].tofortran().strip(), depth)
+    elif isinstance(expr, Part_Ref):
+        if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
+            lhs = expr.parent.items[0]
+            write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth+1)
+        else:
+            raise ProgramException("Only assignment statement is allowed for Function callsite yet.")
     else:
-        write(f, expr.tofortran().strip(), d=depth+1)
+        raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
+
+#    expr = State.callsite['expr']
+#    if isinstance(State.callsite['stmt'], Assignment):
+#        lhs = State.callsite['stmt'].f2003.items[0]
+#        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth+1)
+#    else:
+#        write(f, expr.tofortran().strip(), d=depth+1)
+
     write(f, 'END DO', d=depth)
     #write(f, 'stop_clock = rdtsc()', d=depth)
     write(f, 'CALL system_clock(stop_clock, rate_clock)', d=depth)
