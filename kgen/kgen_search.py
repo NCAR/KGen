@@ -844,6 +844,15 @@ def search_Binding_Attr(stmt, node):
     pass
 
 def search_Masked_Elsewhere_Stmt(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+
+def search_Procedure_Designator(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+
+def search_Associate_Stmt(stmt, node):
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Association(stmt, node):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
-    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[2], res_value)
