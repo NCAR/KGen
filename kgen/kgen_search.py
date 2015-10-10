@@ -843,7 +843,6 @@ def search_Specific_Binding(stmt, node):
 def search_Binding_Attr(stmt, node):
     pass
 
-<<<<<<< HEAD
 def search_Masked_Elsewhere_Stmt(stmt, node):
     get_name_or_defer(stmt, node.items[0], res_value)
 
