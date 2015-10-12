@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 This is the main KGEN script.
 ________________________
