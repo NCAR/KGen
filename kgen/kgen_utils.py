@@ -319,7 +319,7 @@ def process_exclude_option(exclude_option, excattrs):
     for section in Exc.sections():
         lsection = section.lower().strip()
         if lsection=='common':
-            print 'ERROR: a section of "common" is discarded in INI file for inclusion. Please use "namepath" section instead'
+            print 'ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead'
             sys.exit(-1)
 
         excattrs[lsection] = {}
