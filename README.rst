@@ -17,7 +17,7 @@ Changes from KGEN ver. 0.5.0
 * "--skip-intrinsic" and "--noskip-intrinsic" flags are discarded. Instead, please use "--intrinsic skip" and "--intrinsic noskip" each
 * The syntax of numbers in "--invocation" flag changed. Please use colon instead of comma as a delimiter of numbers
 * "--source" flag is added to inform KGEN with the Fortran source format.
-* "common" section is renamed to "namepath" in inclusion INI file for "-i" flag
+* "common" section is renamed to "namepath" in exclusion INI file for "-e" flag
 * The syntax of "namepath" is changed. Please see the section 2.3.1 of user's guide for details
 * Several actions are added in "namepath" section of exclusion INI file for "-e" flag. Please see the section 2.3.3 of user's guide for details
 
