@@ -899,7 +899,7 @@ class Statement(object):
 
             else:
                 Logger.info('%s can be resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
-                raise Exception('This request should have been resolved by this stmt.')
+                raise Exception('This request should have been resolved by the stmt shown below.\n%s'%self.tokgen())
 
         # ask parent for resolution
         if request.state != ResState.RESOLVED:
