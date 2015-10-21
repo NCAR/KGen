@@ -222,6 +222,12 @@ class BeginSource(BeginStatement):
     def tostr(self):
         return self.blocktype.upper() + ' '+ self.name
 
+    # start of KGEN addition
+    def tokgen(self):
+        return
+
+    # end of KGEN addition
+
     def process_item(self):
         self.name = self.reader.name
         self.top = self

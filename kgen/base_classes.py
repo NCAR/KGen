@@ -665,7 +665,7 @@ class Statement(object):
         else:
             return self.item.apply_map(self.tofortran().lstrip())
 
-    def ancestors(self):
+    def ancestors(self, include_beginsource=False):
         from block_statements import BeginSource, HasUseStmt, Type
 
         anc = []
@@ -675,6 +675,9 @@ class Statement(object):
             if isinstance(parent, HasUseStmt) or parent.__class__ in [Type]:
                 anc.append(parent)
             parent = parent.parent
+
+        if include_beginsource:
+            anc.append(parent)
 
         anc.reverse()
         return anc
@@ -836,6 +839,17 @@ class Statement(object):
         if not hasattr(self, 'geninfo'):
             self.geninfo = {}
 
+        if isinstance(self, BeginStatement) and isinstance(self.content[-1], EndStatement) and \
+            not hasattr(self.content[-1], 'geninfo'):
+            self.content[-1].geninfo = {}
+
+        for anc in self.ancestors(include_beginsource=True):
+            if not hasattr(anc, 'geninfo'):
+                anc.geninfo = {}
+            if isinstance(anc.content[-1], EndStatement) and \
+                not hasattr(anc.content[-1], 'geninfo'):
+                anc.content[-1].geninfo = {}
+
         if not self.geninfo.has_key(geninfo.__class__):
             self.geninfo[geninfo.__class__] = []
 
@@ -932,9 +946,9 @@ class Statement(object):
                                             if req.state != ResState.RESOLVED:
                                                 _stmt.resolve(req) 
 
-                                # if newly found program unit is not in depfiles
-                                if not unit in State.depfiles[self.top.reader.id][2]:
-                                    State.depfiles[self.top.reader.id][2].append(unit)
+                                # if newly found program unit is not in srcfiles
+                                if not unit in State.srcfiles[self.top.reader.id][2]:
+                                    State.srcfiles[self.top.reader.id][2].append(unit)
                     if request.state==ResState.RESOLVED:
                         break
 

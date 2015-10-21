@@ -90,7 +90,7 @@ class State(object):
         self._attrs['modules'] = {}
 
         # module files
-        self._attrs['depfiles'] = {}
+        self._attrs['srcfiles'] = {}
 
         # kernel_driver attributes
         self._attrs['kernel_driver'] = {}
@@ -227,7 +227,7 @@ class SrcFile(object):
                 State.program_units[item.reader.id].append(item)
 
         # create a tuple for file dependency
-        State.depfiles[self.abspath] = ( self, [], [] )
+        State.srcfiles[self.abspath] = ( self, [], [] )
 
     def stmt_by_name(self, name, cls=None, lineafter=-1):
         from statements import Comment

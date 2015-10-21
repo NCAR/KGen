@@ -1118,9 +1118,9 @@ class Use(Statement):
             # if intrinsic module
             if self.nature=='INTRINSIC':
                 pass
-            # if newly found moudle is not in depfiles
-            elif not self.module in State.depfiles[self.top.reader.id][1]:
-                State.depfiles[self.top.reader.id][1].append(self.module)
+            # if newly found moudle is not in srcfiles
+            elif not self.module in State.srcfiles[self.top.reader.id][1]:
+                State.srcfiles[self.top.reader.id][1].append(self.module)
 
     def tokgen(self, items=None):
         if not items is None:
