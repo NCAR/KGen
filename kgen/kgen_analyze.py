@@ -1,6 +1,6 @@
 # kgen_analyze.py
 
-from kgen_utils import KGName, Logger, Config, ProgramException, UserException, show_tree
+from kgen_utils import KGName, Logger, Config, ProgramException, UserException, show_tree, KGGenType
 from kgen_state import State, SrcFile
 from Fortran2003 import Name
 
@@ -263,13 +263,16 @@ def collect_kernel_info():
     from Fortran2003 import Call_Stmt, Part_Ref, Procedure_Designator, Name, Assignment_Stmt
     from kgen_state import ResState
 
+    State.callsite['stmt'].top.geninfo = {}
+
     # resolve kernel subprogram and save arguments matching
+    State.callsite['stmt'].top.geninfo[KGGenType.KERNEL] = []
     if isinstance(State.callsite['expr'], Call_Stmt):
-        f2003_search_unknowns(State.callsite['stmt'], State.callsite['expr'].items[0], [ Subroutine, Interface ])
+        f2003_search_unknowns(KGGenType.KERNEL, State.callsite['stmt'], State.callsite['expr'].items[0], [ Subroutine, Interface ])
     elif isinstance(State.callsite['expr'], Part_Ref):
-        f2003_search_unknowns(State.callsite['stmt'], State.callsite['expr'].items[0], [ Function, Interface ])
+        f2003_search_unknowns(KGGenType.KERNEL, State.callsite['stmt'], State.callsite['expr'].items[0], [ Function, Interface ])
     elif isinstance(State.callsite['expr'], Procedure_Designator):
-        f2003_search_unknowns(State.callsite['stmt'], State.callsite['expr'].items[0], [ Type, TypeDecl])
+        f2003_search_unknowns(KGGenType.KERNEL, State.callsite['stmt'], State.callsite['expr'].items[0], [ Type, TypeDecl])
     else:
         raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
     for unknown, request in State.callsite['stmt'].unknowns.iteritems():
@@ -308,7 +311,8 @@ def collect_kernel_info():
         raise ProgramException('More than one unknown at callsite stmt')
 
     # resolve actual arguments
-    f2003_search_unknowns(State.callsite['stmt'], State.callsite['expr'].items[1])
+    State.callsite['stmt'].top.geninfo[KGGenType.STATE] = []
+    f2003_search_unknowns(KGGenType.STATE, State.callsite['stmt'], State.callsite['expr'].items[1])
     for unknown, request in State.callsite['stmt'].unknowns.iteritems():
         if request.state != ResState.RESOLVED:
             State.callsite['stmt'].resolve(request)
@@ -323,7 +327,7 @@ def collect_kernel_info():
     expr = State.callsite['expr']
     if isinstance(expr, Part_Ref):
         if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
-            f2003_search_unknowns(State.callsite['stmt'], expr.parent.items[0])
+            f2003_search_unknowns(KGGenType.STATE, State.callsite['stmt'], expr.parent.items[0])
             for unknown, request in State.callsite['stmt'].unknowns.iteritems():
                 if request.state != ResState.RESOLVED:
                     State.callsite['stmt'].resolve(request)

@@ -518,7 +518,7 @@ class Contains(Statement):
     # end of KGEN addition
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         pass
     # end of KGEN addition
 
@@ -690,9 +690,9 @@ class Access(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         if uname.firstpartname() in self.items:
-            self.add_geninfo(uname)
+            self.add_geninfo(gentype, uname)
     # end of KGEN addition
 
 class Public(Access):
@@ -888,17 +888,17 @@ class Save(Statement):
         # end of KGEN addition
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         from kgen_utils import KGName
         for item in self.items:
             if item.startswith('/') and item.endswith('/'):
                 if uname.firstpartname()==item[1:-1]:
                     newname = KGName(pack_innamepath(self, item))
-                    self.add_geninfo(newname)
+                    self.add_geninfo(gentype, newname)
             else:
                 if uname.firstpartname()==item:
                     newname = KGName(pack_innamepath(self, item))
-                    self.add_geninfo(newname)
+                    self.add_geninfo(gentype, newname)
     # end of KGEN addition
 
 class Data(Statement):
@@ -957,7 +957,7 @@ class Data(Statement):
         # end of KGEN addition
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         #Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1251,12 +1251,12 @@ class Parameter(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         from kgen_search import f2003_search_unknowns
         from kgen_state import ResState
 
         if uname.firstpartname() in self.leftnames:
-            self.add_geninfo(uname)
+            self.add_geninfo(gentype, uname)
 
             node = None
             if isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def):
@@ -1273,7 +1273,7 @@ class Parameter(Statement):
 
             if node:
                 if not hasattr(self, 'unknowns') or len(self.unknowns)==0:
-                    f2003_search_unknowns(self, node.items[1])
+                    f2003_search_unknowns(gentype, self, node.items[1])
                     for unknown, request in self.unknowns.iteritems():
                         if request.state != ResState.RESOLVED:
                             self.resolve(request)
@@ -1318,7 +1318,7 @@ class Equivalence(Statement):
 
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         #Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1356,7 +1356,7 @@ class Dimension(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1407,7 +1407,7 @@ class Target(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1453,7 +1453,7 @@ class Pointer(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1478,7 +1478,7 @@ class Protected(StatementWithNamelist):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1503,7 +1503,7 @@ class Volatile(StatementWithNamelist):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1528,7 +1528,7 @@ class Value(StatementWithNamelist):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1629,9 +1629,9 @@ class External(StatementWithNamelist):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         if uname.firstpartname() in self.items:
-            self.add_geninfo(uname)
+            self.add_geninfo(gentype, uname)
     # end of KGEN addition
 
 
@@ -1747,11 +1747,11 @@ class Common(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         if self.items:
             for bname, vname in self.items:
                 if uname.firstpartname()==bname: 
-                    self.add_geninfo(uname)
+                    self.add_geninfo(gentype, uname)
                     break
     # end of KGEN addition
 
@@ -1776,7 +1776,7 @@ class Optional(StatementWithNamelist):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1822,7 +1822,7 @@ class Intent(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1888,7 +1888,7 @@ class Import(StatementWithNamelist):
     # end of KGEN addition
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -2102,7 +2102,7 @@ class Allocatable(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -2127,7 +2127,7 @@ class Asynchronous(StatementWithNamelist):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -2167,7 +2167,7 @@ class Bind(Statement):
     # end of KGEN addition
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition

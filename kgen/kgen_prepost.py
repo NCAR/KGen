@@ -99,7 +99,7 @@ def check_mode():
 
                 stmt.parse_f2003()
                 if stmt.f2003.__class__ not in exclude_list:
-                    f2003_search_unknowns(stmt, stmt.f2003) 
+                    f2003_search_unknowns(KGGenType.KERNEL, stmt, stmt.f2003) 
             except (NoMatchError, AttributeError) as e:
                 if file not in not_parsed:
                     not_parsed[file] = []

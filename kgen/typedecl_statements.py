@@ -650,7 +650,7 @@ class Implicit(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
+    def resolve_uname(self, gentype, uname, res_stmt):
         pass
     # end of KGEN addition
 

@@ -109,8 +109,9 @@ class State(object):
 class ResState(object):
     ( NOT_STARTED, RESOLVED ) = range(2)
 
-    def __init__(self, uname, org, resolvers):
+    def __init__(self, gentype, uname, org, resolvers):
         self.state = self.NOT_STARTED
+        self.gentype = gentype
         self.uname = uname
         self.originator = org
         self.resolvers = resolvers
@@ -146,7 +147,6 @@ class SrcFile(object):
         from block_statements import Module, Program
 
         # set default values
-        self.prep = None
         self.tree = None
         self.srcpath = srcpath
         self.abspath = os.path.abspath(self.srcpath)
@@ -176,23 +176,23 @@ class SrcFile(object):
 
         # execute preprocessing
         Logger.info('Reading %s'%self.srcpath, stdout=True)
-        prep = Config.bin['pp']
-        if prep.endswith('fpp'):
+        pp = Config.bin['pp']
+        if pp.endswith('fpp'):
             if isfree: srcfmt = ' -free'
             else: srcfmt = ' -fixed'
             flags = Config.bin['fpp_flags'] + srcfmt
-        elif prep.endswith('cpp'):
+        elif pp.endswith('cpp'):
             flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
-        output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, self.abspath))
+        output = exec_cmd('%s %s %s %s %s' % (pp, flags, includes, macros, self.abspath))
 
         # convert the preprocessed for fparser
-        self.prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
+        prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
 
         # fparse
-        self.tree = parse('\n'.join(self.prep), ignore_comments=False, analyze=True, isfree=isfree, \
+        self.tree = parse('\n'.join(prep), ignore_comments=False, analyze=True, isfree=isfree, \
             isstrict=isstrict, include_dirs=None, source_only=None )
-        self.tree.srcfile = self
+        self.tree.prep = prep
 
         # parse f2003
         lineno = 0

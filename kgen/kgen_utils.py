@@ -258,6 +258,14 @@ class KgenConfigParser(RawConfigParser):
             self._read(buf, filename)
 
 #############################################################################
+## RESOLUTION TYPE
+#############################################################################
+
+class KGGenType(object):
+    (KERNEL, STATE) = range(2)
+
+
+#############################################################################
 ## EXCEPTION
 #############################################################################
 
@@ -360,7 +368,7 @@ class Config(object):
 
         # external tool parameters
         self._attrs['bin'] = {}
-        self._attrs['bin']['pp'] = 'fpp'
+        self._attrs['bin']['pp'] = 'cpp'
         self._attrs['bin']['cpp_flags'] = '-w -traditional'
         self._attrs['bin']['fpp_flags'] = '-w'
 
@@ -568,15 +576,15 @@ class Config(object):
 
         # check if exists fpp or cpp
         output = ''
-        try: output = exec_cmd('which fpp', show_error_msg=False).strip()
+        try: output = exec_cmd('which cpp', show_error_msg=False).strip()
         except Exception as e: pass
-        if output.endswith('fpp'):
+        if output.endswith('cpp'):
             self.bin['pp'] = output
         else:
             output = ''
-            try: output = exec_cmd('which cpp', show_error_msg=False).strip()
+            try: output = exec_cmd('which fpp', show_error_msg=False).strip()
             except Exception as e: pass
-            if output.endswith('cpp'):
+            if output.endswith('fpp'):
                 self.bin['pp'] = output
             else:
                 print 'ERROR: neither cpp or fpp is found'
