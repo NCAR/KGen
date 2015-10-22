@@ -152,6 +152,7 @@ def parse(input, isfree=None, isstrict=None, include_dirs = None, source_only = 
     get_reader
     """
     from parsefortran import FortranParser
+    #SMAUGprint "ignore_comments = ", ignore_comments
     reader = get_reader(input, isfree, isstrict, include_dirs, source_only)
     parser = FortranParser(reader, ignore_comments = ignore_comments)
     parser.parse()

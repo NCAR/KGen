@@ -738,6 +738,7 @@ class FortranReaderBase(object):
         if item is not None:
             self.fifo_item.insert(0,item)
         item = self.comment_item('\n'.join(comments), start, end)
+	print "this is where comment is getting printed", item
         return item
 
     # Interface to returned items:
