@@ -186,13 +186,8 @@ class SrcFile(object):
         else: raise UserException('Preprocessor is not either fpp or cpp')
         output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, self.abspath))
 
-	#SMAUGprint "\n",output.split('\n')
-
         # convert the preprocessed for fparser
         self.prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
-
-	#SMAUGfor element in self.prep:
-	#SMAUG	print element,"\n"
 
         # fparse
         self.tree = parse('\n'.join(self.prep), ignore_comments=False, analyze=True, isfree=isfree, \

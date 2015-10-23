@@ -116,9 +116,7 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
         if not stmt.item.comment.strip().upper().startswith('!KGEN'):
             if write_stmt.writtenlineno!=stmt.item.span[0]:
 		    #tab = self.get_indent_tab(isfix=None)
-		    #SMAUGprint "executing comment section of write_stmt"
 		    srclines = '\n'.join(stmt.top.srcfile.prep[stmt.item.span[0]-1:stmt.item.span[1]])
-		    #SMAUGprint "source line is ", srclines
 		    write(f, srclines+unresstr)
  
             #if write_stmt.writtenlineno==stmt.item.span[0] and stmt.item.span[0]>1:

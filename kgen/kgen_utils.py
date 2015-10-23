@@ -160,10 +160,8 @@ def singleton(cls):
 def exec_cmd(cmd, show_error_msg=True):
     import subprocess
 
-    #SMAUGprint "cmd = ", cmd, "\n"
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out = proc.stdout.read()
-    #SMAUGprint "out = ", out, "\n"
     ret_code = proc.wait()
     if ret_code != 0 and show_error_msg:
         cmd_out, cmd_err = proc.communicate()
