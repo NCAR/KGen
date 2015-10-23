@@ -235,22 +235,22 @@ def search_Structure_Constructor_2(gentype, stmt, node):
 
 def search_Int_Literal_Constant(gentype, stmt, node): 
     if node.items[1]:
-        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+        get_name_or_defer(gentype, stmt, Fortran2003.Name(node.items[1]), res_typedecl)
     #get_name_or_defer(gentype, stmt, node.items[1], res_typedecl)
 
 def search_Signed_Int_Literal_Constant(gentype, stmt, node): 
     if node.items[1]:
-        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+        get_name_or_defer(gentype, stmt, Fortran2003.Name(node.items[1]), res_typedecl)
     #get_name_or_defer(gentype, stmt, node.items[1], res_typedecl)
 
 def search_Real_Literal_Constant(gentype, stmt, node): 
     if node.items[1]:
-        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+        get_name_or_defer(gentype, stmt, Fortran2003.Name(node.items[1]), res_typedecl)
     #get_name_or_defer(gentype, stmt, node.items[1], res_typedecl)
 
 def search_Signed_Real_Literal_Constant(gentype, stmt, node): 
     if node.items[1]:
-        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+        get_name_or_defer(gentype, stmt, Fortran2003.Name(node.items[1]), res_typedecl)
     #get_name_or_defer(gentype, stmt, node.items[1], res_typedecl)
 
 def search_Subroutine_Stmt(gentype, stmt, node): 
@@ -274,7 +274,7 @@ def search_Loop_Control(gentype, stmt, node):
         get_name_or_defer(gentype, stmt, node.items[0], res_typedecl)
         if isinstance(node.items[1], list):
             for item in node.items[1]:
-                get_name_or_defer(stmt, item, res_value)
+                get_name_or_defer(gentype, stmt, item, res_value)
         else:
             get_name_or_defer(gentype, stmt, node.items[1], res_value)
 
@@ -289,11 +289,10 @@ def search_Level_2_Expr(gentype, stmt, node):
 def search_Parenthesis(gentype, stmt, node): 
     get_name_or_defer(gentype, stmt, node.items[1], res_value)
 
-def search_str(stmt, string):
+def search_str(gentype, stmt, string):
     pass
 
 def search_Function_Stmt(gentype, stmt, node): 
-    #if hasattr(stmt, 'parent') and stmt.parent.__class__.__name__=='Interface': import pdb; pdb.set_trace()
     get_name_or_defer(gentype, stmt, node.items[0], res_derivedtype ) # prefix
     get_name_or_defer(gentype, stmt, node.items[2], res_typedecl) # dummy args
     get_name_or_defer(gentype, stmt, node.items[3], res_typedecl)
@@ -369,12 +368,12 @@ def search_Call_Stmt(gentype, stmt, node):
 
 def search_Char_Literal_Constant(gentype, stmt, node): 
     if node.items[1]:
-        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+        get_name_or_defer(gentype, stmt, Fortran2003.Name(node.items[1]), res_typedecl)
     #get_name_or_defer(gentype, stmt, node.items[0], res_typedecl)
 
 def search_Length_Selector(gentype, stmt, node): 
     for item in node.items:
-        get_name_or_defer(stmt, item, res_value)
+        get_name_or_defer(gentype, stmt, item, res_value)
 
 def search_Type_Param_Value(gentype, stmt, node): 
     # NOTE: need to verify its content structure
@@ -420,7 +419,7 @@ def search_Prefix_Spec(gentype, stmt, node):
 
 def search_Logical_Literal_Constant(gentype, stmt, node):
     if node.items[1]:
-        get_name_or_defer(stmt, Fortran2003.Name(node.items[1]), res_typedecl)
+        get_name_or_defer(gentype, stmt, Fortran2003.Name(node.items[1]), res_typedecl)
     #get_name_or_defer(gentype, stmt, node.items[1], res_typedecl)
 
 def search_Access_Spec(gentype, stmt, node):
@@ -466,7 +465,7 @@ def search_Data_Ref(gentype, stmt, node):
     for item in node.items[1:]:
         if isinstance(item, Name): pass
         elif isinstance(item, Part_Ref):
-            get_name_or_defer(stmt, item.items[1], res_value)
+            get_name_or_defer(gentype, stmt, item.items[1], res_value)
         elif item is None: pass
         else: raise ProgramException('Unknown type: %s'%item.__class)
 
@@ -639,7 +638,7 @@ def search_Wait_Stmt(gentype, stmt, node):
 def search_Wait_Spec(gentype, stmt, node):
     if hasattr(node, 'items') and len(node.items)>0:
         for item in node.items:
-            get_name_or_defer(stmt, item, res_value)
+            get_name_or_defer(gentype, gentype, stmt, item, res_value)
 
 def search_Rewind_Stmt(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[0], res_value)
@@ -659,7 +658,7 @@ def search_Block_Data_Stmt(gentype, stmt, node):
 def search_Data_Stmt(gentype, stmt, node):
     if hasattr(node, 'items') and len(node.items)>0:
         for item in node.items:
-            get_name_or_defer(stmt, item, res_typedecl)
+            get_name_or_defer(gentype, stmt, item, res_typedecl)
 
 def search_Data_Stmt_Value(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[0], res_typedecl)
@@ -678,7 +677,7 @@ def search_Common_Stmt(gentype, stmt, node):
     if hasattr(node, 'items') and len(node.items)>0:
         for itemlist in node.items:
             for name, _item in itemlist:
-                get_name_or_defer(stmt, _item, res_value)
+                get_name_or_defer(gentype, stmt, _item, res_value)
 
 def search_Data_Stmt_Set(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[0], res_value)
@@ -688,7 +687,7 @@ def search_Dimension_Stmt(gentype, stmt, node):
     if hasattr(node, 'items') and len(node.items)>0:
         for itemlist in node.items:
             for name, _item in itemlist:
-                get_name_or_defer(stmt, _item, res_value)
+                get_name_or_defer(gentype, stmt, _item, res_value)
 
 def search_Equivalence_Stmt(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[1], res_typedecl)
@@ -707,7 +706,7 @@ def search_Intent_Spec(gentype, stmt, node):
 def search_Namelist_Stmt(gentype, stmt, node):
     if hasattr(node, 'items') and len(node.items)>0:
         for nlname, nlgroup in node.items:
-            get_name_or_defer(stmt, nlgroup, res_typedecl)
+            get_name_or_defer(gentype, stmt, nlgroup, res_typedecl)
 
 def search_Optional_Stmt(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[1], res_typedecl)
@@ -802,7 +801,7 @@ def search_Saved_Entity(gentype, stmt, node):
         get_name_or_defer(gentype, stmt, node.items[1], res_common)
     else:
         for item in node.items:
-            get_name_or_defer(stmt, item, res_value)
+            get_name_or_defer(gentype, stmt, item, res_value)
 
 def search_Alloc_Opt(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[1], res_value)
@@ -833,7 +832,7 @@ def search_Ac_Implied_Do_Control(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[0], res_value)
     if node.items[1]:
         for item in node.items[1]:
-            get_name_or_defer(stmt, item, res_value)
+            get_name_or_defer(gentype, stmt, item, res_value)
 
 def search_Specific_Binding(gentype, stmt, node):
     get_name_or_defer(gentype, stmt, node.items[0], res_typespec + [ Interface ])

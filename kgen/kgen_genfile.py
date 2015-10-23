@@ -33,12 +33,66 @@ def genkobj(node):
 def gensobj(node):
     return _genobj(node, 'S')
 
+class Gen_HasUseStmts(object):
+    def __init__(self):
+        super(Gen_HasUseStmts, self).__init__()
+        self.use_stmts = []
+
+    def insert_in_use_stmts(self, item):
+        self.use_stmts.append(item)
+
+class Gen_HasImportStmts(object):
+    def __init__(self):
+        super(Gen_HasImportStmts, self).__init__()
+        self.import_stmts = []
+
+    def insert_in_import_stmts(self, item):
+        self.import_stmts.append(item)
+
+class Gen_HasImplicitPart(object):
+    def __init__(self):
+        super(Gen_HasImplicitPart, self).__init__()
+        self.implicit_part = []
+
+    def insert_in_implicit_part(self, item):
+        self.implicit_part.append(item)
+
+class Gen_HasDeclConstruct(object):
+    def __init__(self):
+        super(Gen_HasDeclConstruct, self).__init__()
+        self.decl_construct = []
+
+    def insert_in_decl_construct(self, item):
+        self.decl_construct.append(item)
+
+class Gen_HasContainsStmt(object):
+    def __init__(self):
+        super(Gen_HasContainsStmt, self).__init__()
+        self.contains_stmt = None
+
+    def set_contains_stmt(self, item):
+        if self.contains_stmt:
+            Logger.warn('A module, %s, already has contains statement.'%self.stmt.name) 
+        self.contains_stmt = item
+
+class Gen_HasSubprograms(object):
+    def __init__(self):
+        super(Gen_HasSubprograms, self).__init__()
+        self.subprograms = []
+
+    def insert_in_subprogram(self, item):
+        self.subprogram.append(item)
+
+
 ########### Statement ############
 class Gen_Statement(object):
     def __init__(self, node):
+        super(Gen_Statement, self).__init__()
+
         self.stmt = node
         self.parent = None
         self.isvalid = True
+        self.tokgen_attrs = {}
 
     def tostr(self):
         from statements import Comment
@@ -52,11 +106,37 @@ class Gen_Statement(object):
                 if lines_str.strip().startswith(self.stmt.item.comment.strip()):
                     return lines_str
         elif self.isvalid:
-            if self.stmt.item and hasattr(self.stmt.item, 'span'):
-                start = self.stmt.item.span[0]-1
-                end = self.stmt.item.span[1]
-                lines = self.stmt.top.prep[start:end]
-                return '\n'.join(lines)
+            if self.stmt:
+                if len(self.tokgen_attrs)>0:
+                    return self.stmt.tokgen(**self.tokgen_attrs)
+                elif self.stmt.item and hasattr(self.stmt.item, 'span'):
+                    start = self.stmt.item.span[0]-1
+                    end = self.stmt.item.span[1]
+                    lines = self.stmt.top.prep[start:end]
+                    return '\n'.join(lines)
+            else:
+                return self.tokgen()
+
+    def tokgen(self, **kwargs):
+        raise ProgramException('Inherited class should implement tokgen().')
+
+    def add_attr(self, key, value):
+        self.tokgen_attrs[key] = value
+
+    def get_dtype_subpname(self, stmt):
+        return '%s_%s'%(stmt.ancestors()[0].name, stmt.name)
+
+    def get_nondtype_subpname(self, stmt):
+        import pdb; pdb.set_trace()
+        pass
+
+    def get_subpname(self, stmt):
+        from block_statements import Type
+
+        if isinstance(stmt, Type):
+            return self.get_dtype_subpname(stmt)
+        else:
+            return self.get_nondtype_subpname(stmt)
 
 class GenK_Statement(Gen_Statement):
     gentype = 'K'
@@ -64,14 +144,26 @@ class GenK_Statement(Gen_Statement):
     def genobj(self, node):
         return genkobj(node)
 
-    def process(self):
-        if hasattr(self.stmt, 'geninfo') and self.stmt.geninfo.has_key(KGGenType.KERNEL):
+    def setvalid(self):
+        if self.stmt is None:
             pass
-        elif hasattr(self.stmt, 'unknowns') and any(res.gentype==KGGenType.KERNEL for res in self.stmt.unknowns.values()):
+        #elif hasattr(self.stmt, 'geninfo') and self.stmt.geninfo.has_key(KGGenType.KERNEL):
+        elif hasattr(self.stmt, 'geninfo'):
+            pass
+        #elif hasattr(self.stmt, 'unknowns') and any(res.gentype==KGGenType.KERNEL for res in self.stmt.unknowns.values()):
+        elif hasattr(self.stmt, 'unknowns'):
             pass
         else:
             self.isvalid = False
 
+    def process(self):
+        self.setvalid()
+
+    def get_readname(self, stmt):
+        return 'KR_%s'%self.get_subpname(stmt)
+
+    def get_verifyname(self, stmt):
+        return 'KV_%s'%self.get_subpname(stmt)
 
 class GenS_Statement(Gen_Statement):
     gentype = 'S'
@@ -82,10 +174,52 @@ class GenS_Statement(Gen_Statement):
     def process(self):
         pass
 
+    def get_writename(self, stmt):
+        return 'KW_%s'%self.get_subpname(stmt)
+
+########### Use ############
+class GenK_Use(GenK_Statement):
+    def process(self):
+        super(GenK_Use, self).process()
+        if self.isvalid:
+            if self.stmt and self.stmt.isonly:
+                # limit use items for KERNEL
+                items = []
+                for (uname, req) in self.stmt.geninfo[KGGenType.KERNEL]:
+                    items.append(uname.firstpartname())
+                self.add_attr('select_items', items)
+
+                # add read verify perturb for STATE
+                newitems = []
+                for (uname, req) in self.stmt.geninfo[KGGenType.STATE]:
+                    newitems.append(self.get_readname(req.res_stmts[0]))
+                    newitems.append(self.get_verifyname(req.res_stmts[0]))
+                useobj = GenK_Use(self.stmt)
+                useobj.parent = self.parent
+                useobj.add_attr('removeall_add_items', newitems)
+                self.parent.insert_in_use_stmts(useobj)
+
+                pubobj = GenK_Public(None)
+                pubobj.parent = self.parent
+                pubobj.add_attr('add_items', newitems)
+                self.parent.insert_in_decl_construct(pubobj)
+
+                #import pdb; pdb.set_trace()
+
+########### Public ############
+class GenK_Public(GenK_Statement):
+    def process(self):
+        super(GenK_Public, self).process()
+        if self.isvalid:
+            if self.stmt:
+                pass
+ 
 ########### BeginStatement ############
 class Gen_BeginStatement(Gen_Statement):
     def __init__(self, node):
         self.items = []
+        self.insert_blist = []
+        self.insert_alist = []
 
         super(Gen_BeginStatement, self).__init__(node)
 
@@ -101,6 +235,30 @@ class Gen_BeginStatement(Gen_Statement):
             if l is not None: lines.append(l)
         return lines
 
+    def insert_before(self, posobj, item):
+        if posobj in self.items:
+            self.insert_blist.append((posobj, item))
+        else:
+            raise ProgramException('Following statement is not in items list:\n%s'%str(posobj))
+
+    def insert_after(self, posobj, item):
+        if posobj in self.items:
+            self.insert_alist.append((posobj, item))
+        else:
+            raise ProgramException('Following statement is not in items list:\n%s'%str(posobj))
+
+    def process_items(self):
+        for item in self.items:
+            item.process()
+
+    def process_insertlists(self):
+        for (posobj, item) in self.insert_blist:
+            self.items.insert(self.items.index(posobj), item)
+        self.insert_blist = []
+        for (posobj, item) in self.insert_alist:
+            self.items.insert(self.items.index(posobj)+1, item)
+        self.insert_alist = []
+
 class GenK_BeginStatement(Gen_BeginStatement, GenK_Statement):
     def process(self):
         # process first line
@@ -108,9 +266,11 @@ class GenK_BeginStatement(Gen_BeginStatement, GenK_Statement):
 
         if self.isvalid:
             # process remained lines
-            for item in self.items:
-                item.process()
-            
+            self.process_items()
+
+            # process insert lists
+            self.process_insertlists()
+
     def tostr(self):
         if self.isvalid:
             lines = []
@@ -127,9 +287,11 @@ class GenS_BeginStatement(Gen_BeginStatement, GenS_Statement):
         super(GenS_BeginStatement, self).process()
 
         # process remained lines
-        for item in self.items:
-            item.process()
+        self.process_items()
             
+        # process insert lists
+        self.process_insertlists()
+
     def tostr(self):
         lines = []
         l = super(GenS_BeginStatement, self).tostr()
@@ -137,30 +299,34 @@ class GenS_BeginStatement(Gen_BeginStatement, GenS_Statement):
         lines.extend(self.tostr_children())
         return '\n'.join(lines)
 
+
+########### Module ############
+class GenK_Module(GenK_BeginStatement, Gen_HasUseStmts, Gen_HasImportStmts, Gen_HasImplicitPart, \
+    Gen_HasDeclConstruct, Gen_HasContainsStmt, Gen_HasSubprograms):
+    def __init__(self, node):
+        super(GenK_Module, self).__init__(node)
+
 ########### BeginSource ############
 class Gen_BeginSource(Gen_BeginStatement):
     def __init__(self, node):
         super(Gen_BeginSource, self).__init__(node)
 
-class GenK_BeginSource(Gen_BeginSource, GenK_BeginStatement):
-    def gensrc(self, fd):
-        if hasattr(self.stmt, 'geninfo') and self.stmt.geninfo.has_key(KGGenType.KERNEL):
-            self.process()
-            lines = self.tostr()
-            if lines is not None: fd.write(lines)
-
-class GenS_BeginSource(Gen_BeginSource, GenS_BeginStatement):
     def gensrc(self, fd):
         self.process()
-        # create file only if it is used for state generation
         lines = self.tostr()
         if lines is not None: fd.write(lines)
+
+class GenK_BeginSource(Gen_BeginSource, GenK_BeginStatement):
+    pass
+
+class GenS_BeginSource(Gen_BeginSource, GenS_BeginStatement):
+    pass
 
 def generate_srcfiles():
     """Generate source files."""
     from block_statements import Program, Module
 
-    # create state and kernel directories
+    # create state directories
     if not os.path.exists(Config.path['state']):
         os.makedirs(Config.path['state'])
 
@@ -171,15 +337,10 @@ def generate_srcfiles():
     if isinstance(State.topblock['stmt'], Program):
         Logger.major("Callsite statement can not be in Program unit.", stdout=True)
         sys.exit(-1)
-    elif isinstance(State.topblock['stmt'], Module):
-        pass
-        #generate_callsite_module()
-    else:
+    elif not isinstance(State.topblock['stmt'], Module):
         raise ProgramException('Unknown parent type: %s' % State.topblock['stmt'].__class__)
 
-    # generate instrumented files except callsite file
-    #generate_state_files()
-
+    # generate source files
     for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
         filename = os.path.basename(filepath)
         if hasattr(srcobj.tree, 'geninfo') and srcobj.tree.geninfo.has_key(KGGenType.KERNEL):

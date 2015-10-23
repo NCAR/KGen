@@ -73,6 +73,26 @@ class StatementWithNamelist(Statement):
             s = ' ' + s
         return self.get_indent_tab(isfix=isfix) + clsname + s
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        if hasattr(self,'stmtname'):
+            clsname = self.stmtname.upper()
+        else:
+            clsname = self.__class__.__name__.upper()
+        s = ', '.join(self.items)
+        if s:
+            s = ' ' + s
+        return clsname + s
+
+    def resolve_uname(self, uname, request):
+        for item in self.items:
+            if any(elem in item for elem in r'-=>'):
+                print 'TTT: %s has non-ascii character.'%self.__class__
+                import pdb; pdb.set_trace()
+        if uname.firstpartname() in self.items:
+            self.add_geninfo(uname, request)
+    # end of KGEN addition
+
 # Execution statements
 
 class GeneralAssignment(Statement):
@@ -117,6 +137,11 @@ class GeneralAssignment(Statement):
         self.variable = apply_map(v1)
         self.expr = apply_map(m.group('expr'))
         return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return '%s %s %s' % (self.variable, self.sign, self.expr)
+    # end of KGEN addition
 
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + '%s %s %s' \
@@ -203,6 +228,14 @@ class Call(Statement):
             s += '('+', '.join(map(str,self.items))+ ')'
         return s
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        s = 'CALL '+str(self.designator)
+        if self.items:
+            s += '('+', '.join(map(str,self.items))+ ')'
+        return s
+    # end of KGEN addition
+    
     def analyze(self):
         a = self.programblock.a
         variables = a.variables
@@ -315,6 +348,13 @@ class Return(Statement):
 
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        if self.expr:
+            return 'RETURN %s' % (self.expr)
+        return 'RETURN'
+    # end of KGEN addition
+
 class Stop(Statement):
     """
     STOP [ <stop-code> ]
@@ -335,6 +375,14 @@ class Stop(Statement):
         return tab + 'STOP'
 
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        if self.code:
+            return 'STOP %s' % (self.code)
+        return 'STOP'
+
+    # end of KGEN addition
 
 class Print(Statement):
     """
@@ -363,6 +411,12 @@ class Print(Statement):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'PRINT %s' \
                % (', '.join([self.format]+self.items))
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return 'PRINT %s' % (', '.join([self.format]+self.items))
+    # end of KGEN addition
+
     def analyze(self): return
 
 class Read(Statement):
@@ -446,7 +500,14 @@ class Write(Statement):
         return s
     def analyze(self): return
 
-
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        s = 'WRITE (%s)' % ', '.join(self.specs)
+        if self.items:
+            s += ' ' + ', '.join(self.items)
+        return s
+    # end of KGEN addition
+ 
 class Flush(Statement):
     """
     FLUSH <file-unit-number>
@@ -510,16 +571,20 @@ class Contains(Statement):
     match = re.compile(r'contains\Z',re.I).match
     def process_item(self): return
     def tofortran(self, isfix=None): return self.get_indent_tab(isfix=isfix) + 'CONTAINS'
+
     # start of KGEN addition
     def analyze(self):
         if not hasattr(self.parent, 'spec_stmts'):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
-    # end of KGEN addition
 
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        pass
+    def tokgen(self, **kwargs):
+        return 'CONTAINS'
+
+    def resolve_uname(self, uname, request):
+        from block_statements import SubProgramStatement
+        if isinstance(request.res_stmts[-1], SubProgramStatement):
+            self.add_geninfo(uname, request)
     # end of KGEN addition
 
 class Allocate(Statement):
@@ -566,6 +631,15 @@ class Allocate(Statement):
                + 'ALLOCATE (%s%s)' % (t,', '.join(self.items))
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        t = ''
+        if self.spec:
+            t = self.spec.tostr() + ' :: '
+        return 'ALLOCATE (%s%s)' % (t,', '.join(self.items))
+
+    # end of KGEN addition
+
 class Deallocate(Statement):
     """
     DEALLOCATE ( <allocate-object-list> [ , <dealloc-opt-list> ] )
@@ -585,6 +659,11 @@ class Deallocate(Statement):
     def tofortran(self, isfix=None): return self.get_indent_tab(isfix=isfix) \
         + 'DEALLOCATE (%s)' % (', '.join(self.items))
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return 'DEALLOCATE (%s)' % (', '.join(self.items))
+    # end of KGEN addition
 
 class ModuleProcedure(Statement):
     """
@@ -615,6 +694,11 @@ class ModuleProcedure(Statement):
         # XXX: add names to parent_provides
         return
 
+    # start of KGEN
+    def tokgen(self, **kwargs):
+        return 'MODULE PROCEDURE %s' % (', '.join(self.items))
+    # end of KGEN
+
 class Access(Statement):
     """
     <access-spec> [ [::] <access-id-list>]
@@ -626,15 +710,21 @@ class Access(Statement):
     match = re.compile(r'(public|private)\b',re.I).match
 
     # start of KGEN
-    def tokgen(self, items=None):
-        if not items is None:
-            tmpitems = self.items
-            self.items = items
-            outstr = self.tofortran().lstrip()
-            self.items = tmpitems
-            return outstr
-        else:
-            return super(Access, self).tokgen()
+    def tokgen(self, **kwargs):
+        clsname = self.__class__.__name__.upper()
+        if self.items:
+            return clsname + ' ' + ', '.join(self.items)
+        return clsname
+
+#    def tokgen(self, items=None):
+#        if not items is None:
+#            tmpitems = self.items
+#            self.items = items
+#            outstr = self.tofortran().lstrip()
+#            self.items = tmpitems
+#            return outstr
+#        else:
+#            return super(Access, self).tokgen()
     # end of KGEN
 
     def process_item(self):
@@ -690,9 +780,9 @@ class Access(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         if uname.firstpartname() in self.items:
-            self.add_geninfo(gentype, uname)
+            self.add_geninfo(uname, request)
     # end of KGEN addition
 
 class Public(Access):
@@ -736,6 +826,13 @@ class Cycle(Statement):
             return self.get_indent_tab(isfix=isfix) + 'CYCLE ' + self.name
         return self.get_indent_tab(isfix=isfix) + 'CYCLE'
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        if self.name:
+            return 'CYCLE ' + self.name
+        return 'CYCLE'
+    # end of KGEN addition
 
 class FilePositioningStatement(Statement):
     """
@@ -842,6 +939,11 @@ class Format(Statement):
         return self.get_indent_tab(isfix=isfix) + 'FORMAT (%s)' % (', '.join(self.specs))
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return 'FORMAT (%s)' % (', '.join(self.specs))
+    # end of KGEN addition
+
 class Save(Statement):
     """
     SAVE [ [ :: ] <saved-entity-list> ]
@@ -888,17 +990,22 @@ class Save(Statement):
         # end of KGEN addition
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def tokgen(self, **kwargs):
+        if not self.items:
+            return 'SAVE'
+        return 'SAVE %s' % (', '.join(self.items))
+
+    def resolve_uname(self, uname, request):
         from kgen_utils import KGName
         for item in self.items:
             if item.startswith('/') and item.endswith('/'):
-                if uname.firstpartname()==item[1:-1]:
-                    newname = KGName(pack_innamepath(self, item))
-                    self.add_geninfo(gentype, newname)
+                if uname.firstpartname()==item[1:-1].strip():
+                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
+                    self.add_geninfo(newname, request)
             else:
                 if uname.firstpartname()==item:
-                    newname = KGName(pack_innamepath(self, item))
-                    self.add_geninfo(gentype, newname)
+                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
+                    self.add_geninfo(newname, request)
     # end of KGEN addition
 
 class Data(Statement):
@@ -957,8 +1064,14 @@ class Data(Statement):
         # end of KGEN addition
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        #Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
+    def tokgen(self, **kwargs):
+        l = []
+        for o,v in self.stmts:
+            l.append('%s / %s /' %(', '.join(o),', '.join(v)))
+        return 'DATA ' + ' '.join(l)
+
+    def resolve_uname(self, uname, request):
+        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
 
@@ -978,6 +1091,11 @@ class Nullify(Statement):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'NULLIFY (%s)' % (', '.join(self.items))
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return 'NULLIFY (%s)' % (', '.join(self.items))
+    # end of KGEN addition
 
 class Use(Statement):
     """
@@ -1122,15 +1240,28 @@ class Use(Statement):
             elif not self.module in State.srcfiles[self.top.reader.id][1]:
                 State.srcfiles[self.top.reader.id][1].append(self.module)
 
-    def tokgen(self, items=None):
-        if not items is None:
-            tmpitems = self.items
-            self.items = items
-            outstr = self.tofortran().lstrip()
-            self.items = tmpitems
-            return outstr
-        else:
-            return super(Use, self).tokgen()
+    def tokgen(self, **kwargs):
+        s = 'USE'
+        if self.nature:
+            s += ', ' + self.nature + ' ::'
+        s += ' ' + self.name
+        if self.isonly:
+            s += ', ONLY:'
+        elif self.items:
+            s += ','
+        if self.items:
+            s += ' ' + ', '.join(self.items)
+        return s
+
+#    def tokgen(self, items=None):
+#        if not items is None:
+#            tmpitems = self.items
+#            self.items = items
+#            outstr = self.tofortran().lstrip()
+#            self.items = tmpitems
+#            return outstr
+#        else:
+#            return super(Use, self).tokgen()
 
     # end of KGEN
 
@@ -1216,6 +1347,13 @@ class Exit(Statement):
         return self.get_indent_tab(isfix=isfix) + 'EXIT'
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        if self.name:
+            return 'EXIT ' + self.name
+        return 'EXIT'
+    # end of KGEN addition
+
 class Parameter(Statement):
     """
     PARAMETER ( <named-constant-def-list> )
@@ -1251,12 +1389,12 @@ class Parameter(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         from kgen_search import f2003_search_unknowns
         from kgen_state import ResState
 
         if uname.firstpartname() in self.leftnames:
-            self.add_geninfo(gentype, uname)
+            self.add_geninfo(uname, request)
 
             node = None
             if isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def):
@@ -1278,15 +1416,18 @@ class Parameter(Statement):
                         if request.state != ResState.RESOLVED:
                             self.resolve(request)
 
-    def tokgen(self, items=None):
-        if not items is None:
-            tmpitems = self.items
-            self.items = items
-            outstr = self.tofortran().lstrip()
-            self.items = tmpitems
-            return outstr
-        else:
-            return super(Parameter, self).tokgen()
+    def tokgen(self, **kwargs):
+        return 'PARAMETER (%s)' % (', '.join(self.items))
+
+#    def tokgen(self, items=None):
+#        if not items is None:
+#            tmpitems = self.items
+#            self.items = items
+#            outstr = self.tofortran().lstrip()
+#            self.items = tmpitems
+#            return outstr
+#        else:
+#            return super(Parameter, self).tokgen()
     # end of KGEN addition
 
 class Equivalence(Statement):
@@ -1318,8 +1459,8 @@ class Equivalence(Statement):
 
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        #Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
+    def resolve_uname(self, uname, request):
+        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
 
@@ -1356,7 +1497,7 @@ class Dimension(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1407,7 +1548,7 @@ class Target(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1453,7 +1594,7 @@ class Pointer(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1477,12 +1618,6 @@ class Protected(StatementWithNamelist):
             var.update('protected')
         return
 
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
-    # end of KGEN addition
-
 class Volatile(StatementWithNamelist):
     """
     VOLATILE [ :: ] <object-name-list>
@@ -1502,12 +1637,6 @@ class Volatile(StatementWithNamelist):
             var.update('volatile')
         return
 
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
-    # end of KGEN addition
-
 class Value(StatementWithNamelist):
     """
     VALUE [ :: ] <dummy-arg-name-list>
@@ -1526,12 +1655,6 @@ class Value(StatementWithNamelist):
             var = self.get_variable(name)
             var.update('value')
         return
-
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
-    # end of KGEN addition
 
 class ArithmeticIf(Statement):
     """
@@ -1627,13 +1750,6 @@ class External(StatementWithNamelist):
             var = self.get_variable(name)
             var.update('external')
         return
-
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        if uname.firstpartname() in self.items:
-            self.add_geninfo(gentype, uname)
-    # end of KGEN addition
-
 
 class Namelist(Statement):
     """
@@ -1747,11 +1863,21 @@ class Common(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def tokgen(self, **kwargs):
+        l = []
+        for name,s in self.items:
+            s = ', '.join(s)
+            if name:
+                l.append('/ %s / %s' % (name,s))
+            else:
+                l.append(s)
+        return 'COMMON ' + ' '.join(l)
+
+    def resolve_uname(self, uname, request):
         if self.items:
             for bname, vname in self.items:
                 if uname.firstpartname()==bname: 
-                    self.add_geninfo(gentype, uname)
+                    self.add_geninfo(uname, request)
                     break
     # end of KGEN addition
 
@@ -1774,12 +1900,6 @@ class Optional(StatementWithNamelist):
             var = self.get_variable(name)
             var.update('optional')
         return
-
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
-    # end of KGEN addition
 
 class Intent(Statement):
     """
@@ -1822,7 +1942,7 @@ class Intent(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -1885,12 +2005,6 @@ class Import(StatementWithNamelist):
         if not hasattr(self.parent, 'spec_stmts'):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
-    # end of KGEN addition
-
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
     # end of KGEN addition
 
 class Forall(Statement):
@@ -2025,6 +2139,18 @@ class SpecificBinding(Statement):
     # start of KGEN addtion
     def analyze(self):
         return
+
+    def tokgen(self, **kwargs):
+        s = 'PROCEDURE '
+        if self.iname:
+            s += '(' + self.iname + ') '
+        if self.attrs:
+            s += ', ' + ', '.join(self.attrs) + ' :: '
+        if self.bname:
+            s += '%s => %s' % (self.name, self.bname)
+        else:
+            s += self.name
+        return s
     # end of KGEN addtion
 
 class GenericBinding(Statement):
@@ -2102,7 +2228,7 @@ class Allocatable(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -2125,13 +2251,6 @@ class Asynchronous(StatementWithNamelist):
             var = self.get_variable(name)
             var.update('asynchronous')
         return
-
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
-    # end of KGEN addition
-
 
 class Bind(Statement):
     """
@@ -2164,10 +2283,8 @@ class Bind(Statement):
         if not hasattr(self.parent, 'spec_stmts'):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
-    # end of KGEN addition
 
-    # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -2199,6 +2316,14 @@ class Else(Statement):
 
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        if self.name:
+            return 'ELSE ' + self.name
+        return 'ELSE'
+
+    # end of KGEN addition
+
 class ElseIf(Statement):
     """
     ELSE IF ( <scalar-logical-expr> ) THEN [ <if-construct-name> ]
@@ -2229,6 +2354,15 @@ class ElseIf(Statement):
                % (self.expr, s)
 
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        s = ''
+        if self.name:
+            s = ' ' + self.name
+        return 'ELSE IF (%s) THEN%s'%(self.expr, s)
+
+    # end of KGEN addition
 
 # SelectCase construct statements
 
@@ -2286,6 +2420,21 @@ class Case(Statement):
         return s
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        s = 'CASE'
+        if self.items:
+            l = []
+            for item in self.items:
+                l.append((' : '.join(item)).strip())
+            s += ' ( %s )' % (', '.join(l))
+        else:
+            s += ' DEFAULT'
+        if self.name:
+            s += ' ' + self.name
+        return s
+    # end of KGEN addition
+
 # Where construct statements
 
 class Where(Statement):
@@ -2314,6 +2463,11 @@ class Where(Statement):
         tab = self.get_indent_tab(isfix=isfix)
         return tab + 'WHERE ( %s ) %s' % (self.expr, str(self.content[0]).lstrip())
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return 'WHERE ( %s ) %s' % (self.expr, str(self.content[0]).lstrip())
+    # end of KGEN addition
 
 WhereStmt = Where
 

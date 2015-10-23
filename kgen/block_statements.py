@@ -223,7 +223,7 @@ class BeginSource(BeginStatement):
         return self.blocktype.upper() + ' '+ self.name
 
     # start of KGEN addition
-    def tokgen(self):
+    def tokgen(self, **kwargs):
         return
 
     # end of KGEN addition
@@ -675,20 +675,24 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         return '\n'.join(l)
 
     # start of KGEN
-    def tokgen(self, items=None, to_subr=False):
-
+    def tokgen(self, **kwargs):
         construct_name = self.construct_name
         construct_name = construct_name + ': ' if construct_name else ''
+        return construct_name + self.tostr(**kwargs)
 
-        if not items is None:
-            tmpargs = self.args
-            self.args = items
-            outstr = self.get_indent_tab(isfix=False).lstrip() + construct_name + self.tostr(to_subr=to_subr)
-            self.args = tmpargs
-            return self.item.apply_map(outstr)
-        else:
-            return self.get_indent_tab(isfix=None).lstrip() + construct_name + self.tostr(to_subr=to_subr)
-            #return super(SubProgramStatement, self).tokgen()
+#    def tokgen(self, items=None, to_subr=False):
+#        construct_name = self.construct_name
+#        construct_name = construct_name + ': ' if construct_name else ''
+#
+#        if not items is None:
+#            tmpargs = self.args
+#            self.args = items
+#            outstr = self.get_indent_tab(isfix=False).lstrip() + construct_name + self.tostr(to_subr=to_subr)
+#            self.args = tmpargs
+#            return self.item.apply_map(outstr)
+#        else:
+#            return self.get_indent_tab(isfix=None).lstrip() + construct_name + self.tostr(to_subr=to_subr)
+#            #return super(SubProgramStatement, self).tokgen()
     # end of KGEN
 
     def process_item(self):
@@ -726,8 +730,12 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         self.typedecl = None
         return BeginStatement.process_item(self)
 
-    def tostr(self, to_subr=False):
+    def tostr(self, **kwargs):
         # start of KGEN addition
+        if kwargs.has_key('to_subr'):
+            to_subr = True
+        else: to_subr = False
+
         if to_subr:
             clsname = 'SUBROUTINE'
         else:
@@ -862,13 +870,24 @@ class EndFunction(EndStatement):
 
     match = re.compile(r'end(\s*function\s*\w*|)\Z', re.I).match
 
-    def tokgen(self, to_subr=False):
+    def tokgen(self, **kwargs):
+        if kwargs.has_key('to_subr'):
+            to_subr = True
+        else: to_subr = False
+
         if to_subr:
             subp_name = 'SUBROUTINE'
         else:
             subp_name = 'FUNCTION'
-        return self.get_indent_tab(isfix=None).lstrip() + 'END %s %s'\
-               % (subp_name,self.name or '')
+        return 'END %s %s'%(subp_name,self.name or '')
+
+#    def tokgen(self, to_subr=False):
+#        if to_subr:
+#            subp_name = 'SUBROUTINE'
+#        else:
+#            subp_name = 'FUNCTION'
+#        return self.get_indent_tab(isfix=None).lstrip() + 'END %s %s'\
+#               % (subp_name,self.name or '')
 
 class Function(SubProgramStatement):
     """

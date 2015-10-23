@@ -9,7 +9,7 @@ module calling_module
         subroutine calling_subroutine()
 
                 !real(kind=real_kind), dimension(np,np) :: ar1, ar2, ar3
-                type(typeA) :: atype
+                type(typeA) :: atype     ! test comment
 
                 atype%a = 1.0
                 atype%b = 1.0

@@ -258,15 +258,22 @@ def locate_callsite():
 
 def collect_kernel_info():
     from kgen_search import f2003_search_unknowns
+    from base_classes import EndStatement
     from block_statements import SubProgramStatement, Subroutine, Function, Interface, Type, TypeDecl
     from statements import Use, Assignment
     from Fortran2003 import Call_Stmt, Part_Ref, Procedure_Designator, Name, Assignment_Stmt
     from kgen_state import ResState
 
-    State.callsite['stmt'].top.geninfo = {}
+    # mark callsite, and its ancestors
+    anc_callsite = State.callsite['stmt'].ancestors(include_beginsource=True)
+    for anc in anc_callsite:
+        anc.geninfo = {}
+        anc.geninfo[KGGenType.KERNEL] = []
+        if isinstance(anc.content[-1], EndStatement):
+            anc.content[-1].geninfo = {}
+            anc.content[-1].geninfo[KGGenType.KERNEL] = []
 
     # resolve kernel subprogram and save arguments matching
-    State.callsite['stmt'].top.geninfo[KGGenType.KERNEL] = []
     if isinstance(State.callsite['expr'], Call_Stmt):
         f2003_search_unknowns(KGGenType.KERNEL, State.callsite['stmt'], State.callsite['expr'].items[0], [ Subroutine, Interface ])
     elif isinstance(State.callsite['expr'], Part_Ref):

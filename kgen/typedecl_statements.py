@@ -104,33 +104,41 @@ class TypeDeclarationStatement(Statement):
 #        return super(TypeDeclarationStatement, self).can_resolve(request)
 
     def tokgen(self, items=None, addattr=None, delattr=None):
-        if items or addattr or delattr:
-            tmpspec = self.attrspec
-            if  delattr:
-                delattr = [ a.replace(' ', '').lower() for a in delattr ]
-                newspec = []
-                for spec in self.attrspec:
-                    if spec.replace(' ','') not in delattr:
-                        newspec.append(spec)
-                self.attrspec = newspec
-            if  addattr:
-                addattr = [ a.replace(' ', '').lower() for a in addattr ]
-                newattr = []
-                for spec in addattr:
-                    if spec.replace(' ','') not in self.attrspec:
-                        newattr.append(spec)
-                self.attrspec += newattr
+        s = self.tostr()
+        if self.attrspec:
+            s += ', ' + ', '.join(self.attrspec)
+        if self.entity_decls:
+            s += ' :: ' + ', '.join(self.entity_decls) # KGEN addition
+        return s
 
-            tmpentity = self.entity_decls
-            if items:
-                self.entity_decls = items
- 
-            outstr = self.tofortran().lstrip()
-            self.attrspec = tmpspec 
-            self.entity_decls = tmpentity 
-            return outstr
-        else:       
-            return super(TypeDeclarationStatement, self).tokgen()
+#    def tokgen(self, items=None, addattr=None, delattr=None):
+#        if items or addattr or delattr:
+#            tmpspec = self.attrspec
+#            if  delattr:
+#                delattr = [ a.replace(' ', '').lower() for a in delattr ]
+#                newspec = []
+#                for spec in self.attrspec:
+#                    if spec.replace(' ','') not in delattr:
+#                        newspec.append(spec)
+#                self.attrspec = newspec
+#            if  addattr:
+#                addattr = [ a.replace(' ', '').lower() for a in addattr ]
+#                newattr = []
+#                for spec in addattr:
+#                    if spec.replace(' ','') not in self.attrspec:
+#                        newattr.append(spec)
+#                self.attrspec += newattr
+#
+#            tmpentity = self.entity_decls
+#            if items:
+#                self.entity_decls = items
+# 
+#            outstr = self.tofortran().lstrip()
+#            self.attrspec = tmpspec 
+#            self.entity_decls = tmpentity 
+#            return outstr
+#        else:       
+#            return super(TypeDeclarationStatement, self).tokgen()
 
     # end of KGEN
 
@@ -650,7 +658,21 @@ class Implicit(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, gentype, uname, res_stmt):
+    def tokgen(self, **kwargs):
+        if not self.items:
+            return 'IMPLICIT NONE'
+        l = []
+        for stmt,specs in self.items:
+            l1 = []
+            for s,e in specs:
+                if s==e:
+                    l1.append(s)
+                else:
+                    l1.append(s + '-' + e)
+            l.append('%s ( %s )' % (stmt.tostr(), ', '.join(l1)))
+        return 'IMPLICIT ' + ', '.join(l)
+
+    def resolve_uname(self, uname, request):
         pass
     # end of KGEN addition
 

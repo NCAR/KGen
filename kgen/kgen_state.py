@@ -129,14 +129,13 @@ class ResState(object):
         self.uname = self.unamelist[-1]
         if len(self.res_stmts)>0 and reset_uname:
             newlist = []
-            for resuname in self.res_stmts[-1].geninfo.values()[0]:
+            for (resuname, req) in self.res_stmts[-1].geninfo.values()[0]:
                 if resuname==newname:
-                    newlist.append(self.uname)
+                    newlist.append((self.uname, req))
                 else:
-                    newlist.append(resuname)
+                    newlist.append((resuname, req))
                     pass
             self.res_stmts[-1].geninfo.values()[0] = newlist
-            #import pdb; pdb.set_trace()
             
 
 class SrcFile(object):

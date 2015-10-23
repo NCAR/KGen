@@ -3,7 +3,8 @@ module kernel
         integer(kind=4), parameter :: np = 2
 
         type typeA
-            integer(kind=real_kind), dimension(np, np) :: a, b, c
+            ! test comment 1
+            integer(kind=real_kind), dimension(np, np) :: a, b, c ! test comment 2
         end type        
 
         public add, typeA
