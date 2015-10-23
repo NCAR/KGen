@@ -114,14 +114,19 @@ def write_stmt(f, stmt, depth, genonly=False, **kwargs):
     if isinstance(stmt, HasUseStmt): write(f, '')
     if isinstance(stmt, Comment):
         if not stmt.item.comment.strip().upper().startswith('!KGEN'):
-            if write_stmt.writtenlineno==stmt.item.span[0] and stmt.item.span[0]>1:
-                f.seek(-1,1)
-                split_write(f, ' ' + stmt.tokgen(), d=0)
-                write_stmt.writtenlineno = stmt.item.span[0]
-                f.seek(0,2)
-            else:
-                split_write(f, stmt.tokgen(**kwargs), d=0)
-                write_stmt.writtenlineno = stmt.item.span[0]
+            if write_stmt.writtenlineno!=stmt.item.span[0]:
+		    #tab = self.get_indent_tab(isfix=None)
+		    srclines = '\n'.join(stmt.top.srcfile.prep[stmt.item.span[0]-1:stmt.item.span[1]])
+		    write(f, srclines+unresstr)
+ 
+            #if write_stmt.writtenlineno==stmt.item.span[0] and stmt.item.span[0]>1:
+            #    f.seek(-1,1)
+            #    split_write(f, ' ' + stmt.tokgen(), d=0)
+            #    write_stmt.writtenlineno = stmt.item.span[0]
+            #    f.seek(0,2)
+            #else:
+            #    split_write(f, stmt.tokgen(**kwargs), d=0)
+            #    write_stmt.writtenlineno = stmt.item.span[0]
     # write only if kgen-marked
     elif genonly:
         if hasattr(stmt, 'unknowns') or hasattr(stmt, 'geninfo'):

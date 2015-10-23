@@ -192,7 +192,7 @@ def process_kernel_callsite_stmt(f, stmt, depth):
 
     expr = State.callsite['expr']
     if isinstance(expr, Call_Stmt):
-        tree = parse(expr.tofortran(), ignore_comments=True, analyze=False, isfree=True, \
+        tree = parse(expr.tofortran(), ignore_comments=False, analyze=False, isfree=True, \
             isstrict=False, include_dirs=None, source_only=None )
 
         write(f, tree.content[0].tofortran().strip(), depth)
