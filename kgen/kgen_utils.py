@@ -169,15 +169,26 @@ def exec_cmd(cmd, show_error_msg=True):
         print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(cmd_out)+'\n ERROR: '+str(cmd_err)+'\n'
     return out
 
-def traverse(node, func, extra, attr='items', prerun=True, depth=0):
-    if prerun and func is not None:
-        func(node, depth, extra)
+# traverse f2003 nodes
+# traverse and func will return None if to continue processing
+# traverse and func will return return code if to stop processing
+# The return code will be forwarded to initial caller
+# func will collect anything in bag during processing
+def traverse(node, func, bag, subnode='items', prerun=True, depth=0):
+    ret = None
 
-    if node and hasattr(node, attr) and getattr(node, attr):
-            exec('for child in node.%s: traverse(child, func, extra, attr=attr, prerun=prerun, depth=depth+1)' % attr)
+    if prerun and func is not None:
+        ret = func(node, bag, depth)
+        if ret is not None: return ret
+
+    if node and hasattr(node, subnode) and getattr(node, subnode):
+            exec('for child in node.%s: ret = traverse(child, func, bag, subnode=subnode, prerun=prerun, depth=depth+1)' % subnode)
 
     if not prerun and func is not None:
-        func(node, depth, extra)
+        ret = func(node, bag, depth)
+        if ret is not None: return ret
+
+    return ret
 
 def get_subtree(obj, tree, prefix='top', depth=0):
     tab = '    '

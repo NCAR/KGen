@@ -1,15 +1,15 @@
 module module2
-USE kernel, only : add_kernel => add, typeA
+    USE kernel, only : add_kernel => add, typeA
 
-private
+    private
 
-public add_kernel, typeA
+    public add_kernel, typeA
 
 contains
 
-subroutine dummy2()
-    integer i
-    i = 1
-end subroutine
+    subroutine dummy2()
+        integer i
+        i = 1
+    end subroutine
 
 end module

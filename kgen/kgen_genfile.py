@@ -1,13 +1,5 @@
 # kgen_genfile.py
 #
-# NOTES:
-# 1. Gen_<class name> classes construct backbone of source file generation
-# 2. Gen[K|S]_<class_name> classes add kernel or state specific codes
-# 3. Gen[K|S]_<class_name> are default classes if there is no particular class
-# 4. __init__ construct tree structure and prepare processing by setting attributes
-# 5. process analyze stmt and generates specific attributes to be forwarded to tokgen and creates dummy classes if 
-#    new stmt is required
-# 6. tostr eventually call tokgen with the specific attributes generated in process
 
 import os
 import sys
@@ -16,6 +8,13 @@ from kgen_state import State
 from statements import Comment
 
 ########### Common ############
+
+TAB = '    ' 
+
+def get_indent(line):
+    import re
+    return re.match(r"\s*", line).group()
+
 def _genobj(node, gentype):
     import inspect
 
@@ -99,15 +98,20 @@ class Gen_HasSubprograms(object):
 
 ########### Statement ############
 class Gen_Statement(object):
+
     def __init__(self, node):
         super(Gen_Statement, self).__init__()
 
+        self.isvalid = True
         self.stmt = node
         self.parent = None
         self.tokgen_attrs = {}
+        self.indent = ''
 
     def tostr(self):
         from statements import Comment
+        from block_statements import BeginSource
+
 
         if isinstance(self.stmt, Comment):
             if not self.stmt.item.comment.startswith('!KGEN#'):
@@ -116,18 +120,26 @@ class Gen_Statement(object):
                 lines = self.stmt.top.prep[start:end]
                 lines_str = '\n'.join(lines)
                 if lines_str.strip().startswith(self.stmt.item.comment.strip()):
+                    self.indent = get_indent(lines_str)
                     return lines_str
         elif self.isvalid:
             if self.stmt:
                 if len(self.tokgen_attrs)>0:
-                    return self.stmt.tokgen(**self.tokgen_attrs)
-                elif self.stmt.item and hasattr(self.stmt.item, 'span'):
-                    start = self.stmt.item.span[0]-1
-                    end = self.stmt.item.span[1]
-                    lines = self.stmt.top.prep[start:end]
-                    return '\n'.join(lines)
+                    return self.indent + self.stmt.tokgen(**self.tokgen_attrs)
+                else:
+                    if hasattr(self.stmt.item, 'span'):
+                        start = self.stmt.item.span[0]-1
+                        end = self.stmt.item.span[1]
+                        lines = self.stmt.top.prep[start:end]
+                        lines_str = '\n'.join(lines)
+                        self.indent = get_indent(lines_str)
+                        return lines_str
+                    elif self.stmt.__class__ in [ BeginSource ]:
+                        pass
+                    else:
+                        raise ProgramException('Wrong path for tostr')
             else:
-                return self.tokgen()
+                return self.indent + self.tokgen(**self.tokgen_attrs)
 
     def tokgen(self, **kwargs):
         raise ProgramException('Inherited class should implement tokgen().')
@@ -150,13 +162,15 @@ class Gen_Statement(object):
         else:
             return self.get_nondtype_subpname(stmt)
 
+    def process(self):
+        pass
+
 class GenK_Statement(Gen_Statement):
     gentype = 'K'
 
     def __init__(self, node):
         super(GenK_Statement, self).__init__(node)
 
-        self.isvalid = True
         if self.stmt is None:
             pass
         #elif hasattr(self.stmt, 'geninfo') and self.stmt.geninfo.has_key(KGGenType.KERNEL):
@@ -171,9 +185,6 @@ class GenK_Statement(Gen_Statement):
     def genobj(self, node):
         return genkobj(node)
 
-    def process(self):
-        pass
-
     def get_readname(self, stmt):
         return 'KR_%s'%self.get_subpname(stmt)
 
@@ -185,13 +196,9 @@ class GenS_Statement(Gen_Statement):
 
     def __init__(self, node):
         super(GenS_Statement, self).__init__(node)
-        self.isvalid = True
 
     def genobj(self, node):
         return gensobj(node)
-
-    def process(self):
-        pass
 
     def get_writename(self, stmt):
         return 'KW_%s'%self.get_subpname(stmt)
@@ -206,7 +213,7 @@ class GenK_Use(GenK_Statement):
                 items = []
                 for (uname, req) in self.stmt.geninfo[KGGenType.KERNEL]:
                     items.append(uname.firstpartname())
-                self.add_attr('select_items', items)
+                self.add_attr('items', items)
 
                 # add read verify perturb for STATE
                 newitems = []
@@ -215,24 +222,74 @@ class GenK_Use(GenK_Statement):
                     newitems.append(self.get_verifyname(req.res_stmts[0]))
                 useobj = GenK_Use(self.stmt)
                 useobj.parent = self.parent
-                useobj.add_attr('removeall_add_items', newitems)
+                useobj.add_attr('items', newitems)
                 self.parent.insert_in_use_stmts(useobj)
 
                 pubobj = GenK_Public(None)
                 pubobj.parent = self.parent
-                pubobj.add_attr('add_items', newitems)
+                pubobj.add_attr('items', newitems)
                 self.parent.insert_in_decl_construct(pubobj)
 
-                #import pdb; pdb.set_trace()
+class GenS_Use(GenS_Statement):
+    def process(self):
+        super(GenS_Use, self).process()
+        if self.stmt and self.stmt.isonly:
+
+            # add read verify perturb for STATE
+            newitems = []
+            for (uname, req) in self.stmt.geninfo[KGGenType.STATE]:
+                newitems.append(self.get_writename(req.res_stmts[0]))
+            useobj = GenS_Use(self.stmt)
+            useobj.parent = self.parent
+            useobj.add_attr('items', newitems)
+            self.parent.insert_in_use_stmts(useobj)
+
+            pubobj = GenS_Public(None)
+            pubobj.parent = self.parent
+            pubobj.add_attr('items', newitems)
+            self.parent.insert_in_decl_construct(pubobj)
 
 ########### Public ############
 class GenK_Public(GenK_Statement):
+
     def process(self):
         super(GenK_Public, self).process()
+
+    def tokgen(self, **kwargs):
+        items = None
+        if kwargs.has_key('items'):
+            items = kwargs['items']
+        if items:
+            return 'PUBLIC %s'%', '.join(items)
+
+class GenS_Public(GenS_Statement):
+
+    def process(self):
+        super(GenS_Public, self).process()
+ 
+    def tokgen(self, **kwargs):
+        items = None
+        if kwargs.has_key('items'):
+            items = kwargs['items']
+        if items:
+            return 'PUBLIC %s'%', '.join(items)
+
+########### TypeDeclarationStatement ############
+
+class GenK_TypeDeclarationStatement(GenK_Statement):
+    def process(self):
+        super(GenK_TypeDeclarationStatement, self).process()
         if self.isvalid:
             if self.stmt:
                 pass
- 
+                #import pdb; pdb.set_trace()
+
+class GenS_TypeDeclarationStatement(GenS_Statement):
+    def process(self):
+        super(GenS_TypeDeclarationStatement, self).process()
+        if self.stmt:
+            pass
+
 ########### BeginStatement ############
 class Gen_BeginStatement(Gen_Statement):
     def __init__(self, node):
@@ -248,11 +305,14 @@ class Gen_BeginStatement(Gen_Statement):
             childnode.parent = self
             self.items.append(childnode)
 
-    def tostr_list(self, items):
+    def tostr_list(self, items, indent):
         lines = []
         for item in items:
+            item.indent = indent
             l = item.tostr()
-            if l is not None: lines.append(l)
+            if l is not None:
+                lines.append(l)
+                indent = item.indent
         return lines
 
     def insert_before(self, posobj, item):
@@ -296,7 +356,8 @@ class GenK_BeginStatement(Gen_BeginStatement, GenK_Statement):
             lines = []
             l = super(GenK_BeginStatement, self).tostr()
             if l is not None: lines.append(l)
-            lines.extend(self.tostr_list(self.items))
+
+            lines.extend(self.tostr_list(self.items, self.indent+TAB))
             return '\n'.join(lines)
         else:
             return
@@ -316,87 +377,132 @@ class GenS_BeginStatement(Gen_BeginStatement, GenS_Statement):
         lines = []
         l = super(GenS_BeginStatement, self).tostr()
         if l is not None: lines.append(l)
-        lines.extend(self.tostr_list(self.items))
+
+        lines.extend(self.tostr_list(self.items, self.indent+TAB))
         return '\n'.join(lines)
 
+class Gen_EndStatement(Gen_Statement):
+    def tostr(self):
+        self.indent = self.parent.indent
+        return super(Gen_EndStatement, self).tostr()
+ 
+class GenK_EndStatement(Gen_EndStatement):
+    pass
+
+class GenS_EndStatement(Gen_EndStatement):
+    pass
 
 ########### Module ############
-class GenK_Module(GenK_BeginStatement, Gen_HasUseStmts, Gen_HasImportStmts, Gen_HasImplicitPart, \
+class Gen_Module(object):
+    def process_module_items(self):
+        from block_statements import EndModule
+
+        cur_list = self.use_stmts
+        for item in self.items:
+            if item.stmt.__class__ in Gen_HasUseStmts.classes:
+                self.insert_in_use_stmts(item)
+                if cur_list is not self.use_stmts:
+                    raise ProgramException('Wrong sequence of stmt type: %s'%item.tostr())
+            elif item.stmt.__class__ in Gen_HasImportStmts.classes:
+                self.insert_in_import_stmts(item)
+                if cur_list is not self.use_stmts and cur_list is not self.import_stmts:
+                    raise ProgramException('Wrong sequence of stmt type: %s'%item.tostr())
+                else:
+                    cur_list = self.import_stmts
+            elif item.stmt.__class__ in Gen_HasImplicitPart.classes:
+                self.insert_in_implicit_part(item)
+                if cur_list is not self.use_stmts and cur_list is not self.import_stmts and cur_list is not self.implicit_part:
+                    raise ProgramException('Wrong sequence of stmt type: %s'%item.tostr())
+                else:
+                    cur_list = self.implicit_part
+            elif item.stmt.__class__ in Gen_HasDeclConstruct.classes:
+                self.insert_in_decl_construct(item)
+                if cur_list is not self.use_stmts and cur_list is not self.import_stmts and \
+                    cur_list is not self.implicit_part and cur_list is not self.decl_construct:
+                    raise ProgramException('Wrong sequence of stmt type: %s'%item.tostr())
+                else:
+                    cur_list = self.decl_construct
+            elif item.stmt.__class__ in Gen_HasContainsStmt.classes:
+                self.insert_in_contains_stmt(item)
+                if cur_list is not self.use_stmts and cur_list is not self.import_stmts and \
+                    cur_list is not self.implicit_part and cur_list is not self.decl_construct:
+                    raise ProgramException('Wrong sequence of stmt type: %s'%item.tostr())
+                else:
+                    cur_list = self.contains_stmt
+            elif item.stmt.__class__ in Gen_HasSubprograms.classes:
+                self.insert_in_subprograms(item)
+                if cur_list is not self.contains_stmt and cur_list is not self.subprograms:
+                    raise ProgramException('Wrong sequence of stmt type: %s'%item.stmt.__class__)
+                else:
+                    cur_list = self.subprograms
+            elif item.stmt.__class__ is EndModule:
+                self.end_stmt = item
+                cur_list = None
+            elif item.stmt.__class__ is Comment:
+                cur_list.append(item)
+            else:
+                raise ProgramException('Unknown stmt type: %s'%item.stmt.__class__)
+
+            item.process()
+    def tostr_module(self, indent):
+        lines = []
+        lines.extend(self.tostr_list(self.use_stmts, indent))
+        lines.extend(self.tostr_list(self.import_stmts, indent))
+        lines.extend(self.tostr_list(self.implicit_part, indent))
+        lines.extend(self.tostr_list(self.decl_construct, indent))
+        if len(self.contains_stmt)>0:
+            lines.extend(self.tostr_list(self.contains_stmt, indent))
+        elif len(self.subprograms)>0:
+            lines.append('CONTAINS')
+        lines.extend(self.tostr_list(self.subprograms, indent))
+        if self.end_stmt:
+            lines.append(self.end_stmt.tostr())
+        return lines
+
+class GenK_Module(GenK_BeginStatement, Gen_Module, Gen_HasUseStmts, Gen_HasImportStmts, Gen_HasImplicitPart, \
     Gen_HasDeclConstruct, Gen_HasContainsStmt, Gen_HasSubprograms):
     def __init__(self, node):
         super(GenK_Module, self).__init__(node)
 
     def process(self):
-        from block_statements import EndModule
 
         # process first line
         super(GenK_BeginStatement, self).process()
 
         if self.isvalid:
-            cur_list = self.use_stmts
-            for item in self.items:
-                if item.stmt.__class__ in Gen_HasUseStmts.classes:
-                    self.insert_in_use_stmts(item)
-                    if cur_list is not self.use_stmts:
-                        raise ProgramException('Wrong sequence of stmt type: %s'%item.tokgen())
-                elif item.stmt.__class__ in Gen_HasImportStmts.classes:
-                    self.insert_in_import_stmts(item)
-                    if cur_list is not self.use_stmts and cur_list is not self.import_stmts:
-                        raise ProgramException('Wrong sequence of stmt type: %s'%item.tokgen())
-                    else:
-                        cur_list = self.import_stmts
-                elif item.stmt.__class__ in Gen_HasImplicitPart.classes:
-                    self.insert_in_implicit_part(item)
-                    if cur_list is not self.use_stmts and cur_list is not self.import_stmts and cur_list is not self.implicit_part:
-                        raise ProgramException('Wrong sequence of stmt type: %s'%item.tokgen())
-                    else:
-                        cur_list = self.implicit_part
-                elif item.stmt.__class__ in Gen_HasDeclConstruct.classes:
-                    self.insert_in_decl_construct(item)
-                    if cur_list is not self.use_stmts and cur_list is not self.import_stmts and \
-                        cur_list is not self.implicit_part and cur_list is not self.decl_construct:
-                        raise ProgramException('Wrong sequence of stmt type: %s'%item.tokgen())
-                    else:
-                        cur_list = self.decl_construct
-                elif item.stmt.__class__ in Gen_HasContainsStmt.classes:
-                    self.insert_in_contains_stmt(item)
-                    if cur_list is not self.use_stmts and cur_list is not self.import_stmts and \
-                        cur_list is not self.implicit_part and cur_list is not self.decl_construct:
-                        raise ProgramException('Wrong sequence of stmt type: %s'%item.tokgen())
-                    else:
-                        cur_list = self.contains_stmt
-                elif item.stmt.__class__ in Gen_HasSubprograms.classes:
-                    self.insert_in_subprograms(item)
-                    if cur_list is not self.contains_stmt and cur_list is not self.subprograms:
-                        raise ProgramException('Wrong sequence of stmt type: %s'%item.stmt.__class__)
-                    else:
-                        cur_list = self.subprograms
-                elif item.stmt.__class__ is EndModule:
-                    self.end_stmt = item
-                    cur_list = None
-                elif item.stmt.__class__ is Comment:
-                    cur_list.append(item)
-                else:
-                    raise ProgramException('Unknown stmt type: %s'%item.stmt.__class__)
-
-                item.process()
+            self.process_module_items()
 
     def tostr(self):
         if self.isvalid:
             lines = []
+
             l = super(GenK_BeginStatement, self).tostr()
             if l is not None: lines.append(l)
+            lines.extend(self.tostr_module(self.indent+TAB))
+            return '\n'.join(lines)
+        else:
+            return
 
-            lines.extend(self.tostr_list(self.use_stmts))
-            lines.extend(self.tostr_list(self.import_stmts))
-            lines.extend(self.tostr_list(self.implicit_part))
-            if len(self.contains_stmt)>0:
-                lines.extend(self.tostr_list(self.contains_stmt))
-            elif len(self.subprograms)>0:
-                lines.append('CONTAINS')
-            lines.extend(self.tostr_list(self.subprograms))
-            if self.end_stmt:
-                lines.append(self.end_stmt.tostr())
+class GenS_Module(GenS_BeginStatement, Gen_Module, Gen_HasUseStmts, Gen_HasImportStmts, Gen_HasImplicitPart, \
+    Gen_HasDeclConstruct, Gen_HasContainsStmt, Gen_HasSubprograms):
+    def __init__(self, node):
+        super(GenS_Module, self).__init__(node)
+
+    def process(self):
+
+        # process first line
+        super(GenS_BeginStatement, self).process()
+
+        if self.isvalid:
+            self.process_module_items()
+
+    def tostr(self):
+        if self.isvalid:
+            lines = []
+
+            l = super(GenS_BeginStatement, self).tostr()
+            if l is not None: lines.append(l)
+            lines.extend(self.tostr_module(self.indent+TAB))
         
             return '\n'.join(lines)
         else:

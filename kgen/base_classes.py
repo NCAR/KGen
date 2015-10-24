@@ -741,7 +741,7 @@ class Statement(object):
             else:
                 raise ProgramException('Class %s does not have f2003_class attribute.' % self.__class__)
 
-    def set_parent(self, node, depth, extra):
+    def set_parent(self, node, bag, depth):
 
         if hasattr(node, 'item') and node.item and isinstance(node.item, Fortran2003.Base):
             node.item.parent = node
@@ -753,10 +753,10 @@ class Statement(object):
                         if subitem and not isinstance(subitem, str) and \
                             not isinstance(item, list) and not isinstance(item, tuple):
                             subitem.parent = node
-                            self.set_parent(subitem, depth+1, None)
+                            self.set_parent(subitem, bag, depth+1)
                 elif item and  not isinstance(item, str):
                     item.parent = node
-                    self.set_parent(item, depth+1, None)
+                    self.set_parent(item, bag, depth+1)
 
     def expr_by_name(self, name, node=None):
 

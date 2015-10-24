@@ -11,13 +11,13 @@ exclude_list = [ Module_Stmt, Program_Stmt ]
 not_supported = {}
 not_parsed = {}
 
-def get_MPI_COMM_WORLD(node, depth, extra):
+def get_MPI_COMM_WORLD(node, bag, depth):
     if isinstance(node, Type_Declaration_Stmt):
         if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string=='MPI_COMM_WORLD':
             pass
     elif isinstance(node, Parameter_Stmt):
         if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string=='MPI_COMM_WORLD':
-            extra.append(node.items[1].items[1].items[0])
+            bag.append(node.items[1].items[1].items[0])
 
 def check_mode():
     from kgen_utils import Config, exec_cmd

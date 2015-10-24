@@ -38,7 +38,7 @@ from utils import split_comma, specs_split_comma, AnalyzeError, ParseError,\
 from utils import classes
 
 import Fortran2003 # KGEN addition
-from kgen_utils import Config, pack_innamepath, Logger, ProgramException, UserException # KGEN addition
+from kgen_utils import traverse, Config, pack_innamepath, Logger, ProgramException, UserException # KGEN addition
 
 class StatementWithNamelist(Statement):
     """
@@ -1241,28 +1241,34 @@ class Use(Statement):
                 State.srcfiles[self.top.reader.id][1].append(self.module)
 
     def tokgen(self, **kwargs):
+        def get_rename(node, bag, depth):
+            from Fortran2003 import Rename
+            if isinstance(node, Rename) and node.items[1].string==bag['newname']:
+                bag['onlyitem'] = '%s => %s'%(node.items[1].string, node.items[2].string)
+                return True
+                 
+        items = self.items
+        if kwargs.has_key('items') and kwargs['items']:
+            items = []
+            for item in kwargs['items']:
+                if item in self.norenames:
+                    items.append(item)
+                else:
+                    rename = {'newname':item, 'onlyitem': item}
+                    traverse(self.f2003, get_rename, rename)
+                    items.append(rename['onlyitem'])
+
         s = 'USE'
         if self.nature:
             s += ', ' + self.nature + ' ::'
         s += ' ' + self.name
         if self.isonly:
             s += ', ONLY:'
-        elif self.items:
+        elif items:
             s += ','
-        if self.items:
-            s += ' ' + ', '.join(self.items)
+        if items:
+            s += ' ' + ', '.join(items)
         return s
-
-#    def tokgen(self, items=None):
-#        if not items is None:
-#            tmpitems = self.items
-#            self.items = items
-#            outstr = self.tofortran().lstrip()
-#            self.items = tmpitems
-#            return outstr
-#        else:
-#            return super(Use, self).tokgen()
-
     # end of KGEN
 
 
