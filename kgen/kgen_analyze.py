@@ -4,6 +4,14 @@ from kgen_utils import KGName, Logger, Config, ProgramException, UserException, 
 from kgen_state import State, SrcFile
 from Fortran2003 import Name
 
+# NOTE:
+# block code extraction
+# all vars at left size of equal sign of assign. stmt is out var
+# all vars at left size of equal sign of assign. stmt is in var
+# follow intent attr of call stmts
+# left intent signature per each vars
+# the signature includes kernel id and gentype ????
+
 class ActualArg(object):
     def __init__(self, arg):
         from Fortran2003 import Name, Actual_Arg_Spec
@@ -174,7 +182,7 @@ def collect_args_from_subpstmt(stmt, param):
         Logger.critical(errmsg+'\nIn %s\n'%stmt.reader.id+str(stmt))
         sys.exit(-1)
 
-    for arg in stmt.args:
+    for i, arg in enumerate(stmt.args):
         kgname = KGName(arg)
         param['names'].append(kgname)
         var = stmt.a.variables[kgname.firstpartname()]
@@ -273,6 +281,9 @@ def collect_kernel_info():
             anc.content[-1].geninfo = {}
             anc.content[-1].geninfo[KGGenType.KERNEL] = []
 
+
+    # NOTE : collect intent attributes for found subprograms in callsite statements
+
     # resolve kernel subprogram and save arguments matching
     if isinstance(State.callsite['expr'], Call_Stmt):
         f2003_search_unknowns(KGGenType.KERNEL, State.callsite['stmt'], State.callsite['expr'].items[0], [ Subroutine, Interface ])
@@ -313,28 +324,45 @@ def collect_kernel_info():
         State.kernel['parent'] = anc[-1]
         State.kernel['top'] = anc[0]
 
+        # NOTE: also collects intent of dummy arguments
         collect_args_from_subpstmt(State.kernel['stmt'], State.kernel['dummy_arg'])
     else:
         raise ProgramException('More than one unknown at callsite stmt')
 
+    # add geninfo to top of callsite
+    State.callsite['stmt'].top.geninfo[KGGenType.STATE_IN] = []
+
     # resolve actual arguments
-    State.callsite['stmt'].top.geninfo[KGGenType.STATE] = []
-    f2003_search_unknowns(KGGenType.STATE, State.callsite['stmt'], State.callsite['expr'].items[1])
+    # if there is no actual argument
+    if State.callsite['expr'].items[1] is None:
+        pass
+    # if there is one actual argument
+    elif isinstance(State.callsite['expr'].items[1], Name):
+        gentype = KGGenType.STATE_INOUT
+        if State.kernel['dummy_arg']['names'][0] in State.kernel['dummy_arg']['in_names']: gentype = KGGenType.STATE_IN
+        elif State.kernel['dummy_arg']['names'][0] in State.kernel['dummy_arg']['out_names']: gentype = KGGenType.STATE_OUT
+        elif State.kernel['dummy_arg']['names'][0] in State.kernel['dummy_arg']['inout_names']: gentype = KGGenType.STATE_INOUT
+        else: raise ProgramException('No intent is found: %s'%State.kernel['dummy_arg']['names'][0].firstpartname())
+        f2003_search_unknowns(gentype, State.callsite['stmt'], State.callsite['expr'].items[1])
+    # if there are multiple actual arguments
+    elif hasattr(State.callsite['expr'].items[1], 'items'):
+        for i, item in enumerate(State.callsite['expr'].items[1].items):
+            gentype = KGGenType.STATE_INOUT
+            if State.kernel['dummy_arg']['names'][i] in State.kernel['dummy_arg']['in_names']: gentype = KGGenType.STATE_IN
+            elif State.kernel['dummy_arg']['names'][i] in State.kernel['dummy_arg']['out_names']: gentype = KGGenType.STATE_OUT
+            elif State.kernel['dummy_arg']['names'][i] in State.kernel['dummy_arg']['inout_names']: gentype = KGGenType.STATE_INOUT
+            else: raise ProgramException('No intent is found: %s'%State.kernel['dummy_arg']['names'][i].firstpartname())
+            f2003_search_unknowns(gentype, State.callsite['stmt'], item)
+
     for unknown, request in State.callsite['stmt'].unknowns.iteritems():
         if request.state != ResState.RESOLVED:
             State.callsite['stmt'].resolve(request)
 
     # resolve lhs of assignment stmt
-#    if isinstance(State.callsite['stmt'], Assignment):
-#        f2003_search_unknowns(State.callsite['stmt'], State.callsite['stmt'].f2003.items[0])
-#        for unknown, request in State.callsite['stmt'].unknowns.iteritems():
-#            if request.state != ResState.RESOLVED:
-#                State.callsite['stmt'].resolve(request)
-
     expr = State.callsite['expr']
     if isinstance(expr, Part_Ref):
         if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
-            f2003_search_unknowns(KGGenType.STATE, State.callsite['stmt'], expr.parent.items[0])
+            f2003_search_unknowns(KGGenType.STATE_INOUT, State.callsite['stmt'], expr.parent.items[0])
             for unknown, request in State.callsite['stmt'].unknowns.iteritems():
                 if request.state != ResState.RESOLVED:
                     State.callsite['stmt'].resolve(request)

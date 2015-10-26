@@ -6,6 +6,20 @@ Created on Apr 7, 2015
 Author: Youngsung Kim <youngsun@ucar.edu>
 '''
 
+# NOTES:
+#
+# remove kernel driver file. Instead, put program in callsite file
+# specifing multiple callsites: command line method) filepath:name1:name2,name3:name4 filepath2:100-200
+# directive method) !$kgen callsite_begin <kernel name>
+# directive method) !$kgen callsite_end [kernel name]
+# collect multiple callsites in Config
+# format of geninfo [ kernel number id, state type, ... ]
+# kgen analyze steps: 1) resolve with general state type
+# 2) find out state type per each name in callsite lines
+# 3) update state types in geninfo dict
+# directory structure: many kernels in kernels directory
+#
+
 from kgen_utils import Logger, UserException, ProgramException
 from kgen_analyze import locate_callsite, collect_kernel_info
 from kgen_geninfo import mark_generation_info

@@ -711,20 +711,14 @@ class Access(Statement):
 
     # start of KGEN
     def tokgen(self, **kwargs):
+        items = self.items
+        if kwargs.has_key('items') and kwargs['items']:
+            items = kwargs['items']
+
         clsname = self.__class__.__name__.upper()
         if self.items:
             return clsname + ' ' + ', '.join(self.items)
         return clsname
-
-#    def tokgen(self, items=None):
-#        if not items is None:
-#            tmpitems = self.items
-#            self.items = items
-#            outstr = self.tofortran().lstrip()
-#            self.items = tmpitems
-#            return outstr
-#        else:
-#            return super(Access, self).tokgen()
     # end of KGEN
 
     def process_item(self):

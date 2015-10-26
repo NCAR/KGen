@@ -273,8 +273,106 @@ class KgenConfigParser(RawConfigParser):
 #############################################################################
 
 class KGGenType(object):
-    (KERNEL, STATE) = range(2)
+    KERNEL = 0x1
+    STATE_IN = 0x2
+    STATE_OUT = 0x3
+    STATE_INOUT = 0x3
 
+    @classmethod
+    def is_kernel(cls, value):
+        return cls.KERNEL == value
+
+    @classmethod
+    def is_state_in(cls, value):
+        return cls.STATE_IN == value
+
+    @classmethod
+    def is_state_out(cls, value):
+        return cls.STATE_OUT == value
+
+    @classmethod
+    def is_state_inout(cls, value):
+        return cls.STATE_INOUT == value
+
+    @classmethod
+    def is_state_in_inout(cls, value):
+        return cls.is_state_in(value) or cls.is_state_inout(value)
+
+    @classmethod
+    def is_state_out_inout(cls, value):
+        return cls.is_state_out(value) or cls.is_state_inout(value)
+
+    @classmethod
+    def is_state(cls, value):
+        return cls.is_state_in_inout(value) or cls.is_state_out(value)
+
+    @classmethod
+    def has_kernel(cls, geninfo):
+        return geninfo.has_key(cls.KERNEL)
+
+    @classmethod
+    def has_state_in(cls, geninfo):
+        return geninfo.has_key(cls.STATE_IN)
+
+    @classmethod
+    def has_state_out(cls, geninfo):
+        return geninfo.has_key(cls.STATE_OUT)
+
+    @classmethod
+    def has_state_inout(cls, geninfo):
+        return geninfo.has_key(cls.STATE_INOUT)
+
+    @classmethod
+    def has_state_in_inout(cls, geninfo):
+        return cls.has_state_in(geninfo) or cls.has_state_inout(geninfo)
+
+    @classmethod
+    def has_state_out_inout(cls, geninfo):
+        return cls.has_state_out(geninfo) or cls.has_state_inout(geninfo)
+
+    @classmethod
+    def has_state(cls, geninfo):
+        return cls.has_state_in_inout(geninfo) or cls.has_state_out(geninfo)
+
+    @classmethod
+    def get_kernel(cls, geninfo):
+        return geninfo.get(cls.KERNEL, [])
+
+    @classmethod
+    def get_state_in(cls, geninfo):
+        return geninfo.get(cls.STATE_IN, [])
+
+    @classmethod
+    def get_state_out(cls, geninfo):
+        return geninfo.get(cls.STATE_OUT, [])
+
+    @classmethod
+    def get_state_inout(cls, geninfo):
+        return geninfo.get(cls.STATE_INOUT, [])
+
+    @classmethod
+    def get_state_in_inout(cls, geninfo):
+        in_inout = cls.get_state_in(geninfo)
+        for uname, res in cls.get_state_inout(geninfo):
+            if all(not uname==u for u, r in in_inout):
+                in_inout.append((uname, res))
+        return in_inout
+
+    @classmethod
+    def get_state_out_inout(cls, geninfo):
+        out_inout = cls.get_state_out(geninfo)
+        for uname, res in cls.get_state_inout(geninfo):
+            if all(not uname==u for u, r in out_inout):
+                out_inout.append((uname, res))
+        return out_inout
+
+    @classmethod
+    def get_state(cls, geninfo):
+        state = cls.get_state_in_inout(geninfo)
+        for uname, res in cls.get_state_out(geninfo):
+            if all(not uname==u for u, r in state):
+                state.append((uname, res))
+        return state
 
 #############################################################################
 ## EXCEPTION

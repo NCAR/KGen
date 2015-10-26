@@ -90,55 +90,35 @@ class TypeDeclarationStatement(Statement):
 
 
     # start of KGEN
-#    def can_resolve(self, request):
-#        if request is None: return False
-#
-#        # skip if request is maded by this stmt itself
-#        #if self is request.originator:
-#        #    return False
-#
-#        # check if name is matched and self is in resolver classes
-#        if self.__class__ in request.resolvers:
-#            return True
-#
-#        return super(TypeDeclarationStatement, self).can_resolve(request)
 
-    def tokgen(self, items=None, addattr=None, delattr=None):
+    def tokgen(self, **kwargs):
+#        def get_rename(node, bag, depth):
+#            from Fortran2003 import Rename
+#            if isinstance(node, Rename) and node.items[1].string==bag['newname']:
+#                bag['onlyitem'] = '%s => %s'%(node.items[1].string, node.items[2].string)
+#                return True
+#                 
+#        items = self.items
+#        if kwargs.has_key('items') and kwargs['items']:
+#            items = []
+#            for item in kwargs['items']:
+#                if item in self.norenames:
+#                    items.append(item)
+#                else:
+#                    rename = {'newname':item, 'onlyitem': item}
+#                    traverse(self.f2003, get_rename, rename)
+#                    items.append(rename['onlyitem'])
+
+        decls = self.entity_decls
+        if kwargs.has_key('items') and kwargs['items']:
+            decls = kwargs['items']
+
         s = self.tostr()
         if self.attrspec:
             s += ', ' + ', '.join(self.attrspec)
-        if self.entity_decls:
-            s += ' :: ' + ', '.join(self.entity_decls) # KGEN addition
+        if decls:
+            s += ' :: ' + ', '.join(decls)
         return s
-
-#    def tokgen(self, items=None, addattr=None, delattr=None):
-#        if items or addattr or delattr:
-#            tmpspec = self.attrspec
-#            if  delattr:
-#                delattr = [ a.replace(' ', '').lower() for a in delattr ]
-#                newspec = []
-#                for spec in self.attrspec:
-#                    if spec.replace(' ','') not in delattr:
-#                        newspec.append(spec)
-#                self.attrspec = newspec
-#            if  addattr:
-#                addattr = [ a.replace(' ', '').lower() for a in addattr ]
-#                newattr = []
-#                for spec in addattr:
-#                    if spec.replace(' ','') not in self.attrspec:
-#                        newattr.append(spec)
-#                self.attrspec += newattr
-#
-#            tmpentity = self.entity_decls
-#            if items:
-#                self.entity_decls = items
-# 
-#            outstr = self.tofortran().lstrip()
-#            self.attrspec = tmpspec 
-#            self.entity_decls = tmpentity 
-#            return outstr
-#        else:       
-#            return super(TypeDeclarationStatement, self).tokgen()
 
     # end of KGEN
 

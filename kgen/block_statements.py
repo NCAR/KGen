@@ -510,6 +510,8 @@ class BlockData(BeginStatement, HasImplicitStmt, HasUseStmt,
     """
     BLOCK DATA [ <block-data-name> ]
     """
+    f2003_class = Fortran2003.Block_Data_Stmt # KGEN addition
+
     end_stmt_cls = EndBlockData
     match = re.compile(r'block\s*data\s*\w*\Z', re.I).match
 

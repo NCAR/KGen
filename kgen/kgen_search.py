@@ -20,6 +20,9 @@ res_subprogram = [ Subroutine, Function, Interface ] + res_external
 res_common = [ Common ]
 res_anything = res_typespec + res_subprogram
 
+# NOTE: update gentype if initial gentype is STATE
+# Or operation for in, out, inout??
+
 ###############################################################################
 ################################### COMMON ####################################
 ###############################################################################
