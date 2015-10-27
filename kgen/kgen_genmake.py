@@ -29,7 +29,6 @@ def generate_kernel_makefile():
     #NOTE: for gfortran, use -ffixed-line-length-none and -ffree-line-length-none
 
     # source files
-    kernel_driver_file = 'kernel_driver.f90'
     kgen_utils_file = 'kgen_utils.f90'
     callsite_file = State.topblock['path']
 
@@ -38,11 +37,9 @@ def generate_kernel_makefile():
     dep_bases = [ os.path.basename(path) for path in State.srcfiles.keys() ]
 
     # all object files
-    all_objs = [ obj(kernel_driver_file), obj(callsite_base), obj(kgen_utils_file) ] + \
-        [ obj(dep_base) for dep_base in dep_bases ]
+    all_objs = [ obj(dep_base) for dep_base in dep_bases ] + [ obj(kgen_utils_file) ]
 
     # dependency
-    kernel_driver_depends = [ obj(callsite_base), obj(kgen_utils_file) ] + [ obj(dep_base) for dep_base in dep_bases ]
 
     depends = {}
     for abspath, (srcfile, mods_used, units_used) in State.srcfiles.iteritems():
@@ -87,10 +84,6 @@ def generate_kernel_makefile():
             write(f, 'bash -i -c "%s; ${FC} ${FC_FLAGS} %s -o kernel.exe $^"'%(pre_cmds, link_flags), t=True)
         else:
             write(f, '${FC} ${FC_FLAGS} %s -o kernel.exe $^'%link_flags, t=True)
-        write(f, '')
-
-        write(f, '%s: kernel_driver.f90 %s' % (obj(kernel_driver_file), ' '.join(kernel_driver_depends)))
-        write(f, '${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
         write(f, '')
 
         for dep_base in dep_bases:

@@ -92,26 +92,21 @@ class TypeDeclarationStatement(Statement):
     # start of KGEN
 
     def tokgen(self, **kwargs):
-#        def get_rename(node, bag, depth):
-#            from Fortran2003 import Rename
-#            if isinstance(node, Rename) and node.items[1].string==bag['newname']:
-#                bag['onlyitem'] = '%s => %s'%(node.items[1].string, node.items[2].string)
-#                return True
-#                 
-#        items = self.items
-#        if kwargs.has_key('items') and kwargs['items']:
-#            items = []
-#            for item in kwargs['items']:
-#                if item in self.norenames:
-#                    items.append(item)
-#                else:
-#                    rename = {'newname':item, 'onlyitem': item}
-#                    traverse(self.f2003, get_rename, rename)
-#                    items.append(rename['onlyitem'])
+        from kgen_utils import traverse
+
+        def get_edecl(node, bag, depth):
+            from Fortran2003 import Entity_Decl
+            if isinstance(node, Entity_Decl) and node.items[0].string==bag['name']:
+                bag['edecl'] = node.tostr()
+                return True
 
         decls = self.entity_decls
         if kwargs.has_key('items') and kwargs['items']:
-            decls = kwargs['items']
+            decls = []
+            for decl in kwargs['items']:
+                edecl = {'name': decl, 'edecl': decl}
+                traverse(self.f2003, get_edecl, edecl)
+                decls.append(edecl['edecl'])
 
         s = self.tostr()
         if self.attrspec:

@@ -240,10 +240,11 @@ def locate_callsite():
 
     # ancestors of callsite stmt
     anc = State.callsite['stmt'].ancestors()
+    map(lambda x: setattr(x, 'ancestor_callsite', True), anc)
 
     # TODO: support for Program block
-    if not isinstance(anc[0], Module):
-        raise UserException('Only module block is allowed as a top block in call-site source file.')
+    #if not isinstance(anc[0], Module):
+    #    raise UserException('Only module block is allowed as a top block in call-site source file.')
 
     # populate parent block parameters
     State.parentblock['stmt'] = anc[-1]

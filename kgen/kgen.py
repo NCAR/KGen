@@ -19,6 +19,9 @@ Author: Youngsung Kim <youngsun@ucar.edu>
 # 3) update state types in geninfo dict
 # directory structure: many kernels in kernels directory
 #
+# if topblock is module, change it to program and call parent of callsite
+# put file io directly in parent of callsite block
+# if topblock is program, keep origianl code as much as possible
 
 from kgen_utils import Logger, UserException, ProgramException
 from kgen_analyze import locate_callsite, collect_kernel_info
