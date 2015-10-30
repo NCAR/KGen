@@ -1,6 +1,6 @@
 module module1
 use module2
-use kernel, only : real_kind
+use kernel, only : real_kind, np
 
 real(real_kind), parameter :: TEST_VALUE = 1.0_real_kind
 

@@ -9,15 +9,36 @@ module calling_module
         subroutine calling_subroutine()
 
                 !real(kind=real_kind), dimension(np,np) :: ar1, ar2, ar3
-                type(typeA) :: atype     ! test comment
+                type(typeA), allocatable :: atype(:)     ! test comment
                 real(real_kind) :: value = TEST_VALUE     ! test comment
+                integer i, j, k
 
-                atype%a = 1.0
-                atype%b = 1.0
+                allocate(atype(2))
+                do i=1,2
+                    allocate(atype(i)%a(np,np))
+                    allocate(atype(i)%b(np,np))
+                    allocate(atype(i)%c(np,np))
+                    do j=1,np
+                        do k=1,np
+                            atype(i)%a(j,k) = 1.0
+                            atype(i)%b(j,k) = 1.0
+                        end do
+                    end do
+                end do
 
-                call add(atype, value)
+                call add(atype(1), value)
 
-                print *, "C =", atype%c
+                print *, "C =", atype(1)%c
+
+
+                deallocate(atype(1)%a)
+                deallocate(atype(1)%b)
+                deallocate(atype(1)%c)
+                deallocate(atype(2)%a)
+                deallocate(atype(2)%b)
+                deallocate(atype(2)%c)
+
+                deallocate(atype)
 
         end subroutine
 

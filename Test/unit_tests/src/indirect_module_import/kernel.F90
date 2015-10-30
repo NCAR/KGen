@@ -4,7 +4,7 @@ module kernel
 
         type typeA
             ! test comment 1
-            integer(kind=real_kind), dimension(np, np) :: a, b, c ! test comment 2
+            integer(kind=real_kind), pointer, dimension(:, :) :: a, b, c ! test comment 2
         end type        
 
         public add, typeA
@@ -13,8 +13,13 @@ module kernel
 
         subroutine add(atype)
                 type(typeA), intent(inout) :: atype
+                integer i, j
 
-                atype%c = atype%a + atype%b
+                do i=1,np
+                    do j=1,np
+                        atype%c(i,j) = atype%a(i,j) + atype%b(i,j)
+                    end do
+                end do
 
         end subroutine add
 

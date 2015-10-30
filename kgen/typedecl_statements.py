@@ -101,16 +101,23 @@ class TypeDeclarationStatement(Statement):
                 return True
 
         decls = self.entity_decls
-        if kwargs.has_key('items') and kwargs['items']:
+        if kwargs.has_key('entity_decl') and kwargs['entity_decl']:
             decls = []
-            for decl in kwargs['items']:
+            for decl in kwargs['entity_decl']:
                 edecl = {'name': decl, 'edecl': decl}
-                traverse(self.f2003, get_edecl, edecl)
+                if kwargs.has_key('full_decl') and kwargs['full_decl']:
+                    traverse(self.f2003, get_edecl, edecl)
                 decls.append(edecl['edecl'])
+
+        attrs = self.attrspec
+        if kwargs.has_key('attrspec') and kwargs['attrspec']:
+            attrs = []
+            for attr in kwargs['attrspec']:
+                attrs.append(attr)
 
         s = self.tostr()
         if self.attrspec:
-            s += ', ' + ', '.join(self.attrspec)
+            s += ', ' + ', '.join(attrs)
         if decls:
             s += ' :: ' + ', '.join(decls)
         return s
