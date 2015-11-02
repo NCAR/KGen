@@ -276,7 +276,7 @@ class KGGenType(object):
     KERNEL = 0x1
     STATE_IN = 0x2
     STATE_OUT = 0x3
-    STATE_INOUT = 0x3
+    STATE_INOUT = 0x4
 
     @classmethod
     def is_kernel(cls, value):
@@ -570,7 +570,8 @@ class Config(object):
 
         # parsing arguments
         usage = "usage: %prog [options] call-site"
-        parser = optparse.OptionParser(usage=usage)
+
+        parser = optparse.OptionParser(usage=usage, version='KGEN version %d.%d.%s'%tuple(self._attrs['kgen']['version']))
         parser.add_option("-s", "--syntax-check", dest="syntax_check", action='store_true', default=False, help="KGEN Syntax Check Mode")
         parser.add_option("-i", "--include-ini", dest="include_ini", action='store', type='string', default=None, help="information used for analysis")
         parser.add_option("-e", "--exclude-ini", dest="exclude_ini", action='store', type='string', default=None, help="information excluded for analysis")

@@ -177,7 +177,6 @@ class Gen_Has_ComponentPart(Gen_Has_):
     def hasname_in_comp_part(self, name, cls):
         return self._hasname_in_list(self.comp_part, name, cls)
 
-
 class Gen_Has_TypeBoundProcedurePart(Gen_Has_):
     from block_statements import type_bound_procedure_part
     classes =  type_bound_procedure_part
@@ -189,6 +188,67 @@ class Gen_Has_TypeBoundProcedurePart(Gen_Has_):
 
     def hasname_in_type_bound_proc_part(self, name, cls):
         return self._hasname_in_list(self.type_bound_proc_part, name, cls)
+
+class Gen_Has_CallsToExternals(Gen_Has_):
+    from statements import Call
+    classes =  [ Call ]
+    def __init__(self):
+        self.calls_to_externals = []
+
+    def insert_in_calls_to_externals(self, item):
+        self.calls_to_externals.append(item)
+
+    def hasname_in_calls_to_externals(self, name, cls):
+        return self._hasname_in_list(self.calls_to_externals, name, cls)
+
+class Gen_Has_IoInputState(Gen_Has_):
+    from statements import Read, Write, Call
+    classes =  [ Read, Write, Call ]
+    def __init__(self):
+        self.io_input_state = []
+
+    def insert_in_io_input_state(self, item):
+        self.io_input_state.append(item)
+
+    def hasname_in_io_input_state(self, name, cls):
+        return self._hasname_in_list(self.io_input_state, name, cls)
+
+class Gen_Has_IoOutputState(Gen_Has_):
+    from statements import Read, Write, Call
+    classes =  [ Read, Write, Call ]
+    def __init__(self):
+        self.io_output_state = []
+
+    def insert_in_io_output_state(self, item):
+        self.io_output_state.append(item)
+
+    def hasname_in_io_output_state(self, name, cls):
+        return self._hasname_in_list(self.io_output_state, name, cls)
+
+class Gen_Has_VerifyState(Gen_Has_):
+    from statements import Call
+    classes =  [ Call ]
+    def __init__(self):
+        self.verify_state = []
+
+    def insert_in_verify_state(self, item):
+        self.verify_state.append(item)
+
+    def hasname_in_verify_state(self, name, cls):
+        return self._hasname_in_list(self.verify_state, name, cls)
+
+class Gen_Has_MeasureTiming(Gen_Has_):
+    from statements import Call, Write, Assignment
+    from block_statements import Do
+    classes =  [ Call, Do, Assignment, Write ]
+    def __init__(self):
+        self.measure_timing = []
+
+    def insert_in_measure_timing(self, item):
+        self.measure_timing.append(item)
+
+    def hasname_in_measure_timing(self, name, cls):
+        return self._hasname_in_list(self.measure_timing, name, cls)
 
 ########### Statement ############
 class Gen_Statement(object):
@@ -294,13 +354,16 @@ class Gen_Statement(object):
         assert stmt
         return '%s_%s'%(self._get_topname(stmt), stmt.name)
 
-    def get_typedecl_subpname(self, stmt):
+    def get_typedecl_subpname(self, stmt, enames=None):
         assert stmt
 
-        names = []
-        for entity in stmt.entity_decls:
-            var = stmt.get_variable(get_entity_name(entity))
-            if var is None: return
+        if enames is None:
+            enames = [ get_entity_name(ename) for ename in stmt.entity_decls]
+
+        subpnames = []
+        for ename in enames:
+            var = stmt.get_variable(ename)
+            if var is None: break
 
             l = [ stmt.name ]
             l.extend(list(stmt.selector))
@@ -309,8 +372,9 @@ class Gen_Statement(object):
             if var.is_pointer():
                 l.append('ptr')
 
-            names.append('_'.join(l))
-        return names
+            subpnames.append('_'.join(l))
+
+        return subpnames
 
     def process(self):
         pass
@@ -553,61 +617,53 @@ class Gen_TypeDeclarationStatement(object):
 
 class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement):
 
-                var = self.stmt.get_variable(get_entity_name(self.stmt.entity_decls[0]))
-
-                parent.add_line(parent.insert_in_subprograms)
-
-                subrobj = parent.create_subroutine()
-                subrobj.set_attr('name', vname)
-                subrobj.set_attr('args', ['varname', 'check_status', 'var', 'ref_var'])
-
-                #parent.add_line(subrobj.insert_in_use_stmts)
-
-                varnameobj = subrobj.create_typedeclstmt()
-                varnameobj.set_attr('typespec', 'CHARACTER')
-                varnameobj.set_attr('selector', '*')
-                varnameobj.append_attr('attrspec', 'INTENT(IN)')
-                varnameobj.append_attr('entity_decl', 'varname')
-
-                checkobj = subrobj.create_typedeclstmt()
-                checkobj.set_attr('typespec', 'TYPE')
-                checkobj.set_attr('selector', 'check_t')
-                checkobj.append_attr('attrspec', 'INTENT(INOUT)')
-                checkobj.append_attr('entity_decl', 'check_status')
-
-                varobj = subrobj.create_typedeclstmt(stmt=self.stmt)
-                for attrspec in self.stmt.attrspec:
-                    if attrspec in ['pointer', 'allocatable']:
-                        varobj.append_attr('attrspec', attrspec.upper())
-                if var.is_array():
-                    varobj.append_attr('attrspec', 'DIMENSION(%s)'% ','.join(':'*var.rank))
-                varobj.append_attr('attrspec', 'INTENT(IN)')
-                varobj.set_attr('entity_decl', ['var', 'ref_var'])
-
     def process(self):
         if self.isvalid:
-            if self.stmt and hasattr(self.stmt, 'geninfo'):
-                # limit typedecl items for IN items
-                items = []
-                out_items = []
+            if self.stmt and hasattr(self.stmt, 'geninfo') and \
+                KGGenType.has_state(self.stmt.geninfo):
+
+                # collect items
+                items = []; in_items = []; out_items = []
+                decls = []; in_decls = []; out_decls = []
                 for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
                     if not uname.firstpartname() in items:
-                        items.append(uname.firstpartname())
+                        iname = uname.firstpartname()
+                        ename = [ e for e in self.stmt.entity_decls if e. startswith(iname) ]
+                        assert len(ename)==1
+                        ename = ename[0]
+                        items.append(iname)
+                        decls.append(ename)
+                        if KGGenType.is_state_in_inout(req.gentype):
+                            in_items.append(iname)
+                            in_decls.append(ename)
                         if KGGenType.is_state_out_inout(req.gentype):
-                            out_items.append('ref_'+uname.firstpartname())
-                if items and (len(items)!=len(self.stmt.entity_decls) or \
-                    any(not self.stmt.entity_decls[i].startswith(item) for i, item in enumerate(items))):
-                    self.set_attr('entity_decl', items)
-                    if self.stmt.parent is State.parentblock['stmt']:
-                        self.set_attr('remove_intent', None)
+                            out_items.append('ref_%s'%iname)
+                            out_decls.append('ref_%s'%ename)
 
-                # add typedecl items for OUT items
+                #  in entities
+                if in_decls != self.stmt.entity_decls:
+                    self.set_attr('entity_decl', in_decls)
+
+                # create OUT typedecl items
+                outobj = None
                 if out_items:
-                    typedecleobj = GenK_TypeDeclarationStatement(self.stmt, self.k_id)
-                    typedecleobj.set_attr('entity_decl', out_items)
-                    if self.stmt.parent is State.parentblock['stmt']:
-                        typedecleobj.set_attr('remove_intent', None)
-                    self.parent.insert_in_decl_construct(typedecleobj)
+                    outobj = self.parent.create_typedeclstmt(self.stmt)
+                    self.set_attr('entity_decl', out_decls)
+
+                # process per location
+                if self.stmt.parent is State.parentblock['stmt']:
+                    # in parent block
+                    if any( attr.startswith('intent') for attr in self.stmt.attrspec):
+                        self.set_attr('remove_attr', 'intent')
+                        if outobj: outobj.set_attr('remove_attr', 'intent')
+
+                elif isinstance(self.parent, Gen_Module):
+                    # in module block
+                    pass
+
+                elif isinstance(self.parent, Gen_Program):
+                    # in program block
+                    pass
 
     def tokgen(self, **kwargs):
         typespec = None
@@ -630,12 +686,18 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         return '%s%s%s ::%s'%(typespec, selector, attrspec, entity_decl)
 
-    def gen_verify_subr(self, parent):
-        vnames = self.get_verifynames()
-        for vname in vnames:
+    def gen_verify_subr(self, parent, enames=None):
+
+        if enames is None:
+            enames = []
+            for entity in self.stmt.entity_decls:
+                enames.append(get_entity_name(entity))
+
+        vnames = self.get_verifynames(enames)
+        for ename, vname in zip(enames, vnames):
             if not parent.has_name(vname, GenK_Subroutine):
 
-                var = self.stmt.get_variable(get_entity_name(self.stmt.entity_decls[0]))
+                var = self.stmt.get_variable(ename)
 
                 parent.add_line(parent.insert_in_subprograms)
 
@@ -759,13 +821,13 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                 endsubrobj.set_attr('name', vname)
                 endsubrobj.set_attr('blockname', 'SUBROUTINE')
 
-    def get_readnames(self):
-        subpnames = self.get_typedecl_subpname(self.stmt)
+    def get_readnames(self, names=None):
+        subpnames = self.get_typedecl_subpname(self.stmt, names)
         if subpnames: return [ 'kr_%s'%sname for sname in subpnames ]
         else: return []
 
-    def get_verifynames(self):
-        subpnames = self.get_typedecl_subpname(self.stmt)
+    def get_verifynames(self, names=None):
+        subpnames = self.get_typedecl_subpname(self.stmt, names)
         if subpnames: return [ 'kv_%s'%sname for sname in subpnames ]
         else: return []
 
@@ -775,8 +837,8 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
             if self.stmt:
                 pass
 
-    def get_writenames(self):
-        subpnames = self.get_typedecl_subpname(stmt)
+    def get_writenames(self, names):
+        subpnames = self.get_typedecl_subpname(stmt, names)
         if subpnames: return [ 'kw_%s'%sname for sname in subpnames ]
         else: return []
 

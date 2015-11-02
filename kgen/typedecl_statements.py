@@ -115,6 +115,15 @@ class TypeDeclarationStatement(Statement):
             for attr in kwargs['attrspec']:
                 attrs.append(attr)
 
+        if kwargs.has_key('remove_attr') and kwargs['remove_attr']:
+            newattrs = []
+            for attr in attrs:
+                if any(attr.startswith(rattr) for rattr in kwargs['remove_attr']):
+                    pass
+                else:
+                    newattrs.append(attr)
+            attrs = newattrs
+
         s = self.tostr()
         if self.attrspec:
             s += ', ' + ', '.join(attrs)
