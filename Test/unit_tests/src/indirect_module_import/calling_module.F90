@@ -47,6 +47,8 @@ module calling_module
             real(real_kind), intent(in) :: value
 
             call add_kernel(atype)
+            save_array = atype%a
+            save_value = save_array(1,1) + value
         end subroutine
 
 end module

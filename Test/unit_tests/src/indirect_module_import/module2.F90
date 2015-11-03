@@ -1,9 +1,9 @@
 module module2
-    USE kernel, only : add_kernel => add, typeA
+    USE kernel, only : add_kernel => add, typeA, save_array, save_value
 
     private
 
-    public add_kernel, typeA
+    public add_kernel, typeA, save_array, save_value
 
 contains
 

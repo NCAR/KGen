@@ -21,12 +21,14 @@ def _genobj(node, k_id, gentype):
     from block_statements import TypeDecl
 
     obj = None
-    for cls in inspect.getmro(node.__class__):    
+    for i, cls in enumerate(inspect.getmro(node.__class__)):
         try:
             clsname = cls.__name__
             if cls.__name__=='Type':
                 if cls is TypeDecl: clsname = 'TypeDecl'
                 elif cls is TypeStmt: clsname = 'TypeStmt'
+            if i==0 and node is State.topblock['stmt']: clsname += 'T'
+            if i==0 and node is State.parentblock['stmt']: clsname += 'P'
             exec('obj = Gen%s_%s(node, k_id)'%(gentype, clsname))  
             break
         except NameError as e:
@@ -189,41 +191,65 @@ class Gen_Has_TypeBoundProcedurePart(Gen_Has_):
     def hasname_in_type_bound_proc_part(self, name, cls):
         return self._hasname_in_list(self.type_bound_proc_part, name, cls)
 
-class Gen_Has_CallsToExternals(Gen_Has_):
+class Gen_Has_InputModuleState(Gen_Has_):
     from statements import Call
     classes =  [ Call ]
     def __init__(self):
-        self.calls_to_externals = []
+        self.input_module_state = []
 
-    def insert_in_calls_to_externals(self, item):
-        self.calls_to_externals.append(item)
+    def insert_in_input_module_state(self, item):
+        self.input_module_state.append(item)
 
-    def hasname_in_calls_to_externals(self, name, cls):
-        return self._hasname_in_list(self.calls_to_externals, name, cls)
+    def hasname_in_input_module_state(self, name, cls):
+        return self._hasname_in_list(self.input_module_state, name, cls)
 
-class Gen_Has_IoInputState(Gen_Has_):
+class Gen_Has_OutputModuleState(Gen_Has_):
+    from statements import Call
+    classes =  [ Call ]
+    def __init__(self):
+        self.output_module_state = []
+
+    def insert_in_output_module_state(self, item):
+        self.output_module_state.append(item)
+
+    def hasname_in_output_module_state(self, name, cls):
+        return self._hasname_in_list(self.output_module_state, name, cls)
+
+class Gen_Has_InputLocalState(Gen_Has_):
     from statements import Read, Write, Call
     classes =  [ Read, Write, Call ]
     def __init__(self):
-        self.io_input_state = []
+        self.input_local_state = []
 
-    def insert_in_io_input_state(self, item):
-        self.io_input_state.append(item)
+    def insert_in_input_local_state(self, item):
+        self.input_local_state.append(item)
 
-    def hasname_in_io_input_state(self, name, cls):
-        return self._hasname_in_list(self.io_input_state, name, cls)
+    def hasname_in_input_local_state(self, name, cls):
+        return self._hasname_in_list(self.input_local_state, name, cls)
 
-class Gen_Has_IoOutputState(Gen_Has_):
+class Gen_Has_OutputLocalState(Gen_Has_):
     from statements import Read, Write, Call
     classes =  [ Read, Write, Call ]
     def __init__(self):
-        self.io_output_state = []
+        self.output_local_state = []
 
-    def insert_in_io_output_state(self, item):
-        self.io_output_state.append(item)
+    def insert_in_output_local_state(self, item):
+        self.output_local_state.append(item)
 
-    def hasname_in_io_output_state(self, name, cls):
-        return self._hasname_in_list(self.io_output_state, name, cls)
+    def hasname_in_output_local_state(self, name, cls):
+        return self._hasname_in_list(self.output_local_state, name, cls)
+
+class Gen_Has_CallsiteStmts(Gen_Has_):
+    from block_statements import execution_part
+    classes = execution_part
+    def __init__(self):
+        self.callsite_stmts = []
+
+    def insert_in_callsite_stmts(self, item):
+        self.callsite_stmts.append(item)
+
+    def hasname_in_callsite_stmts(self, name, cls):
+        return self._hasname_in_list(self.callsite_stmts, name, cls)
 
 class Gen_Has_VerifyState(Gen_Has_):
     from statements import Call
@@ -941,7 +967,7 @@ class Gen_BeginStatement(object):
         classes = []
         matched = False
         for blockcls in class_order:
-            if item.stmt.__class__ in blockcls.classes:
+            if not matched and item.stmt.__class__ in blockcls.classes:
                 matched = True
                 insert_in_list(blockcls, item)
             if matched:
@@ -1165,7 +1191,7 @@ class Gen_Module(object):
     def process_module_items(self):
         from block_statements import EndModule
 
-        class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, \
+        class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, \
             Gen_Has_ContainsStmt, Gen_Has_Subprograms]
         end_classes = [ EndModule ]
 
@@ -1179,7 +1205,6 @@ class Gen_Module(object):
         lines.extend(self.tostr_list(self.import_stmts))
         lines.extend(self.tostr_list(self.implicit_part))
         lines.extend(self.tostr_list(self.decl_construct))
-        lines.extend(self.tostr_list(self.exe_part))
         if len(self.contains_stmt)>0:
             lines.extend(self.tostr_list(self.contains_stmt))
         elif len(self.subprograms)>0:
@@ -1188,7 +1213,7 @@ class Gen_Module(object):
         return lines
 
 class GenK_Module(GenK_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
-    Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
+    Gen_Has_DeclConstruct, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
 
     def process(self):
         if self.isvalid:
@@ -1215,7 +1240,7 @@ class GenK_Module(GenK_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_Imp
             return '\n'.join(lines)
 
 class GenS_Module(GenS_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
-    Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
+    Gen_Has_DeclConstruct, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
 
     def process(self):
         if self.isvalid:
@@ -1243,6 +1268,79 @@ class GenK_EndModule(GenK_EndStatement, Gen_EndModule):
                 return 'END PROGRAM kernel_%s'%Config.callsite['subpname'].firstpartname()
             else:
                 return super(GenK_EndModule, self).tostr()
+
+########### ModuleT ############
+class Gen_ModuleT(object):
+    def process_module_items(self):
+        from block_statements import EndModule
+
+        class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, \
+            Gen_Has_ContainsStmt, Gen_Has_Subprograms]
+        end_classes = [ EndModule ]
+
+        for item in self.items:
+            class_order = self.insert_in_order(item, class_order, end_classes)
+            item.process()
+
+    def tostr_module(self):
+        lines = []
+        lines.extend(self.tostr_list(self.use_stmts))
+        lines.extend(self.tostr_list(self.import_stmts))
+        lines.extend(self.tostr_list(self.implicit_part))
+        lines.extend(self.tostr_list(self.decl_construct))
+        lines.extend(self.tostr_list(self.exe_part))
+        if len(self.contains_stmt)>0:
+            lines.extend(self.tostr_list(self.contains_stmt))
+        elif len(self.subprograms)>0:
+            lines.append('CONTAINS')
+        lines.extend(self.tostr_list(self.subprograms))
+        return lines
+
+class GenK_ModuleT(GenK_BeginStatement, Gen_ModuleT, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
+    Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
+
+    def process(self):
+        if self.isvalid:
+            self.process_blockhead()
+            self.process_module_items()
+            useobj = self.create_use()
+            useobj.set_attr('name', 'kgen_utils_mod')
+            useobj.extend_attr('items', ['check_t', 'kgen_init_check'])
+   
+
+    def tostr(self):
+        if self.isvalid:
+            lines = []
+
+            if self.stmt is State.topblock['stmt']:
+                l = 'PROGRAM kernel_%s'%Config.callsite['subpname'].firstpartname()
+            else:
+                l = self.tostr_blockhead()
+            if l is not None: lines.append(l)
+
+            lines.extend(self.tostr_module())
+            if self.end_obj: lines.append(self.end_obj.tostr())
+
+            return '\n'.join(lines)
+
+class GenS_ModuleT(GenS_BeginStatement, Gen_ModuleT, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
+    Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
+
+    def process(self):
+        if self.isvalid:
+            self.process_blockhead()
+            self.process_module_items()
+
+    def tostr(self):
+        if self.isvalid:
+            lines = []
+
+            l = self.tostr_blockhead()
+            if l is not None: lines.append(l)
+            lines.extend(self.tostr_module())
+            if self.end_obj: lines.append(self.end_obj.tostr())
+        
+            return '\n'.join(lines)
 
 ########### SubProgramStatement ############
 class Gen_SubProgramStatement(object):
@@ -1322,7 +1420,6 @@ class Gen_Subroutine(object):
     pass
 
 class GenK_Subroutine(GenK_SubProgramStatement, Gen_Subroutine):
-
     def tokgen(self, **kwargs):
         name = None
         if kwargs.has_key('name'):
@@ -1344,6 +1441,77 @@ class GenK_Subroutine(GenK_SubProgramStatement, Gen_Subroutine):
         return '%sSUBROUTINE %s( %s )%s'%(prefix, name, args, suffix)
 
 class GenS_Subroutine(GenS_SubProgramStatement, Gen_Subroutine):
+    pass
+
+########### SubroutineP ############
+class Gen_SubroutineP(object):
+    pass
+ 
+class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputModuleState, Gen_Has_InputLocalState, \
+    Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_CallsiteStmts, Gen_Has_VerifyState, Gen_Has_MeasureTiming):
+
+    def process_subp_items(self):
+        from block_statements import EndSubroutine
+
+        class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, \
+            Gen_Has_CallsiteStmts, Gen_Has_ContainsStmt, Gen_Has_Subprograms]
+        end_classes = [ EndSubroutine ]
+
+        self.add_comment('read input module state', self.insert_in_input_module_state)
+        self.add_comment('read input local state', self.insert_in_input_local_state)
+        self.add_comment('read output module state', self.insert_in_output_module_state)
+        self.add_comment('read output local state', self.insert_in_output_local_state)
+        self.add_comment('callsite statements', self.insert_in_callsite_stmts)
+        self.add_comment('verify state', self.insert_in_verify_state)
+        self.add_comment('measure timing', self.insert_in_measure_timing)
+
+        for item in self.items:
+            class_order = self.insert_in_order(item, class_order, end_classes)
+            item.process()
+
+    def tostr_subp(self):
+        lines = []
+        lines.extend(self.tostr_list(self.use_stmts))
+        lines.extend(self.tostr_list(self.import_stmts))
+        lines.extend(self.tostr_list(self.implicit_part))
+        lines.extend(self.tostr_list(self.decl_construct))
+        lines.extend(self.tostr_list(self.input_module_state))
+        lines.extend(self.tostr_list(self.input_local_state))
+        lines.extend(self.tostr_list(self.output_module_state))
+        lines.extend(self.tostr_list(self.output_local_state))
+        lines.extend(self.tostr_list(self.callsite_stmts))
+        lines.extend(self.tostr_list(self.verify_state))
+        lines.extend(self.tostr_list(self.measure_timing))
+        if len(self.contains_stmt)>0:
+            lines.extend(self.tostr_list(self.contains_stmt))
+        elif len(self.subprograms)>0:
+            lines.append('CONTAINS')
+        lines.extend(self.tostr_list(self.subprograms))
+        return lines
+
+
+    def tokgen(self, **kwargs):
+        name = None
+        if kwargs.has_key('name'):
+            name = kwargs['name']
+        if name is None: raise ProgramException('No subroutine name is provided in call stmt.')
+        
+        args = ''
+        if kwargs.has_key('args'):
+            args = ', '.join(kwargs['args'])
+
+        prefix = ''
+        if kwargs.has_key('prefix'):
+            prefix = ', '.join(kwargs['prefix']) + ' '
+
+        suffix = ''
+        if kwargs.has_key('suffix'):
+            suffix = ' ' + ', '.join(kwargs['suffix'])
+
+        return '%sSUBROUTINE %s( %s )%s'%(prefix, name, args, suffix)
+
+class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputModuleState, Gen_Has_InputLocalState, \
+    Gen_Has_OutputModuleState, Gen_Has_OutputLocalState):
     pass
 
 ########### IfThen ############
