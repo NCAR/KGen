@@ -4,7 +4,9 @@
 import os
 import re
 import sys
+from copy import deepcopy
 from Fortran2003 import Name, Data_Ref
+from ConfigParser import RawConfigParser
 
 #############################################################################
 ## COMMON
@@ -61,12 +63,90 @@ class KGName(object):
     def __str__(self):
         raise Exception('KGName')
 
-def get_namepath(stmt):
-    return EXTERNAL_NAMELEVEL_SEPERATOR.join([ a.name.lower() for a in stmt.ancestors() ])
+def _get_namepath(stmt, external):
+    if external:
+        return EXTERNAL_NAMELEVEL_SEPERATOR.join([ a.name.lower() for a in stmt.ancestors() ])
+    else:
+        return INTERNAL_NAMELEVEL_SEPERATOR.join([ a.name.lower() for a in stmt.ancestors() ])
 
-def pack_namepath(stmt, lastname):
-    return '%s%s%s'%(get_namepath(stmt), EXTERNAL_NAMELEVEL_SEPERATOR, lastname)
+def _pack_namepath(stmt, lastname, external):
+    if external:
+        return '%s%s%s'%(_get_namepath(stmt, True), EXTERNAL_NAMELEVEL_SEPERATOR, lastname)
+    else:
+        return '%s%s%s'%(_get_namepath(stmt, False), INTERNAL_NAMELEVEL_SEPERATOR, lastname)
 
+def pack_innamepath(stmt, name):
+    return _pack_namepath(stmt, name, False)
+
+def pack_exnamepath(stmt, name):
+    return _pack_namepath(stmt, name, True)
+
+def get_innamepath(stmt):
+    return _get_namepath(stmt, False)
+
+def get_exnamepath(stmt):
+    return _get_namepath(stmt, True)
+
+def match_namepath(pattern, namepath, internal=True):
+
+#name -> name in the beginning and the end
+#:name: -> name in any location
+#name: -> name at the beginning
+#:name -> name at the end
+#name1:name2 -> two level name
+#name1:name2: -> more than two level name starts with the two names
+#:name1:name2 -> more than two level name ends with the two names
+#:name1:name2: -> more than two level name that the two name locates in the middle
+#eventually data slicing
+
+    if not pattern or not namepath: return False
+
+    if internal:
+        split_pattern = pattern.split(INTERNAL_NAMELEVEL_SEPERATOR)
+        split_namepath = namepath.split(INTERNAL_NAMELEVEL_SEPERATOR)
+    else:
+        split_pattern = pattern.split(EXTERNAL_NAMELEVEL_SEPERATOR)
+        split_namepath = namepath.split(EXTERNAL_NAMELEVEL_SEPERATOR)
+
+    p = list(split_pattern)
+
+    leading_mark = False
+    if len(p[0])==0:
+        leading_mark = True
+        p = p[1:]
+
+    ending_mark = False
+    if len(p[-1])==0:
+        ending_mark = True
+        p = p[:-1]
+        if len(p)==0:
+            raise UserException('Wrong namepath format: %s'%split_pattern)
+
+    n = list(split_namepath)
+    while len(p)>0 and len(n)>0:
+        if p[0]==n[0]:
+            p = p[1:]
+            n = n[1:]
+        elif leading_mark:
+            n = n[1:]
+        elif len(p[0])==0:
+            leading_mark = True
+            p = p[1:]
+        else:
+            return False
+
+    if len(p)==0:
+        if len(n)>0:
+            if ending_mark: return True
+            return False
+        else:
+            return True
+    else:
+        if len(n)>0:
+            raise ProgramException('Incorrect namepath match: (%s, %s)'%(split_pattern, split_namepath))
+        else:
+            return False
+        
 def singleton(cls):
     """ singleton generator """
 
@@ -136,6 +216,47 @@ def show_tree(node, prevent_print=False):
         lines.append(line+'\n')
     return lines
 
+class KgenConfigParser(RawConfigParser):
+    def __init__(self, *args, **kwargs):
+        RawConfigParser.__init__(self, *args, **kwargs)
+        self.optionxform = str
+
+    def _optname_colon_to_dot(self, line):
+        newline = line.strip()
+
+        if len(newline)>0:
+            if newline[0]==';':
+                return line
+            elif newline[0]=='[' and newline[-1]==']':
+                return line.replace(':', INTERNAL_NAMELEVEL_SEPERATOR)
+            else:
+                pos = line.find('=')
+                if pos>0:
+                    return line[:pos].replace(':', INTERNAL_NAMELEVEL_SEPERATOR) + line[pos:]
+                else:
+                    raise UserException('KGEN requires an equal symbol at each option line')
+        else:
+            return line
+
+    def read(self, filenames):
+        from StringIO import StringIO
+
+        if isinstance(filenames, basestring):
+            filenames = [filenames]
+        for filename in filenames:
+            try:
+                fp = open(filename)
+            except IOError:
+                continue
+
+            lines = []
+            for line in fp.readlines():
+                lines.append(self._optname_colon_to_dot(line))
+            fp.close()
+
+            buf = StringIO(''.join(lines))
+            self._read(buf, filename)
+
 #############################################################################
 ## EXCEPTION
 #############################################################################
@@ -154,11 +275,10 @@ class ProgramException(KGException):
 #############################################################################
 
 def process_include_option(include_option, incattrs):
-    import ConfigParser
 
     # collect include configuration information
-    Inc = ConfigParser.RawConfigParser()
-    Inc.optionxform = str
+    Inc = KgenConfigParser()
+    #Inc.optionxform = str
     Inc.read(include_option)
     for section in Inc.sections():
         lsection = section.lower().strip()
@@ -166,6 +286,12 @@ def process_include_option(include_option, incattrs):
         if lsection in [ 'type', 'macro' ]:
             for option in Inc.options(section):
                 incattrs[lsection][option] = Inc.get(section, option).strip()
+        elif lsection=='import':
+            for option in Inc.options(section):
+                subflags = {}
+                for subf in Inc.get(section, option).split(','):
+                    subflags[subf.strip()] = None
+                incattrs[lsection][option] = subflags
         elif lsection=='include':
             for option in Inc.options(section):
                 incattrs['path'].append(option.strip())
@@ -185,14 +311,17 @@ def process_include_option(include_option, incattrs):
             print '%s is either not suppored keyword or can not be found. Ignored.' % section
 
 def process_exclude_option(exclude_option, excattrs):
-    import ConfigParser
 
     # collect exclude configuration information
-    Exc = ConfigParser.RawConfigParser()
-    Exc.optionxform = str
+    Exc = KgenConfigParser()
+    #Exc.optionxform = str
     Exc.read(exclude_option)
     for section in Exc.sections():
         lsection = section.lower().strip()
+        if lsection=='common':
+            print 'ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead'
+            sys.exit(-1)
+
         excattrs[lsection] = {}
         for option in Exc.options(section):
             loption = option.lower().strip()
@@ -213,7 +342,7 @@ class Config(object):
 
         # kgen parameters
         self._attrs['kgen'] = {}
-        self._attrs['kgen']['version'] = [ 0, 5, '2' ]
+        self._attrs['kgen']['version'] = [ 0, 5, '3' ]
 
         # Fortran parameters
         self._attrs['fort'] = {}
@@ -231,7 +360,7 @@ class Config(object):
 
         # external tool parameters
         self._attrs['bin'] = {}
-        self._attrs['bin']['pp'] = 'fpp'
+        self._attrs['bin']['pp'] = 'cpp'
         self._attrs['bin']['cpp_flags'] = '-w -traditional'
         self._attrs['bin']['fpp_flags'] = '-w'
 
@@ -250,7 +379,6 @@ class Config(object):
         self._attrs['path']['outdir'] = '.'
         self._attrs['path']['state'] = 'state'
         self._attrs['path']['kernel'] = 'kernel'
-        self._attrs['path']['alias'] = {}
 
         # mpi parameters
         self._attrs['mpi'] = {}
@@ -270,6 +398,13 @@ class Config(object):
         self._attrs['timing'] = {}
         self._attrs['timing']['repeat'] = 10
 
+        # source file parameters
+        self._attrs['source'] = {}
+        self._attrs['source']['isfree'] = None
+        self._attrs['source']['isstrict'] = None
+        self._attrs['source']['alias'] = {}
+        self._attrs['source']['file'] = {}
+
         # verification parameters
         self._attrs['verify'] = {}
         self._attrs['verify']['tolerance'] = '1.E-14'
@@ -280,6 +415,7 @@ class Config(object):
         self._attrs['include']['macro'] = {}
         self._attrs['include']['path'] = ['.']
         self._attrs['include']['type'] = {}
+        self._attrs['include']['import'] = {}
         self._attrs['include']['file'] = {}
 
         # exclude parameters
@@ -294,6 +430,7 @@ class Config(object):
         self._attrs['kernel_link']['include'] = []
         self._attrs['kernel_link']['pre_cmds'] = []
         self._attrs['kernel_link']['lib'] = []
+        self._attrs['kernel_link']['obj'] = []
 
         # make state parameters
         self._attrs['state_build'] = {}
@@ -327,17 +464,18 @@ class Config(object):
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
 	parser.add_option("--verify", dest="verify", action='store', type='string', default=None, help="Kernel variables verification information")
-        parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='append', type='string', default=None, help="Skip intrinsic procedures during searching")
-        parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='append', type='string', default=None, help="Do not skip intrinsic procedures during searching")
+        parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
+        parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
+        parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
+        parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
         parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
         parser.add_option("--state-switch", dest="state_switch", action='append', type='string', help="Specifying how to switch orignal sources with instrumented ones.")
         parser.add_option("--state-build", dest="state_build", action='append', type='string', help="Build information to generate makefile")
         parser.add_option("--state-run", dest="state_run", action='append', type='string', help="Run information to generate makefile")
-        #parser.add_option("--alias", dest="alias", action='append', type='string', help="Name aliasing information")
-        parser.add_option("--alias", dest="alias", action='append', type='string', help=optparse.SUPPRESS_HELP)
         parser.add_option("--check", dest="check", action='append', type='string', help="Kernel correctness check information")
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
+        parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
 
         opts, args = parser.parse_args()
         if len(args)<1:
@@ -348,6 +486,14 @@ class Config(object):
             self._process_analysis_flags(opts)
             self._attrs['check_mode'] = args
             return
+
+        # old options
+        if opts.skip_intrinsic:
+            print "skip-intrinsic flag is discarded. Please use --intrinsic skip instead"
+            sys.exit(-1)
+        if opts.noskip_intrinsic:
+            print "noskip-intrinsic flag is discarded. Please use --intrinsic noskip instead"
+            sys.exit(-1)
 
         callsite = args[0].split(':', 1)
         if not os.path.isfile(callsite[0]):
@@ -423,42 +569,43 @@ class Config(object):
 
         # check if exists fpp or cpp
         output = ''
-        try: output = exec_cmd('which fpp', show_error_msg=False).strip()
+        try: output = exec_cmd('which cpp', show_error_msg=False).strip()
         except Exception as e: pass
-        if output.endswith('fpp'):
+        if output.endswith('cpp'):
             self.bin['pp'] = output
         else:
             output = ''
-            try: output = exec_cmd('which cpp', show_error_msg=False).strip()
+            try: output = exec_cmd('which fpp', show_error_msg=False).strip()
             except Exception as e: pass
-            if output.endswith('cpp'):
+            if output.endswith('fpp'):
                 self.bin['pp'] = output
             else:
                 print 'ERROR: neither cpp or fpp is found'
                 sys.exit(-1)
 
         # parsing intrinsic skip option
-        if opts.noskip_intrinsic:
-            self._attrs['search']['skip_intrinsic'] = False
-            for line in opts.noskip_intrinsic:
-                for noskip in line.lower().split(','):
-                    key, value = noskip.split('=')
-                    if key=='except':
-                        self._attrs['search']['except'].extend(value.split(':'))
-                    else:
-                        raise UserException('Unknown noskip_intrinsic option: %s' % comp)
+        if opts.intrinsic:
+            subflags = []
+            for line in opts.intrinsic:
+                subflags.extend(line.split(','))
 
-        if opts.skip_intrinsic:
-            self._attrs['search']['skip_intrinsic'] = True
-            for line in opts.skip_intrinsic:
-                for skip in line.lower().split(','):
-                    key, value = skip.split('=')
+            for subf in subflags:
+                if subf and subf.find('=')>0:
+                    key, value = subf.split('=')
                     if key=='except':
                         self._attrs['search']['except'].extend(value.split(':'))
                     elif key=='add_intrinsic':
                         Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
                     else:
-                        raise UserException('Unknown skip_intrinsic option: %s' % comp)
+                        raise UserException('Unknown intrinsic sub option: %s' % subf)
+                else:
+                    if subf=='skip':
+                        self._attrs['search']['skip_intrinsic'] = True
+                    elif subf=='noskip':
+                        self._attrs['search']['skip_intrinsic'] = False
+                    else:
+                        raise UserException('Unknown intrinsic option(s) in %s' % subf)
+                       
 
         # parsing include parameters
         if opts.include:
@@ -489,6 +636,86 @@ class Config(object):
                         self._attrs['include']['macro'][macro_eq[0]] = macro_eq[1]
                     else: raise UserException('Wrong format include: %s'%inc)
 
+        files = None
+        if opts.source:
+            for line in opts.source:
+                flags = {}
+                for subflag in line.lower().split(','):
+                    if subflag.find('=')>0:
+                        key, value = subflag.split('=')
+                        if key=='file':
+                            flags[key] = value.split(':')
+                        elif key=='alias':
+                            p1, p2 = value.split(':')
+                            if p1.endswith('/'): p1 = p1[:-1]
+                            if p2.endswith('/'): p2 = p2[:-1]
+                            self._attrs['source']['alias'][p1] = p2
+                        else:
+                            flags[key] = value 
+                    else:
+                        flags[subflag] = None
+
+                isfree = None
+                isstrict = None
+                if flags.has_key('format'):
+                    if flags['format']=='free': isfree = True 
+                    elif flags['format']=='fixed': isfree = False 
+                    else: raise UserException('format subflag of source flag should be either free or fixed.')
+
+                if flags.has_key('strict'):
+                    if flags['strict']=='yes': isstrict = True 
+                    elif flags['strict']=='no': isstrict = False 
+                    else: raise UserException('strict subflag of source flag should be either yes or no.')
+
+                if flags.has_key('file'):
+                    subflags = {}
+                    if isfree: subflags['isfree'] = isfree
+                    if isstrict: subflags['isstrict'] = isstrict
+                    for file in flags['file']:
+                        abspath = os.path.abspath(file)
+                        if files is None: files = []
+                        files.append(abspath)
+                        self._attrs['source']['file'][abspath] = subflags
+                else:
+                    if isfree: self._attrs['source']['isfree'] = isfree
+                    if isstrict: self._attrs['source']['isstrict'] = isstrict
+
+        # dupulicate paths per each alias
+        if files is None:
+            newpath = set() 
+            for path in self._attrs['include']['path']:
+                newpath.add(path)
+                for p1, p2 in self._attrs['source']['alias'].iteritems():
+                    if path.startswith(p1):
+                        newpath.add(p2+path[len(p1):])
+                    elif path.startswith(p2):
+                        newpath.add(p1+path[len(p2):])
+            self._attrs['include']['path'] = list(newpath)
+
+        newfile = {} 
+        for path, value in self._attrs['include']['file'].iteritems():
+            newfile[path] = value
+            for p1, p2 in self._attrs['source']['alias'].iteritems():
+                if path.startswith(p1):
+                    newpath = p2+path[len(p1):]
+                    newfile[newpath] = deepcopy(value) 
+                elif path.startswith(p2):
+                    newpath = p1+path[len(p2):]
+                    newfile[newpath] = deepcopy(value) 
+        self._attrs['include']['file'] = newfile
+
+        for path, value in self._attrs['include']['file'].iteritems():
+            if value.has_key('path'):
+                newpath = set()
+                for path in value['path']:
+                    newpath.add(path)
+                    for p1, p2 in self._attrs['source']['alias'].iteritems():
+                        if path.startswith(p1):
+                            newpath.add(p2+path[len(p1):])
+                        elif path.startswith(p2):
+                            newpath.add(p1+path[len(p2):])
+                value['path'] = list(newpath)
+
     def process_commandline(self, opts):
 
         self._process_analysis_flags(opts)
@@ -496,7 +723,11 @@ class Config(object):
         # parsing invocation parameters
         if opts.invocation:
             self._attrs['invocation']['numbers'] = []
-            for ord in opts.invocation.split(','):
+            if opts.invocation.find(',')>0:
+                print 'ERROR: Please use colon to separate invocation numbers of invocation flag instead of comma.'
+                sys.exit(-1)
+
+            for ord in opts.invocation.split(':'):
                 if ord.isdigit():
                     self._attrs['invocation']['numbers'].append(ord)
             self._attrs['invocation']['numbers'].sort()
@@ -601,13 +832,6 @@ class Config(object):
             os.makedirs(self._attrs['path']['outdir'])
         os.chdir(self._attrs['path']['outdir'])
 
-        # path nicknames
-        if opts.alias:
-            for line in opts.alias:
-                for pathalias in line.split(','):
-                    key, value = pathalias.split('=')
-                    self._attrs['path']['alias'][key] = value
-
         # kernel correctness checks 
         if opts.check:
             for line in opts.check:
@@ -633,6 +857,17 @@ class Config(object):
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
 
+        # parsing logging options
+        if opts.logging:
+            for log in opts.logging:
+                param_path, value = log.split('=')
+                param_split = param_path.lower().split('.')
+                value_split = value.lower().split(',')
+                curdict = self._attrs['logging']
+                for param in param_split[:-1]:
+                    curdict = curdict[param] 
+                exec('curdict[param_split[-1]] = value_split')
+
     def __getattr__(self, name):
         return self._attrs[name]
 
@@ -648,12 +883,8 @@ def check_logging(func):
         if Config.logging['select'].has_key('name'):
             exe_func = False
             if kwargs.has_key('name'):
-                np1 = kwargs['name'].namepath.lower()
-                for np2 in Config.logging['select']['name']:
-                    np1_split = decode_NS(np1).split('.')
-                    np2_split = np2.split('.')
-                    minlen = min(len(np1_split), len(np2_split))
-                    if np1_split[-1*minlen:]==np2_split[-1*minlen:]:
+                for pattern in Config.logging['select']['name']:
+                    if match_namepath(encode_NS(pattern), kwargs['name'].namepath):
                         exe_func = True
                         break
 

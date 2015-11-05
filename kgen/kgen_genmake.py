@@ -31,37 +31,32 @@ def generate_kernel_makefile():
     # source files
     kernel_driver_file = 'kernel_driver.f90'
     kgen_utils_file = 'kgen_utils.f90'
-    #kgen_utils_file = 'kgen_utils.f90'
     callsite_file = State.topblock['path']
 
     #basenames
     callsite_base = os.path.basename(State.topblock['path'])
-    mod_bases = [ os.path.basename(path) for path in State.modfiles.keys() ]
+    dep_bases = [ os.path.basename(path) for path in State.depfiles.keys() ]
 
     # all object files
-    #all_objs = [ obj(kernel_driver_file), obj(kgen_utils_file), obj(callsite_base) ] + \
     all_objs = [ obj(kernel_driver_file), obj(callsite_base), obj(kgen_utils_file) ] + \
-        [ obj(mod_base) for mod_base in mod_bases ]
+        [ obj(dep_base) for dep_base in dep_bases ]
 
-    # depends
-    kernel_driver_depends = [ obj(callsite_base), obj(kgen_utils_file) ] + [ obj(mod_base) for mod_base in mod_bases ]
+    # dependency
+    kernel_driver_depends = [ obj(callsite_base), obj(kgen_utils_file) ] + [ obj(dep_base) for dep_base in dep_bases ]
 
-    callsite_depends = [ obj(kgen_utils_file) ]
-    for mod in State.topblock['mod_depends']:
-        if mod.reader.id!=callsite_file and \
-            not obj(os.path.basename(mod.reader.id)) in callsite_depends:
-            callsite_depends.append(obj(os.path.basename(mod.reader.id)))
-    #callsite_depends.append(obj(kgen_utils_file))
-
-    mod_depends = {}
-    for abspath, (srcfile, depends) in State.modfiles.iteritems():
+    depends = {}
+    for abspath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
         dep = [ obj(kgen_utils_file) ] 
-        for mod in depends:
+        for mod in mods_used:
             if mod.reader.id!=abspath and \
                 not obj(os.path.basename(mod.reader.id)) in dep:
                 dep.append(obj(os.path.basename(mod.reader.id)))
-        mod_depends[os.path.basename(abspath)] = ' '.join(dep)
+        for unit in units_used:
+            if unit.item.reader.id!=abspath and \
+                not obj(os.path.basename(unit.item.reader.id)) in dep:
+                dep.append(obj(os.path.basename(unit.item.reader.id)))
 
+        depends[os.path.basename(abspath)] = ' '.join(dep)
 
     # prerun commands
     pre_cmds = ''
@@ -99,12 +94,8 @@ def generate_kernel_makefile():
         write(f, '${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
         write(f, '')
 
-        write(f, '%s: %s %s' % (obj(callsite_base), callsite_base, ' '.join(callsite_depends)))
-        write(f, '${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
-        write(f, '')
-
-        for mod_base in mod_bases:
-            write(f, '%s: %s %s' % (obj(mod_base), mod_base, mod_depends[mod_base]))
+        for dep_base in dep_bases:
+            write(f, '%s: %s %s' % (obj(dep_base), dep_base, depends[dep_base]))
             write(f, '${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
             write(f, '')
 
@@ -113,12 +104,12 @@ def generate_kernel_makefile():
         write(f, '')
            
         write(f, 'clean:')
-        write(f, 'rm -f kernel.exe *.mod *.o', t=True)
+        write(f, 'rm -f kernel.exe *.mod ${ALL_OBJS}', t=True)
     pass
 
 def generate_state_makefile():
 
-    org_files = [ filepath for filepath, (srcfile, mods_used) in State.modfiles.iteritems() if srcfile.used4genstate ] + [ State.topblock['path'] ]
+    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems() if srcfile.used4genstate ] + [ State.topblock['path'] ]
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
         write(f, 'run: build')
         if Config.state_run['cmds']>0:

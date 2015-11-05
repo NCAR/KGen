@@ -47,90 +47,113 @@ def generate_kernel():
     else:
         raise ProgramException('Unknown top module type: %s' % State.topblock['stmt'].__class__)
 
-    generate_kernel_files()
+    generate_kernel_module_files()
 
     State.state = State.KERNEL_GENERATED
 
-def generate_kernel_files():
+def generate_program_unit(f, tree, depth):
+    from base_classes import BeginStatement
 
-    remove_modfiles = []
-
-    for filepath, (srcfile, mods_used) in State.modfiles.iteritems():
-        filename = os.path.basename(srcfile.abspath)
+    if isinstance(tree, BeginStatement):
         is_blank = True
-        kernel_file = '%s/%s'%(Config.path['kernel'], filename)
-        with open(kernel_file, 'wb') as f:
-            write_file_header(f, filename)
+        for stmt, d in walk(tree, -1):
+            if hasattr(stmt, 'unknowns') or hasattr(stmt, 'geninfo'):
+                is_blank = False
+            write_kernel_stmt(f, stmt, depth+d)
+        return tree.content[-1], is_blank
+    else:
+        raise ProgramException('A program unit of %s is not block type'%stmt.name)
 
-            target_stmt = None
-            mod_stmt = None 
-            for stmt, depth in walk(srcfile.tree, -1):
-                # if stmt is module
 
-                if stmt in srcfile.tree.a.module.values():
-                    mod_stmt = stmt
-                    if hasattr(stmt, 'spec_stmts'):
-                        contains_stmt = [ s for s in stmt.spec_stmts if isinstance(s, Contains) ]
-                        if len(contains_stmt)>1:
-                            raise ProgramException('More than on Contains stmts: %s'%contains_stmt)
-                        elif len(contains_stmt)==1:
-                            target_stmt = contains_stmt[0]
+def generate_kernel_module_files():
+
+    remove_depfiles = []
+
+    for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
+        if filepath!=State.topblock['path']:
+            filename = os.path.basename(srcfile.abspath)
+            is_blank = True
+            kernel_file = '%s/%s'%(Config.path['kernel'], filename)
+            with open(kernel_file, 'wb') as f:
+                write_file_header(f, filename)
+
+                target_stmt = None
+                mod_stmt = None 
+                end_punit_stmt = None 
+                for stmt, depth in walk(srcfile.tree, -1):
+                    # if stmt is module
+
+                    if stmt in srcfile.tree.a.module.values():
+                        mod_stmt = stmt
+                        if hasattr(stmt, 'spec_stmts'):
+                            contains_stmt = [ s for s in stmt.spec_stmts if isinstance(s, Contains) ]
+                            if len(contains_stmt)>1:
+                                raise ProgramException('More than on Contains stmts: %s'%contains_stmt)
+                            elif len(contains_stmt)==1:
+                                target_stmt = contains_stmt[0]
+                            else:
+                                target_stmt = stmt.content[-1]
                         else:
                             target_stmt = stmt.content[-1]
-                    else:
-                        target_stmt = stmt.content[-1]
 
-                    write_kernel_stmt(f, stmt, depth)
-
-                    if hasattr(stmt, 'unknowns') or hasattr(stmt, 'geninfo'):
-                        is_blank = False
-                        write_kernel_usepart_module(f, depth, State.modules[mod_stmt.name])
-
-                elif target_stmt and stmt is target_stmt:
-                    if mod_stmt:
-                        if len(State.modules[mod_stmt.name]['extern']['names'])>0:
-                            write(f, 'PUBLIC %s'%('kgen_read_externs_%s'%mod_stmt.name), depth+1)
-
-                        mod_num = State.modules[mod_stmt.name]['num']
-                        write_kernel_interface_read_var_mod(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'], \
-                            mod_num, State.modules[mod_stmt.name]['dtype'])
-
-                        if isinstance(stmt, Contains):
-                            write_kernel_stmt(f, stmt, depth)
-                            write_kernel_subroutines_read_var(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'])
-                        elif len(State.modules[mod_stmt.name]['extern']['names'])>0 or len(State.modules[mod_stmt.name]['dtype'])>0:
-                            write(f, 'CONTAINS', d=depth)
-                            write_kernel_subroutines_read_var(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'])
-                        else:
-                            write_kernel_subroutines_read_var(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'], contains=True)
-
-                        write_kernel_subroutine_module_externs(f, depth, State.modules[mod_stmt.name]['extern'], mod_stmt.name)
-                        write_kernel_subroutines_type_write_var(f, depth, State.modules[mod_stmt.name]['dtype'])
-                        write_kernel_subroutines_type_verify_var(f, depth, State.modules[mod_stmt.name]['dtype'])
-
-                        if isinstance(stmt, EndModule):
-                            write_kernel_stmt(f, stmt, depth)
-                        target_stmt = None
-                        mod_stmt = None
-                    else:
-                        raise PrpgramException('None target statement')
-                else: 
-                    if isinstance(stmt, Use):
-                        process_kernel_module_use_stmt(f, stmt, depth)
-                    elif isinstance(stmt, TypeDeclarationStatement):
-                        process_kernel_module_typedecl_stmt(f, stmt, depth)
-                    elif isinstance(stmt, Access) or isinstance(stmt, Parameter):
-                        process_kernel_module_spec_stmt(f, stmt, depth)
-                    else:
                         write_kernel_stmt(f, stmt, depth)
 
-            if is_blank:
-                os.remove(kernel_file)
-                remove_modfiles.append(filepath)
+                        if hasattr(stmt, 'unknowns') or hasattr(stmt, 'geninfo'):
+                            is_blank = False
+                            write_kernel_usepart_module(f, depth, State.modules[mod_stmt.name])
 
-    for remove_modfile in remove_modfiles:
-        #import pdb; pdb.set_trace()
-        del State.modfiles[remove_modfile]
+                    elif target_stmt and stmt is target_stmt:
+                        if mod_stmt:
+                            if len(State.modules[mod_stmt.name]['extern']['names'])>0:
+                                write(f, 'PUBLIC %s'%('kgen_read_externs_%s'%mod_stmt.name), depth+1)
+
+                            mod_num = State.modules[mod_stmt.name]['num']
+                            write_kernel_interface_read_var_mod(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'], \
+                                mod_num, State.modules[mod_stmt.name]['dtype'])
+
+                            if isinstance(stmt, Contains):
+                                write_kernel_stmt(f, stmt, depth)
+                                write_kernel_subroutines_read_var(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'])
+                            elif len(State.modules[mod_stmt.name]['extern']['names'])>0 or len(State.modules[mod_stmt.name]['dtype'])>0:
+                                write(f, 'CONTAINS', d=depth)
+                                write_kernel_subroutines_read_var(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'])
+                            else:
+                                write_kernel_subroutines_read_var(f, depth, State.modules[mod_stmt.name]['extern']['tkdpat'], contains=True)
+
+                            write_kernel_subroutine_module_externs(f, depth, State.modules[mod_stmt.name]['extern'], mod_stmt.name)
+                            write_kernel_subroutines_type_write_var(f, depth, State.modules[mod_stmt.name]['dtype'])
+                            write_kernel_subroutines_type_verify_var(f, depth, State.modules[mod_stmt.name]['dtype'])
+
+                            if isinstance(stmt, EndModule):
+                                write_kernel_stmt(f, stmt, depth)
+                            target_stmt = None
+                            mod_stmt = None
+                        else:
+                            raise PrpgramException('None target statement')
+                    elif any( any(stmt==unit for unit in units) for units in State.program_units.values() ):
+                        end_punit_stmt, punit_blank = generate_program_unit(f, stmt, depth)
+                        is_blank = is_blank and punit_blank
+                    elif end_punit_stmt is not None:
+                        if stmt==end_punit_stmt:
+                            end_punit_stmt = None
+                    elif end_punit_stmt is None:
+                        if isinstance(stmt, Use):
+                            process_kernel_module_use_stmt(f, stmt, depth)
+                        elif isinstance(stmt, TypeDeclarationStatement):
+                            process_kernel_module_typedecl_stmt(f, stmt, depth)
+                        elif isinstance(stmt, Access) or isinstance(stmt, Parameter):
+                            process_kernel_module_spec_stmt(f, stmt, depth)
+                        else:
+                            write_kernel_stmt(f, stmt, depth)
+                    else: raise ProgramException('Wrong path for end_punit_stmt in kernel generation')
+
+
+                if is_blank:
+                    os.remove(kernel_file)
+                    remove_depfiles.append(filepath)
+
+    for remove_depfile in remove_depfiles:
+        del State.depfiles[remove_depfile]
 
 def generate_kernel_program():
     """ Generate kernel and state files with program type parent"""
@@ -155,6 +178,7 @@ def generate_kernel_module():
 
 def process_kernel_callsite_stmt(f, stmt, depth):
     #from statements import Assignment
+    from api import parse
     from Fortran2003 import Name, Call_Stmt, Part_Ref, Assignment_Stmt
 
     write(f, 'tolerance = %s'%Config.verify['tolerance'], d=depth)
@@ -164,17 +188,34 @@ def process_kernel_callsite_stmt(f, stmt, depth):
     write_kernel_read_inputs(f, depth)
     write_kernel_read_outputs(f, depth)
     write_kernel_pertcalls(f, depth)
+
     write(f, '! call to kernel', d=depth)
-    if isinstance(State.callsite['expr'], Call_Stmt):
-        write_kernel_stmt(f, stmt, depth)
-        #write(f, str(State.callsite['expr']), d=depth)
-    elif isinstance(State.callsite['expr'], Part_Ref):
-    #if isinstance(stmt, Assignment):
-        lhs = State.callsite['stmt'].f2003.items[0]
-        expr = State.callsite['expr']
-        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
+
+    expr = State.callsite['expr']
+    if isinstance(expr, Call_Stmt):
+        tree = parse(expr.tofortran(), ignore_comments=False, analyze=False, isfree=True, \
+            isstrict=False, include_dirs=None, source_only=None )
+
+        write(f, tree.content[0].tofortran().strip(), depth)
+    elif isinstance(expr, Part_Ref):
+        if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
+            lhs = expr.parent.items[0]
+            write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
+        else:
+            raise ProgramException("Only assignment statement is allowed for Function callsite yet.")
     else:
         raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
+
+#    if isinstance(State.callsite['expr'], Call_Stmt):
+#        write_kernel_stmt(f, stmt, depth)
+#        #write(f, str(State.callsite['expr']), d=depth)
+#    elif isinstance(State.callsite['expr'], Part_Ref):
+#    #if isinstance(stmt, Assignment):
+#        lhs = State.callsite['stmt'].f2003.items[0]
+#        expr = State.callsite['expr']
+#        write(f, '%s = %s'%(lhs.tofortran().strip(), expr.tofortran().strip()), d=depth)
+#    else:
+#        raise ProgramException('Unknown expr type is found: %s' % State.callsite['expr'].__class__)
 
     write_kernel_verify_outputs(f, depth)
     write(f, 'CALL kgen_print_check("%s", check_status)'%State.kernel['stmt'].name, d=depth)
@@ -217,8 +258,6 @@ def process_kernel_module_use_stmt(f, stmt, depth):
                         in_renames = True
                         break
                 if not in_renames:
-                    # TODO for rayl issue
-                    #import pdb ;pdb.set_trace()
                     write(f, 'USE %s, only : %s'%(stmt.name, entity), d=depth)
 
 def add_public_stmt(f, depth):
@@ -266,7 +305,7 @@ def process_kernel_module_typedecl_stmt(f, stmt, depth):
             if len(decl)>1: raise ProgramException('More than one entity is found: %s'%str(decl))
 
             if stmt.parent is State.topblock['stmt'] and \
-                stmt in State.parentblock['output']['res_stmt'].values():
+                stmt in State.parentblock['output']['typedecl_stmt'].values():
                 ref_decl = [ 'ref_'+org_decl[0] ]
                 write_kernel_stmt(f, stmt, depth, items=ref_decl)
             
@@ -282,43 +321,28 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
             for kgname in stmt.geninfo[KGName]:
                 if kgname.firstpartname() not in entities:
                     entities.append(kgname.firstpartname())
+
+        # output names
+        outnames = [ name.firstpartname() for name in State.parentblock['output']['names']]
+
         # for each entity
         for entity in entities:
-
             org_decl = [e for e in stmt.entity_decls if EntityDecl(e)==entity.lower()]
             decl = [EntityDecl(e).get_name() for e in stmt.entity_decls if EntityDecl(e)==entity.lower()]
-            #org_decl = [e for e in stmt.entity_decls if e.split('(')[0].strip()==entity.lower()]
-            #decl = [e.split('(')[0].strip() for e in stmt.entity_decls if e.split('(')[0].strip()==entity.lower()]
             if len(decl)>1: raise ProgramException('More than one entity is found: %s'%str(decl))
             var = stmt.parent.a.variables[decl[0]]
-            if var.is_intent_out():
-                dimattr = []
-                for attr in var.parent.attrspec:
-                    if attr.startswith('dimension'):
-                        dimattr.append(attr)
-                delattrs = ['intent(out)'] + dimattr
-                if var.is_array():
-                    dim = '(%s)'%','.join([':']*var.rank)
-                    if var.is_pointer():
-                        write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim) ], delattr=delattrs)
-                    else:
-                        write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim) ], delattr=delattrs, \
-                            addattr=['allocatable'])
-                else:
-                    write_kernel_stmt(f, stmt, depth, items=[ decl[0] ], delattr=delattrs)
-            else:
+            if not decl[0] in outnames:
                 write_kernel_stmt(f, stmt, depth, items=org_decl)
 
             for outname in State.parentblock['output']['names']:
                 if outname.firstpartname()==decl[0]:
-                    res_stmt = State.parentblock['output']['res_stmt'][outname]
-                    var = res_stmt.parent.a.variables[decl[0]]
+                    typedecl_stmt = State.parentblock['output']['typedecl_stmt'][outname]
+                    var = typedecl_stmt.parent.a.variables[decl[0]]
                     dimattr = []
                     for attr in var.parent.attrspec:
                         if attr.startswith('dimension'):
                             dimattr.append(attr)
                     delattrs = ['intent(in)', 'intent(out)', 'intent(inout)'] + dimattr
-                    #delattrs = ['intent(in)', 'intent(out)', 'intent(inout)']
                     if var.is_array():
                         addattrs = []
                         if var.is_explicit_shape_array():
@@ -330,13 +354,17 @@ def process_kernel_callsite_typedecl_stmt(f, stmt, depth):
                                 addattrs = ['allocatable']
 
                         if var.is_pointer():
+                            write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim)+' => NULL()' ], delattr=delattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_%s%s'%(decl[0],dim)+' => NULL()' ], delattr=delattrs)
                         else:
+                            write_kernel_stmt(f, stmt, depth, items=[ '%s%s'%(decl[0],dim) ], delattr=delattrs, addattr=addattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_%s%s'%(decl[0],dim) ], delattr=delattrs, addattr=addattrs)
                     else:
                         if var.is_pointer():
+                            write_kernel_stmt(f, stmt, depth, items=[ decl[0]+' => NULL()' ], delattr=delattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_'+decl[0]+' => NULL()' ], delattr=delattrs)
                         else:
+                            write_kernel_stmt(f, stmt, depth, items=[ decl[0] ], delattr=delattrs)
                             write_kernel_stmt(f, stmt, depth, items=[ 'ref_'+decl[0] ], delattr=delattrs)
                     break
 
@@ -353,13 +381,11 @@ def generate_kernel_module_callsite():
     endmod_stmt = mod_stmt.content[-1]
     subp_stmt = State.parentblock['stmt']
     endsubp_stmt = subp_stmt.content[-1]
+    end_punit_stmt = None
+    end_punit_stmt2 = None
     with open('%s/%s'%(Config.path['kernel'], cs_filename), 'wb') as f:
         write_file_header(f, cs_filename)
         for stmt, depth in walk(cs_tree, -1):
-            #print str(mod_stage), stmt.tokgen()
-            #if isinstance(stmt, Use) and stmt.parent.name=='compute_and_apply_rhs' and stmt.name=='control_mod':
-            #    import pdb; pdb.set_trace()
-
             if mod_stage==SrcStage.BEFORE_MODULE_STMT:
                 if stmt is mod_stmt:
                     mod_stage = SrcStage.AFTER_MODULE_STMT
@@ -368,7 +394,14 @@ def generate_kernel_module_callsite():
                     continue
 
                 # place action
-                write_kernel_stmt(f, stmt, depth)
+                if any( any(stmt==unit for unit in units) for units in State.program_units.values() ):
+                    end_punit_stmt = generate_program_unit(f, stmt, depth)
+                elif end_punit_stmt is not None:
+                    if stmt==end_punit_stmt:
+                        end_punit_stmt = None
+                elif end_punit_stmt is None:
+                    write_kernel_stmt(f, stmt, depth)
+                else: raise ProgramException('Wrong path for end_punit_stmt in kernel generation')
 
             elif mod_stage==SrcStage.AFTER_MODULE_STMT:
                 if stmt.__class__ in  [ Use, Import ] + implicit_part:
@@ -388,8 +421,6 @@ def generate_kernel_module_callsite():
                     if len(State.topblock['extern']['names'])>0:
                         write(f, 'PUBLIC %s'%('kgen_read_externs_%s'%mod_stmt.name), depth)
 
-                    #write(f, 'INTEGER, PARAMETER :: kgen_dp = selected_real_kind(15, 307)', d=depth)
-
                     add_public_stmt(f, depth)
 
 
@@ -403,8 +434,6 @@ def generate_kernel_module_callsite():
                     if len(State.topblock['extern']['names'])>0:
                         write(f, 'PUBLIC %s'%('kgen_read_externs_%s'%mod_stmt.name), depth)
 
-                    #write(f, 'INTEGER, PARAMETER :: kgen_dp = selected_real_kind(15, 307)', d=depth)
- 
                     add_public_stmt(f, depth)
 
                     write_kernel_interface_read_var_mod(f, depth, [], 0, \
@@ -467,7 +496,7 @@ def generate_kernel_module_callsite():
                 if stmt is subp_stmt:
                     mod_stage = SrcStage.AFTER_SUBP_STMT
 
-                    items = [ n.firstpartname() for n in State.kernel_driver['input']['names']]+['kgen_unit']
+                    items = [ n.firstpartname() for n in State.kernel_driver['input']['names']]+['kgen_unit', 'total_time']
                     if isinstance(stmt, Function):
                         write_kernel_stmt(f, stmt, depth, items=items, to_subr=True)
                     else:
@@ -507,7 +536,9 @@ def generate_kernel_module_callsite():
 
                 elif stmt.__class__ in  declaration_construct:
                     mod_stage = SrcStage.AFTER_SUBP_USE_PART
-                    write(f, 'integer, intent(in) :: kgen_unit', d=depth)
+                    write(f, 'INTEGER, INTENT(IN) :: kgen_unit', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp), INTENT(INOUT) :: total_time', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp) :: elapsed_time', d=depth)
 
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
@@ -525,7 +556,9 @@ def generate_kernel_module_callsite():
                     #continue
                 elif stmt.__class__ in execution_part:
                     mod_stage = SrcStage.AFTER_SUBP_SPEC_PART
-                    write(f, 'integer, intent(in) :: kgen_unit', d=depth)
+                    write(f, 'INTEGER, INTENT(IN) :: kgen_unit', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp), INTENT(INOUT) :: total_time', d=depth)
+                    write(f, 'REAL(KIND=kgen_dp) :: elapsed_time', d=depth)
 
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
@@ -688,16 +721,24 @@ def generate_kernel_module_callsite():
                     write_kernel_stmt(f, stmt, depth)
 
             elif mod_stage==SrcStage.AFTER_ENDMODULE_STMT:
-                write_kernel_stmt(f, stmt, depth)
+                # place action
+                if any( any(stmt==unit for unit in units) for units in State.program_units.values() ):
+                    end_punit_stmt2 = generate_program_unit(f, stmt, depth)
+                elif end_punit_stmt2 is not None:
+                    if stmt==end_punit_stmt2:
+                        end_punit_stmt2 = None
+                elif end_punit_stmt2 is None:
+                    write_kernel_stmt(f, stmt, depth)
+                else: raise ProgramException('Wrong path for end_punit_stmt in kernel generation')
 
             else: raise ProgramException('Unknown module stage: %d'%mod_stage)
 
 def process_driver_call_callsite_stmt(f, stmt, depth):
     args = ', '.join([ n.firstpartname() for n in State.kernel_driver['input']['names']])
     if len(args)>0:
-        write(f, 'call %s(%s, kgen_unit)'%(State.parentblock['stmt'].name, args), d=depth)
+        write(f, 'call %s(%s, kgen_unit, total_time)'%(State.parentblock['stmt'].name, args), d=depth)
     else:
-        write(f, 'call %s(kgen_unit)'%State.parentblock['stmt'].name, d=depth)
+        write(f, 'call %s(kgen_unit, total_time)'%State.parentblock['stmt'].name, d=depth)
 
 def generate_kernel_module_driver():
     """ Generate kernel driver file with module type parent"""

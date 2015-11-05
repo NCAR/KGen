@@ -1,0 +1,26 @@
+INFO: kgen.py:19 - Pre-processing is done
+INFO: kgen_state.py:178 - Reading /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/tmp_implicit_rule/tmp_test/calling_module.F90
+INFO: kgen.py:22 - Call-site location is found
+INFO: kgen_search.py:171 - add is saved as unknown at (25, 25) in /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/tmp_implicit_rule/tmp_test/calling_module.F90
+INFO: base_classes.py:877 - add is being resolved at (25, 25) in /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/tmp_implicit_rule/tmp_test/calling_module.F90
+INFO: base_classes.py:923 - add is not resolved locally and the request is being defered to parent at (25, 25) in /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/tmp_implicit_rule/tmp_test/calling_module.F90
+INFO: base_classes.py:1023 - add is being resolved at (23, 23) in /glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/tmp_implicit_rule/tmp_test/calling_module.F90
+CRITICAL: KGName
+  File "/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/../../kgen/kgen.py", line 48, in <module>
+    main()
+
+  File "/glade/p/work/amogh/kgen_dev/git_kgen/KGen/Test/unit_tests/../../kgen/kgen.py", line 24, in main
+    collect_kernel_info()
+
+  File "/glade/p/work/amogh/kgen_dev/git_kgen/KGen/kgen/kgen_analyze.py", line 277, in collect_kernel_info
+    State.callsite['stmt'].resolve(request)
+
+  File "/glade/p/work/amogh/kgen_dev/git_kgen/KGen/kgen/base_classes.py", line 925, in resolve
+    self.parent.resolve(request)
+
+  File "/glade/p/work/amogh/kgen_dev/git_kgen/KGen/kgen/base_classes.py", line 1024, in resolve
+    Logger.info('Full request is %s'%request.uname, name=request.uname, stmt=self)
+
+  File "/glade/p/work/amogh/kgen_dev/git_kgen/KGen/kgen/kgen_utils.py", line 64, in __str__
+    raise Exception('KGName')
+

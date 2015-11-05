@@ -4,10 +4,27 @@ KGEN: Fortran Kernel Generator
 A package for extracting a part of Fortran source codes out of a large Fortran application.
 
 :AUTHORS: Youngsung Kim, John Dennis, Raghu R. Kumar and Amogh Simha
-:VERSION: 0.5.0
+:VERSION: 0.5.3
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
+
+Changes from KGEN ver. 0.5.0
+----------------------------
+
+[User Interface]
+
+* "--skip-intrinsic" and "--noskip-intrinsic" flags are discarded. Instead, please use "--intrinsic skip" and "--intrinsic noskip" each
+* The syntax of numbers in "--invocation" flag changed. Please use colon instead of comma as a delimiter of numbers
+* "--source" flag is added to inform KGEN with the Fortran source format.
+* "common" section is renamed to "namepath" in exclusion INI file for "-e" flag
+* The syntax of "namepath" is changed. Please see the section 2.3.1 of user's guide for details
+* Several actions are added in "namepath" section of exclusion INI file for "-e" flag. Please see the section 2.3.3 of user's guide for details
+
+[Major Improvements]
+
+* Better pruning of external library through additional exclusion actions.
+* Support of analyzing Fortran External Subprograms
 
 
 Overview
@@ -46,7 +63,7 @@ Instructions & Use
 	>> git clone https://github.com/NCAR-CISL-ASAP/KGen.git
 
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
-	>> evince KGEN_Users_Guide_V0.5.0.pdf 
+	>> evince KGEN_Users_Guide_V0.5.3.pdf 
 
 3. Try "simple" in "example/simple" directory
 	>> cd example/simple;	# move to an example directory

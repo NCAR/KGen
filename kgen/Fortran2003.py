@@ -1907,7 +1907,8 @@ class Specific_Binding(StmtBase): # R451
         if line.startswith('('):
             i = line.find(')')
             if i==-1: return
-            iname = Interface_Name(line[1:-1].strip())
+            #iname = Interface_Name(line[1:-1].strip()) # KGEN deletion
+            iname = Interface_Name(line[1:i].strip()) # KGEN addition
             line = line[i+1:].lstrip()
         l = None
         i = line.find('::')
@@ -1918,7 +1919,15 @@ class Specific_Binding(StmtBase): # R451
         i = line.find('=>')
         pname = None
         if i!=-1:
-            pname = Procedure_Name(line[i+2:].lstrip())
+            # start of KGEN addition
+            p = line.find('(')
+            if p!=-1:
+                pname = Procedure_Name(line[i+2:p].lstrip())
+            else:
+                pname = Procedure_Name(line[i+2:].lstrip())
+            # end of KGEN addition
+            #pname = Procedure_Name(line[i+2:].lstrip()) # KGEN deletion
+
             line = line[:i].rstrip()
         return iname, l, Binding_Name(line), pname
 
@@ -1975,7 +1984,8 @@ class Binding_Attr(STRINGBase): # R453
                      | <access-spec>
     """
     subclass_names = ['Access_Spec', 'Binding_PASS_Arg_Name']
-    def match(string): return STRINGBase.match(['PASS', 'NOPASS', 'NON_OVERRIDABLE'], string)
+    #def match(string): return STRINGBase.match(['PASS', 'NOPASS', 'NON_OVERRIDABLE'], string) # KGEN deletion
+    def match(string): return STRINGBase.match(['POINTER', 'PASS', 'NOPASS', 'NON_OVERRIDABLE'], string) # KGEN addition
     match = staticmethod(match)
 
 class Final_Binding(StmtBase, WORDClsBase): # R454

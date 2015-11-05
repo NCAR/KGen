@@ -7,7 +7,7 @@ CONTAINS
         real, dimension(ROW, COLUMN) :: out2, out3, output
         DO i=1, COLUMN
             DO j=1, ROW
-                CALL calc(i, j, output, out2, out3)
+                CALL calc(i, j, output, out2, out3)                 !Calling kernel
             END DO
         END DO
         print *, 'SUM(output) = ', SUM(output)

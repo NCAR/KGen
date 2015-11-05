@@ -14,6 +14,7 @@ test:
 		--verify verboselevel=0 \
 		--invocation=1,5 \
 		--timing repeat=1000 \
+		--invocation 1:2:3 \
 		--kernel-compile FC='${FC}',FC_FLAGS='${FC_FLAGS}' \
 		--state-build cmds="cd ${SRC_DIR}; make build" \
 		--state-run cmds="cd ${SRC_DIR}; make run" \

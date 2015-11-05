@@ -100,7 +100,7 @@ def f2003_search_unknowns(stmt, node, resolvers=None):
             sys.exit(-1)
 
 def get_name_or_defer(stmt, node, resolvers, defer=True):
-    from kgen_utils import KGName, pack_namepath, get_namepath
+    from kgen_utils import KGName, pack_innamepath, get_innamepath, match_namepath
     from kgen_state import ResState
 
     if node is None: return
@@ -113,24 +113,54 @@ def get_name_or_defer(stmt, node, resolvers, defer=True):
         # skip if intrinsic
         if node.string.lower() in Intrinsic_Procedures:
             if  Config.search['skip_intrinsic'] and not is_except(node, stmt):
-                #print '%s is skipped'%node.string.lower()
-                return
+                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
+                    Logger.info('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
+                        (node.string.lower()), stdout=True)
+                    Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+                    Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+                else:
+                    #if node.string.lower()!='null':
+                    #    Logger.info('Intrinsic procedure name of "%s" is skipped from name resolution'% \
+                    #        (node.string.lower()), stdout=True)
+                    #Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+                    #Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+                    return
+    
             elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
-                #print '%s is skipped'%node.string.lower()
-                return
+                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
+                    #Logger.info('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
+                    #    (node.string.lower()), stdout=True)
+                    #Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+                    #Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+                    pass
+                else:
+                    if node.string.lower()!='null':
+                        Logger.info('Intrinsic procedure name of "%s" is skipped from name resolution'% \
+                            (node.string.lower()), stdout=True)
+                    Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+                    Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+                    return
 
         # skip if excluded
-        for pname, namepath in Config.exclude.iteritems():
-            if pname in [ 'common', get_namepath(stmt) ]:
-                for name, action in namepath.iteritems():
-                    if name==node.string.lower():
-                        stmt.exclude_names = { name: action }
-                        node.skip_search = True
-                        if hasattr(node, 'parent'): node.parent.skip_search = True
-                        #print '%s is skipped'%name
-                        return
+        if Config.exclude.has_key('namepath'):
+            for pattern, actions in Config.exclude['namepath'].iteritems():
+                name = node.string.lower()
+                namepath = pack_innamepath(stmt, name) 
+                if match_namepath(pattern, namepath):
+                    if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = {}
+                    if stmt.exclude_names.has_key(name):
+                        stmt.exclude_names[name].extend(actions)
+                    else:
+                        stmt.exclude_names[name] = actions
+                    node.skip_search = True
+                    if hasattr(node, 'parent'): node.parent.skip_search = True
+                    return
 
-        ukey = KGName(pack_namepath(stmt, node.string.lower()), node=node, stmt=stmt)
+        ukey = KGName(pack_innamepath(stmt, node.string.lower()), node=node, stmt=stmt)
 
         if resolvers is None:
             stmt.unknowns[ukey] = ResState(ukey, stmt, res_default)
@@ -263,6 +293,7 @@ def search_str(stmt, string):
     pass
 
 def search_Function_Stmt(stmt, node): 
+    #if hasattr(stmt, 'parent') and stmt.parent.__class__.__name__=='Interface': import pdb; pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_derivedtype ) # prefix
     get_name_or_defer(stmt, node.items[2], res_typedecl) # dummy args
     get_name_or_defer(stmt, node.items[3], res_typedecl)
@@ -619,7 +650,7 @@ def search_Flush_Stmt(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Import_Stmt(stmt, node):
-    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[1], res_anything)
 
 def search_Block_Data_Stmt(stmt, node):
     # NOTE: Temporary solution
@@ -799,10 +830,51 @@ def search_Ac_Implied_Do(stmt, node):
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Ac_Implied_Do_Control(stmt, node):
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
     get_name_or_defer(stmt, node.items[0], res_value)
     if node.items[1]:
         for item in node.items[1]:
             get_name_or_defer(stmt, item, res_value)
 
+def search_Specific_Binding(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_typespec + [ Interface ])
+    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[3], res_subprogram)
+
+def search_Binding_Attr(stmt, node):
+    pass
+
+def search_Masked_Elsewhere_Stmt(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+
+def search_Procedure_Designator(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+
+def search_Associate_Stmt(stmt, node):
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Association(stmt, node):
+    get_name_or_defer(stmt, node.items[2], res_value)
+
+def search_Generic_Binding(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[2], [ Fortran2003.Specific_Binding ])
+
+def search_Complex_Literal_Constant(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Char_Length(stmt, node):
+    get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Data_Implied_Do(stmt, node):
+    get_name_or_defer(stmt, node.items[0], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[2], res_value)
+    get_name_or_defer(stmt, node.items[3], res_value)
+    get_name_or_defer(stmt, node.items[4], res_value)
+
+def search_Ac_Spec(stmt, node):
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+    defer(stmt, node.items[0])
+    get_name_or_defer(stmt, node.items[1], res_value)
