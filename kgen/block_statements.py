@@ -574,12 +574,12 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
             Logger.info('The request is being resolved by an interface', name=request.uname, stmt=self)
             request.res_stmt = self
             request.state = ResState.RESOLVED
-            request.res_stmt.add_geninfo(request.gentype, request.uname)
+            request.res_stmt.add_geninfo(request.uname, request)
             #self.check_spec_stmts(request.uname, request.res_stmt)
 
             for _stmt, _depth in walk(request.res_stmt, -1):
                 if not hasattr(_stmt, 'unknowns'):
-                    f2003_search_unknowns(request.gentype, _stmt, _stmt.f2003)
+                    f2003_search_unknowns(_stmt, _stmt.f2003)
                 for unk, req in _stmt.unknowns.iteritems():
                     if req.state != ResState.RESOLVED:
                         _stmt.resolve(req) 

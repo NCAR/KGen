@@ -314,8 +314,35 @@ class TypeDeclarationStatement(Statement):
                     l, kind = value0, value1
         return l,kind
 
+
+    # start of KGEN addition
+    def _selector_str(self):
+        s = ''
+        length, kind = self.selector
+        if isinstance(self, Character):
+            if length and kind:
+                s += 'LEN=%s, KIND=%s' % (length,kind)
+            elif length:
+                s += 'LEN=%s' % (length)
+            elif kind:
+                s += 'KIND=%s' % (kind)
+        else:
+            if isinstance(self, Type):
+                s += '%s' % (kind)
+            else:
+                if length:
+                    s += 'KIND=%s' % (length)
+                if kind:
+                    if isinstance(self, Class):
+                        s += '%s' % (kind)
+                    else:
+                        s += 'KIND=%s' % (kind)
+        return s
+    # end of KGEN addition
+
     def tostr(self):
         clsname = self.__class__.__name__.upper()
+
         s = ''
         length, kind = self.selector
         if isinstance(self, Character):

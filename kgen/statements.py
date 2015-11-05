@@ -1411,7 +1411,7 @@ class Parameter(Statement):
 
             if node:
                 if not hasattr(self, 'unknowns') or len(self.unknowns)==0:
-                    f2003_search_unknowns(gentype, self, node.items[1])
+                    f2003_search_unknowns(self, node.items[1])
                     for unknown, request in self.unknowns.iteritems():
                         if request.state != ResState.RESOLVED:
                             self.resolve(request)

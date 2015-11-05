@@ -170,6 +170,7 @@ type check_t
 end type check_t
 
 public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb
+public kgen_get_newunit, kgen_error_stop
 """
 
 kgen_utils_file_checksubr = \
@@ -346,6 +347,35 @@ subroutine kgen_print_check(kname, check)
         write(*,*) TRIM(kname),': Verification PASSED'
    endif
 end subroutine kgen_print_check
+"""
+
+kgen_get_newunit = \
+"""
+FUNCTION kgen_get_newunit() RESULT(new_unit)
+   INTEGER, PARAMETER :: UNIT_MIN=100, UNIT_MAX=1000000
+   LOGICAL :: is_opened
+   INTEGER :: nunit, new_unit, counter
+
+   new_unit = -1
+   DO counter=UNIT_MIN, UNIT_MAX
+       inquire(UNIT=counter, OPENED=is_opened)
+       IF (.NOT. is_opened) THEN
+           new_unit = counter
+           EXIT
+       END IF
+   END DO
+END FUNCTION
+"""
+
+kgen_error_stop = \
+"""
+SUBROUTINE kgen_error_stop( msg )
+    IMPLICIT NONE
+    CHARACTER(LEN=*), INTENT(IN) :: msg
+
+    WRITE (*,*) msg
+    STOP 1
+END SUBROUTINE
 """
 
 rdtsc = \

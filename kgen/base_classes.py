@@ -902,7 +902,7 @@ class Statement(object):
                 Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=typedecl_stmt)
 
                 if not hasattr(typedecl_stmt, 'unknowns'):
-                    f2003_search_unknowns(request.gentype, typedecl_stmt, typedecl_stmt.f2003)
+                    f2003_search_unknowns(typedecl_stmt, typedecl_stmt.f2003)
                 if hasattr(typedecl_stmt, 'unknowns'):
                     for unk, req in typedecl_stmt.unknowns.iteritems():
                         if req.state != ResState.RESOLVED:
@@ -937,7 +937,7 @@ class Statement(object):
                                 Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=unit)
                                 for _stmt, _depth in walk(unit, -1):
                                     if not hasattr(_stmt, 'unknowns'):
-                                        f2003_search_unknowns(request.gentype, _stmt, _stmt.f2003)
+                                        f2003_search_unknowns(_stmt, _stmt.f2003)
                                     if hasattr(_stmt, 'unknowns'):
                                         for unk, req in _stmt.unknowns.iteritems():
                                             if req.state != ResState.RESOLVED:
@@ -1044,7 +1044,7 @@ class BeginStatement(Statement):
                         Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
                         for _stmt, _depth in walk(subp, -1):
                             if not hasattr(_stmt, 'unknowns'):
-                                f2003_search_unknowns(request.gentype, _stmt, _stmt.f2003)
+                                f2003_search_unknowns(_stmt, _stmt.f2003)
                             if hasattr(_stmt, 'unknowns'):
                                 for unk, req in _stmt.unknowns.iteritems():
                                     if req.state != ResState.RESOLVED:
@@ -1067,7 +1067,7 @@ class BeginStatement(Statement):
 
                                 for _stmt, _depth in walk(item, -1):
                                     if not hasattr(_stmt, 'unknowns'):
-                                        f2003_search_unknowns(request.gentype, _stmt, _stmt.f2003)
+                                        f2003_search_unknowns(_stmt, _stmt.f2003)
                                     if hasattr(_stmt, 'unknowns'):
                                         for unk, req in _stmt.unknowns.iteritems():
                                             if req.state != ResState.RESOLVED:
@@ -1087,7 +1087,7 @@ class BeginStatement(Statement):
 
                     for _stmt, _depth in walk(type_stmt, -1):
                         if not hasattr(_stmt, 'unknowns'):
-                            f2003_search_unknowns(request.gentype, _stmt, _stmt.f2003)
+                            f2003_search_unknowns(_stmt, _stmt.f2003)
                         if hasattr(_stmt, 'unknowns'):
                             for unk, req in _stmt.unknowns.iteritems():
                                 if req.state != ResState.RESOLVED:
@@ -1112,7 +1112,7 @@ class BeginStatement(Statement):
                     Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=typedecl_stmt)
 
                     if not hasattr(typedecl_stmt, 'unknowns'):
-                        f2003_search_unknowns(request.gentype, typedecl_stmt, typedecl_stmt.f2003)
+                        f2003_search_unknowns(typedecl_stmt, typedecl_stmt.f2003)
                     if hasattr(typedecl_stmt, 'unknowns'):
                         for unk, req in typedecl_stmt.unknowns.iteritems():
                             if req.state != ResState.RESOLVED:
@@ -1133,7 +1133,7 @@ class BeginStatement(Statement):
                     Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=common_stmt)
 
                     if not hasattr(common_stmt, 'unknowns'):
-                        f2003_search_unknowns(request.gentype, common_stmt, common_stmt.f2003)
+                        f2003_search_unknowns(common_stmt, common_stmt.f2003)
                     if hasattr(common_stmt, 'unknowns'):
                         for unk, req in common_stmt.unknowns.iteritems():
                             if req.state != ResState.RESOLVED:
@@ -1279,7 +1279,7 @@ class BeginStatement(Statement):
                     else:
                         for _stmt, _depth in walk(type_stmt, -1):
                             if not hasattr(_stmt, 'unknowns'):
-                                f2003_search_unknowns(request.gentype, _stmt, _stmt.f2003)
+                                f2003_search_unknowns(_stmt, _stmt.f2003)
                             if hasattr(_stmt, 'unknowns'):
                                 for unk, req in _stmt.unknowns.iteritems():
                                     if req.state != ResState.RESOLVED:

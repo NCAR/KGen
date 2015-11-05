@@ -27,7 +27,6 @@ def _genobj(node, k_id, gentype):
             if cls.__name__=='Type':
                 if cls is TypeDecl: clsname = 'TypeDecl'
                 elif cls is TypeStmt: clsname = 'TypeStmt'
-            if i==0 and node is State.topblock['stmt']: clsname += 'T'
             if i==0 and node is State.parentblock['stmt']: clsname += 'P'
             exec('obj = Gen%s_%s(node, k_id)'%(gentype, clsname))  
             break
@@ -251,17 +250,29 @@ class Gen_Has_CallsiteStmts(Gen_Has_):
     def hasname_in_callsite_stmts(self, name, cls):
         return self._hasname_in_list(self.callsite_stmts, name, cls)
 
-class Gen_Has_VerifyState(Gen_Has_):
+class Gen_Has_VerifyModuleState(Gen_Has_):
     from statements import Call
     classes =  [ Call ]
     def __init__(self):
-        self.verify_state = []
+        self.verify_module_state = []
 
-    def insert_in_verify_state(self, item):
-        self.verify_state.append(item)
+    def insert_in_verify_module_state(self, item):
+        self.verify_module_state.append(item)
 
-    def hasname_in_verify_state(self, name, cls):
-        return self._hasname_in_list(self.verify_state, name, cls)
+    def hasname_in_verify_module_state(self, name, cls):
+        return self._hasname_in_list(self.verify_module_state, name, cls)
+
+class Gen_Has_VerifyLocalState(Gen_Has_):
+    from statements import Call
+    classes =  [ Call ]
+    def __init__(self):
+        self.verify_local_state = []
+
+    def insert_in_verify_local_state(self, item):
+        self.verify_local_state.append(item)
+
+    def hasname_in_verify_local_state(self, name, cls):
+        return self._hasname_in_list(self.verify_local_state, name, cls)
 
 class Gen_Has_MeasureTiming(Gen_Has_):
     from statements import Call, Write, Assignment
@@ -281,14 +292,11 @@ class Gen_Statement(object):
     gen_attrs = {'indent': ''}
 
     def __init__(self, node, k_id):
-        from base_classes import Statement
 
         self.isvalid = True
         self.k_id = k_id
         self.stmt = node
         self.name = getattr(node, 'name', None)
-        if isinstance(self.stmt, Statement):
-            self.stmt.genpair = self
         self.parent = None
         self.tokgen_attrs = {}
 
@@ -342,10 +350,12 @@ class Gen_Statement(object):
                     self.gen_attrs['indent'] = self.parent.indent
                     cur_indent = self.parent.indent
 
-                if self.__class__ in [GenK_ElseIf, GenK_Else]:
-                    return self.parent.indent + self.tokgen(**self.tokgen_attrs)
+                if self.__class__ in [GenK_ElseIf, GenK_Else, GenK_ElseWhere]:
+                    kgenstr = self.tokgen(**self.tokgen_attrs)
+                    if not kgenstr is None: return self.parent.indent + kgenstr
                 else:
-                    return cur_indent + self.tokgen(**self.tokgen_attrs)
+                    kgenstr = self.tokgen(**self.tokgen_attrs)
+                    if not kgenstr is None: return cur_indent + kgenstr
 
     def tokgen(self, **kwargs):
         import pdb; pdb.set_trace()
@@ -373,8 +383,18 @@ class Gen_Statement(object):
             self.tokgen_attrs[key] = value
 
     def _get_topname(self, stmt):
-        assert stmt
-        return stmt.ancestors()[0].name
+        assert stmt and hasattr(stmt, 'parent')
+        topstmt = stmt.ancestors()[0]
+        if hasattr(topstmt, 'name'):
+            return topstmt.name 
+        else: return ''
+
+    def _get_parentname(self, stmt):
+        assert stmt and hasattr(stmt, 'parent')
+        parentstmt = stmt.parent
+        if hasattr(parentstmt, 'name'):
+            return parentstmt.name 
+        else: return ''
 
     def get_dtype_subpname(self, stmt):
         assert stmt
@@ -386,19 +406,20 @@ class Gen_Statement(object):
         if enames is None:
             enames = [ get_entity_name(ename) for ename in stmt.entity_decls]
 
+        prefix = [ self._get_parentname(stmt), stmt.name ] + list(stmt.selector)
+
         subpnames = []
         for ename in enames:
             var = stmt.get_variable(ename)
             if var is None: break
 
-            l = [ stmt.name ]
-            l.extend(list(stmt.selector))
+            l = []
             if var.is_array():
                 l.append('dim%d'%var.rank)
             if var.is_pointer():
                 l.append('ptr')
 
-            subpnames.append('_'.join(l))
+            subpnames.append('_'.join(prefix+l))
 
         return subpnames
 
@@ -409,7 +430,11 @@ class GenK_Statement(Gen_Statement):
     gentype = 'K'
 
     def __init__(self, node, k_id):
+        from base_classes import Statement
+
         super(GenK_Statement, self).__init__(node, k_id)
+        if isinstance(self.stmt, Statement):
+            self.stmt.genkpair = self
 
         if self.stmt is None:
             pass
@@ -444,7 +469,11 @@ class GenS_Statement(Gen_Statement):
     gentype = 'S'
 
     def __init__(self, node, k_id):
+        from base_classes import Statement
+
         super(GenS_Statement, self).__init__(node, k_id)
+        if isinstance(self.stmt, Statement):
+            self.stmt.genspair = self
 
     def genobj(self, node, k_id):
         return gensobj(node, k_id)
@@ -489,50 +518,52 @@ class GenK_Use(GenK_Statement, Gen_Use):
         from typedecl_statements import TypeDeclarationStatement
         from block_statements import TypeDecl
 
-        if self.isvalid:
-            if self.stmt and self.stmt.isonly:
-                # limit use items for KERNEL
-                items = []
-                for (uname, req) in self.stmt.geninfo[KGGenType.KERNEL]:
-                    if not uname.firstpartname() in items:
-                        items.append(uname.firstpartname())
-                if items!=self.stmt.items:
-                    self.set_attr('items', items)
-
-                # add read verify perturb for STATE
-                newitems = []
-                for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
-                    resstmt = req.res_stmts[0]
-                    genpair = resstmt.genpair
-                    if isinstance(resstmt, TypeDeclarationStatement):
-                        resvar = resstmt.get_variable(get_entity_name(resstmt.entity_decls[0]))
-                        if resvar.is_parameter() or resvar.is_explicit_shape_array():
-                            continue
-
-                        for entity in resstmt.entity_decls:
-                            rnames = genpair.get_readnames()
-                            for rname in rnames:
-                                if not rname in newitems:
-                                    newitems.append(rname)
-                            vnames = self.get_verifynames()
-                            for vname in vnames:
-                                if not vname in newitems:
-                                    newitems.append(vname)
-                    elif isinstance(resstmt, TypeDecl):
-                        rname = genpair.get_readname()
-                        if rname and not rname in newitems:
-                            newitems.append(rname)
-                        vname = genpair.get_verifyname()
-                        if vname and not vname in newitems:
-                            newitems.append(vname)
-                    else: raise ProgramException('Wrong stmt type: %s'%resstmt.__class__)
-
-                if newitems:
-                    useobj = self.parent.create_use(stmt=self.stmt)
-                    useobj.set_attr('items', newitems)
-
-                    pubobj = self.parent.create_public()
-                    pubobj.set_attr('items', newitems)
+#        if self.isvalid:
+#            if self.stmt and self.stmt.isonly:
+#                # limit use items for KERNEL
+#                items = []
+#                for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
+#                    if not uname.firstpartname() in items:
+#                        items.append(uname.firstpartname())
+#                if items!=self.stmt.items:
+#                    self.set_attr('items', items)
+#
+#                # add read verify perturb for STATE
+#                newitems = []
+#                for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
+#                    resstmt = req.res_stmts[0]
+#                    genkpair = resstmt.genkpair
+#                    #if self.stmt.reader.id.endswith('module2.F90'): import pdb; pdb.set_trace()
+#                    if isinstance(genkpair, Gen_TypeDeclarationStatement):
+#                        resvar = resstmt.get_variable(get_entity_name(resstmt.entity_decls[0]))
+#                        if resvar.is_parameter() or resvar.is_explicit_shape_array():
+#                            continue
+#
+#                        for entity in resstmt.entity_decls:
+#                            #if not hasattr(genkpair, 'get_readnames'): import pdb; pdb.set_trace()
+#                            rnames = genkpair.get_readnames()
+#                            for rname in rnames:
+#                                if not rname in newitems:
+#                                    newitems.append(rname)
+#                            vnames = genkpair.get_verifynames()
+#                            for vname in vnames:
+#                                if not vname in newitems:
+#                                    newitems.append(vname)
+#                    elif isinstance(resstmt, TypeDecl):
+#                        rname = genkpair.get_readname()
+#                        if rname and not rname in newitems:
+#                            newitems.append(rname)
+#                        vname = genkpair.get_verifyname()
+#                        if vname and not vname in newitems:
+#                            newitems.append(vname)
+#                    #else: raise ProgramException('Wrong stmt type: %s'%resstmt.__class__)
+#
+#                if newitems:
+#                    useobj = self.parent.create_use(stmt=self.stmt)
+#                    useobj.set_attr('items', newitems)
+#
+#                    pubobj = self.parent.create_public()
+#                    pubobj.set_attr('items', newitems)
 
     def tokgen(self, **kwargs):
         assert kwargs.has_key('name')
@@ -547,43 +578,36 @@ class GenS_Use(GenS_Statement, Gen_Use):
         from typedecl_statements import TypeDeclarationStatement
         from block_statements import TypeDecl
 
-        if self.isvalid:
-            if self.stmt and self.stmt.isonly:
-
-                # add read verify perturb for STATE
-                newitems = []
-                for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
-                    resstmt = req.res_stmts[0]
-                    genpair = resstmt.genpair
-                    if isinstance(genpair, Gen_TypeDeclarationStatement):
-                        resvar = resstmt.get_variable(get_entity_name(resstmt.entity_decls[0]))
-                        if resvar.is_parameter() or resvar.is_explicit_shape_array():
-                            continue
-
-                        for entity in resstmt.entity_decls:
-                            rnames = genpair.get_readnames()
-                            for rname in rnames:
-                                if not rname in newitems:
-                                    newitems.append(rname)
-                            vnames = self.get_verifynames()
-                            for vname in vnames:
-                                if not vname in newitems:
-                                    newitems.append(vname)
-                    elif isinstance(genpair, Gen_TypeDecl):
-                        rname = genpair.get_readname()
-                        if rname and not rname in newitems:
-                            newitems.append(rname)
-                        vname = genpair.get_verifyname()
-                        if vname and not vname in newitems:
-                            newitems.append(vname)
-                    else: raise ProgramException('Wrong stmt type: %s'%resstmt.__class__)
-
-                if newitems:
-                    useobj = self.parent.create_use(stmt=self.stmt)
-                    useobj.set_attr('items', newitems)
-
-                    pubobj = self.parent.create_public()
-                    pubobj.set_attr('items', newitems)
+#        if self.isvalid:
+#            if self.stmt and self.stmt.isonly:
+#
+#                # add read verify perturb for STATE
+#                newitems = []
+#                for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
+#                    resstmt = req.res_stmts[0]
+#                    genspair = resstmt.genspair
+#                    if isinstance(genspair, Gen_TypeDeclarationStatement):
+#                        resvar = resstmt.get_variable(get_entity_name(resstmt.entity_decls[0]))
+#                        if resvar.is_parameter() or resvar.is_explicit_shape_array():
+#                            continue
+#
+#                        for entity in resstmt.entity_decls:
+#                            rnames = genspair.get_writenames()
+#                            for rname in rnames:
+#                                if not rname in newitems:
+#                                    newitems.append(rname)
+#                    elif isinstance(genspair, Gen_TypeDecl):
+#                        rname = genspair.get_readname()
+#                        if rname and not rname in newitems:
+#                            newitems.append(rname)
+#                    #else: raise ProgramException('Wrong stmt type: %s'%resstmt.__class__)
+#
+#                if newitems:
+#                    useobj = self.parent.create_use(stmt=self.stmt)
+#                    useobj.set_attr('items', newitems)
+#
+#                    pubobj = self.parent.create_public()
+#                    pubobj.set_attr('items', newitems)
 
 ########### Public ############
 class Gen_Public(object):
@@ -645,51 +669,54 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
     def process(self):
         if self.isvalid:
-            if self.stmt and hasattr(self.stmt, 'geninfo') and \
-                KGGenType.has_state(self.stmt.geninfo):
-
-                # collect items
-                items = []; in_items = []; out_items = []
-                decls = []; in_decls = []; out_decls = []
-                for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
-                    if not uname.firstpartname() in items:
+            if self.stmt and hasattr(self.stmt, 'geninfo') and KGGenType.has_state(self.stmt.geninfo):
+                # TODO: need to handle the stmt according to parent class
+                if isinstance(self.parent, GenK_SubroutineP) or isinstance(self.parent, Gen_Module):
+                    #  select IN entities in the typedecl stmt.
+                    items = []; decls = []
+                    for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
                         iname = uname.firstpartname()
                         ename = [ e for e in self.stmt.entity_decls if e. startswith(iname) ]
                         assert len(ename)==1
                         ename = ename[0]
-                        items.append(iname)
-                        decls.append(ename)
-                        if KGGenType.is_state_in_inout(req.gentype):
-                            in_items.append(iname)
-                            in_decls.append(ename)
-                        if KGGenType.is_state_out_inout(req.gentype):
+                        if not iname in items:
+                            items.append(iname)
+                            decls.append(ename)
+                    if decls != self.stmt.entity_decls:
+                        self.set_attr('entity_decl', decls)
+                        self.set_attr('remove_attr', 'intent')
+
+
+                    #  create a typedecl stmt for OUT entities
+                    out_items = []; out_decls = []
+                    for (uname, req) in KGGenType.get_state_out(self.stmt.geninfo):
+                        iname = uname.firstpartname()
+                        ename = [ e for e in self.stmt.entity_decls if e. startswith(iname) ]
+                        assert len(ename)==1
+                        ename = ename[0]
+                        if not iname in out_items:
                             out_items.append('ref_%s'%iname)
                             out_decls.append('ref_%s'%ename)
+                    if out_items:
+                        outobj = self.parent.create_typedeclstmt(self.stmt)
+                        outobj.set_attr('entity_decl', out_decls)
+                        outobj.set_attr('remove_attr', 'intent')
 
-                #  in entities
-                if in_decls != self.stmt.entity_decls:
-                    self.set_attr('entity_decl', in_decls)
 
-                # create OUT typedecl items
-                outobj = None
-                if out_items:
-                    outobj = self.parent.create_typedeclstmt(self.stmt)
-                    self.set_attr('entity_decl', out_decls)
+                    # create subroutines for verify
+                    rsubrs = self.gen_verify_subrs(self.parent, out_items)
 
-                # process per location
-                if self.stmt.parent is State.parentblock['stmt']:
-                    # in parent block
-                    if any( attr.startswith('intent') for attr in self.stmt.attrspec):
-                        self.set_attr('remove_attr', 'intent')
-                        if outobj: outobj.set_attr('remove_attr', 'intent')
+                    # create subroutines for read
+                    for item in items:
+                        var = self.stmt.get_variable(item)
+                        if var.is_array():
+                            if self.stmt.is_derived() or not var.is_explicit_shape_array():
+                                vsubrs = self.gen_read_subrs(self.parent, [item])
 
-                elif isinstance(self.parent, Gen_Module):
-                    # in module block
-                    pass
-
-                elif isinstance(self.parent, Gen_Program):
-                    # in program block
-                    pass
+                    # create or update public, use, and call
+                    if isinstance(self.parent, GenK_SubroutineP):
+                        # check unknowns to create or update public, use, and call
+                        pass
 
     def tokgen(self, **kwargs):
         typespec = None
@@ -712,7 +739,375 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         return '%s%s%s ::%s'%(typespec, selector, attrspec, entity_decl)
 
-    def gen_verify_subr(self, parent, enames=None):
+    def _gen_arr_dtype_vsubrs(self, subrobj, var):
+        raise ProgramException('Not implemented _gen_arr_dtype_vsubrs yet.')
+
+    def _gen_arr_nondtype_rtype_vsubrs(self, subrobj, var):
+
+        typename = self.stmt.name.upper()
+        selector = self.stmt._selector_str()
+        dim_shape = ','.join(':'*var.rank)
+        get_size = ','.join(['SIZE(var,dim=%d)'%(dim+1) for dim in range(var.rank)])
+
+        varnameobj = subrobj.create_typedeclstmt()
+        varnameobj.set_attr('typespec', 'CHARACTER')
+        varnameobj.set_attr('selector', '*')
+        varnameobj.append_attr('attrspec', 'INTENT(IN)')
+        varnameobj.append_attr('entity_decl', 'varname')
+
+        checkobj = subrobj.create_typedeclstmt()
+        checkobj.set_attr('typespec', 'TYPE')
+        checkobj.set_attr('selector', 'check_t')
+        checkobj.append_attr('attrspec', 'INTENT(INOUT)')
+        checkobj.append_attr('entity_decl', 'check_status')
+
+        varobj = subrobj.create_typedeclstmt(stmt=self.stmt)
+        for attrspec in self.stmt.attrspec:
+            if attrspec in ['pointer', 'allocatable']:
+                varobj.append_attr('attrspec', attrspec.upper())
+        if var.is_array():
+            varobj.append_attr('attrspec', 'DIMENSION(%s)'%dim_shape)
+        varobj.append_attr('attrspec', 'INTENT(IN)')
+        varobj.set_attr('entity_decl', ['var', 'ref_var'])
+
+        varrmsobj = subrobj.create_typedeclstmt()
+        varrmsobj.set_attr('typespec', typename)
+        varrmsobj.set_attr('selector', selector)
+        varrmsobj.extend_attr('entity_decl', ['nrmsdiff', 'rmsdiff'])
+
+        vartempobj = subrobj.create_typedeclstmt()
+        vartempobj.set_attr('typespec', typename)
+        vartempobj.set_attr('selector', selector)
+        vartempobj.append_attr('attrspec', 'ALLOCATABLE')
+        vartempobj.append_attr('attrspec', 'DIMENSION(%s)'%dim_shape)
+        vartempobj.extend_attr('entity_decl', ['temp', 'temp2'])
+
+        varnobj = subrobj.create_typedeclstmt()
+        varnobj.set_attr('typespec', 'INTEGER')
+        varnobj.append_attr('entity_decl', 'n') 
+
+        subrobj.add_line(subrobj.insert_in_exe_part)
+
+        ifallocobj = None
+        if var.is_allocatable():
+            ifallocobj = subrobj.create_ifthen()
+            ifallocobj.set_attr('expr', 'ALLOCATED(var)')
+
+        ifassocobj = None
+        if var.is_pointer():
+            ifassocobj = subrobj.create_ifthen()
+            ifassocobj.set_attr('expr', 'ASSOCIATED(var)')
+
+        assert not (ifallocobj and ifassocobj)
+        ifcheckobj = ifallocobj if ifallocobj else ifassocobj
+
+        if ifcheckobj: topobj = ifcheckobj
+        else: topobj = subrobj
+
+        incobj = topobj.create_assignstmt()
+        incobj.set_attr('lhs', 'check_status%numTotal')
+        incobj.set_attr('rhs', 'check_status%numTotal + 1')
+
+        ifcmpobj = topobj.create_ifthen()
+        ifcmpobj.set_attr('expr', 'ALL( var == ref_var )')
+
+        incobj = ifcmpobj.create_assignstmt()
+        incobj.set_attr('lhs', 'check_status%numIdentical')
+        incobj.set_attr('rhs', 'check_status%numIdentical + 1')
+
+        ifverbose1obj = ifcmpobj.create_ifthen()
+        ifverbose1obj.set_attr('expr', 'check_status%verboseLevel == 3')
+
+        write1obj = ifverbose1obj.create_write()
+
+        write2obj = ifverbose1obj.create_write()
+        write2obj.set_attr('item_list', ['"All elements of "','trim(adjustl(varname))','" are IDENTICAL."'])
+
+        ifverbose2obj = ifverbose1obj.create_ifthen()
+        ifverbose2obj.set_attr('expr', 'ALL( var == 0 )')
+
+        ifverbose3obj = ifverbose2obj.create_ifthen()
+        ifverbose3obj.set_attr('expr', 'check_status%verboseLevel == 3')
+
+        write3obj = ifverbose3obj.create_write()
+        write3obj.set_attr('item_list', ['"All values are zero."'])
+
+        endobj = ifverbose3obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        endobj = ifverbose2obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        endobj = ifverbose1obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        # top else
+        ifcmpobj.create_else()
+
+        alloc1obj = ifcmpobj.create_allocate()
+        alloc1obj.set_attr('alloc_list', ['temp(%s)'%get_size])
+
+        alloc2obj = ifcmpobj.create_allocate()
+        alloc2obj.set_attr('alloc_list', ['temp2(%s)'%get_size])
+
+        countobj = ifcmpobj.create_assignstmt()
+        countobj.set_attr('lhs', 'n')
+        countobj.set_attr('rhs', 'count(var /= ref_var)')
+
+        whereobj = ifcmpobj.create_where()
+        whereobj.set_attr('expr', 'abs(ref_var) > check_status%minvalue')
+
+        tempobj = whereobj.create_assignstmt()
+        tempobj.set_attr('lhs', 'temp')
+        tempobj.set_attr('rhs', '((var-ref_var)/ref_var)**2')
+
+        temp2obj = whereobj.create_assignstmt()
+        temp2obj.set_attr('lhs', 'temp2')
+        temp2obj.set_attr('rhs', '(var-ref_var)**2')
+
+        whereobj.create_elsewhere()
+
+        etempobj = whereobj.create_assignstmt()
+        etempobj.set_attr('lhs', 'temp')
+        etempobj.set_attr('rhs', '(var-ref_var)**2')
+
+        etemp2obj = whereobj.create_assignstmt()
+        etemp2obj.set_attr('lhs', 'temp2')
+        etemp2obj.set_attr('rhs', 'temp')
+
+        endwhereobj = whereobj.create_endobj()
+        endwhereobj.set_attr('blockname', 'WHERE')
+
+        nrmsobj = ifcmpobj.create_assignstmt()
+        nrmsobj.set_attr('lhs', 'nrmsdiff')
+        nrmsobj.set_attr('rhs', 'sqrt(sum(temp)/real(n))')
+
+        rmsobj = ifcmpobj.create_assignstmt()
+        rmsobj.set_attr('lhs', 'rmsdiff')
+        rmsobj.set_attr('rhs', 'sqrt(sum(temp2)/real(n))')
+
+        ifverbose4obj = ifcmpobj.create_ifthen()
+        ifverbose4obj.set_attr('expr', 'nrmsdiff > check_status%tolerance')
+
+        incobj = ifverbose4obj.create_assignstmt()
+        incobj.set_attr('lhs', 'check_status%numFatal')
+        incobj.set_attr('rhs', 'check_status%numFatal + 1')
+
+        ifverbose5obj = ifverbose4obj.create_ifthen()
+        ifverbose5obj.set_attr('expr', 'check_status%VerboseLevel > 0 .AND. check_status%VerboseLevel < 4')
+
+        write4obj = ifverbose5obj.create_write()
+
+        write5obj = ifverbose5obj.create_write()
+        write5obj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL."'])
+
+        write6obj = ifverbose5obj.create_write()
+        write6obj.set_attr('item_list', ['count( var /= ref_var)', '" of "', 'size( var )', '" elements are different."'])
+
+        ifverbose6obj = ifverbose5obj.create_ifthen()
+        ifverbose6obj.set_attr('expr', 'check_status%VerboseLevel >= 2 .AND. check_status%VerboseLevel < 4')
+
+        write7obj = ifverbose6obj.create_write()
+        write7obj.set_attr('item_list', ['"Average - kernel "', 'sum(var)/real(size(var))'])
+
+        write8obj = ifverbose6obj.create_write()
+        write7obj.set_attr('item_list', ['"Average - reference "', 'sum(ref_var)/real(size(ref_var))'])
+
+        endobj = ifverbose6obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        write9obj = ifverbose5obj.create_write()
+        write9obj.set_attr('item_list', ['"RMS of difference is "', 'rmsdiff'])
+
+        write10obj = ifverbose5obj.create_write()
+        write10obj.set_attr('item_list', ['"Normalized RMS of difference is "', 'nrmsdiff'])
+
+        endobj = ifverbose5obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        ifverbose4obj.create_else()
+
+        incobj = ifverbose4obj.create_assignstmt()
+        incobj.set_attr('lhs', 'check_status%numWarning')
+        incobj.set_attr('rhs', 'check_status%numWarning + 1')
+
+        ifverbose5obj = ifverbose4obj.create_ifthen()
+        ifverbose5obj.set_attr('expr', 'check_status%VerboseLevel > 1 .AND. check_status%VerboseLevel < 4')
+
+        write4obj = ifverbose5obj.create_write()
+
+        write5obj = ifverbose5obj.create_write()
+        write5obj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL."'])
+
+        write6obj = ifverbose5obj.create_write()
+        write6obj.set_attr('item_list', ['count( var /= ref_var)', '" of "', 'size( var )', '" elements are different."'])
+
+        ifverbose6obj = ifverbose5obj.create_ifthen()
+        ifverbose6obj.set_attr('expr', 'check_status%VerboseLevel >= 2 .AND. check_status%VerboseLevel < 4')
+
+        write7obj = ifverbose6obj.create_write()
+        write7obj.set_attr('item_list', ['"Average - kernel "', 'sum(var)/real(size(var))'])
+
+        write8obj = ifverbose6obj.create_write()
+        write7obj.set_attr('item_list', ['"Average - reference "', 'sum(ref_var)/real(size(ref_var))'])
+
+        endobj = ifverbose6obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        write9obj = ifverbose5obj.create_write()
+        write9obj.set_attr('item_list', ['"RMS of difference is "', 'rmsdiff'])
+
+        write10obj = ifverbose5obj.create_write()
+        write10obj.set_attr('item_list', ['"Normalized RMS of difference is "', 'nrmsdiff'])
+
+        endobj = ifverbose5obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        deallocobj = ifcmpobj.create_deallocate()
+        deallocobj.set_attr('dealloc_list', ['temp', 'temp2'])
+
+        endobj = ifverbose4obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        endobj = ifcmpobj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+
+        if ifassocobj:
+            endobj = ifassocobj.create_endobj()
+            endobj.set_attr('blockname', 'IF')
+
+        if ifallocobj:
+            endobj = ifallocobj.create_endobj()
+            endobj.set_attr('blockname', 'IF')
+
+    def _gen_arr_nondtype_nonrtype_vsubrs(self, subrobj, var):
+        raise ProgramException('Not implemented _gen_arr_nondtype_nonrtype_vsubrs yet.')
+
+    def _gen_arr_nondtype_vsubrs(self, subrobj, var):
+        
+        if self.stmt.name in [ 'real', 'double precision', 'complex' ]:
+            self._gen_arr_nondtype_rtype_vsubrs(subrobj, var)
+        else:
+            self._gen_arr_nondtype_nonrtype_vsubrs(subrobj, var)
+
+    def _gen_arr_vsubrs(self, subrobj, var):
+        if self.stmt.is_derived():
+            self._gen_arr_dtype_vsubrs(subrobj, var)
+        else:
+            self._gen_arr_nondtype_vsubrs(subrobj, var)
+
+    def _gen_nonarr_vsubrs(self, subrobj, var):
+
+        varnameobj = subrobj.create_typedeclstmt()
+        varnameobj.set_attr('typespec', 'CHARACTER')
+        varnameobj.set_attr('selector', '*')
+        varnameobj.append_attr('attrspec', 'INTENT(IN)')
+        varnameobj.append_attr('entity_decl', 'varname')
+
+        checkobj = subrobj.create_typedeclstmt()
+        checkobj.set_attr('typespec', 'TYPE')
+        checkobj.set_attr('selector', 'check_t')
+        checkobj.append_attr('attrspec', 'INTENT(INOUT)')
+        checkobj.append_attr('entity_decl', 'check_status')
+
+        varobj = subrobj.create_typedeclstmt(stmt=self.stmt)
+        for attrspec in self.stmt.attrspec:
+            if attrspec in ['pointer', 'allocatable']:
+                varobj.append_attr('attrspec', attrspec.upper())
+        if var.is_array():
+            varobj.append_attr('attrspec', 'DIMENSION(%s)'% ','.join(':'*var.rank))
+        varobj.append_attr('attrspec', 'INTENT(IN)')
+        varobj.set_attr('entity_decl', ['var', 'ref_var'])
+
+        subrobj.add_line(subrobj.insert_in_exe_part)
+
+        ifallocobj = None
+        if var.is_allocatable():
+            ifallocobj = subrobj.create_ifthen()
+            ifallocobj.set_attr('expr', 'ALLOCATED(var)')
+
+        ifassocobj = None
+        if var.is_pointer():
+            ifassocobj = subrobj.create_ifthen()
+            ifassocobj.set_attr('expr', 'ASSOCIATED(var)')
+
+        assert not (ifallocobj and ifassocobj)
+        ifcheckobj = ifallocobj if ifallocobj else ifassocobj
+
+        if ifcheckobj: topobj = ifcheckobj
+        else: topobj = subrobj
+
+        incobj = topobj.create_assignstmt()
+        incobj.set_attr('lhs', 'check_status%numTotal')
+        incobj.set_attr('rhs', 'check_status%numTotal + 1')
+
+        ifcmpobj = topobj.create_ifthen()
+        if self.stmt.name=='logical':
+            ifcmpobj.set_attr('expr', 'var .EQV. ref_var')
+        else:
+            ifcmpobj.set_attr('expr', 'var == ref_var')
+
+        incobj = ifcmpobj.create_assignstmt()
+        incobj.set_attr('lhs', 'check_status%numIdentical')
+        incobj.set_attr('rhs', 'check_status%numIdentical + 1')
+
+        ifverbose1obj = ifcmpobj.create_ifthen()
+        ifverbose1obj.set_attr('expr', 'check_status%verboseLevel > 1')
+
+        write1obj = ifverbose1obj.create_write()
+
+        write2obj = ifverbose1obj.create_write()
+        write2obj.set_attr('item_list', ['trim(adjustl(varname))','" is IDENTICAL."'])
+
+        endobj = ifverbose1obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        # top else
+        ifcmpobj.create_else()
+
+        ifverbose4obj = ifcmpobj.create_ifthen()
+        ifverbose4obj.set_attr('expr', 'check_status%verboseLevel > 0')
+
+        write4obj = ifverbose4obj.create_write()
+
+        write5obj = ifverbose4obj.create_write()
+        write5obj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL."'])
+
+        ifverbose5obj = ifverbose4obj.create_ifthen()
+        ifverbose5obj.set_attr('expr', 'check_status%verboseLevel > 2')
+
+        write6obj = ifverbose5obj.create_write()
+        write6obj.set_attr('item_list', ['"KERNEL: "', 'var'])
+
+        write7obj = ifverbose5obj.create_write()
+        write7obj.set_attr('item_list', ['"REF.  : "', 'ref_var'])
+
+        endobj = ifverbose5obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        endobj = ifverbose4obj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+        incobj = ifcmpobj.create_assignstmt()
+        incobj.set_attr('lhs', 'check_status%numFatal')
+        incobj.set_attr('rhs', 'check_status%numFatal + 1')
+
+        endobj = ifcmpobj.create_endobj()
+        endobj.set_attr('blockname', 'IF')
+
+
+        if ifassocobj:
+            endobj = ifassocobj.create_endobj()
+            endobj.set_attr('blockname', 'IF')
+
+        if ifallocobj:
+            endobj = ifallocobj.create_endobj()
+            endobj.set_attr('blockname', 'IF')
+
+        pass
+
+    def gen_verify_subrs(self, parent, enames=None):
 
         if enames is None:
             enames = []
@@ -724,7 +1119,6 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
             if not parent.has_name(vname, GenK_Subroutine):
 
                 var = self.stmt.get_variable(ename)
-
                 parent.add_line(parent.insert_in_subprograms)
 
                 subrobj = parent.create_subroutine()
@@ -733,119 +1127,36 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
                 #parent.add_line(subrobj.insert_in_use_stmts)
 
-                varnameobj = subrobj.create_typedeclstmt()
-                varnameobj.set_attr('typespec', 'CHARACTER')
-                varnameobj.set_attr('selector', '*')
-                varnameobj.append_attr('attrspec', 'INTENT(IN)')
-                varnameobj.append_attr('entity_decl', 'varname')
-
-                checkobj = subrobj.create_typedeclstmt()
-                checkobj.set_attr('typespec', 'TYPE')
-                checkobj.set_attr('selector', 'check_t')
-                checkobj.append_attr('attrspec', 'INTENT(INOUT)')
-                checkobj.append_attr('entity_decl', 'check_status')
-
-                varobj = subrobj.create_typedeclstmt(stmt=self.stmt)
-                for attrspec in self.stmt.attrspec:
-                    if attrspec in ['pointer', 'allocatable']:
-                        varobj.append_attr('attrspec', attrspec.upper())
                 if var.is_array():
-                    varobj.append_attr('attrspec', 'DIMENSION(%s)'% ','.join(':'*var.rank))
-                varobj.append_attr('attrspec', 'INTENT(IN)')
-                varobj.set_attr('entity_decl', ['var', 'ref_var'])
-
-                subrobj.add_line(subrobj.insert_in_exe_part)
-
-                ifallocobj = None
-                if var.is_allocatable():
-                    ifallocobj = subrobj.create_ifthen()
-                    ifallocobj.set_attr('expr', 'ALLOCATED(var)')
-
-                ifassocobj = None
-                if var.is_pointer():
-                    ifassocobj = subrobj.create_ifthen()
-                    ifassocobj.set_attr('expr', 'ASSOCIATED(var)')
-
-                assert not (ifallocobj and ifassocobj)
-                ifcheckobj = ifallocobj if ifallocobj else ifassocobj
-
-                if ifcheckobj: topobj = ifcheckobj
-                else: topobj = subrobj
-
-                incobj = topobj.create_assignstmt()
-                incobj.set_attr('lhs', 'check_status%numTotal')
-                incobj.set_attr('rhs', 'check_status%numTotal + 1')
-
-                ifcmpobj = topobj.create_ifthen()
-                ifcmpobj.set_attr('expr', 'ALL( var == ref_var )')
-
-                incobj = ifcmpobj.create_assignstmt()
-                incobj.set_attr('lhs', 'check_status%numIdentical')
-                incobj.set_attr('rhs', 'check_status%numIdentical + 1')
-
-                ifverbose1obj = ifcmpobj.create_ifthen()
-                ifverbose1obj.set_attr('expr', 'check_status%verboseLevel > 1')
-
-                write1obj = ifverbose1obj.create_write()
-
-                write2obj = ifverbose1obj.create_write()
-                write2obj.set_attr('item_list', ['"All elements of "','trim(adjustl(varname))','" are IDENTICAL."'])
-
-                ifverbose2obj = ifverbose1obj.create_ifthen()
-                ifverbose2obj.set_attr('expr', 'ALL( var == 0 )')
-
-                ifverbose3obj = ifverbose2obj.create_ifthen()
-                ifverbose3obj.set_attr('expr', 'check_status%verboseLevel > 2')
-
-                write3obj = ifverbose3obj.create_write()
-                write3obj.set_attr('item_list', ['"All values are zero."'])
-
-                endobj = ifverbose3obj.create_endobj()
-                endobj.set_attr('blockname', 'IF')
-
-                endobj = ifverbose2obj.create_endobj()
-                endobj.set_attr('blockname', 'IF')
-
-                endobj = ifverbose1obj.create_endobj()
-                endobj.set_attr('blockname', 'IF')
-
-                # top else
-                ifcmpobj.create_else()
-
-                ifverbose4obj = ifcmpobj.create_ifthen()
-                ifverbose4obj.set_attr('expr', 'check_status%verboseLevel > 0')
-
-                write4obj = ifverbose4obj.create_write()
-
-                write5obj = ifverbose4obj.create_write()
-                write5obj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL."'])
-
-                write6obj = ifverbose4obj.create_write()
-                write6obj.set_attr('item_list', ['count( var /= ref_var)', '" of "', 'size( var )', '" elements are different."'])
-
-                endobj = ifverbose4obj.create_endobj()
-                endobj.set_attr('blockname', 'IF')
-
-                incobj = ifcmpobj.create_assignstmt()
-                incobj.set_attr('lhs', 'check_status%numFatal')
-                incobj.set_attr('rhs', 'check_status%numFatal + 1')
-
-                endobj = ifcmpobj.create_endobj()
-                endobj.set_attr('blockname', 'IF')
-
-
-                if ifassocobj:
-                    endobj = ifassocobj.create_endobj()
-                    endobj.set_attr('blockname', 'IF')
-
-                if ifallocobj:
-                    endobj = ifallocobj.create_endobj()
-                    endobj.set_attr('blockname', 'IF')
+                    self._gen_arr_vsubrs(subrobj, var)
+                else:
+                    self._gen_nonarr_vsubrs(subrobj, var)
 
                 # create end subroutine
                 endsubrobj = subrobj.create_endobj()
                 endsubrobj.set_attr('name', vname)
                 endsubrobj.set_attr('blockname', 'SUBROUTINE')
+
+    def gen_read_subrs(self, parent, enames=None):
+        self.add_comment('reading typedecl variable', parent.insert_in_subprograms)
+
+        subrnames = self.get_readnames(names=enames)
+        if subrnames is None: return
+        
+        subrs = []
+        for subrname in subrnames:
+            # create subroutine
+            subrobj = parent.create_subroutine()
+            subrobj.set_attr('name', subrname)
+            subrobj.set_attr('args', ['var', 'kgen_unit', 'printvar'])
+            subrobj.append_attr('prefix', 'RECURSIVE')
+
+            # create end subroutine
+            endsubrobj = subrobj.create_endobj()
+            endsubrobj.set_attr('name', subrname)
+            endsubrobj.set_attr('blockname', 'SUBROUTINE')
+            subrs.append(subrobj)
+        return subrs
 
     def get_readnames(self, names=None):
         subpnames = self.get_typedecl_subpname(self.stmt, names)
@@ -858,13 +1169,14 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         else: return []
 
 class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement):
+
     def process(self):
         if self.isvalid:
             if self.stmt:
                 pass
 
-    def get_writenames(self, names):
-        subpnames = self.get_typedecl_subpname(stmt, names)
+    def get_writenames(self, names=None):
+        subpnames = self.get_typedecl_subpname(self.stmt, names)
         if subpnames: return [ 'kw_%s'%sname for sname in subpnames ]
         else: return []
 
@@ -891,7 +1203,7 @@ class GenK_ElseIf(GenK_Statement, Gen_ElseIf):
 
         return 'ELSE IF( %s ) THEN'%kwargs['expr']
 
-########### ElseIf ############
+########### Else ############
 class Gen_Else(object):
     pass
 
@@ -899,6 +1211,20 @@ class GenK_Else(GenK_Statement, Gen_Else):
 
     def tokgen(self, **kwargs):
         return 'ELSE'
+
+########### ElseWhere ############
+class Gen_ElseWhere(object):
+    pass
+
+class GenK_ElseWhere(GenK_Statement, Gen_ElseWhere):
+
+    def tokgen(self, **kwargs):
+        if kwargs.has_key('mask_expr'): mask_expr = '( %s )'%kwargs['mask_expr']
+        else: mask_expr = ''
+        if kwargs.has_key('name'): items = ' ' + kwargs['name']
+        else: name = ''
+
+        return 'ELSEWHERE%s%s'%(mask_expr, name)
 
 ########### Write ############
 class Gen_Write(object):
@@ -923,6 +1249,38 @@ class GenS_Write(GenS_Statement, Gen_Write):
         else: items = []
 
         return 'WRITE(%s) %s'%(','.join(ctrls), ', '.join(items))
+
+########### Allocate ############
+class Gen_Allocate(object):
+    pass
+
+class GenK_Allocate(GenK_Statement, Gen_Allocate):
+
+    def tokgen(self, **kwargs):
+        assert kwargs.has_key('alloc_list')
+
+        if kwargs.has_key('type_spec'): type_spec = kwargs['type_spec'] + ' :: '
+        else: type_spec = ''
+        if kwargs.has_key('alloc_opt_list'): alloc_opt_list = ', ' + ', '.join(kwargs['alloc_opt_list'])
+        else: alloc_opt_list = ''
+
+        return 'ALLOCATE(%s%s%s)'%(type_spec, ', '.join(kwargs['alloc_list']), alloc_opt_list)
+
+########### Deallocate ############
+class Gen_Deallocate(object):
+    pass
+
+class GenK_Deallocate(GenK_Statement, Gen_Deallocate):
+
+    def tokgen(self, **kwargs):
+        assert kwargs.has_key('dealloc_list')
+
+        if kwargs.has_key('type_spec'): type_spec = kwargs['type_spec'] + ' :: '
+        else: type_spec = ''
+        if kwargs.has_key('dealloc_opt_list'): dealloc_opt_list = ', ' + ', '.join(kwargs['dealloc_opt_list'])
+        else: dealloc_opt_list = ''
+
+        return 'DEALLOCATE(%s%s%s)'%(type_spec, ', '.join(kwargs['dealloc_list']), dealloc_opt_list)
 
 ########### BeginStatement ############
 class Gen_BeginStatement(object):
@@ -1010,11 +1368,6 @@ class Gen_BeginStatement(object):
         self.insert_in_exe_part(obj)
         return obj
 
-        # initialize dtype check status
-        checkobj = subrobj.create_callstmt()
-        checkobj.set_attr('name', 'kgen_init_check')
-        checkobj.set_attr('args', 'dtype_check_status')
-
     def create_callstmt(self, stmt=None):
         assert hasattr(self, 'insert_in_exe_part')
 
@@ -1067,6 +1420,38 @@ class Gen_BeginStatement(object):
         assert hasattr(self, 'insert_in_exe_part')
 
         exec('obj = Gen%s_Write(stmt, self.k_id)'%self.gentype)
+        obj.parent = self
+        self.insert_in_exe_part(obj)
+        return obj
+
+    def create_allocate(self, stmt=None):
+        assert hasattr(self, 'insert_in_exe_part')
+
+        exec('obj = Gen%s_Allocate(stmt, self.k_id)'%self.gentype)
+        obj.parent = self
+        self.insert_in_exe_part(obj)
+        return obj
+
+    def create_deallocate(self, stmt=None):
+        assert hasattr(self, 'insert_in_exe_part')
+
+        exec('obj = Gen%s_Deallocate(stmt, self.k_id)'%self.gentype)
+        obj.parent = self
+        self.insert_in_exe_part(obj)
+        return obj
+
+    def create_where(self, stmt=None):
+        assert hasattr(self, 'insert_in_exe_part')
+
+        exec('obj = Gen%s_Where(stmt, self.k_id)'%self.gentype)
+        obj.parent = self
+        self.insert_in_exe_part(obj)
+        return obj
+
+    def create_elsewhere(self, stmt=None):
+        assert hasattr(self, 'insert_in_exe_part')
+
+        exec('obj = Gen%s_ElseWhere(stmt, self.k_id)'%self.gentype)
         obj.parent = self
         self.insert_in_exe_part(obj)
         return obj
@@ -1208,7 +1593,7 @@ class Gen_Module(object):
         if len(self.contains_stmt)>0:
             lines.extend(self.tostr_list(self.contains_stmt))
         elif len(self.subprograms)>0:
-            lines.append('CONTAINS')
+            lines.append(self.indent+'CONTAINS')
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
@@ -1228,10 +1613,7 @@ class GenK_Module(GenK_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_Imp
         if self.isvalid:
             lines = []
 
-            if self.stmt is State.topblock['stmt']:
-                l = 'PROGRAM kernel_%s'%Config.callsite['subpname'].firstpartname()
-            else:
-                l = self.tostr_blockhead()
+            l = self.tostr_blockhead()
             if l is not None: lines.append(l)
 
             lines.extend(self.tostr_module())
@@ -1258,31 +1640,20 @@ class GenS_Module(GenS_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_Imp
         
             return '\n'.join(lines)
 
-class Gen_EndModule(object):
-    pass
+########### Program ############
+class Gen_Program(object):
+    def process_program_items(self):
+        from block_statements import EndProgram
 
-class GenK_EndModule(GenK_EndStatement, Gen_EndModule):
-    def tostr(self):
-        if self.isvalid:
-            if self.stmt.parent is State.topblock['stmt']:
-                return 'END PROGRAM kernel_%s'%Config.callsite['subpname'].firstpartname()
-            else:
-                return super(GenK_EndModule, self).tostr()
-
-########### ModuleT ############
-class Gen_ModuleT(object):
-    def process_module_items(self):
-        from block_statements import EndModule
-
-        class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, \
-            Gen_Has_ContainsStmt, Gen_Has_Subprograms]
-        end_classes = [ EndModule ]
+        class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, \
+            Gen_Has_ExecutionPart, Gen_Has_ContainsStmt, Gen_Has_Subprograms]
+        end_classes = [ EndProgram ]
 
         for item in self.items:
             class_order = self.insert_in_order(item, class_order, end_classes)
             item.process()
 
-    def tostr_module(self):
+    def tostr_program(self):
         lines = []
         lines.extend(self.tostr_list(self.use_stmts))
         lines.extend(self.tostr_list(self.import_stmts))
@@ -1292,38 +1663,40 @@ class Gen_ModuleT(object):
         if len(self.contains_stmt)>0:
             lines.extend(self.tostr_list(self.contains_stmt))
         elif len(self.subprograms)>0:
-            lines.append('CONTAINS')
+            lines.append(self.indent+'CONTAINS')
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
-class GenK_ModuleT(GenK_BeginStatement, Gen_ModuleT, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
+class GenK_Program(GenK_BeginStatement, Gen_Program, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
     Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
 
     def process(self):
         if self.isvalid:
             self.process_blockhead()
-            self.process_module_items()
-            useobj = self.create_use()
-            useobj.set_attr('name', 'kgen_utils_mod')
-            useobj.extend_attr('items', ['check_t', 'kgen_init_check'])
-   
+            self.process_program_items()
 
     def tostr(self):
         if self.isvalid:
             lines = []
 
-            if self.stmt is State.topblock['stmt']:
-                l = 'PROGRAM kernel_%s'%Config.callsite['subpname'].firstpartname()
-            else:
-                l = self.tostr_blockhead()
+            l = self.tostr_blockhead()
             if l is not None: lines.append(l)
 
-            lines.extend(self.tostr_module())
+            lines.extend(self.tostr_program())
             if self.end_obj: lines.append(self.end_obj.tostr())
 
             return '\n'.join(lines)
 
-class GenS_ModuleT(GenS_BeginStatement, Gen_ModuleT, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
+    def tokgen(self, **kwargs):
+        name = None
+        if kwargs.has_key('name'):
+            name = kwargs['name']
+        if name is None: raise ProgramException('No program name is provided in call stmt.')
+
+        return 'PROGRAM %s'%name
+
+
+class GenS_Program(GenS_BeginStatement, Gen_Program, Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, \
     Gen_Has_DeclConstruct, Gen_Has_ExecutionPart, Gen_Has_ContainsStmt, Gen_Has_Subprograms):
 
     def process(self):
@@ -1365,7 +1738,7 @@ class Gen_SubProgramStatement(object):
         if len(self.contains_stmt)>0:
             lines.extend(self.tostr_list(self.contains_stmt))
         elif len(self.subprograms)>0:
-            lines.append('CONTAINS')
+            lines.append(self.indent+'CONTAINS')
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
@@ -1377,9 +1750,9 @@ class GenK_SubProgramStatement(GenK_BeginStatement, Gen_SubProgramStatement, Gen
             # process first line
             self.process_blockhead()
 
-            if self.stmt and hasattr(self.stmt, 'ancestor_callsite') and self.stmt.ancestor_callsite:
-                callobj = self.parent.create_callstmt()
-                callobj.set_attr('name', self.stmt.name)
+            #if self.stmt and hasattr(self.stmt, 'ancestor_callsite') and self.stmt.ancestor_callsite:
+                #callobj = self.parent.create_callstmt()
+                #callobj.set_attr('name', self.stmt.name)
    
             self.process_subp_items()
 
@@ -1448,7 +1821,7 @@ class Gen_SubroutineP(object):
     pass
  
 class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputModuleState, Gen_Has_InputLocalState, \
-    Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_CallsiteStmts, Gen_Has_VerifyState, Gen_Has_MeasureTiming):
+    Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_CallsiteStmts, Gen_Has_VerifyModuleState, Gen_Has_VerifyLocalState, Gen_Has_MeasureTiming):
 
     def process_subp_items(self):
         from block_statements import EndSubroutine
@@ -1462,7 +1835,8 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         self.add_comment('read output module state', self.insert_in_output_module_state)
         self.add_comment('read output local state', self.insert_in_output_local_state)
         self.add_comment('callsite statements', self.insert_in_callsite_stmts)
-        self.add_comment('verify state', self.insert_in_verify_state)
+        self.add_comment('verify module state', self.insert_in_verify_module_state)
+        self.add_comment('verify local state', self.insert_in_verify_local_state)
         self.add_comment('measure timing', self.insert_in_measure_timing)
 
         for item in self.items:
@@ -1480,12 +1854,13 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         lines.extend(self.tostr_list(self.output_module_state))
         lines.extend(self.tostr_list(self.output_local_state))
         lines.extend(self.tostr_list(self.callsite_stmts))
-        lines.extend(self.tostr_list(self.verify_state))
+        lines.extend(self.tostr_list(self.verify_module_state))
+        lines.extend(self.tostr_list(self.verify_local_state))
         lines.extend(self.tostr_list(self.measure_timing))
         if len(self.contains_stmt)>0:
             lines.extend(self.tostr_list(self.contains_stmt))
         elif len(self.subprograms)>0:
-            lines.append('CONTAINS')
+            lines.append(self.indent+'CONTAINS')
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
@@ -1540,6 +1915,31 @@ class GenK_IfThen(GenK_BeginStatement, Gen_IfThen, Gen_Has_ExecutionPart,):
             if self.end_obj: lines.append(self.end_obj.tostr())
             return '\n'.join(lines)
 
+########### Where ############
+class Gen_Where(object):
+    pass
+
+class GenK_Where(GenK_BeginStatement, Gen_Where, Gen_Has_ExecutionPart,):
+
+    def tokgen(self, **kwargs):
+        assert kwargs.has_key('expr')
+
+        return 'WHERE ( %s )'%kwargs['expr']
+
+    def tostr_where(self):
+        lines = []
+        lines.extend(self.tostr_list(self.exe_part))
+        return lines
+
+    def tostr(self):
+        if self.isvalid:
+            lines = []
+
+            l = self.tostr_blockhead()
+            if l is not None: lines.append(l)
+            lines.extend(self.tostr_where())
+            if self.end_obj: lines.append(self.end_obj.tostr())
+            return '\n'.join(lines)
 
 ########### TypeDecl ############
 class Gen_TypeDecl(object):
@@ -1613,16 +2013,11 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
 
 
                 enames = [ get_entity_name(e) for e in item.stmt.entity_decls ]
+                vsubrs = item.gen_verify_subrs(self.parent, enames)
                 for vname, ename in zip(vnames, enames):
                     callobj = parent.create_callstmt()
                     callobj.set_attr('name', vname)
                     callobj.set_attr('args', ['"%s"'%ename, 'dtype_check_status', 'var%%%s'%ename, 'ref_var%%%s'%ename])
-
-                    var = item.stmt.get_variable(ename)
-                    if var.is_parameter() or var.is_explicit_shape_array():
-                        pass
-                    else:
-                        item.gen_verify_subr(self.parent)
 
         self.add_line(parent.insert_in_exe_part)
 
@@ -1783,19 +2178,77 @@ class Gen_BeginSource(object):
         if lines is not None: fd.write(lines)
 
 class GenK_BeginSource(GenK_BeginStatement, Gen_BeginSource):
-    pass
+    def tokgen(self, **kwargs): pass
 
 class GenS_BeginSource(GenS_BeginStatement, Gen_BeginSource):
-    pass
+    def tokgen(self, **kwargs): pass
 
 ########### functions ############
-def generate_kgen_utils():
-    from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr
+def generate_kgen_driver(k_id):
+    driver = GenK_BeginSource(None, k_id)
+
+    program = GenK_Program(None, k_id)
+    program.parent = driver
+    program.set_attr('name', 'kernel_driver')
+    driver.items.append(program)
+
+    usekutilobj = program.create_use()
+    usekutilobj.set_attr('name', 'kgen_utils_mod')
+    usekutilobj.extend_attr('items', ['kgen_get_newunit', 'kgen_error_stop'])
+
+    usecsobj = program.create_use()
+    usecsobj.set_attr('name', State.topblock['stmt'].name)
+    usecsobj.extend_attr('items', [State.parentblock['stmt'].name])
+
+    program.add_line(program.insert_in_use_stmts)
+
+    # add use module of parent callsite to import parent callsite
+    # implicit none
+    # conventional typedecls. note rank and invoke with k_id,
+    # set total_time = 0.0
+    # do kernel_ids
+    # do invocation
+    # do mpi ranks
+    # to str for kernel_ids
+    # to str for invocation
+    # to str for mpi rank
+    # get filepath
+    # get kgen_unit
+    # open
+    # blank line
+    # if err: ..
+    # blank line
+    # call parent of callsite
+
+    callobj = program.create_callstmt()
+    callobj.set_attr('name', State.parentblock['stmt'].name)
+
+    # close
+
+#PRINT *, ""
+#PRINT *, "******************************************************************************"
+#PRINT *, "laplace_sphere_wk summary: Total number of verification cases: 1"
+#PRINT *, "laplace_sphere_wk summary: Total time of all calls (usec): ", total_time
+#PRINT *, "******************************************************************************"
+
+    endprogobj = program.create_endobj()
+    endprogobj.set_attr('name', 'kernel_driver')
+    endprogobj.set_attr('blockname', 'PROGRAM')
+
+    with open('%s/kernel_driver.f90'%Config.path['kernel'], 'wb') as f:
+        driver.gensrc(f)
+
+def generate_kgen_utils(k_id):
+    from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \
+        kgen_get_newunit, kgen_error_stop
+
     with open('%s/kgen_utils.f90'%Config.path['kernel'], 'wb') as f:
         f.write('MODULE kgen_utils_mod')
         f.write(kgen_utils_file_head)
         f.write('CONTAINS\n')
         f.write(kgen_utils_file_checksubr)
+        f.write(kgen_get_newunit)
+        f.write(kgen_error_stop)
         f.write('END MODULE kgen_utils_mod\n')
 
 def generate_srcfiles():
@@ -1810,10 +2263,16 @@ def generate_srcfiles():
     if not os.path.exists(Config.path['kernel']):
         os.makedirs(Config.path['kernel'])
 
+    # generate kgen_driver.f90 in kernel directory
+    generate_kgen_driver(0)
+
+    # generate kgen_utils.f90 in kernel directory
+    generate_kgen_utils(0)
+
     # generate source files
     for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
         filename = os.path.basename(filepath)
-        if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_kernel(srcobj.tree.geninfo):
+        if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
             kfile = genkobj(srcobj.tree, 0)
             if kfile is None:
                 raise ProgramException('Kernel source file is not generated for %s.'%filepath)
@@ -1829,8 +2288,6 @@ def generate_srcfiles():
                 with open('%s/%s'%(Config.path['state'], filename), 'wb') as f:
                     sfile.gensrc(f)
 
-    # generate kgen_utils.f90 in kernel directory
-    generate_kgen_utils()
 
     State.state = State.STATE_GENERATED
 
