@@ -377,6 +377,37 @@ def collect_kernel_info():
     # populate callsite parameters
     collect_args_from_expr(State.callsite['expr'], State.callsite['actual_arg'], State.callsite['stmt'])
 
+    # update gentype for typedecl stmts resolvers of actual arguments
+    actual_args = State.callsite['actual_arg']['names']
+    dummy_argnames = [ n.firstpartname() for n in State.kernel['dummy_arg']['names'] ]
+    if actual_args:
+        for idx, aarg in enumerate(actual_args.arglist):
+            if aarg.is_keyword:
+                if aarg.keyword in dummy_argnames:
+                    for i, dname in enumerate(dummy_argnames):
+                        if dname==aarg.keyword:
+                            idx = i
+                            break
+                else: raise ProgramException('Keyword dummy argument is not found: %s'%aarg.keyword)
+            dargname = State.kernel['dummy_arg']['names'][idx]
+            gentype = KGGenType.STATE_IN
+            if dargname in State.kernel['dummy_arg']['in_names']: pass
+            elif dargname in State.kernel['dummy_arg']['out_names']: gentype = KGGenType.STATE_OUT
+            elif dargname in State.kernel['dummy_arg']['inout_names']: gentype = KGGenType.STATE_OUT
+            else: raise ProgramException('Dummy argument, %s, is not found: %s'%dargname)
+
+            for kgname in aarg.get_kgnames():
+                if kgname in State.callsite['actual_arg']['typedecl_stmt']:
+                    typedecl_stmt = State.callsite['actual_arg']['typedecl_stmt'][kgname]
+                    if typedecl_stmt.parent is State.parentblock['stmt']:
+                        if gentype==KGGenType.STATE_OUT and typedecl_stmt.geninfo.has_key(KGGenType.STATE_IN):
+                            if not typedecl_stmt.geninfo.has_key(KGGenType.STATE_OUT):
+                                typedecl_stmt.geninfo[KGGenType.STATE_OUT] = []
+                            for uname, req in typedecl_stmt.geninfo[KGGenType.STATE_IN]:
+                                if uname.firstpartname()==kgname.firstpartname() and \
+                                    not (uname, req) in typedecl_stmt.geninfo[KGGenType.STATE_OUT]:
+                                    typedecl_stmt.geninfo[KGGenType.STATE_OUT].append((uname, req))
+
     State.state = State.KERNELINFO_COLLECTED
 
 import unittest
