@@ -63,7 +63,7 @@ ELSE
             WRITE(*,*) "REF.  : ", ref_var
         end if
     end if
-    check_status%%numFatal = check_status%%numFatal + 1
+    check_status%%numOutTol = check_status%%numOutTol + 1
 END IF"""
 
 kgen_verify_numeric_array = \
@@ -110,9 +110,9 @@ ELSE
     end if
 
     if (nrmsdiff > check_status%%tolerance) then
-        check_status%%numFatal = check_status%%numFatal+1
+        check_status%%numOutTol = check_status%%numOutTol+1
     else
-        check_status%%numWarning = check_status%%numWarning+1
+        check_status%%numInTol = check_status%%numInTol+1
     endif
 
     deallocate(temp,temp2)
@@ -141,12 +141,15 @@ ELSE
         WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
     end if
 
-    check_status%%numFatal = check_status%%numFatal+1
+    check_status%%numOutTol = check_status%%numOutTol+1
 END IF"""
 
 kgen_utils_file_head = \
 """
 INTEGER, PARAMETER :: kgen_dp = selected_real_kind(15, 307)
+INTEGER, PARAMETER :: CHECK_IDENTICAL = 1
+INTEGER, PARAMETER :: CHECK_IN_TOL = 2
+INTEGER, PARAMETER :: CHECK_OUT_TOL = 3
 
 ! PERTURB: add following interface
 interface kgen_perturb
@@ -160,16 +163,17 @@ end interface
 
 type check_t
     logical :: Passed
-    integer :: numFatal
+    integer :: numOutTol
     integer :: numTotal
     integer :: numIdentical
-    integer :: numWarning
+    integer :: numInTol
     integer :: VerboseLevel
     real(kind=kgen_dp) :: tolerance
     real(kind=kgen_dp) :: minvalue
 end type check_t
 
 public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb
+public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
 public kgen_get_newunit, kgen_error_stop
 """
 
@@ -313,8 +317,8 @@ subroutine kgen_init_check(check, tolerance, minvalue)
   real(kind=kgen_dp), intent(in), optional :: minvalue
 
   check%Passed   = .TRUE.
-  check%numFatal = 0
-  check%numWarning = 0
+  check%numOutTol = 0
+  check%numInTol = 0
   check%numTotal = 0
   check%numIdentical = 0
   check%VerboseLevel = 1
@@ -338,10 +342,10 @@ subroutine kgen_print_check(kname, check)
    write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
    write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
    write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
-   write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
-   write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
+   write (*,*) TRIM(kname),': Number of variables within tolerance(not identical): ',check%numInTol
+   write (*,*) TRIM(kname),': Number of variables out of tolerance: ', check%numOutTol
 
-   if (check%numFatal> 0) then
+   if (check%numOutTol> 0) then
         write(*,*) TRIM(kname),': Verification FAILED'
    else
         write(*,*) TRIM(kname),': Verification PASSED'

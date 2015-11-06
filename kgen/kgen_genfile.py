@@ -668,6 +668,7 @@ class Gen_TypeDeclarationStatement(object):
 class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement):
 
     def process(self):
+
         if self.isvalid:
             if self.stmt and hasattr(self.stmt, 'geninfo') and KGGenType.has_state(self.stmt.geninfo):
                 # TODO: need to handle the stmt according to parent class
@@ -739,278 +740,41 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         return '%s%s%s ::%s'%(typespec, selector, attrspec, entity_decl)
 
-    def _gen_arr_dtype_vsubrs(self, subrobj, var):
-        raise ProgramException('Not implemented _gen_arr_dtype_vsubrs yet.')
 
-    def _gen_arr_nondtype_rtype_vsubrs(self, subrobj, var):
+    def gen_verify_subrs_spec(self, subrobj, var):
 
-        typename = self.stmt.name.upper()
-        selector = self.stmt._selector_str()
-        dim_shape = ','.join(':'*var.rank)
-        get_size = ','.join(['SIZE(var,dim=%d)'%(dim+1) for dim in range(var.rank)])
-
+        # var name
         varnameobj = subrobj.create_typedeclstmt()
         varnameobj.set_attr('typespec', 'CHARACTER')
         varnameobj.set_attr('selector', '*')
         varnameobj.append_attr('attrspec', 'INTENT(IN)')
         varnameobj.append_attr('entity_decl', 'varname')
 
+        # check_status
         checkobj = subrobj.create_typedeclstmt()
         checkobj.set_attr('typespec', 'TYPE')
         checkobj.set_attr('selector', 'check_t')
         checkobj.append_attr('attrspec', 'INTENT(INOUT)')
         checkobj.append_attr('entity_decl', 'check_status')
 
-        varobj = subrobj.create_typedeclstmt(stmt=self.stmt)
-        for attrspec in self.stmt.attrspec:
-            if attrspec in ['pointer', 'allocatable']:
-                varobj.append_attr('attrspec', attrspec.upper())
-        if var.is_array():
-            varobj.append_attr('attrspec', 'DIMENSION(%s)'%dim_shape)
-        varobj.append_attr('attrspec', 'INTENT(IN)')
-        varobj.set_attr('entity_decl', ['var', 'ref_var'])
+        # dtype ckeck status
+        if self.stmt.is_derived():
+            dcheckobj = subrobj.create_typedeclstmt()
+            dcheckobj.set_attr('typespec', 'TYPE')
+            dcheckobj.set_attr('selector', 'check_t')
+            dcheckobj.append_attr('entity_decl', 'dtype_check_status')
 
-        varrmsobj = subrobj.create_typedeclstmt()
-        varrmsobj.set_attr('typespec', typename)
-        varrmsobj.set_attr('selector', selector)
-        varrmsobj.extend_attr('entity_decl', ['nrmsdiff', 'rmsdiff'])
-
-        vartempobj = subrobj.create_typedeclstmt()
-        vartempobj.set_attr('typespec', typename)
-        vartempobj.set_attr('selector', selector)
-        vartempobj.append_attr('attrspec', 'ALLOCATABLE')
-        vartempobj.append_attr('attrspec', 'DIMENSION(%s)'%dim_shape)
-        vartempobj.extend_attr('entity_decl', ['temp', 'temp2'])
-
+        # check result
         varnobj = subrobj.create_typedeclstmt()
         varnobj.set_attr('typespec', 'INTEGER')
-        varnobj.append_attr('entity_decl', 'n') 
+        varnobj.append_attr('entity_decl', 'check_result') 
 
-        subrobj.add_line(subrobj.insert_in_exe_part)
+        # print check result
+        printobj = subrobj.create_typedeclstmt()
+        printobj.set_attr('typespec', 'LOGICAL')
+        printobj.append_attr('entity_decl', 'is_print = .FALSE.') 
 
-        ifallocobj = None
-        if var.is_allocatable():
-            ifallocobj = subrobj.create_ifthen()
-            ifallocobj.set_attr('expr', 'ALLOCATED(var)')
-
-        ifassocobj = None
-        if var.is_pointer():
-            ifassocobj = subrobj.create_ifthen()
-            ifassocobj.set_attr('expr', 'ASSOCIATED(var)')
-
-        assert not (ifallocobj and ifassocobj)
-        ifcheckobj = ifallocobj if ifallocobj else ifassocobj
-
-        if ifcheckobj: topobj = ifcheckobj
-        else: topobj = subrobj
-
-        incobj = topobj.create_assignstmt()
-        incobj.set_attr('lhs', 'check_status%numTotal')
-        incobj.set_attr('rhs', 'check_status%numTotal + 1')
-
-        ifcmpobj = topobj.create_ifthen()
-        ifcmpobj.set_attr('expr', 'ALL( var == ref_var )')
-
-        incobj = ifcmpobj.create_assignstmt()
-        incobj.set_attr('lhs', 'check_status%numIdentical')
-        incobj.set_attr('rhs', 'check_status%numIdentical + 1')
-
-        ifverbose1obj = ifcmpobj.create_ifthen()
-        ifverbose1obj.set_attr('expr', 'check_status%verboseLevel == 3')
-
-        write1obj = ifverbose1obj.create_write()
-
-        write2obj = ifverbose1obj.create_write()
-        write2obj.set_attr('item_list', ['"All elements of "','trim(adjustl(varname))','" are IDENTICAL."'])
-
-        ifverbose2obj = ifverbose1obj.create_ifthen()
-        ifverbose2obj.set_attr('expr', 'ALL( var == 0 )')
-
-        ifverbose3obj = ifverbose2obj.create_ifthen()
-        ifverbose3obj.set_attr('expr', 'check_status%verboseLevel == 3')
-
-        write3obj = ifverbose3obj.create_write()
-        write3obj.set_attr('item_list', ['"All values are zero."'])
-
-        endobj = ifverbose3obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        endobj = ifverbose2obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        endobj = ifverbose1obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        # top else
-        ifcmpobj.create_else()
-
-        alloc1obj = ifcmpobj.create_allocate()
-        alloc1obj.set_attr('alloc_list', ['temp(%s)'%get_size])
-
-        alloc2obj = ifcmpobj.create_allocate()
-        alloc2obj.set_attr('alloc_list', ['temp2(%s)'%get_size])
-
-        countobj = ifcmpobj.create_assignstmt()
-        countobj.set_attr('lhs', 'n')
-        countobj.set_attr('rhs', 'count(var /= ref_var)')
-
-        whereobj = ifcmpobj.create_where()
-        whereobj.set_attr('expr', 'abs(ref_var) > check_status%minvalue')
-
-        tempobj = whereobj.create_assignstmt()
-        tempobj.set_attr('lhs', 'temp')
-        tempobj.set_attr('rhs', '((var-ref_var)/ref_var)**2')
-
-        temp2obj = whereobj.create_assignstmt()
-        temp2obj.set_attr('lhs', 'temp2')
-        temp2obj.set_attr('rhs', '(var-ref_var)**2')
-
-        whereobj.create_elsewhere()
-
-        etempobj = whereobj.create_assignstmt()
-        etempobj.set_attr('lhs', 'temp')
-        etempobj.set_attr('rhs', '(var-ref_var)**2')
-
-        etemp2obj = whereobj.create_assignstmt()
-        etemp2obj.set_attr('lhs', 'temp2')
-        etemp2obj.set_attr('rhs', 'temp')
-
-        endwhereobj = whereobj.create_endobj()
-        endwhereobj.set_attr('blockname', 'WHERE')
-
-        nrmsobj = ifcmpobj.create_assignstmt()
-        nrmsobj.set_attr('lhs', 'nrmsdiff')
-        nrmsobj.set_attr('rhs', 'sqrt(sum(temp)/real(n))')
-
-        rmsobj = ifcmpobj.create_assignstmt()
-        rmsobj.set_attr('lhs', 'rmsdiff')
-        rmsobj.set_attr('rhs', 'sqrt(sum(temp2)/real(n))')
-
-        ifverbose4obj = ifcmpobj.create_ifthen()
-        ifverbose4obj.set_attr('expr', 'nrmsdiff > check_status%tolerance')
-
-        incobj = ifverbose4obj.create_assignstmt()
-        incobj.set_attr('lhs', 'check_status%numFatal')
-        incobj.set_attr('rhs', 'check_status%numFatal + 1')
-
-        ifverbose5obj = ifverbose4obj.create_ifthen()
-        ifverbose5obj.set_attr('expr', 'check_status%VerboseLevel > 0 .AND. check_status%VerboseLevel < 4')
-
-        write4obj = ifverbose5obj.create_write()
-
-        write5obj = ifverbose5obj.create_write()
-        write5obj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL."'])
-
-        write6obj = ifverbose5obj.create_write()
-        write6obj.set_attr('item_list', ['count( var /= ref_var)', '" of "', 'size( var )', '" elements are different."'])
-
-        ifverbose6obj = ifverbose5obj.create_ifthen()
-        ifverbose6obj.set_attr('expr', 'check_status%VerboseLevel >= 2 .AND. check_status%VerboseLevel < 4')
-
-        write7obj = ifverbose6obj.create_write()
-        write7obj.set_attr('item_list', ['"Average - kernel "', 'sum(var)/real(size(var))'])
-
-        write8obj = ifverbose6obj.create_write()
-        write7obj.set_attr('item_list', ['"Average - reference "', 'sum(ref_var)/real(size(ref_var))'])
-
-        endobj = ifverbose6obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        write9obj = ifverbose5obj.create_write()
-        write9obj.set_attr('item_list', ['"RMS of difference is "', 'rmsdiff'])
-
-        write10obj = ifverbose5obj.create_write()
-        write10obj.set_attr('item_list', ['"Normalized RMS of difference is "', 'nrmsdiff'])
-
-        endobj = ifverbose5obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        ifverbose4obj.create_else()
-
-        incobj = ifverbose4obj.create_assignstmt()
-        incobj.set_attr('lhs', 'check_status%numWarning')
-        incobj.set_attr('rhs', 'check_status%numWarning + 1')
-
-        ifverbose5obj = ifverbose4obj.create_ifthen()
-        ifverbose5obj.set_attr('expr', 'check_status%VerboseLevel > 1 .AND. check_status%VerboseLevel < 4')
-
-        write4obj = ifverbose5obj.create_write()
-
-        write5obj = ifverbose5obj.create_write()
-        write5obj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL."'])
-
-        write6obj = ifverbose5obj.create_write()
-        write6obj.set_attr('item_list', ['count( var /= ref_var)', '" of "', 'size( var )', '" elements are different."'])
-
-        ifverbose6obj = ifverbose5obj.create_ifthen()
-        ifverbose6obj.set_attr('expr', 'check_status%VerboseLevel >= 2 .AND. check_status%VerboseLevel < 4')
-
-        write7obj = ifverbose6obj.create_write()
-        write7obj.set_attr('item_list', ['"Average - kernel "', 'sum(var)/real(size(var))'])
-
-        write8obj = ifverbose6obj.create_write()
-        write7obj.set_attr('item_list', ['"Average - reference "', 'sum(ref_var)/real(size(ref_var))'])
-
-        endobj = ifverbose6obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        write9obj = ifverbose5obj.create_write()
-        write9obj.set_attr('item_list', ['"RMS of difference is "', 'rmsdiff'])
-
-        write10obj = ifverbose5obj.create_write()
-        write10obj.set_attr('item_list', ['"Normalized RMS of difference is "', 'nrmsdiff'])
-
-        endobj = ifverbose5obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        deallocobj = ifcmpobj.create_deallocate()
-        deallocobj.set_attr('dealloc_list', ['temp', 'temp2'])
-
-        endobj = ifverbose4obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-        endobj = ifcmpobj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
-
-
-        if ifassocobj:
-            endobj = ifassocobj.create_endobj()
-            endobj.set_attr('blockname', 'IF')
-
-        if ifallocobj:
-            endobj = ifallocobj.create_endobj()
-            endobj.set_attr('blockname', 'IF')
-
-    def _gen_arr_nondtype_nonrtype_vsubrs(self, subrobj, var):
-        raise ProgramException('Not implemented _gen_arr_nondtype_nonrtype_vsubrs yet.')
-
-    def _gen_arr_nondtype_vsubrs(self, subrobj, var):
-        
-        if self.stmt.name in [ 'real', 'double precision', 'complex' ]:
-            self._gen_arr_nondtype_rtype_vsubrs(subrobj, var)
-        else:
-            self._gen_arr_nondtype_nonrtype_vsubrs(subrobj, var)
-
-    def _gen_arr_vsubrs(self, subrobj, var):
-        if self.stmt.is_derived():
-            self._gen_arr_dtype_vsubrs(subrobj, var)
-        else:
-            self._gen_arr_nondtype_vsubrs(subrobj, var)
-
-    def _gen_nonarr_vsubrs(self, subrobj, var):
-
-        varnameobj = subrobj.create_typedeclstmt()
-        varnameobj.set_attr('typespec', 'CHARACTER')
-        varnameobj.set_attr('selector', '*')
-        varnameobj.append_attr('attrspec', 'INTENT(IN)')
-        varnameobj.append_attr('entity_decl', 'varname')
-
-        checkobj = subrobj.create_typedeclstmt()
-        checkobj.set_attr('typespec', 'TYPE')
-        checkobj.set_attr('selector', 'check_t')
-        checkobj.append_attr('attrspec', 'INTENT(INOUT)')
-        checkobj.append_attr('entity_decl', 'check_status')
-
+        # typedecl var, ref_var
         varobj = subrobj.create_typedeclstmt(stmt=self.stmt)
         for attrspec in self.stmt.attrspec:
             if attrspec in ['pointer', 'allocatable']:
@@ -1020,7 +784,39 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         varobj.append_attr('attrspec', 'INTENT(IN)')
         varobj.set_attr('entity_decl', ['var', 'ref_var'])
 
-        subrobj.add_line(subrobj.insert_in_exe_part)
+        # typedecls for array
+        typename = self.stmt.name.upper()
+        selector = self.stmt._selector_str()
+        if var.is_array():
+            dim_shape = ','.join(':'*var.rank)
+            if self.stmt.is_derived():
+                varidxobj = subrobj.create_typedeclstmt()
+                varidxobj.set_attr('typespec', 'INTEGER')
+                varidxobj.extend_attr('entity_decl', [ 'idx%d'%(r+1) for r in range(var.rank)])
+
+            elif self.stmt.is_numeric():
+                varrmsobj = subrobj.create_typedeclstmt()
+                varrmsobj.set_attr('typespec', typename)
+                varrmsobj.set_attr('selector', selector)
+                varrmsobj.extend_attr('entity_decl', ['nrmsdiff', 'rmsdiff'])
+
+                vartempobj = subrobj.create_typedeclstmt()
+                vartempobj.set_attr('typespec', typename)
+                vartempobj.set_attr('selector', selector)
+                vartempobj.append_attr('attrspec', 'ALLOCATABLE')
+                vartempobj.append_attr('attrspec', 'DIMENSION(%s)'%dim_shape)
+                vartempobj.extend_attr('entity_decl', ['temp', 'temp2'])
+
+                varnobj = subrobj.create_typedeclstmt()
+                varnobj.set_attr('typespec', 'INTEGER')
+                varnobj.append_attr('entity_decl', 'n') 
+        elif self.stmt.is_numeric():
+            varrmsobj = subrobj.create_typedeclstmt()
+            varrmsobj.set_attr('typespec', typename)
+            varrmsobj.set_attr('selector', selector)
+            varrmsobj.append_attr('entity_decl', 'diff')
+
+    def gen_verify_subrs_check(self, subrobj, var):
 
         ifallocobj = None
         if var.is_allocatable():
@@ -1042,59 +838,197 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         incobj.set_attr('lhs', 'check_status%numTotal')
         incobj.set_attr('rhs', 'check_status%numTotal + 1')
 
-        ifcmpobj = topobj.create_ifthen()
-        if self.stmt.name=='logical':
-            ifcmpobj.set_attr('expr', 'var .EQV. ref_var')
-        else:
-            ifcmpobj.set_attr('expr', 'var == ref_var')
+        writeblankobj = topobj.create_write()
 
-        incobj = ifcmpobj.create_assignstmt()
-        incobj.set_attr('lhs', 'check_status%numIdentical')
-        incobj.set_attr('rhs', 'check_status%numIdentical + 1')
+        if var.is_array(): # array
+            dim_shape = ','.join(':'*var.rank)
+            get_size = ','.join(['SIZE(var,dim=%d)'%(dim+1) for dim in range(var.rank)])
 
-        ifverbose1obj = ifcmpobj.create_ifthen()
-        ifverbose1obj.set_attr('expr', 'check_status%verboseLevel > 1')
+            if self.stmt.is_derived():
+                # initialize dtype check status
+                callinitobj = subrobj.create_callstmt()
+                callinitobj.set_attr('name', 'kgen_init_check')
+                callinitobj.set_attr('args', ['dtype_check_status'])
 
-        write1obj = ifverbose1obj.create_write()
+                # initialize dtype check status
+                callvobj = subrobj.create_callstmt()
+                callvobj.set_attr('name', vname)
+                callvobj.set_attr('args', [ename, 'dtype_check_status', 'var', 'var_ref'])
+            else:
+                # check
+                ifcmpobj = topobj.create_ifthen()
+                if self.stmt.name=='logical':
+                    ifcmpobj.set_attr('expr', 'ALL(var .EQV. ref_var)')
+                else:
+                    ifcmpobj.set_attr('expr', 'ALL(var == ref_var)')
 
-        write2obj = ifverbose1obj.create_write()
-        write2obj.set_attr('item_list', ['trim(adjustl(varname))','" is IDENTICAL."'])
+                identobj = ifcmpobj.create_assignstmt()
+                identobj.set_attr('lhs', 'check_result')
+                identobj.set_attr('rhs', 'CHECK_IDENTICAL')
 
-        endobj = ifverbose1obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
+                # increment fatal check count
+                incobj = ifcmpobj.create_assignstmt()
+                incobj.set_attr('lhs', 'check_status%numIdentical')
+                incobj.set_attr('rhs', 'check_status%numIdentical + 1')
 
-        # top else
-        ifcmpobj.create_else()
+                writeobj = ifcmpobj.create_write()
+                writeobj.set_attr('item_list', ['trim(adjustl(varname))','" is IDENTICAL."'])
 
-        ifverbose4obj = ifcmpobj.create_ifthen()
-        ifverbose4obj.set_attr('expr', 'check_status%verboseLevel > 0')
+                # check else
+                ifcmpobj.create_else()
 
-        write4obj = ifverbose4obj.create_write()
+                if self.stmt.is_numeric():
 
-        write5obj = ifverbose4obj.create_write()
-        write5obj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL."'])
+                    alloc1obj = ifcmpobj.create_allocate()
+                    alloc1obj.set_attr('alloc_list', ['temp(%s)'%get_size])
 
-        ifverbose5obj = ifverbose4obj.create_ifthen()
-        ifverbose5obj.set_attr('expr', 'check_status%verboseLevel > 2')
+                    alloc2obj = ifcmpobj.create_allocate()
+                    alloc2obj.set_attr('alloc_list', ['temp2(%s)'%get_size])
 
-        write6obj = ifverbose5obj.create_write()
-        write6obj.set_attr('item_list', ['"KERNEL: "', 'var'])
+                    countobj = ifcmpobj.create_assignstmt()
+                    countobj.set_attr('lhs', 'n')
+                    countobj.set_attr('rhs', 'count(var /= ref_var)')
 
-        write7obj = ifverbose5obj.create_write()
-        write7obj.set_attr('item_list', ['"REF.  : "', 'ref_var'])
+                    whereobj = ifcmpobj.create_where()
+                    whereobj.set_attr('expr', 'abs(ref_var) > check_status%minvalue')
 
-        endobj = ifverbose5obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
+                    tempobj = whereobj.create_assignstmt()
+                    tempobj.set_attr('lhs', 'temp')
+                    tempobj.set_attr('rhs', '((var-ref_var)/ref_var)**2')
 
-        endobj = ifverbose4obj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
+                    temp2obj = whereobj.create_assignstmt()
+                    temp2obj.set_attr('lhs', 'temp2')
+                    temp2obj.set_attr('rhs', '(var-ref_var)**2')
 
-        incobj = ifcmpobj.create_assignstmt()
-        incobj.set_attr('lhs', 'check_status%numFatal')
-        incobj.set_attr('rhs', 'check_status%numFatal + 1')
+                    whereobj.create_elsewhere()
 
-        endobj = ifcmpobj.create_endobj()
-        endobj.set_attr('blockname', 'IF')
+                    etempobj = whereobj.create_assignstmt()
+                    etempobj.set_attr('lhs', 'temp')
+                    etempobj.set_attr('rhs', '(var-ref_var)**2')
+
+                    etemp2obj = whereobj.create_assignstmt()
+                    etemp2obj.set_attr('lhs', 'temp2')
+                    etemp2obj.set_attr('rhs', 'temp')
+
+                    endwhereobj = whereobj.create_endobj()
+                    endwhereobj.set_attr('blockname', 'WHERE')
+
+                    nrmsobj = ifcmpobj.create_assignstmt()
+                    nrmsobj.set_attr('lhs', 'nrmsdiff')
+                    nrmsobj.set_attr('rhs', 'sqrt(sum(temp)/real(n))')
+
+                    rmsobj = ifcmpobj.create_assignstmt()
+                    rmsobj.set_attr('lhs', 'rmsdiff')
+                    rmsobj.set_attr('rhs', 'sqrt(sum(temp2)/real(n))')
+
+                    ifv1obj = ifcmpobj.create_ifthen()
+                    ifv1obj.set_attr('expr', 'nrmsdiff > check_status%tolerance')
+
+                    ifotobj = ifv1obj.create_assignstmt()
+                    ifotobj.set_attr('lhs', 'check_result')
+                    ifotobj.set_attr('rhs', 'CHECK_OUT_TOL')
+
+                    # increment fatal check count
+                    incobj = ifv1obj.create_assignstmt()
+                    incobj.set_attr('lhs', 'check_status%numOutTol')
+                    incobj.set_attr('rhs', 'check_status%numOutTol + 1')
+
+                    writeobj = ifv1obj.create_write()
+                    writeobj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."'])
+
+                    ifv1obj.create_else()
+
+                    ifotobj = ifv1obj.create_assignstmt()
+                    ifotobj.set_attr('lhs', 'check_result')
+                    ifotobj.set_attr('rhs', 'CHECK_IN_TOL')
+
+                    # increment fatal check count
+                    incobj = ifv1obj.create_assignstmt()
+                    incobj.set_attr('lhs', 'check_status%numInTol')
+                    incobj.set_attr('rhs', 'check_status%numInTol + 1')
+
+                    writeobj = ifv1obj.create_write()
+                    writeobj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL within tolerance."'])
+
+                    ifendv1obj = ifv1obj.create_endobj()
+                    ifendv1obj.set_attr('blockname', 'IF')
+
+                else:
+                    pass
+
+                # check end if
+                endobj = ifcmpobj.create_endobj()
+                endobj.set_attr('blockname', 'IF')
+
+        else: # scalar
+            if not self.stmt.is_derived():
+
+                # check
+                ifcmpobj = topobj.create_ifthen()
+                if self.stmt.name=='logical':
+                    ifcmpobj.set_attr('expr', 'var .EQV. ref_var')
+                else:
+                    ifcmpobj.set_attr('expr', 'var == ref_var')
+
+                identobj = ifcmpobj.create_assignstmt()
+                identobj.set_attr('lhs', 'check_result')
+                identobj.set_attr('rhs', 'CHECK_IDENTICAL')
+
+                # increment fatal check count
+                incobj = ifcmpobj.create_assignstmt()
+                incobj.set_attr('lhs', 'check_status%numIdentical')
+                incobj.set_attr('rhs', 'check_status%numIdentical + 1')
+
+                writeobj = ifcmpobj.create_write()
+                writeobj.set_attr('item_list', ['trim(adjustl(varname))','" is IDENTICAL."'])
+
+                # check else
+                ifcmpobj.create_else()
+
+                if self.stmt.is_numeric():
+                    diffobj = ifcmpobj.create_assignstmt()
+                    diffobj.set_attr('lhs', 'diff')
+                    diffobj.set_attr('rhs', 'ABS(var - var_ref)')
+
+                    iftolobj = ifcmpobj.create_ifthen()
+                    iftolobj.set_attr('expr', 'diff < check_status%tolerance')
+
+                    itobj = iftolobj.create_assignstmt()
+                    itobj.set_attr('lhs', 'check_result')
+                    itobj.set_attr('rhs', 'CHECK_IN_TOL')
+
+                    writeobj = iftolobj.create_write()
+                    writeobj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL within tolerance."'])
+
+                    # increment fatal check count
+                    incobj = iftolobj.create_assignstmt()
+                    incobj.set_attr('lhs', 'check_status%numInTol')
+                    incobj.set_attr('rhs', 'check_status%numInTol + 1')
+
+                    iftolobj.create_else()
+
+                    otobj = iftolobj.create_assignstmt()
+                    otobj.set_attr('lhs', 'check_result')
+                    otobj.set_attr('rhs', 'CHECK_OUT_TOL')
+
+                    # increment fatal check count
+                    incobj = iftolobj.create_assignstmt()
+                    incobj.set_attr('lhs', 'check_status%numOutTol')
+                    incobj.set_attr('rhs', 'check_status%numOutTol + 1')
+
+                    writeobj = iftolobj.create_write()
+                    writeobj.set_attr('item_list', ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."'])
+
+                    endobj = iftolobj.create_endobj()
+                    endobj.set_attr('blockname', 'IF')
+                else:
+                    otobj = ifcmpobj.create_assignstmt()
+                    otobj.set_attr('lhs', 'check_result')
+                    otobj.set_attr('rhs', 'CHECK_OUT_TOL')
+
+                # check end if
+                endobj = ifcmpobj.create_endobj()
+                endobj.set_attr('blockname', 'IF')
 
 
         if ifassocobj:
@@ -1105,7 +1039,101 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
             endobj = ifallocobj.create_endobj()
             endobj.set_attr('blockname', 'IF')
 
-        pass
+    def gen_verify_subrs_print(self, subrobj, var):
+
+        def print_numarr_detail(parent):
+            obj = parent.create_write()
+            obj.set_attr('item_list', ['count( var /= ref_var)', '" of "', 'size( var )', '" elements are different."'])
+
+            obj = parent.create_write()
+            obj.set_attr('item_list', ['"Average - kernel "', 'sum(var)/real(size(var))'])
+
+            obj = parent.create_write()
+            obj.set_attr('item_list', ['"Average - reference "', 'sum(ref_var)/real(size(ref_var))'])
+
+            obj = parent.create_write()
+            obj.set_attr('item_list', ['"RMS of difference is "', 'rmsdiff'])
+
+            obj = parent.create_write()
+            obj.set_attr('item_list', ['"Normalized RMS of difference is "', 'nrmsdiff'])
+
+        def print_num_detail(parent):
+            obj = parent.create_write()
+            obj.set_attr('item_list', ['"Difference is "', 'diff'])
+
+        def print_dummy_detail(parent):
+            obj = parent.create_write()
+            obj.set_attr('item_list', ['"NOT IMPLEMENTED"'])
+
+        print_detail = print_dummy_detail
+        if var.is_array(): # array
+            if self.stmt.is_derived():
+                pass
+            else:
+                if self.stmt.is_numeric():
+                    print_detail = print_numarr_detail
+                else:
+                    pass
+        else:
+            if self.stmt.is_derived():
+                pass
+            else:
+                if self.stmt.is_numeric():
+                    print_detail = print_num_detail
+                else:
+                    pass
+
+
+        ifvobj = subrobj.create_ifthen()
+        ifvobj.set_attr('expr', 'check_status%verboseLevel > 2')
+
+        incobj = ifvobj.create_assignstmt()
+        incobj.set_attr('lhs', 'is_print')
+        incobj.set_attr('rhs', '.TRUE.')
+
+        ifelse1obj = ifvobj.create_elseif()
+        ifelse1obj.set_attr('expr', 'check_status%verboseLevel == 2')
+
+        ifot2obj = ifvobj.create_ifthen()
+        ifot2obj.set_attr('expr', 'check_result /= CHECK_IDENTICAL')
+
+        incobj = ifot2obj.create_assignstmt()
+        incobj.set_attr('lhs', 'is_print')
+        incobj.set_attr('rhs', '.TRUE.')
+
+        endifot2obj = ifot2obj.create_endobj()
+        endifot2obj.set_attr('blockname', 'IF')
+
+        ifelse1obj = ifvobj.create_elseif()
+        ifelse1obj.set_attr('expr', 'check_status%verboseLevel == 1')
+
+        ifot3obj = ifvobj.create_ifthen()
+        ifot3obj.set_attr('expr', 'check_result == CHECK_OUT_TOL')
+
+        incobj = ifot3obj.create_assignstmt()
+        incobj.set_attr('lhs', 'is_print')
+        incobj.set_attr('rhs', '.TRUE.')
+
+        endifot3obj = ifot3obj.create_endobj()
+        endifot3obj.set_attr('blockname', 'IF')
+
+        ifelse1obj = ifvobj.create_elseif()
+        ifelse1obj.set_attr('expr', 'check_status%verboseLevel < 1')
+
+        incobj = ifvobj.create_assignstmt()
+        incobj.set_attr('lhs', 'is_print')
+        incobj.set_attr('rhs', '.FALSE.')
+
+        endifvobj = ifvobj.create_endobj()
+        endifvobj.set_attr('blockname', 'IF')
+
+        ifprintobj = subrobj.create_ifthen()
+        ifprintobj.set_attr('expr', 'is_print')
+
+        print_detail(ifprintobj)
+
+        endifprintobj = ifprintobj.create_endobj()
+        endifprintobj.set_attr('blockname', 'IF')
 
     def gen_verify_subrs(self, parent, enames=None):
 
@@ -1116,23 +1144,31 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         vnames = self.get_verifynames(enames)
         for ename, vname in zip(enames, vnames):
-            if not parent.has_name(vname, GenK_Subroutine):
 
-                var = self.stmt.get_variable(ename)
+            var = self.stmt.get_variable(ename)
+
+            if not parent.has_name(vname, GenK_Subroutine) and \
+                (var.is_array() or not self.stmt.is_derived()):
+
                 parent.add_line(parent.insert_in_subprograms)
 
+                # subroutine stmt
                 subrobj = parent.create_subroutine()
                 subrobj.set_attr('name', vname)
                 subrobj.set_attr('args', ['varname', 'check_status', 'var', 'ref_var'])
 
-                #parent.add_line(subrobj.insert_in_use_stmts)
+                #### spec. part ####
+                self.gen_verify_subrs_spec(subrobj, var)
+                subrobj.add_line(subrobj.insert_in_decl_construct)
 
-                if var.is_array():
-                    self._gen_arr_vsubrs(subrobj, var)
-                else:
-                    self._gen_nonarr_vsubrs(subrobj, var)
+                #### exec. part - check ####
+                self.gen_verify_subrs_check(subrobj, var)
+                subrobj.add_line(subrobj.insert_in_exe_part)
 
-                # create end subroutine
+                #### exec. part - print ####
+                self.gen_verify_subrs_print(subrobj, var)
+
+                # end subroutine stmt
                 endsubrobj = subrobj.create_endobj()
                 endsubrobj.set_attr('name', vname)
                 endsubrobj.set_attr('blockname', 'SUBROUTINE')
@@ -1604,10 +1640,13 @@ class GenK_Module(GenK_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_Imp
         if self.isvalid:
             self.process_blockhead()
             self.process_module_items()
-            useobj = self.create_use()
-            useobj.set_attr('name', 'kgen_utils_mod')
-            useobj.extend_attr('items', ['check_t', 'kgen_init_check'])
-   
+            use1obj = self.create_use()
+            use1obj.set_attr('name', 'kgen_utils_mod')
+            use1obj.extend_attr('items', ['check_t', 'kgen_init_check'])
+            use2obj = self.create_use()
+            use2obj.set_attr('name', 'kgen_utils_mod')
+            use2obj.extend_attr('items', ['CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL'])
+  
 
     def tostr(self):
         if self.isvalid:
@@ -2013,6 +2052,7 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
 
 
                 enames = [ get_entity_name(e) for e in item.stmt.entity_decls ]
+
                 vsubrs = item.gen_verify_subrs(self.parent, enames)
                 for vname, ename in zip(vnames, enames):
                     callobj = parent.create_callstmt()
@@ -2087,21 +2127,21 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
 
             # create else if stmt
             elifobj = ifthenobj.create_elseif()
-            elifobj.set_attr('expr', 'dtype_check_status%numFatal > 0')
+            elifobj.set_attr('expr', 'dtype_check_status%numOutTol > 0')
 
             # increment fatal check count
             incobj = ifthenobj.create_assignstmt()
-            incobj.set_attr('lhs', 'check_status%numFatal')
-            incobj.set_attr('rhs', 'check_status%numFatal + 1')
+            incobj.set_attr('lhs', 'check_status%numOutTol')
+            incobj.set_attr('rhs', 'check_status%numOutTol + 1')
 
             # create else if stmt
             elifobj = ifthenobj.create_elseif()
-            elifobj.set_attr('expr', 'dtype_check_status%numWarning > 0')
+            elifobj.set_attr('expr', 'dtype_check_status%numInTol > 0')
 
             # increment warning check count
             incobj = ifthenobj.create_assignstmt()
-            incobj.set_attr('lhs', 'check_status%numWarning')
-            incobj.set_attr('rhs', 'check_status%numWarning + 1')
+            incobj.set_attr('lhs', 'check_status%numInTol')
+            incobj.set_attr('rhs', 'check_status%numInTol + 1')
 
             # create end subroutine
             endifobj = ifthenobj.create_endobj()
