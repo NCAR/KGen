@@ -9,6 +9,8 @@ from statements import Comment
 
 ########### Common ############
 
+#TODO: dummy argument not having intent should be handled with appropriate implicit rules
+
 TAB = ' '*4
 
 def get_indent(line):
@@ -511,7 +513,13 @@ class GenS_Comment(GenS_Statement, Gen_Comment):
 
 ########### Use ############
 class Gen_Use(object):
-    pass
+    def _tokgen(self, **kwargs):
+        assert kwargs.has_key('name')
+
+        if kwargs.has_key('items'):
+            return 'USE %s, ONLY : %s'%(kwargs['name'], ', '.join(kwargs['items']))
+        else:
+            return 'USE %s'%kwargs['name']
 
 class GenK_Use(GenK_Statement, Gen_Use):
     def __init__(self, node, k_id):
@@ -529,21 +537,16 @@ class GenK_Use(GenK_Statement, Gen_Use):
                     self.set_attr('items', items)
 
     def tokgen(self, **kwargs):
-        assert kwargs.has_key('name')
-
-        if kwargs.has_key('items'):
-            return 'USE %s, ONLY : %s'%(kwargs['name'], ', '.join(kwargs['items']))
-        else:
-            return 'USE %s'%kwargs['name']
+        return self._tokgen(**kwargs)
 
 class GenS_Use(GenS_Statement, Gen_Use):
     def process(self):
-        from typedecl_statements import TypeDeclarationStatement
-        from block_statements import TypeDecl
-
         if self.isvalid:
             if self.stmt and self.stmt.isonly:
                 pass
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
 
 ########### Public ############
 class Gen_Public(object):
@@ -594,7 +597,7 @@ class GenK_Call(GenK_Statement, Gen_Call):
     def tokgen(self, **kwargs):
         return self._tokgen(**kwargs)
 
-class GenS_Call(GenK_Statement, Gen_Call):
+class GenS_Call(GenS_Statement, Gen_Call):
 
     def tokgen(self, **kwargs):
         return self._tokgen(**kwargs)
@@ -1164,7 +1167,7 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                     extsubrobj = parent.create_subroutine()
                     extsubrobj.set_attr('name', extsubrname)
                     extsubrobj.set_attr('args', ['check_status'])
-                    parent.extsubr = extsubrobj
+                    parent.extvsubr = extsubrobj
 
                     # check_status
                     checkobj = extsubrobj.create_typedeclstmt()
@@ -1197,7 +1200,7 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                     pblock.insert_in_verify_module_state(callobj)
 
                 # create a call stmt for this var in kv_extern_<module name> subroutine
-                vlcallobj = parent.extsubr.create_callstmt()
+                vlcallobj = parent.extvsubr.create_callstmt()
                 vlcallobj.set_attr('name', vname)
                 vlcallobj.set_attr('args', ['"%s"'%ename, 'check_status', ename, 'ref_%s'%ename])
 
@@ -1298,8 +1301,78 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
     def process(self):
         if self.isvalid:
-            if self.stmt:
-                pass
+            if self.stmt and hasattr(self.stmt, 'geninfo') and KGGenType.has_state(self.stmt.geninfo):
+                if isinstance(self.parent, GenS_SubroutineP) or isinstance(self.parent, Gen_Module):
+                    #  select IN entities in the typedecl stmt.
+                    items = []; decls = []
+                    for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
+                        iname = uname.firstpartname()
+                        ename = [ e for e in self.stmt.entity_decls if e. startswith(iname) ]
+                        assert len(ename)==1
+                        ename = ename[0]
+                        if not iname in items:
+                            items.append(iname)
+                            decls.append(ename)
+
+                    #  create a typedecl stmt for OUT entities
+                    out_items = []; out_decls = []
+                    for (uname, req) in KGGenType.get_state_out(self.stmt.geninfo):
+                        iname = uname.firstpartname()
+                        ename = [ e for e in self.stmt.entity_decls if e. startswith(iname) ]
+                        assert len(ename)==1
+                        ename = ename[0]
+                        if not iname in out_items:
+                            out_items.append(iname)
+                            out_decls.append('ref_%s'%ename)
+                    if out_items:
+                        outobj = self.parent.create_typedeclstmt(self.stmt)
+                        outobj.set_attr('entity_decl', out_decls)
+                        outobj.set_attr('remove_attr', 'intent')
+
+                    # create subroutines for write
+                    if isinstance(self.parent, GenS_SubroutineP):
+                        self.gen_write(self.parent, items, self.parent, out_items)
+                    elif isinstance(self.parent, Gen_Module):
+                        extsubrname = 'kw_externs_in_%s'%self.parent.name
+                        if not self.parent.has_name(extsubrname, GenS_Subroutine):
+                            # add kv_externs subroutine
+                            extsubrobj = self.parent.create_subroutine()
+                            extsubrobj.set_attr('name', extsubrname)
+                            extsubrobj.set_attr('args', ['kgen_unit'])
+                            self.parent.extwinsubr = extsubrobj
+
+
+                            # kgen_unit
+                            unitobj = extsubrobj.create_typedeclstmt()
+                            unitobj.set_attr('typespec', 'INTEGER')
+                            unitobj.append_attr('attrspec', 'INTENT(IN)')
+                            unitobj.append_attr('entity_decl', 'kgen_unit')
+
+
+                            endsubrobj = extsubrobj.create_endobj()
+                            endsubrobj.set_attr('name', extsubrname)
+                            endsubrobj.set_attr('blockname', 'SUBROUTINE')
+
+                            # add public
+                            pubobj = self.parent.create_public()
+                            pubobj.append_attr('items', extsubrname)
+
+                            #import pdb; pdb.set_trace()
+                            pblock = State.parentblock['stmt'].genspair
+
+                            #TODO:  files to copy in state folder
+                            # add use in parentblock
+                            useobj = pblock.create_use()
+                            useobj.set_attr('name', self.parent.name)
+                            useobj.append_attr('items', extsubrname)
+                            pblock.insert_in_use_stmts(useobj)
+
+                            # add call in verfiy extern block
+                            callobj = GenS_Call(None, self.k_id)
+                            callobj.set_attr('name', extsubrname)
+                            pblock.insert_in_input_module_state(callobj)
+
+                        self.gen_write(self.parent, items, self.parent, out_items)
 
     def create_ifprintvar(self, parent):
         ifobj = parent.create_ifthen()
@@ -1307,6 +1380,8 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
         return ifobj
 
     def create_write_subr(self, parent, kwname, var):
+        from statements import Use
+
         parent.parent.add_line(parent.parent.insert_in_subprograms)
         parent.parent.add_comment('writing typedecl variable', parent.parent.insert_in_subprograms)
 
@@ -1406,30 +1481,118 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
 
         if var.is_array():
-            pass
-        else:
+            for dim in range(var.rank):
+                wbnd1obj = ifistrueobj.create_write()
+                wbnd1obj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+                wbnd1obj.set_attr('item_list', ['LBOUND(var, %d)'%(dim+1)])
+
+                wbnd2obj = ifistrueobj.create_write()
+                wbnd2obj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+                wbnd2obj.set_attr('item_list', ['UBOUND(var, %d)'%(dim+1)])
+
             if self.stmt.is_derived():
-                ifprintobj = ifistrueobj.create_ifthen()
+
+                idx = [ 'idx%d'%(d+1) for d in range(var.rank) ]
+
+                pobj = ifistrueobj
+                doobjs = []
+                for d in range(var.rank):
+                    doobj = pobj.create_do()
+                    doobj.set_attr('loop_control', 'idx%(d)d=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1})
+                    doobjs.append(doobj)
+                    pobj = doobj
+
+                ifprintobj = doobjs[-1].create_ifthen()
                 ifprintobj.set_attr('expr', 'PRESENT(printvar)')
-                import pdb; pdb.set_trace()
-                wname = 'kw_%s'%self.get_dtype_subpname(req.res_stmts[0])
+                wname = None
+                for uname, req in self.stmt.unknowns.iteritems():
+                    if uname.firstpartname()==self.stmt.name:
+                        wname = 'kw_%s'%self.get_dtype_subpname(req.res_stmts[0])
+                        for res_stmt in req.res_stmts:
+                            # add use stmt and public stmt if required
+                            if isinstance(res_stmt, Use) and res_stmt.isonly:
+                                useobj = res_stmt.genspair.parent.create_use()
+                                useobj.set_attr('name', res_stmt.name)
+                                useobj.append_attr('items', wname)
+
+                                pubobj = res_stmt.genspair.parent.create_public()
+                                pubobj.append_attr('items', wname)
+                                break
+                        break
+                assert wname, 'Can not find wname'
 
                 # create a call stmt
                 callobj = ifprintobj.create_callstmt()
                 callobj.set_attr('name', wname)
-                callobj.set_attr('args', [var.name, 'kgen_unit', 'printvar=printvar'])
+                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit', '"%s"'%var.name])
 
                 ifprintobj.create_else()
 
                 # create a call stmt
                 callobj = ifprintobj.create_callstmt()
                 callobj.set_attr('name', wname)
-                callobj.set_attr('args', [var.name, 'kgen_unit'])
+                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit'])
 
                 endifobj = ifprintobj.create_endobj()
                 endifobj.set_attr('blockname', 'IF')
 
-            else:
+
+                for doobj in reversed(doobjs):
+                    endobj = doobj.create_endobj()
+                    endobj.set_attr('blockname', 'DO')
+
+            else: # intrinsic type
+                wvarobj = ifistrueobj.create_write()
+                wvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+                wvarobj.set_attr('item_list', ['var'])
+
+                ifprintobj = ifistrueobj.create_ifthen()
+                ifprintobj.set_attr('expr', 'PRESENT(printvar)')
+
+                wprintobj = ifprintobj.create_write()
+                wprintobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+                wprintobj.set_attr('item_list', ['"** KGEN DEBUG: " // printvar // " **"', 'var'])
+
+                endifobj = ifprintobj.create_endobj()
+                endifobj.set_attr('blockname', 'IF')
+
+        else: # scalar
+            if self.stmt.is_derived():
+                ifprintobj = ifistrueobj.create_ifthen()
+                ifprintobj.set_attr('expr', 'PRESENT(printvar)')
+                wname = None
+                for uname, req in self.stmt.unknowns.iteritems():
+                    if uname.firstpartname()==self.stmt.name:
+                        wname = 'kw_%s'%self.get_dtype_subpname(req.res_stmts[0])
+                        for res_stmt in req.res_stmts:
+                            # add use stmt and public stmt if required
+                            if isinstance(res_stmt, Use) and res_stmt.isonly:
+                                useobj = res_stmt.genspair.parent.create_use()
+                                useobj.set_attr('name', res_stmt.name)
+                                useobj.append_attr('items', wname)
+
+                                pubobj = res_stmt.genspair.parent.create_public()
+                                pubobj.append_attr('items', wname)
+                                break
+                        break
+                assert wname, 'Can not find wname'
+
+                # create a call stmt
+                callobj = ifprintobj.create_callstmt()
+                callobj.set_attr('name', wname)
+                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit', '"%s"'%var.name])
+
+                ifprintobj.create_else()
+
+                # create a call stmt
+                callobj = ifprintobj.create_callstmt()
+                callobj.set_attr('name', wname)
+                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit'])
+
+                endifobj = ifprintobj.create_endobj()
+                endifobj.set_attr('blockname', 'IF')
+
+            else: # intrinsic type
                 wvarobj = ifistrueobj.create_write()
                 wvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
                 wvarobj.set_attr('item_list', ['var'])
@@ -1475,48 +1638,14 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                 if not parent.parent.has_name(subrname, Gen_Subroutine):
                     subrobj = self.create_write_subr(parent, subrname, var)
 
-                ifobj = self.create_ifprintvar(parent)
-
-                # create a call stmt
-                callobj = ifobj.create_callstmt()
-                callobj.set_attr('name', subrname)
-                callobj.set_attr('args', [varname, 'kgen_unit', 'printvar=printvar'])
-
-                ifobj.create_else()
-
-                # create a call stmt
-                callobj = ifobj.create_callstmt()
-                callobj.set_attr('name', subrname)
-                callobj.set_attr('args', [varname, 'kgen_unit'])
-
-                endifobj = ifobj.create_endobj()
-                endifobj.set_attr('blockname', 'IF') 
-
-            else:
+            else: # intrinsic type
                 if var.is_explicit_shape_array():
                     # create a write stmt
                     self.create_write_stmt(parent, varname, var)
                 else:
                     # create a write subroutine
                     if not parent.parent.has_name(subrname, Gen_Subroutine):
-                        self.create_write_subr(parent, subrname, var)
-
-                    ifobj = self.create_ifprintvar(parent)
-
-                    # create a call stmt
-                    callobj = ifobj.create_callstmt()
-                    callobj.set_attr('name', subrname)
-                    callobj.set_attr('args', [varname, 'kgen_unit', 'printvar=printvar'])
-
-                    ifobj.create_else()
-
-                    # create a call stmt
-                    callobj = ifobj.create_callstmt()
-                    callobj.set_attr('name', subrname)
-                    callobj.set_attr('args', [varname, 'kgen_unit'])
-
-                    endifobj = ifobj.create_endobj()
-                    endifobj.set_attr('blockname', 'IF') 
+                        subrobj = self.create_write_subr(parent, subrname, var)
 
         else: # scalar
             if self.stmt.is_derived():
@@ -2384,6 +2513,11 @@ class Gen_Do(object):
         lines.extend(self.tostr_list(self.exe_part))
         return lines
 
+    def _tokgen(self, **kwargs):
+        assert kwargs.has_key('loop_control')
+        return 'DO %s'%kwargs['loop_control']
+
+
 class GenK_Do(GenK_BeginStatement, Gen_Do, Gen_Has_ExecutionPart):
 
     def process(self):
@@ -2392,9 +2526,27 @@ class GenK_Do(GenK_BeginStatement, Gen_Do, Gen_Has_ExecutionPart):
             self.process_do_items()
 
     def tokgen(self, **kwargs):
-        assert kwargs.has_key('loop_control')
+        return self._tokgen(**kwargs)
 
-        return 'DO %s'%kwargs['loop_control']
+    def tostr(self):
+        if self.isvalid:
+            lines = []
+
+            l = self.tostr_blockhead()
+            if l is not None: lines.append(l)
+            lines.extend(self.tostr_do())
+            if self.end_obj: lines.append(self.end_obj.tostr())
+            return '\n'.join(lines)
+
+class GenS_Do(GenS_BeginStatement, Gen_Do, Gen_Has_ExecutionPart):
+
+    def process(self):
+        if self.isvalid:
+            self.process_blockhead()
+            self.process_do_items()
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
 
     def tostr(self):
         if self.isvalid:
