@@ -1,17 +1,21 @@
-# kgen_genfile.py
+#' kgen_genfile.py
 #
 
 import os
 import sys
-from kgen_utils import Config, ProgramException, KGGenType
+from kgen_utils import Config, ProgramException, KGGenType, pack_exnamepath, match_namepath
 from kgen_state import State
 from statements import Comment
 
 ########### Common ############
 
 #TODO: dummy argument not having intent should be handled with appropriate implicit rules
+# parameter var
+# add kw_externs_out.. subroutine
 
 TAB = ' '*4
+KTYPE = 'K'
+STYPE = 'S'
 
 def get_indent(line):
     import re
@@ -40,10 +44,10 @@ def _genobj(node, k_id, gentype):
     return obj
 
 def genkobj(node, k_id):
-    return _genobj(node, k_id, 'K')
+    return _genobj(node, k_id, KTYPE)
 
 def gensobj(node, k_id):
-    return _genobj(node, k_id, 'S')
+    return _genobj(node, k_id, STYPE)
 
 def get_entity_name(entity):
     from Fortran2003 import Entity_Decl
@@ -119,6 +123,30 @@ class Gen_Has_ExecutionPart(Gen_Has_):
 
     def hasname_in_exe_part(self, name, cls):
         return self._hasname_in_list(self.exe_part, name, cls)
+
+class Gen_Has_ExecutionPart1(Gen_Has_):
+    from block_statements import execution_part
+    classes = execution_part
+    def __init__(self):
+        self.exe_part1 = []
+
+    def insert_in_exe_part1(self, item):
+        self.exe_part1.append(item)
+
+    def hasname_in_exe_part1(self, name, cls):
+        return self._hasname_in_list(self.exe_part1, name, cls)
+
+class Gen_Has_ExecutionPart2(Gen_Has_):
+    from block_statements import execution_part
+    classes = execution_part
+    def __init__(self):
+        self.exe_part2 = []
+
+    def insert_in_exe_part2(self, item):
+        self.exe_part2.append(item)
+
+    def hasname_in_exe_part2(self, name, cls):
+        return self._hasname_in_list(self.exe_part2, name, cls)
 
 class Gen_Has_ContainsStmt(Gen_Has_):
     from statements import Contains
@@ -353,6 +381,7 @@ class Gen_Statement(object):
                     cur_indent = self.parent.indent
 
                 if self.__class__ in [GenS_ElseIf, GenS_Else, GenS_ElseWhere, GenK_ElseIf, GenK_Else, GenK_ElseWhere]:
+                    if not hasattr(self.parent, 'indent'): import pdb; pdb.set_trace()
                     kgenstr = self.tokgen(**self.tokgen_attrs)
                     if not kgenstr is None: return self.parent.indent + kgenstr
                 else:
@@ -428,8 +457,24 @@ class Gen_Statement(object):
     def process(self):
         pass
 
+    def add_comment(self, comment, insert_in, style=None):
+        try:
+            exec('comobj = Gen%s_Comment(None, self.k_id)'%self.gentype)
+        except: raise
+        comobj.parent = self.parent
+        comobj.set_attr('comment', comment)
+        if style: comobj.set_attr('style', style)
+        insert_in(comobj)
+
+    def add_openmp(self, directive, insert_in):
+        self.add_comment(directive, insert_in, style='openmp')
+
+    def add_line(self, insert_in, nlines=1):
+        for nline in range(nlines):
+            self.add_comment(None, insert_in)
+
 class GenK_Statement(Gen_Statement):
-    gentype = 'K'
+    gentype = KTYPE
 
     def __init__(self, node, k_id):
         from base_classes import Statement
@@ -455,20 +500,8 @@ class GenK_Statement(Gen_Statement):
     def process(self):
         super(GenK_Statement, self).process()
 
-    def add_comment(self, comment, items):
-        comobj = GenK_Comment(None, self.k_id)
-        comobj.parent = self.parent
-        comobj.set_attr('comment', comment)
-        items(comobj)
-
-    def add_line(self, insert_in, nlines=1):
-        for nline in range(nlines):
-            comobj = GenK_Comment(None, self.k_id)
-            comobj.parent = self.parent
-            insert_in(comobj)
-
 class GenS_Statement(Gen_Statement):
-    gentype = 'S'
+    gentype = STYPE
 
     def __init__(self, node, k_id):
         from base_classes import Statement
@@ -483,33 +516,29 @@ class GenS_Statement(Gen_Statement):
     def process(self):
         super(GenS_Statement, self).process()
 
-    def add_comment(self, comment, items):
-        comobj = GenS_Comment(None, self.k_id)
-        comobj.parent = self.parent
-        comobj.set_attr('comment', comment)
-        items(comobj)
-
-    def add_line(self, insert_in, nlines=1):
-        for nline in range(nlines):
-            comobj = GenS_Comment(None, self.k_id)
-            comobj.parent = self.parent
-            insert_in(comobj)
-
 ########### Comment ############
 class Gen_Comment(object):
-    pass
+    def _tokgen(self, **kwargs):
+        if kwargs.has_key('comment'):
+            if kwargs.has_key('style'):
+                if kwargs['style']=='openmp':
+                    return '!$OMP %s'%kwargs['comment']
+                else:
+                    return '! %s'%kwargs['comment']
+            else:
+                if kwargs['comment'] is None:
+                    return ''
+                else:
+                    return '! %s'%kwargs['comment']
+        else: return ''
 
 class GenK_Comment(GenK_Statement, Gen_Comment):
     def tokgen(self, **kwargs):
-        if kwargs.has_key('comment'):
-            return '! %s'%kwargs['comment']
-        else: return ''
+        return self._tokgen(**kwargs)
 
 class GenS_Comment(GenS_Statement, Gen_Comment):
     def tokgen(self, **kwargs):
-        if kwargs.has_key('comment'):
-            return '! %s'%kwargs['comment']
-        else: return ''
+        return self._tokgen(**kwargs)
 
 ########### Use ############
 class Gen_Use(object):
@@ -598,6 +627,76 @@ class GenK_Call(GenK_Statement, Gen_Call):
         return self._tokgen(**kwargs)
 
 class GenS_Call(GenS_Statement, Gen_Call):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+########### Open ############
+class Gen_Open(object):
+    def _tokgen(self, **kwargs):
+        if kwargs.has_key('connect_spec'):
+            return 'OPEN ( %s )'%', '.join(kwargs['connect_spec'])
+        else: raise ProgramException('No connect spec is provided in open stmt.')
+
+class GenK_Open(GenK_Statement, Gen_Open):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+class GenS_Open(GenS_Statement, Gen_Open):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+########### Close ############
+class Gen_Close(object):
+    def _tokgen(self, **kwargs):
+        if kwargs.has_key('close_spec'):
+            return 'CLOSE ( %s )'%', '.join(kwargs['close_spec'])
+        else: raise ProgramException('No close spec is provided in close stmt.')
+
+class GenK_Close(GenK_Statement, Gen_Close):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+class GenS_Close(GenS_Statement, Gen_Close):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+########### Stop ############
+class Gen_Stop(object):
+    def _tokgen(self, **kwargs):
+        if kwargs.has_key('stop_code'):
+            return 'STOP %s'%kwargs['stop_code']
+        else: return 'STOP'
+
+class GenK_Stop(GenK_Statement, Gen_Stop):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+class GenS_Stop(GenS_Statement, Gen_Stop):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+########### Endfile ############
+class Gen_Endfile(object):
+    def _tokgen(self, **kwargs):
+        if kwargs.has_key('file_unit'):
+            return 'ENDFILE %s'%kwargs['file_unit']
+        elif kwargs.has_key('position_spec'):
+            return 'ENDFILE ( %s )'%', '.join(kwargs['position_spec'])
+        else: raise ProgramException('No file unit or position spec is provided in endfile stmt.')
+
+class GenK_Endfile(GenK_Statement, Gen_Endfile):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+class GenS_Endfile(GenS_Statement, Gen_Endfile):
 
     def tokgen(self, **kwargs):
         return self._tokgen(**kwargs)
@@ -1301,7 +1400,8 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
     def process(self):
         if self.isvalid:
-            if self.stmt and hasattr(self.stmt, 'geninfo') and KGGenType.has_state(self.stmt.geninfo):
+            if self.stmt and hasattr(self.stmt, 'geninfo') and KGGenType.has_state(self.stmt.geninfo) and \
+                not 'parameter' in self.stmt.attrspec:
                 if isinstance(self.parent, GenS_SubroutineP) or isinstance(self.parent, Gen_Module):
                     #  select IN entities in the typedecl stmt.
                     items = []; decls = []
@@ -1333,11 +1433,13 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                     if isinstance(self.parent, GenS_SubroutineP):
                         self.gen_write(self.parent, items, self.parent, out_items)
                     elif isinstance(self.parent, Gen_Module):
-                        extsubrname = 'kw_externs_in_%s'%self.parent.name
-                        if not self.parent.has_name(extsubrname, GenS_Subroutine):
+                        extinsubrname = 'kw_externs_in_%s'%self.parent.name
+                        if len(items)>0 and not self.parent.has_name(extinsubrname, GenS_Subroutine):
+                            self.stmt.top.used4genstate = True
+
                             # add kv_externs subroutine
                             extsubrobj = self.parent.create_subroutine()
-                            extsubrobj.set_attr('name', extsubrname)
+                            extsubrobj.set_attr('name', extinsubrname)
                             extsubrobj.set_attr('args', ['kgen_unit'])
                             self.parent.extwinsubr = extsubrobj
 
@@ -1350,27 +1452,68 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
 
                             endsubrobj = extsubrobj.create_endobj()
-                            endsubrobj.set_attr('name', extsubrname)
+                            endsubrobj.set_attr('name', extinsubrname)
                             endsubrobj.set_attr('blockname', 'SUBROUTINE')
 
                             # add public
                             pubobj = self.parent.create_public()
-                            pubobj.append_attr('items', extsubrname)
+                            pubobj.append_attr('items', extinsubrname)
 
                             #import pdb; pdb.set_trace()
                             pblock = State.parentblock['stmt'].genspair
 
-                            #TODO:  files to copy in state folder
                             # add use in parentblock
                             useobj = pblock.create_use()
                             useobj.set_attr('name', self.parent.name)
-                            useobj.append_attr('items', extsubrname)
-                            pblock.insert_in_use_stmts(useobj)
+                            useobj.append_attr('items', extinsubrname)
 
                             # add call in verfiy extern block
                             callobj = GenS_Call(None, self.k_id)
-                            callobj.set_attr('name', extsubrname)
+                            callobj.parent = pblock
+                            callobj.set_attr('name', extinsubrname)
+                            callobj.set_attr('args', ['kgen_unit'])
                             pblock.insert_in_input_module_state(callobj)
+
+                        extoutsubrname = 'kw_externs_out_%s'%self.parent.name
+                        if len(out_items)>0 and not self.parent.has_name(extoutsubrname, GenS_Subroutine):
+                            self.stmt.top.used4genstate = True
+
+                            # add kv_externs subroutine
+                            extsubrobj = self.parent.create_subroutine()
+                            extsubrobj.set_attr('name', extoutsubrname)
+                            extsubrobj.set_attr('args', ['kgen_unit'])
+                            self.parent.extwoutsubr = extsubrobj
+
+
+                            # kgen_unit
+                            unitobj = extsubrobj.create_typedeclstmt()
+                            unitobj.set_attr('typespec', 'INTEGER')
+                            unitobj.append_attr('attrspec', 'INTENT(IN)')
+                            unitobj.append_attr('entity_decl', 'kgen_unit')
+
+
+                            endsubrobj = extsubrobj.create_endobj()
+                            endsubrobj.set_attr('name', extoutsubrname)
+                            endsubrobj.set_attr('blockname', 'SUBROUTINE')
+
+                            # add public
+                            pubobj = self.parent.create_public()
+                            pubobj.append_attr('items', extoutsubrname)
+
+                            #import pdb; pdb.set_trace()
+                            pblock = State.parentblock['stmt'].genspair
+
+                            # add use in parentblock
+                            useobj = pblock.create_use()
+                            useobj.set_attr('name', self.parent.name)
+                            useobj.append_attr('items', extoutsubrname)
+
+                            # add call in verfiy extern block
+                            callobj = GenS_Call(None, self.k_id)
+                            callobj.parent = pblock
+                            callobj.set_attr('name', extoutsubrname)
+                            callobj.set_attr('args', ['kgen_unit'])
+                            pblock.insert_in_output_module_state(callobj)
 
                         self.gen_write(self.parent, items, self.parent, out_items)
 
@@ -1381,6 +1524,9 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
     def create_write_subr(self, parent, kwname, var):
         from statements import Use
+
+        if parent.parent.has_name(kwname, Gen_Subroutine):
+            return
 
         parent.parent.add_line(parent.parent.insert_in_subprograms)
         parent.parent.add_comment('writing typedecl variable', parent.parent.insert_in_subprograms)
@@ -1424,7 +1570,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
             ifchkobj.set_attr('expr', '.NOT. ASSOCIATED(var)') 
 
             istrueobj = ifchkobj.create_assignstmt()
-            istrueobj.set_attr('lhs', 'is_print')
+            istrueobj.set_attr('lhs', 'is_true')
             istrueobj.set_attr('rhs', '.FALSE.')
 
             if var.is_array():
@@ -1440,20 +1586,20 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
             ifbndobj.set_attr('expr', 'UBOUND(var, 1)<LBOUND(var, 1)')
 
             istrueobj = ifbndobj.create_assignstmt()
-            istrueobj.set_attr('lhs', 'is_print')
+            istrueobj.set_attr('lhs', 'is_true')
             istrueobj.set_attr('rhs', '.FALSE.')
 
             elifobj = ifbndobj.create_elseif()
             elifobj.set_attr('expr', 'UBOUND(var, 1)==0 .AND. LBOUND(var, 1)==0')
 
             istrueobj = ifbndobj.create_assignstmt()
-            istrueobj.set_attr('lhs', 'is_print')
+            istrueobj.set_attr('lhs', 'is_true')
             istrueobj.set_attr('rhs', '.FALSE.')
 
             elseobj = ifbndobj.create_else()
 
             istrueobj = ifbndobj.create_assignstmt()
-            istrueobj.set_attr('lhs', 'is_print')
+            istrueobj.set_attr('lhs', 'is_true')
             istrueobj.set_attr('rhs', '.TRUE.')
             
             endifobj = ifbndobj.create_endobj()
@@ -1462,7 +1608,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
         elseobj = ifchkobj.create_else()
 
         istrueobj = ifchkobj.create_assignstmt()
-        istrueobj.set_attr('lhs', 'is_print')
+        istrueobj.set_attr('lhs', 'is_true')
         istrueobj.set_attr('rhs', '.TRUE.')
 
         endifobj = ifchkobj.create_endobj()
@@ -1492,7 +1638,8 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
             if self.stmt.is_derived():
 
-                idx = [ 'idx%d'%(d+1) for d in range(var.rank) ]
+                indexes = [ 'idx%d'%(d+1) for d in range(var.rank) ]
+                str_indexes = ','.join(indexes)
 
                 pobj = ifistrueobj
                 doobjs = []
@@ -1511,6 +1658,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                         for res_stmt in req.res_stmts:
                             # add use stmt and public stmt if required
                             if isinstance(res_stmt, Use) and res_stmt.isonly:
+                                res_stmt.top.used4genstate = True
                                 useobj = res_stmt.genspair.parent.create_use()
                                 useobj.set_attr('name', res_stmt.name)
                                 useobj.append_attr('items', wname)
@@ -1524,14 +1672,14 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                 # create a call stmt
                 callobj = ifprintobj.create_callstmt()
                 callobj.set_attr('name', wname)
-                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit', '"%s"'%var.name])
+                callobj.set_attr('args', ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes])
 
                 ifprintobj.create_else()
 
                 # create a call stmt
                 callobj = ifprintobj.create_callstmt()
                 callobj.set_attr('name', wname)
-                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit'])
+                callobj.set_attr('args', ['var(%s)'%str_indexes, 'kgen_unit'])
 
                 endifobj = ifprintobj.create_endobj()
                 endifobj.set_attr('blockname', 'IF')
@@ -1550,7 +1698,6 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                 ifprintobj.set_attr('expr', 'PRESENT(printvar)')
 
                 wprintobj = ifprintobj.create_write()
-                wprintobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
                 wprintobj.set_attr('item_list', ['"** KGEN DEBUG: " // printvar // " **"', 'var'])
 
                 endifobj = ifprintobj.create_endobj()
@@ -1567,6 +1714,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                         for res_stmt in req.res_stmts:
                             # add use stmt and public stmt if required
                             if isinstance(res_stmt, Use) and res_stmt.isonly:
+                                res_stmt.top.used4genstate = True
                                 useobj = res_stmt.genspair.parent.create_use()
                                 useobj.set_attr('name', res_stmt.name)
                                 useobj.append_attr('items', wname)
@@ -1580,14 +1728,14 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                 # create a call stmt
                 callobj = ifprintobj.create_callstmt()
                 callobj.set_attr('name', wname)
-                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit', '"%s"'%var.name])
+                callobj.set_attr('args', ['var', 'kgen_unit', 'printvar'])
 
                 ifprintobj.create_else()
 
                 # create a call stmt
                 callobj = ifprintobj.create_callstmt()
                 callobj.set_attr('name', wname)
-                callobj.set_attr('args', ['%s(%s)'%(var.name, ','.join(idx)), 'kgen_unit'])
+                callobj.set_attr('args', ['var', 'kgen_unit'])
 
                 endifobj = ifprintobj.create_endobj()
                 endifobj.set_attr('blockname', 'IF')
@@ -1600,8 +1748,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                 ifprintobj = ifistrueobj.create_ifthen()
                 ifprintobj.set_attr('expr', 'PRESENT(printvar)')
 
-                wprintobj = ifistrueobj.create_write()
-                wprintobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+                wprintobj = ifprintobj.create_write()
                 wprintobj.set_attr('item_list', ['"** KGEN DEBUG: " // printvar // " **"', 'var'])
 
                 endifobj = ifprintobj.create_endobj()
@@ -1616,63 +1763,150 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
         return subrobj
 
-    def create_write_stmt(self, parent, name, var):
-        pass
+    def create_write_stmt(self, parent, is_outtype, varname):
 
-    def gen_write_in_or_out(self, parent, name):
+        wvarobj = None    
+        if isinstance(parent, Gen_Module):
+            if is_outtype:
+                wvarobj = parent.extwoutsubr.create_write()
+            else:
+                wvarobj = parent.extwinsubr.create_write()
+
+            wvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+            wvarobj.set_attr('item_list', [varname])
+
+            if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
+                if is_outtype:
+                    wprintobj = parent.create_write(insert_in=parent.extwoutsubr.insert_in_exe_part)
+                    wprintobj.set_attr('item_list', ['"** KGEN DEBUG: ref_%s **"'%varname, varname])
+                else:
+                    wprintobj = parent.create_write(insert_in=parent.extwinsubr.insert_in_exe_part)
+                    wprintobj.set_attr('item_list', ['"** KGEN DEBUG: %s **"'%varname, varname])
+
+        elif isinstance(parent, Gen_SubroutineP):
+            if is_outtype:
+                wvarobj = parent.create_write(insert_in=parent.insert_in_output_local_state)
+            else:
+                wvarobj = parent.create_write(insert_in=parent.insert_in_input_local_state)
+
+            wvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+            wvarobj.set_attr('item_list', [varname])
+
+            if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
+                if is_outtype:
+                    wprintobj = parent.create_write(insert_in=parent.insert_in_output_local_state)
+                    wprintobj.set_attr('item_list', ['"** KGEN DEBUG: ref_%s **"'%varname, varname])
+                else:
+                    wprintobj = parent.create_write(insert_in=parent.insert_in_input_local_state)
+                    wprintobj.set_attr('item_list', ['"** KGEN DEBUG: %s **"'%varname, varname])
+
+        elif isinstance(parent, Gen_Subroutine):
+            varname = 'var%%%s'%varname
+
+            wvarobj = parent.create_write()
+            wvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
+            wvarobj.set_attr('item_list', [varname])
+
+            if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
+                wprintobj = parent.create_write()
+                wprintobj.set_attr('item_list', ['"** KGEN DEBUG: %s **"'%varname, varname])
+
+        else: raise ProgramException('Unknown class: %s'%parent.__class__)
+
+
+    def create_call4writesubr(self, parent, is_outtype, subrname, varname):
+
+        callobj = None
+        if isinstance(parent, Gen_Module):
+            if is_outtype:
+                callobj = parent.extwoutsubr.create_callstmt()
+            else:
+                callobj = parent.extwinsubr.create_callstmt()
+        elif isinstance(parent, Gen_SubroutineP):
+            if is_outtype:
+                callobj = parent.create_callstmt(insert_in=parent.insert_in_output_local_state)
+            else:
+                callobj = parent.create_callstmt(insert_in=parent.insert_in_input_local_state)
+        elif isinstance(parent, Gen_Subroutine): # from TypeDecl
+            wvarname = 'var%%%s'%varname
+
+            ifobj = parent.create_ifthen()
+            ifobj.set_attr('expr', 'PRESENT(printvar)')
+
+            call1obj = ifobj.create_callstmt()
+            call1obj.set_attr('name', subrname)
+            call1obj.set_attr('args', [wvarname, 'kgen_unit', 'printvar // "%%%s"'%varname])
+
+            elseobj = ifobj.create_else()
+
+            call2obj = ifobj.create_callstmt()
+            call2obj.set_attr('name', subrname)
+            call2obj.set_attr('args', [wvarname, 'kgen_unit'])
+
+            endifobj = ifobj.create_endobj()
+            endifobj.set_attr('blockname', 'IF')
+        else: raise ProgramException('Unknown class: %s'%parent.__class__)
+
+        if callobj:
+            callobj.set_attr('name', subrname)
+            if any(match_namepath(pattern, pack_exnamepath(self.stmt, pattern), internal=False) for pattern in Config.debug['printvar']):
+                if is_outtype:
+                    callobj.set_attr('args', [varname, 'kgen_unit', '"ref_%s"'%varname])
+                else:
+                    callobj.set_attr('args', [varname, 'kgen_unit', '"%s"'%varname])
+            else:
+                callobj.set_attr('args', [varname, 'kgen_unit'])
+
+    def gen_write_in_or_out(self, parent, name, is_outtype):
 
         var = self.stmt.get_variable(name)
 
         subrnames = self.get_writenames([name])
         assert len(subrnames)==1, 'More than one subroutine name'%subrnames
         subrname = subrnames[0]
-
-        if isinstance(self.parent, GenS_TypeDecl):
-            varname = 'var%%%s'%name
-        else:
-            varname = name
+        varname = name
 
         if var.is_array():
             if self.stmt.is_derived():
+                self.create_call4writesubr(parent, is_outtype, subrname, varname)
                 # create a write subroutine
-                if not parent.parent.has_name(subrname, Gen_Subroutine):
-                    subrobj = self.create_write_subr(parent, subrname, var)
+                subrobj = self.create_write_subr(parent, subrname, var)
 
             else: # intrinsic type
                 if var.is_explicit_shape_array():
                     # create a write stmt
-                    self.create_write_stmt(parent, varname, var)
+                    self.create_write_stmt(parent, is_outtype, varname)
                 else:
                     # create a write subroutine
-                    if not parent.parent.has_name(subrname, Gen_Subroutine):
-                        subrobj = self.create_write_subr(parent, subrname, var)
+                    self.create_call4writesubr(parent, is_outtype, subrname, varname)
+                    subrobj = self.create_write_subr(parent, subrname, var)
 
         else: # scalar
             if self.stmt.is_derived():
                 if var.is_pointer():
                     # create a write subroutine
-                    if not parent.parent.has_name(subrname, Gen_Subroutine):
-                        self.create_write_subr(parent, subrname, var)
+                    self.create_call4writesubr(parent, is_outtype, subrname, varname)
+                    self.create_write_subr(parent, subrname, var)
                 else:
                     # create a call stmt
                     pass
             else:
                 if var.is_pointer():
                     # create a write subroutine
-                    if not parent.parent.has_name(subrname, Gen_Subroutine):
-                        self.create_write_subr(parent, subrname, var)
+                    self.create_call4writesubr(parent, is_outtype, subrname, varname)
+                    self.create_write_subr(parent, subrname, var)
                 else:
                     # create a write stmt
-                    self.create_write_stmt(parent, varname, var)
+                    self.create_write_stmt(parent, is_outtype, varname)
 
     def gen_write(self, in_parent, in_names, out_parent, out_names):
         if in_parent and in_names:
             for in_name in in_names:
-                self.gen_write_in_or_out(in_parent, in_name)
+                self.gen_write_in_or_out(in_parent, in_name, False)
 
         if out_parent and out_names:
             for out_name in out_names:
-                self.gen_write_in_or_out(out_parent, out_name)
+                self.gen_write_in_or_out(out_parent, out_name, True)
 
     def get_writenames(self, names=None):
         subpnames = self.get_typedecl_subpname(self.stmt, names)
@@ -1829,7 +2063,7 @@ class Gen_BeginStatement(object):
                 lines.append(l)
         return lines
 
-    def insert_in_order(self, item, class_order, end_classes):
+    def insert_in_order(self, item, class_order, end_classes, callsite=None):
         def insert_in_list(cls, item):
             from types import FunctionType
             for attrname, attrobj in cls.__dict__.iteritems():
@@ -1844,6 +2078,9 @@ class Gen_BeginStatement(object):
         elif item.stmt.__class__ is Comment:
             insert_in_list(class_order[0], item)
             return class_order
+        elif callsite and item.stmt is callsite[0]:
+            insert_in_list(callsite[1], item)
+            return class_order[1:]
 
         classes = []
         matched = False
@@ -1859,133 +2096,175 @@ class Gen_BeginStatement(object):
 
         return classes
 
-    def create_endobj(self, stmt=None):
+    def _create_stmtobj(self, obj, insert_in):
+        obj.parent = self
+        obj.indent = ''
+        insert_in(obj)
+        return obj
+
+    def create_endobj(self, stmt=None, insert_in=None):
         assert hasattr(self, 'end_obj')
 
         exec('obj = Gen%s_EndStatement(stmt, self.k_id)'%self.gentype)
         obj.parent = self
-        self.end_obj = obj
+        if insert_in:
+            insert_in(obj)
+        else:
+            self.end_obj = obj
         return obj
 
-    def create_subroutine(self, stmt=None):
-        assert hasattr(self, 'insert_in_subprograms')
+    def create_subroutine(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_subprograms')
+            insert_in = self.insert_in_subprograms
 
         exec('obj = Gen%s_Subroutine(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_subprograms(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_typedeclstmt(self, stmt=None):
-        assert hasattr(self, 'insert_in_decl_construct')
+    def create_typedeclstmt(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_decl_construct')
+            insert_in = self.insert_in_decl_construct
+
 
         exec('obj = Gen%s_TypeDeclarationStatement(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_decl_construct(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_assignstmt(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_assignstmt(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Assignment(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_callstmt(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_callstmt(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Call(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_ifthen(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_ifthen(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_IfThen(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_elseif(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_elseif(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_ElseIf(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_else(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_else(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Else(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_use(self, stmt=None):
-        assert hasattr(self, 'insert_in_use_stmts')
+    def create_use(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_use_stmts')
+            insert_in = self.insert_in_use_stmts
 
         exec('obj = Gen%s_Use(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_use_stmts(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_public(self, stmt=None):
-        assert hasattr(self, 'insert_in_decl_construct')
+    def create_public(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_decl_construct')
+            insert_in = self.insert_in_decl_construct
 
         exec('obj = Gen%s_Public(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_decl_construct(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_write(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_write(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Write(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_allocate(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_allocate(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Allocate(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_deallocate(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_deallocate(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Deallocate(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_where(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_where(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Where(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_elsewhere(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_elsewhere(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_ElseWhere(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
 
-    def create_do(self, stmt=None):
-        assert hasattr(self, 'insert_in_exe_part')
+    def create_do(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
 
         exec('obj = Gen%s_Do(stmt, self.k_id)'%self.gentype)
-        obj.parent = self
-        self.insert_in_exe_part(obj)
-        return obj
+        return self._create_stmtobj(obj, insert_in)
+
+    def create_open(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
+
+        exec('obj = Gen%s_Open(stmt, self.k_id)'%self.gentype)
+        return self._create_stmtobj(obj, insert_in)
+
+    def create_close(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
+
+        exec('obj = Gen%s_Close(stmt, self.k_id)'%self.gentype)
+        return self._create_stmtobj(obj, insert_in)
+
+    def create_endfile(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
+
+        exec('obj = Gen%s_Endfile(stmt, self.k_id)'%self.gentype)
+        return self._create_stmtobj(obj, insert_in)
+
+    def create_stop(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_exe_part')
+            insert_in = self.insert_in_exe_part
+
+        exec('obj = Gen%s_Stop(stmt, self.k_id)'%self.gentype)
+        return self._create_stmtobj(obj, insert_in)
 
     def has_name(self, name, cls):
         for func in [getattr(self, m) for m in dir(self) if callable(getattr(self, m)) and m.startswith('hasname_in')]:
@@ -2094,7 +2373,8 @@ class GenS_EndStatement(GenS_Statement, Gen_EndStatement):
         blockname = None
         if kwargs.has_key('blockname'):
             blockname = kwargs['blockname']
-        if blockname is None: raise ProgramException('No block name is provided.')
+        if blockname is None:
+            raise ProgramException('No block name is provided.')
         
         name = ''
         if kwargs.has_key('name'):
@@ -2135,6 +2415,7 @@ class GenK_Module(GenK_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_Imp
         if self.isvalid:
             self.process_blockhead()
             self.process_module_items()
+
             use1obj = self.create_use()
             use1obj.set_attr('name', 'kgen_utils_mod')
             use1obj.extend_attr('items', ['check_t', 'kgen_init_check'])
@@ -2171,7 +2452,6 @@ class GenS_Module(GenS_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_Imp
             if l is not None: lines.append(l)
             lines.extend(self.tostr_module())
             if self.end_obj: lines.append(self.end_obj.tostr())
-        
             return '\n'.join(lines)
 
 ########### Program ############
@@ -2350,7 +2630,26 @@ class GenS_Subroutine(GenS_SubProgramStatement, Gen_Subroutine):
 
 ########### SubroutineP ############
 class Gen_SubroutineP(object):
-    pass
+    def _tokgen(self, **kwargs):
+        name = None
+        if kwargs.has_key('name'):
+            name = kwargs['name']
+        if name is None: raise ProgramException('No subroutine name is provided in call stmt.')
+        
+        args = ''
+        if kwargs.has_key('args'):
+            args = ', '.join(kwargs['args'])
+
+        prefix = ''
+        if kwargs.has_key('prefix'):
+            prefix = ', '.join(kwargs['prefix']) + ' '
+
+        suffix = ''
+        if kwargs.has_key('suffix'):
+            suffix = ' ' + ', '.join(kwargs['suffix'])
+
+        return '%sSUBROUTINE %s( %s )%s'%(prefix, name, args, suffix)
+
  
 class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputModuleState, Gen_Has_InputLocalState, \
     Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_CallsiteStmts, Gen_Has_VerifyModuleState, Gen_Has_VerifyLocalState, Gen_Has_MeasureTiming):
@@ -2389,6 +2688,7 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         callobj.set_attr('args', ['check_status'])
         self.insert_in_callsite_stmts(callobj)
 
+
     def tostr_subp(self):
         lines = []
         lines.extend(self.tostr_list(self.use_stmts))
@@ -2412,28 +2712,347 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
 
 
     def tokgen(self, **kwargs):
-        name = None
-        if kwargs.has_key('name'):
-            name = kwargs['name']
-        if name is None: raise ProgramException('No subroutine name is provided in call stmt.')
-        
-        args = ''
-        if kwargs.has_key('args'):
-            args = ', '.join(kwargs['args'])
-
-        prefix = ''
-        if kwargs.has_key('prefix'):
-            prefix = ', '.join(kwargs['prefix']) + ' '
-
-        suffix = ''
-        if kwargs.has_key('suffix'):
-            suffix = ' ' + ', '.join(kwargs['suffix'])
-
-        return '%sSUBROUTINE %s( %s )%s'%(prefix, name, args, suffix)
+        self._tokgen(**kwargs)
 
 class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputModuleState, Gen_Has_InputLocalState, \
-    Gen_Has_OutputModuleState, Gen_Has_OutputLocalState):
-    pass
+    Gen_Has_CallsiteStmts, Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_ExecutionPart1, Gen_Has_ExecutionPart2):
+
+    def process_subp_items(self):
+        from block_statements import EndSubroutine
+
+        class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, Gen_Has_ExecutionPart1, \
+            Gen_Has_ExecutionPart2, Gen_Has_ContainsStmt, Gen_Has_Subprograms]
+        end_classes = [ EndSubroutine ]
+
+        self.add_comment('read input module state', self.insert_in_input_module_state)
+        self.add_comment('read input local state', self.insert_in_input_local_state)
+        self.add_comment('run callsite', self.insert_in_callsite_stmts)
+        self.add_comment('read output module state', self.insert_in_output_module_state)
+        self.add_comment('read output local state', self.insert_in_output_local_state)
+
+        for item in self.items:
+            class_order = self.insert_in_order(item, class_order, end_classes, callsite=(State.callsite['stmt'], Gen_Has_CallsiteStmts))
+            item.process()
+
+    def tostr_subp(self):
+        from kgen_extra import kgen_subprograms, kgen_print_counter
+
+        self.insert_writeframe()
+
+        lines = []
+        lines.extend(self.tostr_list(self.use_stmts))
+        lines.extend(self.tostr_list(self.import_stmts))
+        lines.extend(self.tostr_list(self.implicit_part))
+        lines.extend(self.tostr_list(self.decl_construct))
+        lines.extend(self.tostr_list(self.exe_part1))
+        lines.extend(self.tostr_list(self.input_module_state))
+        lines.extend(self.tostr_list(self.input_local_state))
+        lines.extend(self.tostr_list(self.callsite_stmts))
+        lines.extend(self.tostr_list(self.output_module_state))
+        lines.extend(self.tostr_list(self.output_local_state))
+        lines.extend(self.tostr_list(self.exe_part2))
+
+        if len(self.contains_stmt)>0:
+            lines.extend(self.tostr_list(self.contains_stmt))
+        else:
+            lines.append(self.indent+'CONTAINS')
+
+        indent = self.indent+TAB
+        lines.append(indent + kgen_subprograms.replace('\n', '\n'+indent))
+        lines.append(indent + kgen_print_counter.replace('\n', '\n'+indent))
+
+        lines.extend(self.tostr_list(self.subprograms))
+
+        return lines
+
+    def tokgen(self, **kwargs):
+        self._tokgen(**kwargs)
+
+    def insert_writeframe(self):
+
+        # write spec part
+
+        if Config.mpi['enabled']:
+            vmpiobj = self.create_typedeclstmt()
+            vmpiobj.set_attr('typespec', 'INTEGER')
+            vmpiobj.extend_attr('entity_decl', ['kgen_mpi_rank', 'kgen_mpi_size', 'kgen_cur_rank'])
+
+            vrconvobj = self.create_typedeclstmt()
+            vrconvobj.set_attr('typespec', 'CHARACTER')
+            vrconvobj.set_attr('selector', 'LEN=16')
+            vrconvobj.append_attr('entity_decl', 'kgen_mpi_rank_conv')
+
+            vlrankobj = self.create_typedeclstmt()
+            vlrankobj.set_attr('typespec', 'INTEGER')
+            vlrankobj.append_attr('attrspec', 'PARAMETER')
+            vlrankobj.append_attr('attrspec', 'DIMENSION(%s)'%Config.mpi['size'])
+            vlrankobj.append_attr('entity_decl', 'kgen_mpi_rank_at = (/ %s /)'%', '.join(Config.mpi['ranks']))
+
+        vkgenobj = self.create_typedeclstmt()
+        vkgenobj.set_attr('typespec', 'INTEGER')
+        vkgenobj.extend_attr('entity_decl', ['kgen_ierr', 'kgen_unit'])
+
+        vkidxobj = self.create_typedeclstmt()
+        vkidxobj.set_attr('typespec', 'INTEGER')
+        vkidxobj.append_attr('attrspec', 'DIMENSION(3,10)')
+        vkidxobj.append_attr('entity_decl', 'kgen_indexes')
+
+        vkcntobj = self.create_typedeclstmt()
+        vkcntobj.set_attr('typespec', 'INTEGER')
+        vkcntobj.append_attr('attrspec', 'SAVE')
+        vkcntobj.append_attr('entity_decl', 'kgen_counter = 1')
+
+        vcconvobj = self.create_typedeclstmt()
+        vcconvobj.set_attr('typespec', 'CHARACTER')
+        vcconvobj.set_attr('selector', 'LEN=16')
+        vcconvobj.append_attr('entity_decl', 'kgen_counter_conv')
+
+        vlcntobj = self.create_typedeclstmt()
+        vlcntobj.set_attr('typespec', 'INTEGER')
+        vlcntobj.append_attr('attrspec', 'PARAMETER')
+        vlcntobj.append_attr('attrspec', 'DIMENSION(%s)'%Config.invocation['size'])
+        vlcntobj.append_attr('entity_decl', 'kgen_counter_at = (/ %s /)'%', '.join(Config.invocation['numbers']))
+
+        vfpathobj = self.create_typedeclstmt()
+        vfpathobj.set_attr('typespec', 'CHARACTER')
+        vfpathobj.set_attr('selector', 'LEN=1025')
+        vfpathobj.append_attr('entity_decl', 'kgen_filepath')
+
+        self.add_line(self.insert_in_decl_construct)
+
+        # file open head
+        self.add_openmp('MASTER', self.insert_in_exe_part1)
+
+        if Config.mpi['enabled']:
+            callmpirobj = self.create_callstmt(insert_in=self.insert_in_exe_part1)
+            callmpirobj.set_attr('name', 'mpi_comm_rank')
+            callmpirobj.set_attr('args', [Config.mpi['comm'], 'kgen_mpi_rank', 'kgen_ierr'])
+
+            iferrobj = self.create_ifthen(insert_in=self.insert_in_exe_part1)
+            iferrobj.set_attr('expr', 'kgen_ierr /= 0')
+
+            callerrobj = iferrobj.create_callstmt()
+            callerrobj.set_attr('name', 'kgen_error_stop')
+            callerrobj.set_attr('args', ['"MPI ERROR"'])
+           
+            endiferrobj = iferrobj.create_endobj() 
+            endiferrobj.set_attr('blockname', 'IF')
+
+            callmpisobj = self.create_callstmt(insert_in=self.insert_in_exe_part1)
+            callmpisobj.set_attr('name', 'mpi_comm_size')
+            callmpisobj.set_attr('args', [Config.mpi['comm'], 'kgen_mpi_size', 'kgen_ierr'])
+
+            iferrobj = self.create_ifthen(insert_in=self.insert_in_exe_part1)
+            iferrobj.set_attr('expr', 'kgen_ierr /= 0')
+
+            callerrobj = iferrobj.create_callstmt()
+            callerrobj.set_attr('name', 'kgen_error_stop')
+            callerrobj.set_attr('args', ['"MPI ERROR"'])
+           
+            endiferrobj = iferrobj.create_endobj() 
+            endiferrobj.set_attr('blockname', 'IF')
+
+            currankobj = self.create_assignstmt(insert_in=self.insert_in_exe_part1)
+            currankobj.set_attr('lhs', 'kgen_cur_rank')
+            currankobj.set_attr('rhs', '0')
+
+            kunitobj = self.create_assignstmt(insert_in=self.insert_in_exe_part1)
+            kunitobj.set_attr('lhs', 'kgen_unit')
+            kunitobj.set_attr('rhs', '-1')
+
+            dorankobj = self.create_dowhile(insert_in=self.insert_in_exe_part1)
+            dorankobj.set_attr('expr', 'kgen_cur_rank < kgen_mpi_size')
+
+            ifrankobj = dorankobj.create_ifthen()
+            ifrankobj.set_attr('expr', 'ANY(kgen_mpi_rank == kgen_mpi_rank_at) .AND. kgen_cur_rank == kgen_mpi_rank')
+
+            ifcntobj = ifrankobj.create_ifthen()
+            ifcntobj.set_attr('expr', 'ANY(kgen_counter == kgen_counter_at)')
+
+            wrankobj = ifcntobj.create_write()
+            wrankobj.set_attr('ctrl_list', ['kgen_mpi_rank_conv', '*'])
+            wrankobj.set_attr('item_list', ['kgen_mpi_rank'])
+
+            wcntobj = ifcntobj.create_write()
+            wcntobj.set_attr('ctrl_list', ['kgen_counter_conv', '*'])
+            wcntobj.set_attr('item_list', ['kgen_counter'])
+
+            fpathobj = ifcntobj.create_assignstmt()
+            fpathobj.set_attr('lhs', 'kgen_filepath')
+            fpathobj.set_attr('rhs', '"%s." // TRIM(ADJUSTL(kgen_counter_conv)) // "." // TRIM(ADJUSTL(kgen_mpi_rank_conv))'% \
+                (os.path.abspath(Config.path['kernel'])+'/'+Config.callsite['subpname'].firstpartname()))
+        else:
+            kunitobj = self.create_assignstmt(insert_in=self.insert_in_exe_part1)
+            kunitobj.set_attr('lhs', 'kgen_unit')
+            kunitobj.set_attr('rhs', '-1')
+
+            ifcntobj = self.create_ifthen(insert_in=self.insert_in_exe_part1)
+            ifcntobj.set_attr('expr', 'ANY(kgen_counter == kgen_counter_at)')
+
+            wcntobj = ifcntobj.create_write()
+            wcntobj.set_attr('ctrl_list', ['kgen_counter_conv', '*'])
+            wcntobj.set_attr('item_list', ['kgen_counter'])
+
+            fpathobj = ifcntobj.create_assignstmt()
+            fpathobj.set_attr('lhs', 'kgen_filepath')
+            fpathobj.set_attr('rhs', '"%s." // TRIM(ADJUSTL(kgen_counter_conv))'% \
+                (os.path.abspath(Config.path['kernel'])+'/'+Config.callsite['subpname'].firstpartname()))
+
+        kunit2obj = ifcntobj.create_assignstmt()
+        kunit2obj.set_attr('lhs', 'kgen_unit')
+        kunit2obj.set_attr('rhs', 'kgen_get_newunit()')
+
+        openobj = ifcntobj.create_open()
+        openobj.set_attr('connect_spec', ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="REPLACE"', 'ACCESS="STREAM"', \
+            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"'])
+
+        iferrobj = ifcntobj.create_ifthen()
+        iferrobj.set_attr('expr', 'kgen_ierr /= 0')
+
+        callerrobj = iferrobj.create_callstmt()
+        callerrobj.set_attr('name', 'kgen_error_stop')
+        callerrobj.set_attr('args', ['"FILE OPEN ERROR: " // TRIM(ADJUSTL(kgen_filepath))'])
+       
+        endiferrobj = iferrobj.create_endobj() 
+        endiferrobj.set_attr('blockname', 'IF')
+
+        if Config.mpi['enabled']:
+            callerrobj = ifcntobj.create_callstmt()
+            callerrobj.set_attr('name', 'kgen_print_mpirank_counter')
+            callerrobj.set_attr('args', ['kgen_mpi_rank', 'kgen_counter'])
+        else:
+            callerrobj = ifcntobj.create_callstmt()
+            callerrobj.set_attr('name', 'kgen_print_counter')
+            callerrobj.set_attr('args', ['kgen_counter'])
+
+         # file open tail
+        if Config.mpi['enabled']:
+            endifcntobj = ifcntobj.create_endobj(insert_in=self.insert_in_input_local_state) 
+            endifcntobj.set_attr('blockname', 'IF')
+
+            endifrankobj = ifrankobj.create_endobj(insert_in=self.insert_in_input_local_state) 
+            endifrankobj.set_attr('blockname', 'IF')
+
+            incobj = dorankobj.create_assignstmt(insert_in=self.insert_in_input_local_state)
+            incobj.set_attr('lhs', 'kgen_cur_rank')
+            incobj.set_attr('rhs', 'kgen_cur_rank + 1')
+            
+            enddorankobj = dorankobj.create_endobj(insert_in=self.insert_in_input_local_state) 
+            enddorankobj.set_attr('blockname', 'DO')
+        else:
+            endifcntobj = ifcntobj.create_endobj(insert_in=self.insert_in_input_local_state) 
+            endifcntobj.set_attr('blockname', 'IF')
+
+        self.add_openmp('END MASTER', self.insert_in_input_local_state)
+   
+        # file close head
+        self.add_openmp('MASTER', self.insert_in_callsite_stmts)
+
+        if Config.mpi['enabled']:
+            incobj = self.create_assignstmt(insert_in=self.insert_in_callsite_stmts)
+            incobj.set_attr('lhs', 'kgen_cur_rank')
+            incobj.set_attr('rhs', '0')
+
+            dorankobj = self.create_dowhile(insert_in=self.insert_in_callsite_stmts)
+            dorankobj.set_attr('expr', 'kgen_cur_rank < kgen_mpi_size')
+
+            ifrankobj = dorankobj.create_ifthen(insert_in=self.insert_in_callsite_stmts)
+            ifrankobj.set_attr('expr', 'ANY(kgen_mpi_rank == kgen_mpi_rank_at) .AND. kgen_cur_rank == kgen_mpi_rank')
+
+            ifcntobj = self.create_ifthen(insert_in=self.insert_in_callsite_stmts)
+            ifcntobj.set_attr('expr', 'ANY(kgen_counter == kgen_counter_at)')
+
+            wrankobj = ifcntobj.create_write(insert_in=self.insert_in_callsite_stmts)
+            wrankobj.set_attr('item_list', ['"KGEN writes output state variables at count = "', 'kgen_counter', '" on mpirank = "', 'kgen_mpi_rank'])
+
+        else:
+            ifcntobj = self.create_ifthen(insert_in=self.insert_in_callsite_stmts)
+            ifcntobj.set_attr('expr', 'ANY(kgen_counter == kgen_counter_at)')
+
+        # file close tail
+        if Config.mpi['enabled']:
+            endfileobj = ifcntobj.create_endfile(insert_in=self.insert_in_output_local_state)
+            endfileobj.set_attr('file_unit', 'kgen_unit')
+
+            callsleepobj = ifcntobj.create_callstmt(insert_in=self.insert_in_output_local_state)
+            callsleepobj.set_attr('name', 'sleep')
+            callsleepobj.set_attr('args', ['1'])
+
+            closeobj = ifcntobj.create_close(insert_in=self.insert_in_output_local_state)
+            closeobj.set_attr('close_spec', ['UNIT=kgen_unit'])
+
+            endifcntobj = ifcntobj.create_endobj(insert_in=self.insert_in_output_local_state) 
+            endifcntobj.set_attr('blockname', 'IF')
+
+            endifrankobj = ifrankobj.create_endobj(insert_in=self.insert_in_output_local_state) 
+            endifrankobj.set_attr('blockname', 'IF')
+
+            incobj = dorankobj.create_assignstmt(insert_in=self.insert_in_output_local_state)
+            incobj.set_attr('lhs', 'kgen_cur_rank')
+            incobj.set_attr('rhs', 'kgen_cur_rank + 1')
+            
+            enddorankobj = dorankobj.create_endobj(insert_in=self.insert_in_output_local_state) 
+            enddorankobj.set_attr('blockname', 'DO')
+
+            ifmaxcobj = self.create_ifthen(insert_in=self.insert_in_output_local_state)
+            ifmaxcobj.set_attr('expr', 'kgen_counter > maxval(kgen_counter_at)')
+
+            callsleepobj = ifmaxcobj.create_callstmt(insert_in=self.insert_in_output_local_state)
+            callsleepobj.set_attr('name', 'sleep')
+            callsleepobj.set_attr('args', ['1'])
+
+            wstopobj = ifmaxcobj.create_write(insert_in=self.insert_in_output_local_state)
+            wstopobj.set_attr('item_list', ['"All state data is collected.  Stopping program..."'])
+
+            callmpiaobj = ifmaxcobj.create_callstmt(insert_in=self.insert_in_output_local_state)
+            callmpiaobj.set_attr('name', 'mpi_abort')
+            callmpiaobj.set_attr('args', [Config.mpi['comm'], '1', 'kgen_ierr'])
+
+            elsemaxcobj = ifmaxcobj.create_else(insert_in=self.insert_in_output_local_state)
+
+            wcntobj = ifmaxcobj.create_write(insert_in=self.insert_in_output_local_state)
+            wcntobj.set_attr('item_list', ['"kgen_counter = "', 'kgen_counter', '" at rank "', 'kgen_mpi_rank'])
+           
+            endifmaxcobj = ifmaxcobj.create_endobj(insert_in=self.insert_in_output_local_state)
+            endifmaxcobj.set_attr('blockname', 'IF') 
+        else:
+            endfileobj = ifcntobj.create_endfile(insert_in=self.insert_in_output_local_state)
+            endfileobj.set_attr('file_unit', 'kgen_unit')
+
+            callsleepobj = ifcntobj.create_callstmt(insert_in=self.insert_in_output_local_state)
+            callsleepobj.set_attr('name', 'sleep')
+            callsleepobj.set_attr('args', ['1'])
+
+            closeobj = ifcntobj.create_close(insert_in=self.insert_in_output_local_state)
+            closeobj.set_attr('close_spec', ['UNIT=kgen_unit'])
+
+            endifcntobj = ifcntobj.create_endobj(insert_in=self.insert_in_output_local_state) 
+            endifcntobj.set_attr('blockname', 'IF')
+
+            ifmaxcobj = self.create_ifthen(insert_in=self.insert_in_output_local_state)
+            ifmaxcobj.set_attr('expr', 'kgen_counter > maxval(kgen_counter_at)')
+
+            callsleepobj = ifmaxcobj.create_callstmt(insert_in=self.insert_in_output_local_state)
+            callsleepobj.set_attr('name', 'sleep')
+            callsleepobj.set_attr('args', ['1'])
+
+            wstopobj = ifmaxcobj.create_write(insert_in=self.insert_in_output_local_state)
+            wstopobj.set_attr('item_list', ['"All state data is collected.  Stopping program..."'])
+
+            # stop
+            stopobj = ifmaxcobj.create_stop(insert_in=self.insert_in_output_local_state)
+
+            elsemaxcobj = ifmaxcobj.create_else(insert_in=self.insert_in_output_local_state)
+
+            wcntobj = self.create_write(insert_in=self.insert_in_output_local_state)
+            wcntobj.set_attr('item_list', ['"kgen_counter = "', 'kgen_counter'])
+           
+            endifmaxcobj = ifmaxcobj.create_endobj(insert_in=self.insert_in_output_local_state)
+            endifmaxcobj.set_attr('blockname', 'IF') 
+
+        self.add_openmp('END MASTER', insert_in=self.insert_in_output_local_state)
+
+
 
 ########### IfThen ############
 class Gen_IfThen(object):
@@ -2928,7 +3547,6 @@ def generate_kgen_driver(k_id):
 
     program.add_line(program.insert_in_use_stmts)
 
-    # add use module of parent callsite to import parent callsite
     # implicit none
     # conventional typedecls. note rank and invoke with k_id,
     # set total_time = 0.0

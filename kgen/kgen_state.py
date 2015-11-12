@@ -149,7 +149,6 @@ class SrcFile(object):
         self.tree = None
         self.srcpath = srcpath
         self.abspath = os.path.abspath(self.srcpath)
-        self.used4genstate = False
 
         
         # set source file format
@@ -192,6 +191,7 @@ class SrcFile(object):
         self.tree = parse('\n'.join(prep), ignore_comments=False, analyze=True, isfree=isfree, \
             isstrict=isstrict, include_dirs=None, source_only=None )
         self.tree.prep = prep
+        self.tree.used4genstate = False
 
         # parse f2003
         lineno = 0
