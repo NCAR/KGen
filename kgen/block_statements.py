@@ -734,15 +734,19 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
 
     def tostr(self, **kwargs):
         # start of KGEN addition
-        if kwargs.has_key('to_subr'):
-            to_subr = True
-        else: to_subr = False
+        if kwargs.has_key('to_subr'): to_subr = True
+        else: to_subr = False 
 
-        if to_subr:
-            clsname = 'SUBROUTINE'
-        else:
-            clsname = self.__class__.__name__.upper()
+        if to_subr: clsname = 'SUBROUTINE'
+        else: clsname = self.__class__.__name__.upper()
+
+        if kwargs.has_key('name'): subpname = kwargs['name']
+        else: subpname = self.name
+
+        if kwargs.has_key('args'): args = kwargs['args']
+        else: args = self.args
         # end of KGEN addition
+
         #clsname = self.__class__.__name__.upper() # KGEN deletion
         s = ''
         if self.prefix:
@@ -765,7 +769,9 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
             suf += ' RESULT ( %s )' % (self.result)
         if self.bind:
             suf += ' BIND ( %s )' % (', '.join(self.bind))
-        return '%s %s(%s)%s' % (s, self.name,', '.join(self.args),suf)
+
+        return '%s %s(%s)%s' % (s, subpname,', '.join(args),suf) # KGEN additon
+        #return '%s %s(%s)%s' % (s, self.name,', '.join(self.args),suf) # KGEN deletion
 
     def get_classes(self):
         return f2py_stmt + specification_part + execution_part \

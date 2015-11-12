@@ -34,7 +34,7 @@ def generate_kernel_makefile():
     callsite_file = State.topblock['path']
 
     #basenames
-    callsite_base = os.path.basename(State.topblock['path'])
+    callsite_base = os.path.basename(callsite_file)
     dep_bases = [ os.path.basename(path) for path in State.srcfiles.keys() ] + \
         [ kernel_driver_file ]
 
@@ -60,7 +60,14 @@ def generate_kernel_makefile():
                 not obj(os.path.basename(unit.item.reader.id)) in dep:
                 dep.append(obj(os.path.basename(unit.item.reader.id)))
 
-        depends[os.path.basename(abspath)] = ' '.join(dep)
+        basename = os.path.basename(abspath)
+        if basename==callsite_base:
+            dobjs = all_objs[:]
+            dobjs.remove(obj(callsite_base))
+            dobjs.remove(obj(kernel_driver_file))
+            depends[basename] = ' '.join(dobjs)
+        else:
+            depends[basename] = ' '.join(dep)
 
     # prerun commands
     pre_cmds = ''
