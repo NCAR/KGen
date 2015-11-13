@@ -226,8 +226,10 @@ def collect_args_from_expr(expr, param, stmt):
                         collect_intent_names(var, kgname, param)
 
 def locate_callsite():
-    from block_statements import Module, action_stmt
+    from block_statements import Module, action_stmt, EndStatement
     from statements import Assignment, Call
+    from kgen_state import ResState
+    from collections import OrderedDict
 
     # read source file that contains callsite stmt
     cs_file = SrcFile(Config.callsite['filename'])
@@ -239,22 +241,38 @@ def locate_callsite():
         raise UserException('Subprogram %s is not found.' % Config.callsite['subpname'].list())
 
     # ancestors of callsite stmt
-    anc = State.callsite['stmt'].ancestors()
-    map(lambda x: setattr(x, 'ancestor_callsite', True), anc)
+    ancs = State.callsite['stmt'].ancestors()
+    prevname = Config.callsite['subpname'].firstpartname()
+    prevstmt = State.callsite['stmt']
+    for anc in reversed(ancs):
+        if not hasattr(anc, 'geninfo'):
+            anc.geninfo = OrderedDict()
+        if len(anc.content)>0 and isinstance(anc.content[-1], EndStatement) and \
+            not hasattr(anc.content[-1], 'geninfo'):
+            anc.content[-1].geninfo = OrderedDict()
+
+        dummy_req = ResState(KGGenType.STATE_IN, KGName(prevname), None, [anc])
+        dummy_req.res_stmts = [ prevstmt ]
+        anc.check_spec_stmts(dummy_req.uname, dummy_req)
+        if hasattr(anc, 'name'):
+            prevname = anc.name
+            prevstmt = anc
+        
+    #map(lambda x: setattr(x, 'ancestor_callsite', True), anc)
 
     # TODO: support for Program block
     #if not isinstance(anc[0], Module):
     #    raise UserException('Only module block is allowed as a top block in call-site source file.')
 
     # populate parent block parameters
-    State.parentblock['stmt'] = anc[-1]
+    State.parentblock['stmt'] = ancs[-1]
     State.parentblock['expr'] = State.parentblock['stmt'].f2003
     collect_args_from_subpstmt(State.parentblock['stmt'], State.parentblock['dummy_arg'])
 
     # populate top block parameters
     State.topblock['file'] = cs_file
     State.topblock['path'] = cs_file.abspath
-    State.topblock['stmt'] = anc[0]
+    State.topblock['stmt'] = ancs[0]
     State.topblock['expr'] = State.topblock['stmt'].f2003
 
     # test suite

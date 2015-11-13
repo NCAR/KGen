@@ -27,14 +27,28 @@ def _genobj(node, k_id, gentype):
     from block_statements import TypeDecl
 
     obj = None
-    for i, cls in enumerate(inspect.getmro(node.__class__)):
+    mro_classes = inspect.getmro(node.__class__)
+    mro0_clsname = mro_classes[0].__name__
+    for i, cls in enumerate(mro_classes):
         try:
             clsname = cls.__name__
+
             if cls.__name__=='Type':
                 if cls is TypeDecl: clsname = 'TypeDecl'
                 elif cls is TypeStmt: clsname = 'TypeStmt'
-            if i==0 and node is State.parentblock['stmt']: clsname += 'P'
+            if i==0 and node is State.parentblock['stmt']:
+                clsname += 'P'
             exec('obj = Gen%s_%s(node, k_id)'%(gentype, clsname))  
+
+#            if i==0:
+#                if node is State.parentblock['stmt']:
+#                    clsname += 'P'
+#                exec('obj = Gen%s_%s(node, k_id)'%(gentype, clsname))  
+#            else:
+#                cur_genclsname = 'Gen%s_%s'%(gentype, clsname)
+#                mro0_genclsname = 'Gen%s_%s'%(gentype, mro0_clsname)
+#                exec('class %s(%s): pass'%(mro0_genclsname, cur_genclsname))  
+#                exec('obj = %s(node, k_id)'%mro0_genclsname)  
             break
         except NameError as e:
             #print node.__class__, cls.__class__,  e
@@ -381,7 +395,6 @@ class Gen_Statement(object):
                     cur_indent = self.parent.indent
 
                 if self.__class__ in [GenS_ElseIf, GenS_Else, GenS_ElseWhere, GenK_ElseIf, GenK_Else, GenK_ElseWhere]:
-                    if not hasattr(self.parent, 'indent'): import pdb; pdb.set_trace()
                     kgenstr = self.tokgen(**self.tokgen_attrs)
                     if not kgenstr is None: return self.parent.indent + kgenstr
                 else:
@@ -589,13 +602,6 @@ class Gen_Public(object):
             return 'PUBLIC'
 
 class GenK_Public(GenK_Statement, Gen_Public):
-
-    def tostr(self):
-        if self.isvalid:
-            if self.stmt and self.stmt.parent is State.topblock['stmt']:
-                return 
-            else:
-                return super(GenK_Public, self).tostr()
 
     def tokgen(self, **kwargs):
         return self._tokgen(**kwargs)
@@ -2851,7 +2857,7 @@ class GenK_Module(GenK_BeginStatement, Gen_Module, Gen_Has_UseStmts, Gen_Has_Imp
 
             use1obj = self.create_use()
             use1obj.set_attr('name', 'kgen_utils_mod')
-            use1obj.extend_attr('items', ['check_t', 'kgen_init_check', 'kgen_dp'])
+            use1obj.extend_attr('items', ['check_t', 'kgen_init_check'])
             use2obj = self.create_use()
             use2obj.set_attr('name', 'kgen_utils_mod')
             use2obj.extend_attr('items', ['CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL'])
@@ -3091,6 +3097,11 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
 
     def insert_parentblock_default(self):
 
+        # use kgen util module
+        useobj = self.create_use()
+        useobj.set_attr('name', 'kgen_utils_mod')
+        useobj.extend_attr('items', ['kgen_dp', 'kgen_print_check'])
+
         # kgen_unit
         unitobj = self.create_typedeclstmt()
         unitobj.set_attr('typespec', 'INTEGER')
@@ -3112,9 +3123,13 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
 
         # initialize dtype check status
         callobj = self.create_callstmt(insert_in=self.insert_in_callsite_stmts)
-        callobj.parent = self
         callobj.set_attr('name', 'kgen_init_check')
         callobj.set_attr('args', ['check_status'])
+
+        # print check report 
+        callobj = self.create_callstmt(insert_in=self.insert_in_verify_local_state)
+        callobj.set_attr('name', 'kgen_print_check')
+        callobj.set_attr('args', ['"%s"'%State.kernel['stmt'].name, 'check_status'])
 
     def process_subp_items(self):
         from block_statements import EndSubroutine

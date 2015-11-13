@@ -853,6 +853,7 @@ class Statement(object):
 
 
     def check_spec_stmts(self, uname, request):
+        # the last resolver
         res_stmt = request.res_stmts[-1]
         if not hasattr(res_stmt, 'parent') or not hasattr(res_stmt.parent, 'spec_stmts'):
             return
