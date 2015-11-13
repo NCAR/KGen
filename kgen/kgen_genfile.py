@@ -1687,13 +1687,12 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         if callobj:
             callobj.set_attr('name', subrname)
+            if is_outtype: rvarname = 'ref_%s'%varname
+            else: rvarname = varname
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, pattern), internal=False) for pattern in Config.debug['printvar']):
-                if is_outtype:
-                    callobj.set_attr('args', [varname, 'kgen_unit', '"ref_%s"'%varname])
-                else:
-                    callobj.set_attr('args', [varname, 'kgen_unit', '"%s"'%varname])
+                callobj.set_attr('args', [rvarname, 'kgen_unit', '"%s"'%rvarname])
             else:
-                callobj.set_attr('args', [varname, 'kgen_unit'])
+                callobj.set_attr('args', [rvarname, 'kgen_unit'])
 
     def create_read_stmt(self, is_outtype, varname):
 
@@ -1701,11 +1700,11 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         if isinstance(self.parent, Gen_Module):
             if is_outtype:
                 rvarobj = self.parent.extroutsubr.create_read()
+                rvarobj.set_attr('item_list', ['ref_%s'%varname])
             else:
                 rvarobj = self.parent.extrinsubr.create_read()
-
+                rvarobj.set_attr('item_list', [varname])
             rvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
-            rvarobj.set_attr('item_list', [varname])
 
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
                 if is_outtype:
@@ -1718,11 +1717,11 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         elif isinstance(self.parent, Gen_SubroutineP):
             if is_outtype:
                 rvarobj = self.parent.create_read(insert_in=self.parent.insert_in_output_local_state)
+                rvarobj.set_attr('item_list', ['ref_%s'%varname])
             else:
                 rvarobj = self.parent.create_read(insert_in=self.parent.insert_in_input_local_state)
-
+                rvarobj.set_attr('item_list', [varname])
             rvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
-            rvarobj.set_attr('item_list', [varname])
 
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
                 if is_outtype:
