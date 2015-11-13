@@ -115,7 +115,10 @@ def generate_kernel_makefile():
 
 def generate_state_makefile():
 
-    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.srcfiles.iteritems() if srcfile.tree.used4genstate ] + [ State.topblock['path'] ]
+    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.srcfiles.iteritems() if srcfile.tree.used4genstate ] 
+    if not State.topblock['path'] in org_files:
+        org_files.append(State.topblock['path'])
+
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
         write(f, 'run: build')
         if Config.state_run['cmds']>0:

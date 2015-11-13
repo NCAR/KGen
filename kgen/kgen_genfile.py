@@ -360,7 +360,9 @@ class Gen_Statement(object):
             cur_indent = self.gen_attrs['indent']
             if self.stmt:
                 lines_str = None
-                if hasattr(self.stmt.item, 'span'):
+                if hasattr(self, 'forced_line') and self.forced_line:
+                    lines_str = self.forced_line
+                elif hasattr(self.stmt.item, 'span'):
                     start = self.stmt.item.span[0]-1
                     end = self.stmt.item.span[1]
                     lines = self.stmt.top.prep[start:end]
@@ -735,7 +737,8 @@ class Gen_TypeDeclarationStatement(object):
         
         selector = ''
         if kwargs.has_key('selector'):
-            selector = '( %s )'%kwargs['selector']
+            if kwargs['selector'].strip():
+                selector = '( %s )'%kwargs['selector']
 
         attr_specs = ''
         if kwargs.has_key('attr_specs'):
@@ -986,8 +989,9 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                                 useobj.set_attr('name', res_stmt.name)
                                 useobj.append_attr('items', vname)
 
-                                pubobj = res_stmt.genkpair.parent.create_public()
-                                pubobj.append_attr('items', vname)
+                                if isinstance(res_stmt.genkpair.parent, Gen_Module):
+                                    pubobj = res_stmt.genkpair.parent.create_public()
+                                    pubobj.append_attr('items', vname)
                                 break
                         break
                 assert vname, 'Can not get verfiy name for %s'%var.name
@@ -1330,11 +1334,40 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
     def gen_verify(self, enames=None):
 
         if enames is None:
-            enames = []
-            for entity in self.stmt.entity_decls:
-                enames.append(get_entity_name(entity))
+            vnames = []; enames = []
+            for decl in self.stmt.entity_decls:
+                ename = get_entity_name(decl)
+                enames.append(ename)
+                var = self.stmt.get_variable(ename)
+                if self.stmt.is_derived() and not ( var.is_pointer() or var.is_array() ):
+                    vname = None
+                    for uname, req in self.stmt.unknowns.iteritems():
+                        if uname.firstpartname()==self.stmt.name:
+                            vname = req.res_stmts[0].genkpair.get_verifyname()
+                            break
+                    assert vname, 'Can not find vname'
+                    vnames.append(vname)
+                else:
+                    tempnames = self.get_verifynames([ename])
+                    assert len(tempnames)==1, 'Only one name is allowed.'
+                    vnames.append(tempnames[0])
+        else:
+            vnames = []
+            for ename in enames:
+                var = self.stmt.get_variable(ename)
+                if self.stmt.is_derived() and not ( var.is_pointer() or var.is_array() ):
+                    vname = None
+                    for uname, req in self.stmt.unknowns.iteritems():
+                        if uname.firstpartname()==self.stmt.name:
+                            vname = req.res_stmts[0].genkpair.get_verifyname()
+                            break
+                    assert vname, 'Can not find vname'
+                    vnames.append(vname)
+                else:
+                    tempnames = self.get_verifynames([ename])
+                    assert len(tempnames)==1, 'Only one name is allowed.'
+                    vnames.append(tempnames[0])
 
-        vnames = self.get_verifynames(enames)
         for ename, vname in zip(enames, vnames):
 
             var = self.stmt.get_variable(ename)
@@ -1397,7 +1430,7 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
             else: raise ProgramException('Unknown class: %s'%self.parent.__class__)
 
             if not target.has_name(vname, GenK_Subroutine) and \
-                (var.is_array() or not self.stmt.is_derived()):
+                (var.is_array() or var.is_pointer() or not self.stmt.is_derived()):
 
                 target.add_line(target.insert_in_subprograms)
 
@@ -1492,18 +1525,18 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         istrueobj.set_attr('typespec', 'LOGICAL')
         istrueobj.append_attr('entity_decls', 'is_true')
 
-        # idx
         if var.is_array():
+            # idx
             indexes = [ 'idx%d'%(d+1) for d in range(var.rank) ]
             idxobj = subrobj.create_typedeclstmt()
             idxobj.set_attr('typespec', 'INTEGER')
             idxobj.append_attr('entity_decls', ','.join(indexes))
 
-        # bound
-        bndobj = subrobj.create_typedeclstmt()
-        bndobj.set_attr('typespec', 'INTEGER')
-        bndobj.append_attr('attr_specs', 'DIMENSION(2,%d)'%abs(var.rank))
-        bndobj.append_attr('entity_decls', 'kgen_bound')
+            # bound
+            bndobj = subrobj.create_typedeclstmt()
+            bndobj.set_attr('typespec', 'INTEGER')
+            bndobj.append_attr('attr_specs', 'DIMENSION(2,%d)'%abs(var.rank))
+            bndobj.append_attr('entity_decls', 'kgen_bound')
 
         subrobj.add_line(subrobj.insert_in_exe_part)
 
@@ -1559,8 +1592,9 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                                 useobj.set_attr('name', res_stmt.name)
                                 useobj.append_attr('items', rname)
 
-                                pubobj = res_stmt.genkpair.parent.create_public()
-                                pubobj.append_attr('items', rname)
+                                if isinstance(res_stmt.genkpair.parent, Gen_Module):
+                                    pubobj = res_stmt.genkpair.parent.create_public()
+                                    pubobj.append_attr('items', rname)
                                 break
                         break
                 assert rname, 'Can not find rname'
@@ -1614,8 +1648,9 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                                 useobj.set_attr('name', res_stmt.name)
                                 useobj.append_attr('items', rname)
 
-                                pubobj = res_stmt.genkpair.parent.create_public()
-                                pubobj.append_attr('items', rname)
+                                if isinstance(res_stmt.genkpair.parent, Gen_Module):
+                                    pubobj = res_stmt.genkpair.parent.create_public()
+                                    pubobj.append_attr('items', rname)
                                 break
                         break
                 assert rname, 'Can not find rname'
@@ -1782,6 +1817,13 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                     self.create_read_subr(subrname, var)
                 else:
                     # create a call stmt
+                    subrname = None
+                    for uname, req in self.stmt.unknowns.iteritems():
+                        if uname.firstpartname()==self.name:
+                            subrname = req.res_stmts[0].genspair.get_readname()
+                            break
+                    assert subrname, 'Can not find subrname'
+
                     self.create_call4readsubr(is_outtype, subrname, varname)
             else:
                 if var.is_pointer():
@@ -2081,8 +2123,9 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                                 useobj.set_attr('name', res_stmt.name)
                                 useobj.append_attr('items', wname)
 
-                                pubobj = res_stmt.genspair.parent.create_public()
-                                pubobj.append_attr('items', wname)
+                                if isinstance(res_stmt.genspair.parent, Gen_Module):
+                                    pubobj = res_stmt.genspair.parent.create_public()
+                                    pubobj.append_attr('items', wname)
                                 break
                         break
                 assert wname, 'Can not find wname'
@@ -2137,8 +2180,9 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                                 useobj.set_attr('name', res_stmt.name)
                                 useobj.append_attr('items', wname)
 
-                                pubobj = res_stmt.genspair.parent.create_public()
-                                pubobj.append_attr('items', wname)
+                                if isinstance(res_stmt.genspair.parent, Gen_Module):
+                                    pubobj = res_stmt.genspair.parent.create_public()
+                                    pubobj.append_attr('items', wname)
                                 break
                         break
                 assert wname, 'Can not find wname'
@@ -2307,6 +2351,13 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                     self.create_write_subr(subrname, var)
                 else:
                     # create a call stmt
+                    subrname = None
+                    for uname, req in self.stmt.unknowns.iteritems():
+                        if uname.firstpartname()==self.name:
+                            subrname = req.res_stmts[0].genspair.get_writename()
+                            break
+                    assert subrname, 'Can not find subrname'
+
                     self.create_call4writesubr(is_outtype, subrname, varname)
             else:
                 if var.is_pointer():
@@ -2519,7 +2570,7 @@ class Gen_BeginStatement(object):
                 lines.append(l)
         return lines
 
-    def insert_in_order(self, item, class_order, end_classes, callsite=None):
+    def insert_in_order(self, item, class_order, end_classes):
         def insert_in_list(cls, item):
             from types import FunctionType
             for attrname, attrobj in cls.__dict__.iteritems():
@@ -2534,9 +2585,6 @@ class Gen_BeginStatement(object):
         elif item.stmt.__class__ is Comment:
             insert_in_list(class_order[0], item)
             return class_order
-        elif callsite and item.stmt is callsite[0]:
-            insert_in_list(callsite[1], item)
-            return class_order[1:]
 
         classes = []
         matched = False
@@ -3158,7 +3206,13 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         self.set_attr('args', ['kgen_unit', 'total_time'])
 
         for item in self.items:
-            class_order = self.insert_in_order(item, class_order, end_classes)
+            if item.stmt is State.callsite['stmt'] and isinstance(item, Gen_BeginStatement):
+                item = item.stmt.content[0].genkpair
+                item.isvalid = True
+                item.forced_line = item.stmt.tofortran().strip()
+                self.insert_in_callsite_stmts(item)
+            else:
+                class_order = self.insert_in_order(item, class_order, end_classes)
             item.process()
 
     def tostr_subp(self):
@@ -3212,7 +3266,11 @@ class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         self.add_comment('read output local state', self.insert_in_output_local_state)
 
         for item in self.items:
-            class_order = self.insert_in_order(item, class_order, end_classes, callsite=(State.callsite['stmt'], Gen_Has_CallsiteStmts))
+            if item.stmt is State.callsite['stmt']:
+                self.insert_in_callsite_stmts(item)
+                class_order = class_order[1:]
+            else:
+                class_order = self.insert_in_order(item, class_order, end_classes)
             item.process()
 
     def tostr_subp(self):
@@ -3811,8 +3869,10 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
             endsubrobj.set_attr('blockname', 'SUBROUTINE')
 
             # create public stmt
-            pubobj = self.parent.create_public()
-            pubobj.append_attr('items', subrname)
+
+            if isinstance(self.parent, Gen_Module):
+                pubobj = self.parent.create_public()
+                pubobj.append_attr('items', subrname)
 
             return subrobj
 
@@ -3822,13 +3882,26 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
 
         for item in self.items:
             if isinstance(item, GenK_TypeDeclarationStatement):
-                vnames = item.get_verifynames()
-                if not vnames: continue
-
-
-                enames = [ get_entity_name(e) for e in item.stmt.entity_decls ]
+                vnames = []; enames = []
+                for decl in item.stmt.entity_decls:
+                    ename = get_entity_name(decl)
+                    enames.append(ename)
+                    var = item.stmt.get_variable(ename)
+                    if item.stmt.is_derived() and not ( var.is_pointer() or var.is_array() ):
+                        vname = None
+                        for uname, req in item.stmt.unknowns.iteritems():
+                            if uname.firstpartname()==item.stmt.name:
+                                vname = req.res_stmts[0].genkpair.get_verifyname()
+                                break
+                        assert vname, 'Can not find vname'
+                        vnames.append(vname)
+                    else:
+                        tempnames = item.get_verifynames([ename])
+                        assert len(tempnames)==1, 'Only one name is allowed.'
+                        vnames.append(tempnames[0])
 
                 vsubrs = item.gen_verify(enames)
+
                 for vname, ename in zip(vnames, enames):
                     callobj = subrobj.create_callstmt()
                     callobj.set_attr('name', vname)
@@ -3928,8 +4001,9 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
             endsubrobj.set_attr('name', subrname)
 
             # create public stmt
-            pubobj = self.parent.create_public()
-            pubobj.append_attr('items', subrname)
+            if isinstance(self.parent, Gen_Module):
+                pubobj = self.parent.create_public()
+                pubobj.append_attr('items', subrname)
 
             return subrobj
 
@@ -3984,6 +4058,7 @@ class GenS_TypeDecl(GenS_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
             subrobj.set_attr('name', subrname)
             subrobj.set_attr('args', ['var', 'kgen_unit', 'printvar'])
             self.parent.wtypesubr = subrobj
+            self.stmt.top.used4genstate = True
 
             # variable
             varobj = subrobj.create_typedeclstmt()
@@ -4021,8 +4096,9 @@ class GenS_TypeDecl(GenS_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
             endsubrobj.set_attr('blockname', 'SUBROUTINE')
 
             # create public stmt
-            pubobj = self.parent.create_public()
-            pubobj.append_attr('items', subrname)
+            if isinstance(self.parent, Gen_Module):
+                pubobj = self.parent.create_public()
+                pubobj.append_attr('items', subrname)
 
             return subrobj
 

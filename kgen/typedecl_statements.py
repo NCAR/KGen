@@ -125,7 +125,7 @@ class TypeDeclarationStatement(Statement):
             attrs = newattrs
 
         s = self.tostr()
-        if self.attrspec:
+        if attrs:
             s += ', ' + ', '.join(attrs)
         if decls:
             s += ' :: ' + ', '.join(decls)

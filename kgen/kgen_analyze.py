@@ -292,13 +292,13 @@ def collect_kernel_info():
     from kgen_state import ResState
 
     # mark callsite, and its ancestors
-    anc_callsite = State.callsite['stmt'].ancestors(include_beginsource=True)
-    for anc in anc_callsite:
-        anc.geninfo = {}
-        anc.geninfo[KGGenType.STATE_IN] = []
-        if isinstance(anc.content[-1], EndStatement):
-            anc.content[-1].geninfo = {}
-            anc.content[-1].geninfo[KGGenType.STATE_IN] = []
+    #anc_callsite = State.callsite['stmt'].ancestors(include_beginsource=True)
+    #for anc in anc_callsite:
+    #    anc.geninfo = {}
+    #    anc.geninfo[KGGenType.STATE_IN] = []
+    #    if isinstance(anc.content[-1], EndStatement):
+    #        anc.content[-1].geninfo = {}
+    #        anc.content[-1].geninfo[KGGenType.STATE_IN] = []
 
 
     # NOTE : collect intent attributes for found subprograms in callsite statements
@@ -357,20 +357,10 @@ def collect_kernel_info():
         pass
     # if there is one actual argument
     elif isinstance(State.callsite['expr'].items[1], Name):
-#        gentype = KGGenType.STATE_INOUT
-#        if State.kernel['dummy_arg']['names'][0] in State.kernel['dummy_arg']['in_names']: gentype = KGGenType.STATE_IN
-#        elif State.kernel['dummy_arg']['names'][0] in State.kernel['dummy_arg']['out_names']: gentype = KGGenType.STATE_OUT
-#        elif State.kernel['dummy_arg']['names'][0] in State.kernel['dummy_arg']['inout_names']: gentype = KGGenType.STATE_INOUT
-#        else: raise ProgramException('No intent is found: %s'%State.kernel['dummy_arg']['names'][0].firstpartname())
         f2003_search_unknowns(State.callsite['stmt'], State.callsite['expr'].items[1])
     # if there are multiple actual arguments
     elif hasattr(State.callsite['expr'].items[1], 'items'):
         for i, item in enumerate(State.callsite['expr'].items[1].items):
-#            gentype = KGGenType.STATE_INOUT
-#            if State.kernel['dummy_arg']['names'][i] in State.kernel['dummy_arg']['in_names']: gentype = KGGenType.STATE_IN
-#            elif State.kernel['dummy_arg']['names'][i] in State.kernel['dummy_arg']['out_names']: gentype = KGGenType.STATE_OUT
-#            elif State.kernel['dummy_arg']['names'][i] in State.kernel['dummy_arg']['inout_names']: gentype = KGGenType.STATE_INOUT
-#            else: raise ProgramException('No intent is found: %s'%State.kernel['dummy_arg']['names'][i].firstpartname())
             f2003_search_unknowns(State.callsite['stmt'], item)
 
     for unknown, request in State.callsite['stmt'].unknowns.iteritems():
@@ -381,16 +371,12 @@ def collect_kernel_info():
     expr = State.callsite['expr']
     if isinstance(expr, Part_Ref):
         if hasattr(expr, 'parent') and isinstance(expr.parent, Assignment_Stmt):
-            #f2003_search_unknowns(KGGenType.STATE_INOUT, State.callsite['stmt'], expr.parent.items[0])
             f2003_search_unknowns(State.callsite['stmt'], expr.parent.items[0], gentype=KGGenType.STATE_OUT)
             for unknown, request in State.callsite['stmt'].unknowns.iteritems():
                 if request.state != ResState.RESOLVED:
                     State.callsite['stmt'].resolve(request)
         else:
             raise ProgramException("Only assignment statement is allowed for Function callsite yet.")
-
-
-
 
     # populate callsite parameters
     collect_args_from_expr(State.callsite['expr'], State.callsite['actual_arg'], State.callsite['stmt'])
