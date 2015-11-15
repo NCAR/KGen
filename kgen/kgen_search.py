@@ -287,7 +287,7 @@ def search_Level_2_Expr(stmt, node, gentype=None):
 def search_Parenthesis(stmt, node, gentype=None): 
     get_name_or_defer(stmt, node.items[1], res_value, gentype=gentype)
 
-def search_str(stmt, string):
+def search_str(stmt, string, gentype=None):
     pass
 
 def search_Function_Stmt(stmt, node, gentype=None): 

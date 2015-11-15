@@ -805,6 +805,11 @@ class Close(Statement):
         return tab + 'CLOSE (%s)' % (', '.join(self.specs))
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return 'CLOSE (%s)' % (', '.join(self.specs))
+    # end of KGEN addition
+
 class Cycle(Statement):
     """
     CYCLE [ <do-construct-name> ]
@@ -862,6 +867,13 @@ class FilePositioningStatement(Statement):
         return self.get_indent_tab(isfix=isfix) + clsname + ' (%s)' % (', '.join(self.specs))
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        clsname = self.__class__.__name__.upper()
+        return clsname + ' (%s)' % (', '.join(self.specs))
+    # end of KGEN addition
+
+
 class Backspace(FilePositioningStatement):
     f2003_class = Fortran2003.Backspace_Stmt # KGEN addition
     pass
@@ -891,6 +903,11 @@ class Open(Statement):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'OPEN (%s)' % (', '.join(self.specs))
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        return 'OPEN (%s)' % (', '.join(self.specs))
+    # end of KGEN addition
 
 class Format(Statement):
     """
@@ -1460,8 +1477,22 @@ class Equivalence(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
+        def get_equivname(node, bag, depth):
+            from Fortran2003 import Equivalence_Set, Name
+            if isinstance(node, Name) and node.string==uname.firstpartname():
+                if isinstance(node.parent, Equivalence_Set):
+                    bag['equiv_names'].append(node.parent.items[1])
+                elif hasattr(node.parent, 'parent') and isinstance(node.parent.parent, Equivalence_Set):
+                    bag['equiv_names'].append(node.parent.parent.items[1])
+                return True
+                 
+        names = {'search_name': uname.firstpartname(), 'equiv_names': []}
+        traverse(self.f2003, get_equivname, names)
+        if len(names['equiv_names'])>0:
+            raise ProgramException('Equivalent names are not correctly resolved.')
+
+    def tokgen(self, **kwargs):
+        return 'EQUIVALENCE %s' % (', '.join(self.items))
     # end of KGEN addition
 
 class Dimension(Statement):
@@ -2506,6 +2537,16 @@ class ElseWhere(Statement):
             s += ' ' + self.name
         return tab + s
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self, **kwargs):
+        s = 'ELSEWHERE' # KGEN addition
+        if self.expr is not None:
+            s += ' ( %s )' % (self.expr)
+        if self.name:
+            s += ' ' + self.name
+        return s
+    # end of KGEN addition
 
 # Enum construct statements
 

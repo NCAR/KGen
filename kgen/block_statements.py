@@ -1499,13 +1499,15 @@ proc_binding_stmt = [SpecificBinding, GenericBinding, FinalBinding]
 
 type_bound_procedure_part = [Contains, Private] + proc_binding_stmt
 
+kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf ]# KGEN addition
+
 #R214
-#action_stmt = [ Allocate, GeneralAssignment, Assign, Backspace, Call, Close, # KGEN deletion
-action_stmt = [ Allocate, PointerAssignment, GeneralAssignment, Assignment, Assign, Backspace, Call, Close, # KGEN addition
+action_stmt = [ Allocate, GeneralAssignment, Assign, Backspace, Call, Close,
     Continue, Cycle, Deallocate, Endfile, Exit, Flush, ForallStmt,
     Goto, If, Inquire, Nullify, Open, Print, Read, Return, Rewind,
     Stop, Wait, WhereStmt, Write, ArithmeticIf, ComputedGoto,
-    AssignedGoto, Pause ]
+    AssignedGoto, Pause ] + kgen_added_action_stmt # KGEN addition
+#    AssignedGoto, Pause ] # KGEN deletion
 # GeneralAssignment = Assignment + PointerAssignment
 # EndFunction, EndProgram, EndSubroutine - part of the corresponding blocks
 

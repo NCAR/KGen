@@ -174,6 +174,16 @@ class Gen_Has_ContainsStmt(Gen_Has_):
     def hasname_in_contains_stmt(self, name, cls):
         return self._hasname_in_list(self.contains_stmt, name, cls)
 
+    def ensure_contains(self):
+        found = False
+        for item in self.contains_stmt:
+            if isinstance(item, Gen_Contains):
+                item.isvalid = True
+                found = True
+                break
+        if not found:
+            obj = self.create_contains()
+            
 class Gen_Has_Subprograms(Gen_Has_):
     from block_statements import internal_subprogram
     classes =  internal_subprogram
@@ -257,6 +267,18 @@ class Gen_Has_OutputModuleState(Gen_Has_):
 
     def hasname_in_output_module_state(self, name, cls):
         return self._hasname_in_list(self.output_module_state, name, cls)
+
+class Gen_Has_InputLocalArgState(Gen_Has_):
+    from statements import Read, Write, Call
+    classes =  [ Read, Write, Call ]
+    def __init__(self):
+        self.input_local_arg_state = []
+
+    def insert_in_input_local_arg_state(self, item):
+        self.input_local_arg_state.append(item)
+
+    def hasname_in_input_local_arg_state(self, name, cls):
+        return self._hasname_in_list(self.input_local_arg_state, name, cls)
 
 class Gen_Has_InputLocalState(Gen_Has_):
     from statements import Read, Write, Call
@@ -727,6 +749,21 @@ class GenS_Implicit(GenS_Statement, Gen_Implicit):
     def tokgen(self, **kwargs):
         return self._tokgen(**kwargs)
 
+########### Contains ############
+class Gen_Contains(object):
+    def _tokgen(self, **kwargs):
+        return 'CONTAINS'
+
+class GenK_Contains(GenK_Statement, Gen_Contains):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
+class GenS_Contains(GenS_Statement, Gen_Contains):
+
+    def tokgen(self, **kwargs):
+        return self._tokgen(**kwargs)
+
 ########### TypeDeclarationStatement ############
 class Gen_TypeDeclarationStatement(object):
     def _tokgen(self, **kwargs):
@@ -772,6 +809,9 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                         if not iname in items:
                             items.append(iname)
                             decls.append(ename)
+                    if len(items)!=len(self.stmt.entity_decls) and isinstance(self.parent, GenK_SubroutineP):
+                        self.set_attr('entity_decls', items)
+                        self.set_attr('remove_attr', 'intent')
 
                     #  select OUT entities in the typedecl stmt.
                     out_items = []; out_decls = []
@@ -824,9 +864,10 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                             pblock = State.parentblock['stmt'].genkpair
 
                             # add use in parentblock
-                            useobj = pblock.create_use()
-                            useobj.set_attr('name', self.parent.name)
-                            useobj.append_attr('items', extinsubrname)
+                            if not pblock.stmt.top is self.stmt.top:
+                                useobj = pblock.create_use()
+                                useobj.set_attr('name', self.parent.name)
+                                useobj.append_attr('items', extinsubrname)
 
                             # add call in read extern block
                             callobj = pblock.create_callstmt(insert_in=pblock.insert_in_input_module_state)
@@ -862,9 +903,10 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                             pblock = State.parentblock['stmt'].genkpair
 
                             # add use in parentblock
-                            useobj = pblock.create_use()
-                            useobj.set_attr('name', self.parent.name)
-                            useobj.append_attr('items', extoutsubrname)
+                            if not pblock.stmt.top is self.stmt.top:
+                                useobj = pblock.create_use()
+                                useobj.set_attr('name', self.parent.name)
+                                useobj.append_attr('items', extoutsubrname)
 
                             # add call in read extern block
                             callobj = pblock.create_callstmt(insert_in=pblock.insert_in_output_module_state)
@@ -1410,9 +1452,10 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                     pblock = State.parentblock['stmt'].genkpair
 
                     # add use in parentblock
-                    useobj = pblock.create_use()
-                    useobj.set_attr('name', self.parent.name)
-                    useobj.append_attr('items', extsubrname)
+                    if not pblock.stmt.top is self.stmt.top:
+                        useobj = pblock.create_use()
+                        useobj.set_attr('name', self.parent.name)
+                        useobj.append_attr('items', extsubrname)
 
                     # add call in verfiy extern block
                     callobj = pblock.create_callstmt(insert_in=pblock.insert_in_verify_module_state)
@@ -1786,6 +1829,7 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         else: raise ProgramException('Unknown class: %s'%self.parent.__class__)
 
     def gen_read_in_or_out(self, name, is_outtype):
+        from statements import Use
 
         var = self.stmt.get_variable(name)
 
@@ -1820,9 +1864,21 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                     subrname = None
                     for uname, req in self.stmt.unknowns.iteritems():
                         if uname.firstpartname()==self.name:
-                            subrname = req.res_stmts[0].genspair.get_readname()
+                            subrname = req.res_stmts[0].genkpair.get_readname()
+                            for res_stmt in req.res_stmts:
+                                # add use stmt and public stmt if required
+                                if isinstance(res_stmt, Use) and res_stmt.isonly:
+                                    useobj = res_stmt.genkpair.parent.create_use()
+                                    useobj.set_attr('name', res_stmt.name)
+                                    useobj.append_attr('items', subrname)
+
+                                    if isinstance(res_stmt.genkpair.parent, Gen_Module):
+                                        pubobj = res_stmt.genkpair.parent.create_public()
+                                        pubobj.append_attr('items', subrname)
+                                    break
                             break
                     assert subrname, 'Can not find subrname'
+
 
                     self.create_call4readsubr(is_outtype, subrname, varname)
             else:
@@ -1919,9 +1975,10 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                             pblock = State.parentblock['stmt'].genspair
 
                             # add use in parentblock
-                            useobj = pblock.create_use()
-                            useobj.set_attr('name', self.parent.name)
-                            useobj.append_attr('items', extinsubrname)
+                            if not pblock.stmt.top is self.stmt.top:
+                                useobj = pblock.create_use()
+                                useobj.set_attr('name', self.parent.name)
+                                useobj.append_attr('items', extinsubrname)
 
                             # add call in write extern block
                             callobj = pblock.create_callstmt(insert_in=pblock.insert_in_input_module_state)
@@ -1959,9 +2016,10 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                             pblock = State.parentblock['stmt'].genspair
 
                             # add use in parentblock
-                            useobj = pblock.create_use()
-                            useobj.set_attr('name', self.parent.name)
-                            useobj.append_attr('items', extoutsubrname)
+                            if not pblock.stmt.top is self.stmt.top:
+                                useobj = pblock.create_use()
+                                useobj.set_attr('name', self.parent.name)
+                                useobj.append_attr('items', extoutsubrname)
 
                             # add call in write extern block
                             callobj = pblock.create_callstmt(insert_in=pblock.insert_in_output_module_state)
@@ -2320,6 +2378,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                 callobj.set_attr('args', [varname, 'kgen_unit'])
 
     def gen_write_in_or_out(self, name, is_outtype):
+        from statements import Use
 
         var = self.stmt.get_variable(name)
 
@@ -2355,6 +2414,18 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                     for uname, req in self.stmt.unknowns.iteritems():
                         if uname.firstpartname()==self.name:
                             subrname = req.res_stmts[0].genspair.get_writename()
+                            for res_stmt in req.res_stmts:
+                                # add use stmt and public stmt if required
+                                if isinstance(res_stmt, Use) and res_stmt.isonly:
+                                    res_stmt.top.used4genstate = True
+                                    useobj = res_stmt.genspair.parent.create_use()
+                                    useobj.set_attr('name', res_stmt.name)
+                                    useobj.append_attr('items', subrname)
+
+                                    if isinstance(res_stmt.genspair.parent, Gen_Module):
+                                        pubobj = res_stmt.genspair.parent.create_public()
+                                        pubobj.append_attr('items', subrname)
+                                    break
                             break
                     assert subrname, 'Can not find subrname'
 
@@ -2786,6 +2857,14 @@ class Gen_BeginStatement(object):
         exec('obj = Gen%s_Implicit(stmt, self.k_id)'%self.gentype)
         return self._create_stmtobj(obj, insert_in)
 
+    def create_contains(self, stmt=None, insert_in=None):
+        if insert_in is None:
+            assert hasattr(self, 'insert_in_contains_stmt')
+            insert_in = self.insert_in_contains_stmt
+
+        exec('obj = Gen%s_Contains(stmt, self.k_id)'%self.gentype)
+        return self._create_stmtobj(obj, insert_in)
+
     def has_name(self, name, cls):
         for func in [getattr(self, m) for m in dir(self) if callable(getattr(self, m)) and m.startswith('hasname_in')]:
             if func(name, cls): return True
@@ -2888,10 +2967,9 @@ class Gen_Module(object):
         lines.extend(self.tostr_list(self.import_stmts))
         lines.extend(self.tostr_list(self.implicit_part))
         lines.extend(self.tostr_list(self.decl_construct))
-        if len(self.contains_stmt)>0:
-            lines.extend(self.tostr_list(self.contains_stmt))
-        elif len(self.subprograms)>0:
-            lines.append(self.indent+'CONTAINS')
+        if any( isinstance(subp, Gen_SubProgramStatement) and subp.isvalid for subp in self.subprograms):
+            self.ensure_contains()
+        lines.extend(self.tostr_list(self.contains_stmt))
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
@@ -2961,10 +3039,9 @@ class Gen_Program(object):
         lines.extend(self.tostr_list(self.implicit_part))
         lines.extend(self.tostr_list(self.decl_construct))
         lines.extend(self.tostr_list(self.exe_part))
-        if len(self.contains_stmt)>0:
-            lines.extend(self.tostr_list(self.contains_stmt))
-        elif len(self.subprograms)>0:
-            lines.append(self.indent+'CONTAINS')
+        if any( isinstance(subp, Gen_SubProgramStatement) and subp.isvalid for subp in self.subprograms):
+            self.ensure_contains()
+        lines.extend(self.tostr_list(self.contains_stmt))
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
@@ -3036,10 +3113,9 @@ class Gen_SubProgramStatement(object):
         lines.extend(self.tostr_list(self.implicit_part))
         lines.extend(self.tostr_list(self.decl_construct))
         lines.extend(self.tostr_list(self.exe_part))
-        if len(self.contains_stmt)>0:
-            lines.extend(self.tostr_list(self.contains_stmt))
-        elif len(self.subprograms)>0:
-            lines.append(self.indent+'CONTAINS')
+        if any( isinstance(subp, Gen_SubProgramStatement) and subp.isvalid for subp in self.subprograms):
+            self.ensure_contains()
+        lines.extend(self.tostr_list(self.contains_stmt))
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
@@ -3140,8 +3216,9 @@ class Gen_SubroutineP(object):
         return '%sSUBROUTINE %s( %s )%s'%(prefix, name, args, suffix)
 
  
-class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputModuleState, Gen_Has_InputLocalState, \
-    Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_CallsiteStmts, Gen_Has_VerifyModuleState, Gen_Has_VerifyLocalState, Gen_Has_MeasureTiming):
+class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputLocalArgState, Gen_Has_InputModuleState, \
+    Gen_Has_InputLocalState, Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_CallsiteStmts, \
+    Gen_Has_VerifyModuleState, Gen_Has_VerifyLocalState, Gen_Has_MeasureTiming):
 
     def insert_parentblock_default(self):
 
@@ -3186,6 +3263,8 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
             Gen_Has_CallsiteStmts, Gen_Has_ContainsStmt, Gen_Has_Subprograms]
         end_classes = [ EndSubroutine ]
 
+        self.add_line(self.insert_in_input_local_arg_state);
+        self.add_comment('read input local dummy argument state', self.insert_in_input_local_arg_state)
         self.add_line(self.insert_in_input_module_state);
         self.add_comment('read input module state', self.insert_in_input_module_state)
         self.add_line(self.insert_in_input_local_state);
@@ -3224,6 +3303,7 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         lines.extend(self.tostr_list(self.import_stmts))
         lines.extend(self.tostr_list(self.implicit_part))
         lines.extend(self.tostr_list(self.decl_construct))
+        lines.extend(self.tostr_list(self.input_local_arg_state))
         lines.extend(self.tostr_list(self.input_module_state))
         lines.extend(self.tostr_list(self.input_local_state))
         lines.extend(self.tostr_list(self.output_module_state))
@@ -3232,10 +3312,9 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         lines.extend(self.tostr_list(self.verify_module_state))
         lines.extend(self.tostr_list(self.verify_local_state))
         lines.extend(self.tostr_list(self.measure_timing))
-        if len(self.contains_stmt)>0:
-            lines.extend(self.tostr_list(self.contains_stmt))
-        elif len(self.subprograms)>0:
-            lines.append(self.indent+'CONTAINS')
+        if any( isinstance(subp, Gen_SubProgramStatement) and subp.isvalid for subp in self.subprograms):
+            self.ensure_contains()
+        lines.extend(self.tostr_list(self.contains_stmt))
         lines.extend(self.tostr_list(self.subprograms))
         return lines
 
@@ -3244,16 +3323,19 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         self._tokgen(**kwargs)
 
 
-class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputModuleState, Gen_Has_InputLocalState, \
-    Gen_Has_CallsiteStmts, Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, Gen_Has_ExecutionPart1, Gen_Has_ExecutionPart2):
+class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputLocalArgState, Gen_Has_InputLocalState, \
+    Gen_Has_InputModuleState, Gen_Has_CallsiteStmts, Gen_Has_OutputModuleState, Gen_Has_OutputLocalState, \
+    Gen_Has_ExecutionPart1, Gen_Has_ExecutionPart2):
 
     def process_subp_items(self):
         from block_statements import EndSubroutine
 
         class_order = [Gen_Has_UseStmts, Gen_Has_ImportStmts, Gen_Has_ImplicitPart, Gen_Has_DeclConstruct, Gen_Has_ExecutionPart1, \
-            Gen_Has_ExecutionPart2, Gen_Has_ContainsStmt, Gen_Has_Subprograms]
+            Gen_Has_CallsiteStmts, Gen_Has_ExecutionPart2, Gen_Has_ContainsStmt, Gen_Has_Subprograms]
         end_classes = [ EndSubroutine ]
 
+        self.add_line(self.insert_in_input_local_arg_state);
+        self.add_comment('read input local dummy argument state', self.insert_in_input_local_arg_state)
         self.add_line(self.insert_in_input_module_state);
         self.add_comment('read input module state', self.insert_in_input_module_state)
         self.add_line(self.insert_in_input_local_state);
@@ -3268,7 +3350,7 @@ class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         for item in self.items:
             if item.stmt is State.callsite['stmt']:
                 self.insert_in_callsite_stmts(item)
-                class_order = class_order[1:]
+                class_order = class_order[(class_order.index(Gen_Has_CallsiteStmts)+1):]
             else:
                 class_order = self.insert_in_order(item, class_order, end_classes)
             item.process()
@@ -3284,17 +3366,15 @@ class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
         lines.extend(self.tostr_list(self.implicit_part))
         lines.extend(self.tostr_list(self.decl_construct))
         lines.extend(self.tostr_list(self.exe_part1))
+        lines.extend(self.tostr_list(self.input_local_arg_state))
         lines.extend(self.tostr_list(self.input_module_state))
         lines.extend(self.tostr_list(self.input_local_state))
         lines.extend(self.tostr_list(self.callsite_stmts))
         lines.extend(self.tostr_list(self.output_module_state))
         lines.extend(self.tostr_list(self.output_local_state))
         lines.extend(self.tostr_list(self.exe_part2))
-
-        if len(self.contains_stmt)>0:
-            lines.extend(self.tostr_list(self.contains_stmt))
-        else:
-            lines.append(self.indent+'CONTAINS')
+        self.ensure_contains()
+        lines.extend(self.tostr_list(self.contains_stmt))
 
         indent = self.indent+TAB
         lines.append(indent + kgen_subprograms.replace('\n', '\n'+indent))
@@ -3593,6 +3673,11 @@ class GenS_SubroutineP(GenS_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputM
             endifmaxcobj = ifmaxcobj.create_endobj(insert_in=self.insert_in_output_local_state)
             endifmaxcobj.set_attr('blockname', 'IF') 
 
+
+        inccntobj = self.create_assignstmt(insert_in=self.insert_in_output_local_state)
+        inccntobj.set_attr('lhs', 'kgen_counter')
+        inccntobj.set_attr('rhs', 'kgen_counter + 1')
+
         self.add_openmp('END MASTER', insert_in=self.insert_in_output_local_state)
         self.add_line(self.insert_in_output_local_state)
 
@@ -3771,11 +3856,13 @@ class Gen_TypeDecl(object):
 
         for item in self.items:
             if item.stmt.__class__ is Integer:
-                if class_order[0]==Gen_Has_TypeParamDefStmts and (any(attr in ['kind', 'len'] for attr in item.stmt.attrspec) and \
-                    all(decl.find('=')>0 for decl in item.stmt.entity_decls)):
-                    class_order = self.insert_in_order(item, class_order, end_classes)
+                if class_order[0]==Gen_Has_TypeParamDefStmts:
+                    if (any(attr in ['kind', 'len'] for attr in item.stmt.attrspec) and all(decl.find('=')>0 for decl in item.stmt.entity_decls)):
+                        class_order = self.insert_in_order(item, class_order, end_classes)
+                    else:
+                        class_order = self.insert_in_order(item, class_order[1:], end_classes)
                 else:
-                    class_order = self.insert_in_order(item, class_order[1:], end_classes)
+                    class_order = self.insert_in_order(item, class_order, end_classes)
             else:
                 class_order = self.insert_in_order(item, class_order, end_classes)
 
@@ -3869,7 +3956,6 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
             endsubrobj.set_attr('blockname', 'SUBROUTINE')
 
             # create public stmt
-
             if isinstance(self.parent, Gen_Module):
                 pubobj = self.parent.create_public()
                 pubobj.append_attr('items', subrname)
@@ -4124,13 +4210,195 @@ class GenS_TypeDecl(GenS_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
         subpname = self.get_dtype_subpname(stmt)
         if subpname: return 'kw_%s'%subpname
 
+########### Driver ############
+class Gen_Driver(object):
+    pass
+
+
+class GenK_Driver(GenK_Program, Gen_Driver, Gen_Has_InputLocalArgState, Gen_Has_CallsiteStmts, \
+    Gen_Has_ExecutionPart1, Gen_Has_ExecutionPart2):
+
+    def process(self):
+        self.gen_driver_specpart()
+        self.gen_driver_exepart()
+
+    def tostr(self):
+        if self.isvalid:
+            lines = []
+
+            l = self.tostr_blockhead()
+            if l is not None: lines.append(l)
+
+            lines.extend(self.tostr_driver())
+            if self.end_obj: lines.append(self.end_obj.tostr())
+
+            return '\n'.join(lines)
+
+    def tostr_driver(self):
+
+        lines = []
+        lines.extend(self.tostr_list(self.use_stmts))
+        lines.extend(self.tostr_list(self.import_stmts))
+        lines.extend(self.tostr_list(self.implicit_part))
+        lines.extend(self.tostr_list(self.decl_construct))
+        lines.extend(self.tostr_list(self.exe_part1))
+        lines.extend(self.tostr_list(self.input_local_arg_state))
+        lines.extend(self.tostr_list(self.callsite_stmts))
+        lines.extend(self.tostr_list(self.exe_part2))
+        if any( isinstance(subp, Gen_SubProgramStatement) and subp.isvalid for subp in self.subprograms):
+            self.ensure_contains()
+        lines.extend(self.tostr_list(self.contains_stmt))
+        lines.extend(self.tostr_list(self.subprograms))
+        return lines
+
+    def gen_driver_specpart(self):
+        usekutilobj = self.create_use()
+        usekutilobj.set_attr('name', 'kgen_utils_mod')
+        usekutilobj.extend_attr('items', ['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp'])
+
+        usecsobj = self.create_use()
+        usecsobj.set_attr('name', State.topblock['stmt'].name)
+        usecsobj.extend_attr('items', [State.parentblock['stmt'].name])
+
+        self.add_line(self.insert_in_use_stmts)
+     
+        impobj = self.create_implicit()
+
+        self.add_line(self.insert_in_decl_construct)
+
+        if Config.mpi['enabled']:
+            vmpiobj = self.create_typedeclstmt()
+            vmpiobj.set_attr('typespec', 'INTEGER')
+            vmpiobj.append_attr('entity_decls', 'kgen_mpi_rank')
+
+            vrconvobj = self.create_typedeclstmt()
+            vrconvobj.set_attr('typespec', 'CHARACTER')
+            vrconvobj.set_attr('selector', 'LEN=16')
+            vrconvobj.append_attr('entity_decls', 'kgen_mpi_rank_conv')
+
+            vlrankobj = self.create_typedeclstmt()
+            vlrankobj.set_attr('typespec', 'INTEGER')
+            vlrankobj.append_attr('attr_specs', 'PARAMETER')
+            vlrankobj.append_attr('attr_specs', 'DIMENSION(%s)'%Config.mpi['size'])
+            vlrankobj.append_attr('entity_decls', 'kgen_mpi_rank_at = (/ %s /)'%', '.join(Config.mpi['ranks']))
+
+        vkgenobj = self.create_typedeclstmt()
+        vkgenobj.set_attr('typespec', 'INTEGER')
+        vkgenobj.extend_attr('entity_decls', ['kgen_ierr', 'kgen_unit', 'kgen_counter', 'kgen_repeat_counter'])
+
+        vcconvobj = self.create_typedeclstmt()
+        vcconvobj.set_attr('typespec', 'CHARACTER')
+        vcconvobj.set_attr('selector', 'LEN=16')
+        vcconvobj.append_attr('entity_decls', 'kgen_counter_conv')
+
+        vlcntobj = self.create_typedeclstmt()
+        vlcntobj.set_attr('typespec', 'INTEGER')
+        vlcntobj.append_attr('attr_specs', 'PARAMETER')
+        vlcntobj.append_attr('attr_specs', 'DIMENSION(%s)'%Config.invocation['size'])
+        vlcntobj.append_attr('entity_decls', 'kgen_counter_at = (/ %s /)'%', '.join(Config.invocation['numbers']))
+
+        vfpathobj = self.create_typedeclstmt()
+        vfpathobj.set_attr('typespec', 'CHARACTER')
+        vfpathobj.set_attr('selector', 'LEN=1025')
+        vfpathobj.append_attr('entity_decls', 'kgen_filepath')
+
+        vkcntobj = self.create_typedeclstmt()
+        vkcntobj.set_attr('typespec', 'REAL')
+        vkcntobj.set_attr('selector', 'KIND=kgen_dp')
+        vkcntobj.append_attr('entity_decls', 'total_time')
+
+    def gen_driver_exepart(self):
+
+        self.add_line(self.insert_in_exe_part1)
+
+        ttimeobj = self.create_assignstmt(insert_in=self.insert_in_exe_part1)
+        ttimeobj.set_attr('lhs', 'total_time')
+        ttimeobj.set_attr('rhs', '0.0_kgen_dp')
+
+        # file open head
+        if Config.mpi['enabled']:
+            len = Config.mpi['size'] * Config.invocation['size']
+        else:
+            len = Config.invocation['size']
+
+        doobj = self.create_do(insert_in=self.insert_in_exe_part1)
+        doobj.set_attr('loop_control', 'kgen_repeat_counter = 0, %d'%(len-1))
+
+        cntobj = doobj.create_assignstmt()
+        cntobj.set_attr('lhs', 'kgen_counter')
+        cntobj.set_attr('rhs', 'kgen_counter_at(mod(kgen_repeat_counter, %d)+1)'%Config.invocation['size'])
+
+        wcntobj = doobj.create_write()
+        wcntobj.set_attr('ctrl_list', ['kgen_counter_conv', '*'])
+        wcntobj.set_attr('item_list', ['kgen_counter'])
+
+        if Config.mpi['enabled']:
+
+            rankobj = doobj.create_assignstmt()
+            rankobj.set_attr('lhs', 'kgen_mpi_rank')
+            rankobj.set_attr('rhs', 'kgen_mpi_rank_at(mod(kgen_repeat_counter, %d)+1)'%Config.mpi['size'])
+
+            fpathobj = doobj.create_assignstmt()
+            fpathobj.set_attr('lhs', 'kgen_filepath')
+            fpathobj.set_attr('rhs', '"%s." // TRIM(ADJUSTL(kgen_counter_conv)) // "." // TRIM(ADJUSTL(kgen_mpi_rank_conv))'% \
+                Config.callsite['subpname'].firstpartname())
+
+        else:
+            fpathobj = doobj.create_assignstmt()
+            fpathobj.set_attr('lhs', 'kgen_filepath')
+            fpathobj.set_attr('rhs', '"%s." // TRIM(ADJUSTL(kgen_counter_conv))'% Config.callsite['subpname'].firstpartname())
+
+
+        kunitobj = doobj.create_assignstmt()
+        kunitobj.set_attr('lhs', 'kgen_unit')
+        kunitobj.set_attr('rhs', 'kgen_get_newunit()')
+
+        openobj = doobj.create_open()
+        openobj.set_attr('connect_specs', ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="OLD"', 'ACCESS="STREAM"', \
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"'])
+
+        iferrobj = doobj.create_ifthen()
+        iferrobj.set_attr('expr', 'kgen_ierr /= 0')
+
+        callerrobj = iferrobj.create_callstmt()
+        callerrobj.set_attr('name', 'kgen_error_stop')
+        callerrobj.set_attr('args', ['"FILE OPEN ERROR: " // TRIM(ADJUSTL(kgen_filepath))'])
+
+        endiferrobj = iferrobj.create_endobj() 
+        endiferrobj.set_attr('blockname', 'IF')
+
+        wmsgobj = doobj.create_write()
+        wmsgobj.set_attr('item_list', ['"** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' **"'])
+
+
+        doobj.add_line(doobj.insert_in_exe_part)
+
+        callobj = doobj.create_callstmt(insert_in=self.insert_in_callsite_stmts)
+        callobj.set_attr('name', State.parentblock['stmt'].name)
+        callobj.set_attr('args', ['kgen_unit', 'total_time'])
+
+        doobj.add_line(self.insert_in_exe_part2)
+
+        closeobj = doobj.create_close(insert_in=self.insert_in_exe_part2)
+        closeobj.set_attr('close_specs', ['UNIT=kgen_unit'])
+
+        enddoobj = doobj.create_endobj(insert_in=self.insert_in_exe_part2)
+        enddoobj.set_attr('blockname', 'DO')
+
+        wv1obj = self.create_write(insert_in=self.insert_in_exe_part2)
+        wv1obj.append_attr('item_list', '""')
+        wv2obj = self.create_write(insert_in=self.insert_in_exe_part2)
+        wv2obj.append_attr('item_list', '"******************************************************************************"')
+        wv3obj = self.create_write(insert_in=self.insert_in_exe_part2)
+        wv3obj.append_attr('item_list', '"%s summary: Total number of verification cases: %d"'%(Config.callsite['subpname'].firstpartname(), len))
+        wv4obj = self.create_write(insert_in=self.insert_in_exe_part2)
+        wv4obj.append_attr('item_list', '"%s summary: Total time of all calls (usec): ", total_time'%Config.callsite['subpname'].firstpartname())
+        wv5obj = self.create_write(insert_in=self.insert_in_exe_part2)
+        wv5obj.append_attr('item_list', '"******************************************************************************"')
+
 ########### BeginSource ############
 class Gen_BeginSource(object):
     pass
-#    def gensrc(self, fd):
-#        self.process()
-#        lines = self.tostr()
-#        if lines is not None: fd.write(lines)
 
 class GenK_BeginSource(GenK_BeginStatement, Gen_BeginSource):
     def tokgen(self, **kwargs): pass
@@ -4139,175 +4407,27 @@ class GenS_BeginSource(GenS_BeginStatement, Gen_BeginSource):
     def tokgen(self, **kwargs): pass
 
 ########### functions ############
-def gen_driver_specpart(program):
-    usekutilobj = program.create_use()
-    usekutilobj.set_attr('name', 'kgen_utils_mod')
-    usekutilobj.extend_attr('items', ['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp'])
-
-    usecsobj = program.create_use()
-    usecsobj.set_attr('name', State.topblock['stmt'].name)
-    usecsobj.extend_attr('items', [State.parentblock['stmt'].name])
-
-    program.add_line(program.insert_in_use_stmts)
- 
-    impobj = program.create_implicit()
-
-    program.add_line(program.insert_in_decl_construct)
-
-    if Config.mpi['enabled']:
-        vmpiobj = program.create_typedeclstmt()
-        vmpiobj.set_attr('typespec', 'INTEGER')
-        vmpiobj.append_attr('entity_decls', 'kgen_mpi_rank')
-
-        vrconvobj = program.create_typedeclstmt()
-        vrconvobj.set_attr('typespec', 'CHARACTER')
-        vrconvobj.set_attr('selector', 'LEN=16')
-        vrconvobj.append_attr('entity_decls', 'kgen_mpi_rank_conv')
-
-        vlrankobj = program.create_typedeclstmt()
-        vlrankobj.set_attr('typespec', 'INTEGER')
-        vlrankobj.append_attr('attr_specs', 'PARAMETER')
-        vlrankobj.append_attr('attr_specs', 'DIMENSION(%s)'%Config.mpi['size'])
-        vlrankobj.append_attr('entity_decls', 'kgen_mpi_rank_at = (/ %s /)'%', '.join(Config.mpi['ranks']))
-
-    vkgenobj = program.create_typedeclstmt()
-    vkgenobj.set_attr('typespec', 'INTEGER')
-    vkgenobj.extend_attr('entity_decls', ['kgen_ierr', 'kgen_unit', 'kgen_counter', 'kgen_repeat_counter'])
-
-    vcconvobj = program.create_typedeclstmt()
-    vcconvobj.set_attr('typespec', 'CHARACTER')
-    vcconvobj.set_attr('selector', 'LEN=16')
-    vcconvobj.append_attr('entity_decls', 'kgen_counter_conv')
-
-    vlcntobj = program.create_typedeclstmt()
-    vlcntobj.set_attr('typespec', 'INTEGER')
-    vlcntobj.append_attr('attr_specs', 'PARAMETER')
-    vlcntobj.append_attr('attr_specs', 'DIMENSION(%s)'%Config.invocation['size'])
-    vlcntobj.append_attr('entity_decls', 'kgen_counter_at = (/ %s /)'%', '.join(Config.invocation['numbers']))
-
-    vfpathobj = program.create_typedeclstmt()
-    vfpathobj.set_attr('typespec', 'CHARACTER')
-    vfpathobj.set_attr('selector', 'LEN=1025')
-    vfpathobj.append_attr('entity_decls', 'kgen_filepath')
-
-    vkcntobj = program.create_typedeclstmt()
-    vkcntobj.set_attr('typespec', 'REAL')
-    vkcntobj.set_attr('selector', 'KIND=kgen_dp')
-    vkcntobj.append_attr('entity_decls', 'total_time')
   
-def gen_driver_exepart(program):
-
-    program.add_line(program.insert_in_exe_part)
-
-    ttimeobj = program.create_assignstmt()
-    ttimeobj.set_attr('lhs', 'total_time')
-    ttimeobj.set_attr('rhs', '0.0_kgen_dp')
-
-    # file open head
-    if Config.mpi['enabled']:
-        len = Config.mpi['size'] * Config.invocation['size']
-    else:
-        len = Config.invocation['size']
-
-    doobj = program.create_do()
-    doobj.set_attr('loop_control', 'kgen_repeat_counter = 0, %d'%(len-1))
-
-    cntobj = doobj.create_assignstmt()
-    cntobj.set_attr('lhs', 'kgen_counter')
-    cntobj.set_attr('rhs', 'kgen_counter_at(mod(kgen_repeat_counter, %d)+1)'%Config.invocation['size'])
-
-    wcntobj = doobj.create_write()
-    wcntobj.set_attr('ctrl_list', ['kgen_counter_conv', '*'])
-    wcntobj.set_attr('item_list', ['kgen_counter'])
-
-    if Config.mpi['enabled']:
-
-        rankobj = doobj.create_assignstmt()
-        rankobj.set_attr('lhs', 'kgen_mpi_rank')
-        rankobj.set_attr('rhs', 'kgen_mpi_rank_at(mod(kgen_repeat_counter, %d)+1)'%Config.mpi['size'])
-
-        fpathobj = doobj.create_assignstmt()
-        fpathobj.set_attr('lhs', 'kgen_filepath')
-        fpathobj.set_attr('rhs', '"%s." // TRIM(ADJUSTL(kgen_counter_conv)) // "." // TRIM(ADJUSTL(kgen_mpi_rank_conv))'% \
-            Config.callsite['subpname'].firstpartname())
-
-    else:
-        fpathobj = doobj.create_assignstmt()
-        fpathobj.set_attr('lhs', 'kgen_filepath')
-        fpathobj.set_attr('rhs', '"%s." // TRIM(ADJUSTL(kgen_counter_conv))'% Config.callsite['subpname'].firstpartname())
-
-
-    kunitobj = doobj.create_assignstmt()
-    kunitobj.set_attr('lhs', 'kgen_unit')
-    kunitobj.set_attr('rhs', 'kgen_get_newunit()')
-
-    openobj = doobj.create_open()
-    openobj.set_attr('connect_specs', ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="OLD"', 'ACCESS="STREAM"', \
-        'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"'])
-
-    iferrobj = doobj.create_ifthen()
-    iferrobj.set_attr('expr', 'kgen_ierr /= 0')
-
-    callerrobj = iferrobj.create_callstmt()
-    callerrobj.set_attr('name', 'kgen_error_stop')
-    callerrobj.set_attr('args', ['"FILE OPEN ERROR: " // TRIM(ADJUSTL(kgen_filepath))'])
-
-    endiferrobj = iferrobj.create_endobj() 
-    endiferrobj.set_attr('blockname', 'IF')
-
-    wmsgobj = doobj.create_write()
-    wmsgobj.set_attr('item_list', ['"** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' **"'])
-
-
-    doobj.add_line(doobj.insert_in_exe_part)
-
-    callobj = doobj.create_callstmt()
-    callobj.set_attr('name', State.parentblock['stmt'].name)
-    callobj.set_attr('args', ['kgen_unit', 'total_time'])
-
-    doobj.add_line(doobj.insert_in_exe_part)
-
-    closeobj = doobj.create_close()
-    closeobj.set_attr('close_specs', ['UNIT=kgen_unit'])
-
-    enddoobj = doobj.create_endobj()
-    enddoobj.set_attr('blockname', 'DO')
-
-    wv1obj = program.create_write()
-    wv1obj.append_attr('item_list', '""')
-    wv2obj = program.create_write()
-    wv2obj.append_attr('item_list', '"******************************************************************************"')
-    wv3obj = program.create_write()
-    wv3obj.append_attr('item_list', '"%s summary: Total number of verification cases: %d"'%(Config.callsite['subpname'].firstpartname(), len))
-    wv4obj = program.create_write()
-    wv4obj.append_attr('item_list', '"%s summary: Total time of all calls (usec): ", total_time'%Config.callsite['subpname'].firstpartname())
-    wv5obj = program.create_write()
-    wv5obj.append_attr('item_list', '"******************************************************************************"')
 
 
 def generate_kgen_driver(k_id):
     driver = GenK_BeginSource(None, k_id)
 
-    program = GenK_Program(None, k_id)
+    program = GenK_Driver(None, k_id)
     program.parent = driver
     program.set_attr('name', 'kernel_driver')
     driver.items.append(program)
 
-    program.add_line(program.insert_in_use_stmts)
+    State.driver = program
 
-    gen_driver_specpart(program)
-    gen_driver_exepart(program)
-
-    program.add_line(program.insert_in_exe_part)
+    #gen_driver_specpart(program)
+    #gen_driver_exepart(program)
 
     endprogobj = program.create_endobj()
     endprogobj.set_attr('name', 'kernel_driver')
     endprogobj.set_attr('blockname', 'PROGRAM')
 
-    with open('%s/kernel_driver.f90'%Config.path['kernel'], 'wb') as fd:
-        driver.process()
-        lines = driver.tostr()
-        if lines is not None: fd.write(lines)
+    return driver
 
 def generate_kgen_utils(k_id):
     from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \
@@ -4335,7 +4455,7 @@ def generate_srcfiles():
         os.makedirs(Config.path['kernel'])
 
     # generate kgen_driver.f90 in kernel directory
-    generate_kgen_driver(0)
+    driver = generate_kgen_driver(0)
 
     # generate kgen_utils.f90 in kernel directory
     generate_kgen_utils(0)
@@ -4351,11 +4471,16 @@ def generate_srcfiles():
             genfiles.append((kfile, sfile, filepath))
 
     # process each nodes in the tree
+    driver.process()
     for kfile, sfile, filepath in genfiles:
         kfile.process()
         sfile.process()
 
     # generate source files from each node of the tree
+    with open('%s/kernel_driver.f90'%Config.path['kernel'], 'wb') as fd:
+        lines = driver.tostr()
+        if lines is not None: fd.write(lines)
+
     for kfile, sfile, filepath in genfiles:
         filename = os.path.basename(filepath)
         klines = kfile.tostr()
