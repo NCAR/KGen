@@ -16,6 +16,9 @@ from statements import Comment
 TAB = ' '*4
 KTYPE = 'K'
 STYPE = 'S'
+DRIVER_TYPE = 1
+IN_TYPE = 2
+OUT_TYPE = 3
 
 def get_indent(line):
     import re
@@ -785,7 +788,10 @@ class Gen_TypeDeclarationStatement(object):
         if kwargs.has_key('entity_decls'):
             entity_decls = ' ' + ', '.join(kwargs['entity_decls'])
 
-        return '%s%s%s ::%s'%(typespec, selector, attr_specs, entity_decls)
+        if entity_decls:
+            return '%s%s%s ::%s'%(typespec, selector, attr_specs, entity_decls)
+        else:
+            return ''
 
 class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement):
 
@@ -800,18 +806,46 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                 # following for state read in parent block of callsite and modules
                 if isinstance(self.parent, GenK_SubroutineP) or isinstance(self.parent, Gen_Module):
                     #  select IN entities in the typedecl stmt.
+                    driver_items  = []; driver_decls = []
                     items = []; decls = []
                     for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
                         iname = uname.firstpartname()
                         ename = [ e for e in self.stmt.entity_decls if e. startswith(iname) ]
                         assert len(ename)==1
                         ename = ename[0]
-                        if not iname in items:
-                            items.append(iname)
-                            decls.append(ename)
-                    if len(items)!=len(self.stmt.entity_decls) and isinstance(self.parent, GenK_SubroutineP):
-                        self.set_attr('entity_decls', items)
-                        self.set_attr('remove_attr', 'intent')
+                        var = self.stmt.get_variable(iname)
+                        if var.is_intent_in() or var.is_intent_out() or var.is_intent_inout():
+                            if not iname in driver_items:
+                                State.driver['args'].append(iname)
+                                driver_items.append(iname)
+                                driver_decls.append(ename)
+
+                                # typedecl with intent pblock
+                                pvar = self.parent.create_typedeclstmt(stmt=self.stmt)
+                                pvar.set_attr('entity_decls', [ename])
+
+                                # typedecl in driver without intent
+                                dvar = State.driver['program'].create_typedeclstmt(stmt=self.stmt)
+                                dvar.set_attr('entity_decls', [iname])
+                                dvar.set_attr('remove_attr', 'intent')
+                                if var.is_array():
+                                    dvar.append_attr('attr_specs', 'ALLOCATABLE')
+                                    dvar.append_attr('attr_specs', 'DIMENSION(%s)'%','.join(':'*var.rank))
+
+                                if hasattr(self.stmt, 'unknowns'):
+                                    for uname, req in self.stmt. unknowns.iteritems():
+                                        if req and req.res_stmts and not req.res_stmts[0].parent is self.parent.stmt:
+                                            duse = State.driver['program'].create_use()
+                                            duse.set_attr('name', req.res_stmts[0].ancestors()[0].name)
+                                            duse.extend_attr('items', [uname.namelist[-1]])
+                        else:
+                            if not iname in items:
+                                items.append(iname)
+                                decls.append(ename)
+
+                    # parent block of callsite
+                    if isinstance(self.parent, GenK_SubroutineP):
+                        self.set_attr('entity_decls', decls)
 
                     #  select OUT entities in the typedecl stmt.
                     out_items = []; out_decls = []
@@ -823,17 +857,16 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                         if not iname in out_items:
                             out_items.append(iname)
                             out_decls.append('ref_%s'%ename)
-                    if out_items:
+                    if out_decls:
                         outobj = self.parent.create_typedeclstmt(self.stmt)
                         outobj.set_attr('entity_decls', out_decls)
-                        outobj.set_attr('remove_attr', 'intent')
 
                     # create verify
                     rsubrs = self.gen_verify(out_items)
 
                     # create reads
                     if isinstance(self.parent, GenK_SubroutineP):
-                        self.gen_read(items, out_items)
+                        self.gen_read(driver_items, items, out_items)
                     elif isinstance(self.parent, Gen_Module):
                         extinsubrname = 'kr_externs_in_%s'%self.parent.name
                         if len(items)>0 and not self.parent.has_name(extinsubrname, GenK_Subroutine):
@@ -913,7 +946,7 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                             callobj.set_attr('name', extoutsubrname)
                             callobj.set_attr('args', ['kgen_unit'])
 
-                        self.gen_read(items, out_items)
+                        self.gen_read(driver_items, items, out_items)
 
     def tokgen(self, **kwargs):
         return self._tokgen(**kwargs)
@@ -1522,16 +1555,10 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                 endsubrobj.set_attr('name', vname)
                 endsubrobj.set_attr('blockname', 'SUBROUTINE')
 
-    def create_read_subr(self, krname, var):
+    def create_read_subr(self, target, krname, var):
         from statements import Use
 
-        if isinstance(self.parent, Gen_Module) or isinstance(self.parent, Gen_SubroutineP):
-            if self.parent.has_name(krname, Gen_Subroutine): return
-            target = self.parent
-        elif isinstance(self.parent, Gen_TypeDecl):
-            if self.parent.parent.has_name(krname, Gen_Subroutine): return
-            target = self.parent.parent
-        else: raise ProgramException('Unknown  class: %s'%self.parent.__class__)
+        if target.has_name(krname, Gen_Subroutine): return
 
         target.add_line(target.insert_in_subprograms)
         target.add_comment('reading typedecl variable', target.insert_in_subprograms)
@@ -1547,6 +1574,8 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                 varobj.append_attr('attr_specs', attrspec.upper())
         if var.is_array():
             varobj.append_attr('attr_specs', 'DIMENSION(%s)'% ','.join(':'*var.rank))
+            if isinstance(target, Gen_Driver) and not var.is_allocatable():
+                varobj.append_attr('attr_specs', 'ALLOCATABLE') 
         varobj.append_attr('attr_specs', 'INTENT(OUT)')
         varobj.set_attr('entity_decls', ['var'])
 
@@ -1605,7 +1634,7 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
                 shape.append('kgen_bound(2, %d) - kgen_bound(1, %d) + 1'%(dim+1, dim+1))
 
-            if var.is_allocatable() or var.is_pointer():
+            if var.is_allocatable() or var.is_pointer() or isinstance(target, Gen_Driver):
                 allocobj = ifistrueobj.create_allocate()
                 allocobj.set_attr('alloc_list', ['var(%s)'%','.join(shape)])
 
@@ -1736,19 +1765,22 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         return subrobj
 
-    def create_call4readsubr(self, is_outtype, subrname, varname):
+    def create_call4readsubr(self, genloctype, subrname, varname):
 
         callobj = None
         if isinstance(self.parent, Gen_Module):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 callobj = self.parent.extroutsubr.create_callstmt()
-            else:
+            elif genloctype==IN_TYPE:
                 callobj = self.parent.extrinsubr.create_callstmt()
+            else: raise ProgramException('Not correct genloctype')
         elif isinstance(self.parent, Gen_SubroutineP):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 callobj = self.parent.create_callstmt(insert_in=self.parent.insert_in_output_local_state)
-            else:
+            elif genloctype==IN_TYPE:
                 callobj = self.parent.create_callstmt(insert_in=self.parent.insert_in_input_local_state)
+            elif genloctype==DRIVER_TYPE:
+                callobj = State.driver['program'].create_callstmt(insert_in=State.driver['program'].insert_in_input_local_arg_state)
         elif isinstance(self.parent, Gen_TypeDecl):
             rvarname = 'var%%%s'%varname
 
@@ -1771,47 +1803,65 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         if callobj:
             callobj.set_attr('name', subrname)
-            if is_outtype: rvarname = 'ref_%s'%varname
-            else: rvarname = varname
+            if genloctype==OUT_TYPE: rvarname = 'ref_%s'%varname
+            elif genloctype==DRIVER_TYPE or genloctype==IN_TYPE: rvarname = varname
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, pattern), internal=False) for pattern in Config.debug['printvar']):
                 callobj.set_attr('args', [rvarname, 'kgen_unit', '"%s"'%rvarname])
             else:
                 callobj.set_attr('args', [rvarname, 'kgen_unit'])
 
-    def create_read_stmt(self, is_outtype, varname):
+    def create_read_stmt(self, genloctype, varname):
 
         rvarobj = None    
         if isinstance(self.parent, Gen_Module):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 rvarobj = self.parent.extroutsubr.create_read()
                 rvarobj.set_attr('item_list', ['ref_%s'%varname])
-            else:
+            elif genloctype==IN_TYPE:
                 rvarobj = self.parent.extrinsubr.create_read()
                 rvarobj.set_attr('item_list', [varname])
+            else: raise ProgramException('Not correct genloctype')
             rvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
 
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
-                if is_outtype:
+                if genloctype==OUT_TYPE:
                     rprintobj = self.parent.create_write(insert_in=self.parent.extroutsubr.insert_in_exe_part)
                     rprintobj.set_attr('item_list', ['"** KGEN DEBUG: ref_%s **"'%varname, varname])
-                else:
+                elif genloctype==DRIVER_TYPE or genloctype==IN_TYPE:
                     rprintobj = self.parent.create_write(insert_in=self.parent.extrinsubr.insert_in_exe_part)
                     rprintobj.set_attr('item_list', ['"** KGEN DEBUG: %s **"'%varname, varname])
 
         elif isinstance(self.parent, Gen_SubroutineP):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 rvarobj = self.parent.create_read(insert_in=self.parent.insert_in_output_local_state)
                 rvarobj.set_attr('item_list', ['ref_%s'%varname])
-            else:
+            elif genloctype==IN_TYPE:
                 rvarobj = self.parent.create_read(insert_in=self.parent.insert_in_input_local_state)
                 rvarobj.set_attr('item_list', [varname])
+            elif genloctype==DRIVER_TYPE:
+#
+#                var = self.stmt.get_variable(varname)
+#                if var.is_allocatable() or var.is_array():
+#                    ifobj = State.driver['program'].create_ifthen(insert_in=State.driver['program'].insert_in_input_local_arg_state)
+#                    ifobj.set_attr('expr', '.NOT. ALLOCATED(%s)'%varname)
+#
+#                    allocobj = ifobj.create_allocate()
+#                    import pdb; pdb.set_trace()
+#                    allocobj.set_attr('alloc_list', ['%s()'%(varname, shape)])
+#
+#                    endifobj = ifobj.create_endobj()
+#                    endifobj.set_attr('blockname', 'IF')
+#
+                rvarobj = State.driver['program'].create_read(insert_in=State.driver['program'].insert_in_input_local_arg_state)
+                rvarobj.set_attr('item_list', [varname])
+            else: raise ProgramException('Not correct genloctype')
             rvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
 
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
-                if is_outtype:
+                if genloctype==OUT_TYPE:
                     rprintobj = self.parent.create_write(insert_in=self.parent.insert_in_output_local_state)
                     rprintobj.set_attr('item_list', ['"** KGEN DEBUG: ref_%s **"'%varname, varname])
-                else:
+                elif genloctype==DRIVER_TYPE or genloctype==IN_TYPE:
                     rprintobj = self.parent.create_write(insert_in=self.parent.insert_in_input_local_state)
                     rprintobj.set_attr('item_list', ['"** KGEN DEBUG: %s **"'%varname, varname])
 
@@ -1828,7 +1878,7 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
 
         else: raise ProgramException('Unknown class: %s'%self.parent.__class__)
 
-    def gen_read_in_or_out(self, name, is_outtype):
+    def gen_read_in_or_out(self, name, genloctype):
         from statements import Use
 
         var = self.stmt.get_variable(name)
@@ -1838,27 +1888,37 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
         subrname = subrnames[0]
         varname = name
 
+        target = self.parent
+        if isinstance(self.parent, Gen_TypeDecl):
+            target = self.parent.parent
+        elif genloctype==DRIVER_TYPE:
+            target = State.driver['program']
+
         if var.is_array():
             if self.stmt.is_derived():
                 # create a read subroutine
-                self.create_call4readsubr(is_outtype, subrname, varname)
-                subrobj = self.create_read_subr(subrname, var)
+                self.create_call4readsubr(genloctype, subrname, varname)
+                subrobj = self.create_read_subr(target, subrname, var)
 
             else: # intrinsic type
                 if var.is_explicit_shape_array():
                     # create a read stmt
-                    self.create_read_stmt(is_outtype, varname)
+                    if genloctype==DRIVER_TYPE:
+                        self.create_call4readsubr(genloctype, subrname, varname)
+                        subrobj = self.create_read_subr(target, subrname, var)
+                    else:
+                        self.create_read_stmt(genloctype, varname)
                 else:
                     # create a read subroutine
-                    self.create_call4readsubr(is_outtype, subrname, varname)
-                    subrobj = self.create_read_subr(subrname, var)
+                    self.create_call4readsubr(genloctype, subrname, varname)
+                    subrobj = self.create_read_subr(target, subrname, var)
 
         else: # scalar
             if self.stmt.is_derived():
                 if var.is_pointer():
                     # create a read subroutine
-                    self.create_call4readsubr(is_outtype, subrname, varname)
-                    self.create_read_subr(subrname, var)
+                    self.create_call4readsubr(genloctype, subrname, varname)
+                    self.create_read_subr(target, subrname, var)
                 else:
                     # create a call stmt
                     subrname = None
@@ -1880,24 +1940,28 @@ class GenK_TypeDeclarationStatement(GenK_Statement, Gen_TypeDeclarationStatement
                     assert subrname, 'Can not find subrname'
 
 
-                    self.create_call4readsubr(is_outtype, subrname, varname)
+                    self.create_call4readsubr(genloctype, subrname, varname)
             else:
                 if var.is_pointer():
                     # create a read subroutine
-                    self.create_call4readsubr(is_outtype, subrname, varname)
-                    self.create_read_subr(subrname, var)
+                    self.create_call4readsubr(genloctype, subrname, varname)
+                    self.create_read_subr(target, subrname, var)
                 else:
                     # create a read stmt
-                    self.create_read_stmt(is_outtype, varname)
+                    self.create_read_stmt(genloctype, varname)
 
-    def gen_read(self, in_names, out_names):
+    def gen_read(self, driver_names, in_names, out_names):
+        if driver_names:
+            for driver_name in driver_names:
+                self.gen_read_in_or_out(driver_name, DRIVER_TYPE)
+
         if in_names:
             for in_name in in_names:
-                self.gen_read_in_or_out(in_name, False)
+                self.gen_read_in_or_out(in_name, IN_TYPE)
 
         if out_names:
             for out_name in out_names:
-                self.gen_read_in_or_out(out_name, True)
+                self.gen_read_in_or_out(out_name, OUT_TYPE)
 
     def get_readnames(self, names=None):
         subpnames = self.get_typedecl_subpname(self.stmt, names)
@@ -1920,15 +1984,16 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                 not 'parameter' in self.stmt.attrspec:
                 if isinstance(self.parent, GenS_SubroutineP) or isinstance(self.parent, Gen_Module):
                     #  select IN entities in the typedecl stmt.
-                    items = []; decls = []
+                    driver_items  = []; items = []
                     for (uname, req) in KGGenType.get_state(self.stmt.geninfo):
                         iname = uname.firstpartname()
-                        ename = [ e for e in self.stmt.entity_decls if e. startswith(iname) ]
-                        assert len(ename)==1
-                        ename = ename[0]
-                        if not iname in items:
-                            items.append(iname)
-                            decls.append(ename)
+                        var = self.stmt.get_variable(iname)
+                        if var.is_intent_in() or var.is_intent_out() or var.is_intent_inout():
+                            if not iname in driver_items:
+                                driver_items.append(iname)
+                        else:
+                            if not iname in items:
+                                items.append(iname)
 
                     #  select OUT entities in the typedecl stmt.
                     out_items = []; out_decls = []
@@ -1943,7 +2008,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
                     # create write
                     if isinstance(self.parent, GenS_SubroutineP):
-                        self.gen_write(items, out_items)
+                        self.gen_write(driver_items, items, out_items)
                     elif isinstance(self.parent, Gen_Module):
                         extinsubrname = 'kw_externs_in_%s'%self.parent.name
                         if len(items)>0 and not self.parent.has_name(extinsubrname, GenS_Subroutine):
@@ -2026,7 +2091,7 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                             callobj.set_attr('name', extoutsubrname)
                             callobj.set_attr('args', ['kgen_unit'])
 
-                        self.gen_write(items, out_items)
+                        self.gen_write(driver_items, items, out_items)
 
     def create_write_subr(self, kwname, var):
         from statements import Use
@@ -2283,40 +2348,43 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
 
         return subrobj
 
-    def create_write_stmt(self, is_outtype, varname):
+    def create_write_stmt(self, genloctype, varname):
 
         wvarobj = None    
         if isinstance(self.parent, Gen_Module):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 wvarobj = self.parent.extwoutsubr.create_write()
-            else:
+            elif genloctype==IN_TYPE:
                 wvarobj = self.parent.extwinsubr.create_write()
+            else: raise ProgramException('Not correct genloctype')
 
             wvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
             wvarobj.set_attr('item_list', [varname])
 
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
-                if is_outtype:
+                if genloctype==OUT_TYPE:
                     wprintobj = self.parent.create_write(insert_in=self.parent.extwoutsubr.insert_in_exe_part)
                     wprintobj.set_attr('item_list', ['"** KGEN DEBUG: ref_%s **"'%varname, varname])
-                else:
+                elif genloctype==IN_TYPE:
                     wprintobj = self.parent.create_write(insert_in=self.parent.extwinsubr.insert_in_exe_part)
                     wprintobj.set_attr('item_list', ['"** KGEN DEBUG: %s **"'%varname, varname])
 
         elif isinstance(self.parent, Gen_SubroutineP):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 wvarobj = self.parent.create_write(insert_in=self.parent.insert_in_output_local_state)
-            else:
+            elif genloctype==IN_TYPE:
                 wvarobj = self.parent.create_write(insert_in=self.parent.insert_in_input_local_state)
+            elif genloctype==DRIVER_TYPE:
+                wvarobj = self.parent.create_write(insert_in=self.parent.insert_in_input_local_arg_state)
 
             wvarobj.set_attr('ctrl_list', ['UNIT = kgen_unit'])
             wvarobj.set_attr('item_list', [varname])
 
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, varname), internal=False) for pattern in Config.debug['printvar']):
-                if is_outtype:
+                if genloctype==OUT_TYPE:
                     wprintobj = self.parent.create_write(insert_in=self.parent.insert_in_output_local_state)
                     wprintobj.set_attr('item_list', ['"** KGEN DEBUG: ref_%s **"'%varname, varname])
-                else:
+                elif genloctype==DRIVER_TYPE or genloctype==IN_TYPE:
                     wprintobj = self.parent.create_write(insert_in=self.parent.insert_in_input_local_state)
                     wprintobj.set_attr('item_list', ['"** KGEN DEBUG: %s **"'%varname, varname])
 
@@ -2334,19 +2402,23 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
         else: raise ProgramException('Unknown class: %s'%self.parent.__class__)
 
 
-    def create_call4writesubr(self, is_outtype, subrname, varname):
+    def create_call4writesubr(self, genloctype, subrname, varname):
 
         callobj = None
         if isinstance(self.parent, Gen_Module):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 callobj = self.parent.extwoutsubr.create_callstmt()
-            else:
+            elif genloctype==IN_TYPE:
                 callobj = self.parent.extwinsubr.create_callstmt()
+            else: raise ProgramException('Not correct genloctype')
         elif isinstance(self.parent, Gen_SubroutineP):
-            if is_outtype:
+            if genloctype==OUT_TYPE:
                 callobj = self.parent.create_callstmt(insert_in=self.parent.insert_in_output_local_state)
-            else:
+            elif genloctype==IN_TYPE:
                 callobj = self.parent.create_callstmt(insert_in=self.parent.insert_in_input_local_state)
+            elif genloctype==DRIVER_TYPE:
+                callobj = self.parent.create_callstmt(insert_in=self.parent.insert_in_input_local_arg_state)
+            else: raise ProgramException('Not correct genloctype')
         elif isinstance(self.parent, Gen_TypeDecl):
             wvarname = 'var%%%s'%varname
 
@@ -2370,14 +2442,14 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
         if callobj:
             callobj.set_attr('name', subrname)
             if any(match_namepath(pattern, pack_exnamepath(self.stmt, pattern), internal=False) for pattern in Config.debug['printvar']):
-                if is_outtype:
+                if genloctype==OUT_TYPE:
                     callobj.set_attr('args', [varname, 'kgen_unit', '"ref_%s"'%varname])
-                else:
+                elif genloctype==DRIVER_TYPE or genloctype==IN_TYPE:
                     callobj.set_attr('args', [varname, 'kgen_unit', '"%s"'%varname])
             else:
                 callobj.set_attr('args', [varname, 'kgen_unit'])
 
-    def gen_write_in_or_out(self, name, is_outtype):
+    def gen_write_in_or_out(self, name, genloctype):
         from statements import Use
 
         var = self.stmt.get_variable(name)
@@ -2390,23 +2462,27 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
         if var.is_array():
             if self.stmt.is_derived():
                 # create a write subroutine
-                self.create_call4writesubr(is_outtype, subrname, varname)
+                self.create_call4writesubr(genloctype, subrname, varname)
                 subrobj = self.create_write_subr(subrname, var)
 
             else: # intrinsic type
                 if var.is_explicit_shape_array():
                     # create a write stmt
-                    self.create_write_stmt(is_outtype, varname)
+                    if genloctype==DRIVER_TYPE:
+                        self.create_call4writesubr(genloctype, subrname, varname)
+                        subrobj = self.create_write_subr(subrname, var)
+                    else:
+                        self.create_write_stmt(genloctype, varname)
                 else:
                     # create a write subroutine
-                    self.create_call4writesubr(is_outtype, subrname, varname)
+                    self.create_call4writesubr(genloctype, subrname, varname)
                     subrobj = self.create_write_subr(subrname, var)
 
         else: # scalar
             if self.stmt.is_derived():
                 if var.is_pointer():
                     # create a write subroutine
-                    self.create_call4writesubr(is_outtype, subrname, varname)
+                    self.create_call4writesubr(genloctype, subrname, varname)
                     self.create_write_subr(subrname, var)
                 else:
                     # create a call stmt
@@ -2429,24 +2505,29 @@ class GenS_TypeDeclarationStatement(GenS_Statement, Gen_TypeDeclarationStatement
                             break
                     assert subrname, 'Can not find subrname'
 
-                    self.create_call4writesubr(is_outtype, subrname, varname)
+                    self.create_call4writesubr(genloctype, subrname, varname)
             else:
                 if var.is_pointer():
                     # create a write subroutine
-                    self.create_call4writesubr(is_outtype, subrname, varname)
+                    self.create_call4writesubr(genloctype, subrname, varname)
                     self.create_write_subr(subrname, var)
                 else:
                     # create a write stmt
-                    self.create_write_stmt(is_outtype, varname)
+                    self.create_write_stmt(genloctype, varname)
 
-    def gen_write(self, in_names, out_names):
+    def gen_write(self, driver_names, in_names, out_names):
+
+        if driver_names:
+            for driver_name in driver_names:
+                self.gen_write_in_or_out(driver_name, DRIVER_TYPE)
+
         if in_names:
             for in_name in in_names:
-                self.gen_write_in_or_out(in_name, False)
+                self.gen_write_in_or_out(in_name, IN_TYPE)
 
         if out_names:
             for out_name in out_names:
-                self.gen_write_in_or_out(out_name, True)
+                self.gen_write_in_or_out(out_name, OUT_TYPE)
 
     def get_writenames(self, names=None):
         subpnames = self.get_typedecl_subpname(self.stmt, names)
@@ -3282,8 +3363,6 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputL
         self.add_line(self.insert_in_measure_timing);
         self.add_comment('measure timing', self.insert_in_measure_timing)
 
-        self.set_attr('args', ['kgen_unit', 'total_time'])
-
         for item in self.items:
             if item.stmt is State.callsite['stmt'] and isinstance(item, Gen_BeginStatement):
                 item = item.stmt.content[0].genkpair
@@ -3293,6 +3372,8 @@ class GenK_SubroutineP(GenK_SubProgramStatement, Gen_SubroutineP, Gen_Has_InputL
             else:
                 class_order = self.insert_in_order(item, class_order, end_classes)
             item.process()
+
+        self.set_attr('args', State.driver['args'])
 
     def tostr_subp(self):
 
@@ -3902,7 +3983,7 @@ class GenK_TypeDecl(GenK_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
             if isinstance(item, GenK_TypeDeclarationStatement):
 
                 in_names = [ get_entity_name(e) for e in item.stmt.entity_decls ]
-                item.gen_read(in_names, None)
+                item.gen_read(None, in_names, None)
 
         subrobj.add_line(subrobj.insert_in_exe_part)
 
@@ -4126,7 +4207,7 @@ class GenS_TypeDecl(GenS_BeginStatement, Gen_TypeDecl, Gen_Has_TypeParamDefStmts
             if isinstance(item, GenS_TypeDeclarationStatement):
 
                 in_names = [ get_entity_name(e) for e in item.stmt.entity_decls ]
-                item.gen_write(in_names, None)
+                item.gen_write(None, in_names, None)
 
         subrobj.add_line(subrobj.insert_in_exe_part)
 
@@ -4375,7 +4456,7 @@ class GenK_Driver(GenK_Program, Gen_Driver, Gen_Has_InputLocalArgState, Gen_Has_
 
         callobj = doobj.create_callstmt(insert_in=self.insert_in_callsite_stmts)
         callobj.set_attr('name', State.parentblock['stmt'].name)
-        callobj.set_attr('args', ['kgen_unit', 'total_time'])
+        callobj.set_attr('args', State.driver['args'])
 
         doobj.add_line(self.insert_in_exe_part2)
 
@@ -4418,7 +4499,7 @@ def generate_kgen_driver(k_id):
     program.set_attr('name', 'kernel_driver')
     driver.items.append(program)
 
-    State.driver = program
+    State.driver['program'] = program
 
     #gen_driver_specpart(program)
     #gen_driver_exepart(program)
@@ -4471,16 +4552,12 @@ def generate_srcfiles():
             genfiles.append((kfile, sfile, filepath))
 
     # process each nodes in the tree
-    driver.process()
     for kfile, sfile, filepath in genfiles:
         kfile.process()
         sfile.process()
+    driver.process()
 
     # generate source files from each node of the tree
-    with open('%s/kernel_driver.f90'%Config.path['kernel'], 'wb') as fd:
-        lines = driver.tostr()
-        if lines is not None: fd.write(lines)
-
     for kfile, sfile, filepath in genfiles:
         filename = os.path.basename(filepath)
         klines = kfile.tostr()
@@ -4492,6 +4569,10 @@ def generate_srcfiles():
         if slines is not None:
             with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
                 fd.write(slines)
+
+    with open('%s/kernel_driver.f90'%Config.path['kernel'], 'wb') as fd:
+        lines = driver.tostr()
+        if lines is not None: fd.write(lines)
 
     State.state = State.STATE_GENERATED
 

@@ -101,7 +101,10 @@ class TypeDeclarationStatement(Statement):
                 return True
 
         decls = self.entity_decls
-        if kwargs.has_key('entity_decls') and kwargs['entity_decls']:
+        if kwargs.has_key('entity_decls'):
+
+            if not kwargs['entity_decls']: return ''
+
             decls = []
             for decl in kwargs['entity_decls']:
                 edecl = {'name': decl, 'edecl': decl}

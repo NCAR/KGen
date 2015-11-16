@@ -35,18 +35,18 @@ def generate_kernel_makefile():
 
     #basenames
     callsite_base = os.path.basename(callsite_file)
-    dep_bases = [ os.path.basename(path) for path in State.srcfiles.keys() ] + \
-        [ kernel_driver_file ]
+    dep_base_srcfiles = [ os.path.basename(path) for path in State.srcfiles.keys() ]
+    dep_bases = dep_base_srcfiles + [ kernel_driver_file ]
 
     # all object files
-    all_objs = [ obj(dep_base) for dep_base in dep_bases ] + \
-        [ obj(kgen_utils_file) ]
+    all_objs_srcfiles = [ obj(dep_base_srcfile) for dep_base_srcfile in dep_base_srcfiles ]
+    all_objs = all_objs_srcfiles + [ obj(kernel_driver_file), obj(kgen_utils_file) ]
 
     # dependency
     depends = {}
 
     # dependency for kernel_driver.f90
-    depends[kernel_driver_file] = '%s %s'%(obj(callsite_base), obj(kgen_utils_file))
+    depends[kernel_driver_file] = ' '.join(all_objs_srcfiles + [obj(kgen_utils_file) ])
 
     # dependency for other files
     for abspath, (srcfile, mods_used, units_used) in State.srcfiles.iteritems():

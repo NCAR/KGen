@@ -6,9 +6,10 @@ module calling_module
 
         contains
 
-        subroutine calling_subroutine()
+        subroutine calling_subroutine(testvalue)
 
                 !real(kind=real_kind), dimension(np,np) :: ar1, ar2, ar3
+                integer(kind=real_kind), intent(in) :: testvalue
                 type(typeA), allocatable :: atype(:)     ! test comment
                 real(real_kind) :: value = TEST_VALUE     ! test comment
                 integer i, j, k
@@ -26,7 +27,7 @@ module calling_module
                     end do
                 end do
 
-                call add(atype(1), value)
+                call add(atype(1), value + testvalue)
 
                 print *, "C =", atype(1)%c
 
@@ -47,6 +48,7 @@ module calling_module
             real(real_kind), intent(in) :: value
 
             call add_kernel(atype)
+            atype%c = atype%c + value
             save_array(1,1) = atype%a(1,1)
             save_value = save_array(1,1) + value
         end subroutine

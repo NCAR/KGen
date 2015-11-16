@@ -100,6 +100,11 @@ class State(object):
         self._attrs['kernel_driver']['input']['tkdpat'] = []
         self._attrs['kernel_driver']['mod_rw_var_depends'] = []
 
+        # new kernel_driver attributes
+        self._attrs['driver'] = {}
+        self._attrs['driver']['program'] = None
+        self._attrs['driver']['args'] = ['kgen_unit', 'total_time']
+
         # program units
         self._attrs['program_units'] = {}
 
