@@ -694,7 +694,9 @@ class Implicit(Statement):
         return 'IMPLICIT ' + ', '.join(l)
 
     def resolve_uname(self, uname, request):
-        pass
+        self.add_geninfo(uname, request)
+        if self.items:
+            raise ProgramException('Custom Implicit Rule is not supported yet.')
     # end of KGEN addition
 
 intrinsic_type_spec = [ \

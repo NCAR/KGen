@@ -1290,9 +1290,14 @@ class BeginStatement(Statement):
             super(BeginStatement, self).resolve(request)
 
     def tokgen(self, **kwargs):
-        construct_name = self.construct_name
-        construct_name = construct_name + ': ' if construct_name else ''
-        return self.get_indent_tab(isfix=False).lstrip() + construct_name + self.item.apply_map(self.tostr())
+        if hasattr(self, 'construct_name'):
+            construct_name = self.construct_name
+            construct_name = construct_name + ': ' if construct_name else ''
+        else: construct_name = ''
+        if hasattr(self, 'item') and hasattr(self.item, 'apply_map'):
+            return construct_name + self.item.apply_map(self.tostr())
+        else:
+            return construct_name + self.blocktype.upper() + ' '+ self.name
 
     # end of KGEN
 

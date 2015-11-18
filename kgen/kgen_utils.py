@@ -157,16 +157,19 @@ def singleton(cls):
         return instances[cls]
     return get_instance()
 
-def exec_cmd(cmd, show_error_msg=True):
+def exec_cmd(cmd, show_error_msg=True, input=None):
     import subprocess
 
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out = proc.stdout.read()
+    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    out, err = proc.communicate(input=input)
+
     ret_code = proc.wait()
     if ret_code != 0 and show_error_msg:
         cmd_out, cmd_err = proc.communicate()
         print '>> %s' % cmd
         print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(cmd_out)+'\n ERROR: '+str(cmd_err)+'\n'
+
     return out
 
 # traverse f2003 nodes
@@ -419,7 +422,7 @@ def process_include_option(include_option, incattrs):
             abspath = os.path.abspath(section)
             if not incattrs['file'].has_key(abspath):
                 incattrs['file'][abspath] = {}
-                incattrs['file'][abspath]['path'] = []
+                incattrs['file'][abspath]['path'] = ['.']
                 incattrs['file'][abspath]['macro'] = {}
             for option in Inc.options(section):
                 if option=='include':
@@ -738,7 +741,7 @@ class Config(object):
                     # TODO: support path for each file
                     pass
                 else: raise UserException('Wrong format include: %s'%inc)
- 
+
         if opts.include_ini:
             process_include_option(opts.include_ini, self._attrs['include'])
 

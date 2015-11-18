@@ -23,6 +23,12 @@ Author: Youngsung Kim <youngsun@ucar.edu>
 # put file io directly in parent of callsite block
 # if topblock is program, keep origianl code as much as possible
 
+# Python version check
+import sys
+if sys.hexversion < 0x020700F0:
+    print 'ERROR: KGEN works with Python Version 2.7 or later.'
+    sys.exit(-1)
+
 from kgen_utils import Logger, UserException, ProgramException
 from kgen_analyze import locate_callsite, collect_kernel_info
 from kgen_geninfo import mark_generation_info
@@ -33,6 +39,7 @@ from kgen_genmake import generate_makefiles
 from kgen_prepost import preprocess, postprocess
 
 def main():
+
     preprocess()
     Logger.info('Pre-processing is done', stdout=True)
 

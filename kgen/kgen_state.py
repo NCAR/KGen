@@ -144,6 +144,36 @@ class ResState(object):
             
 
 class SrcFile(object):
+    def handle_include(self, lines):
+        import re
+        import os
+
+        insert_lines = []
+        for i, line in enumerate(lines):
+            match = re.match(r'\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
+            if not match:
+                match = re.match(r'\s*#include\s*("[^"]+"|\<[^\']+\>)\s*\Z', line, re.I)
+            if match:
+                if Config.include['file'].has_key(self.abspath):
+                    include_dirs = Config.include['file'][self.abspath]['path']+Config.include['path']
+                else:
+                    include_dirs = Config.include['path']
+                filename = match.group(1)[1:-1].strip()
+                path = filename
+                for incl_dir in include_dirs:
+                    path = os.path.join(incl_dir, filename)
+                    if os.path.exists(path):
+                        break
+                if os.path.isfile(path):
+                    with open(path, 'r') as f:
+                        insert_lines.extend(self.handle_include(f.readlines()))
+                else:
+                    raise UserException('Can not find %s in include paths.'%filename)
+            else:
+                insert_lines.append(line)
+
+        return insert_lines
+
     def __init__(self, srcpath):
         import os.path
         from kgen_utils import exec_cmd
@@ -168,6 +198,11 @@ class SrcFile(object):
             if Config.source['isstrict']: isstrict = Config.source['isstrict']
             if Config.source['isfree']: isfree = Config.source['isfree']
 
+        # handle include
+        with open(self.abspath, 'r') as f:
+            org_lines = f.readlines()
+            new_lines = self.handle_include(org_lines)
+
         # prepare include paths and macro definitions
         path_src = []
         macros_src = ''
@@ -187,14 +222,18 @@ class SrcFile(object):
         elif pp.endswith('cpp'):
             flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
-        output = exec_cmd('%s %s %s %s %s' % (pp, flags, includes, macros, self.abspath))
-
+        output = exec_cmd('%s %s %s %s' % (pp, flags, includes, macros), input=''.join(new_lines))
         # convert the preprocessed for fparser
         prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
 
+        # add include paths
+        if Config.include['file'].has_key(self.abspath) and Config.include['file'][self.abspath].has_key('path'):
+            include_dirs = Config.include['file'][self.abspath]['path']
+        else: include_dirs = None
+
         # fparse
         self.tree = parse('\n'.join(prep), ignore_comments=False, analyze=True, isfree=isfree, \
-            isstrict=isstrict, include_dirs=None, source_only=None )
+            isstrict=isstrict, include_dirs=include_dirs, source_only=None )
         self.tree.prep = prep
         self.tree.used4genstate = False
 
