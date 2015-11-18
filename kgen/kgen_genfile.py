@@ -16,9 +16,17 @@ from collections import OrderedDict
 
 ########### Common ############
 
-plugin_modules = OrderedDict()
+class GENERATION_STAGE(object):
+    NODE_CREATED, BEGIN_PROCESS, FINISH_PROCESS, BEGIN_TOSTR, END_TOSTR, ALL_STAGES = range(6)
+
+class FILE_TYPE(object):
+    KERNEL, STATE, BOTH = range(3)
+
+class KERNEL_SELECTION(object):
+    ALL, FIRST, LAST = ('all', 'first', 'last')
+
+
 event_register = OrderedDict()
-event_locations = (NODE_CREATED, BEGIN_PROCESS, FINISH_PROCESS, BEGIN_TOSTR, END_TOSTR) = range(5)
 
 TAB = ' '*4
 KERNEL_CHAR, STATE_CHAR = ( 'K', 'S' )
@@ -76,8 +84,10 @@ def _genobj_from_obj(gentype, parent, node, kernel_id, tokgen_attr=None):
         if isinstance(node, base_classes.BeginStatement):
             if gentype==KERNEL_CHAR:
                 obj = GenK_BeginStatement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.KERNEL
             elif gentype==STATE_CHAR:
                 obj = GenS_BeginStatement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.STATE
             else: raise ProgramException('Unknown gentype: %s'%gentype)
 
             obj.construct_name = node.construct_name
@@ -85,15 +95,17 @@ def _genobj_from_obj(gentype, parent, node, kernel_id, tokgen_attr=None):
         elif isinstance(node, base_classes.Statement):
             if gentype==KERNEL_CHAR:
                 obj = GenK_Statement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.KERNEL
             elif gentype==STATE_CHAR:
                 obj = GenS_Statement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.STATE
             else: raise ProgramException('Unknown gentype: %s'%gentype)
         else: raise ProgramException('Unknown class: %s'%node.__class__)
     except:
         raise
 
     if obj:
-        event_point(NODE_CREATED, obj)
+        event_point(obj.kernel_id, file_type, GENERATION_STAGE.NODE_CREATED, obj)
 
     return obj
 
@@ -101,41 +113,59 @@ def _genobj_from_cls(gentype, parent, node, kernel_id, tokgen_attr=None):
     import types
 
     obj = None
+    end_obj = None
     try:
         if issubclass(node, base_classes.BeginStatement):
             if gentype==KERNEL_CHAR:
                 obj = GenK_BeginStatement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
                 end_obj = GenK_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.KERNEL
             elif gentype==STATE_CHAR:
                 obj = GenS_BeginStatement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
                 end_obj = GenS_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.STATE
             else: raise ProgramException('Unknown gentype: %s'%gentype)
             obj.blocktype = node.__name__.lower()
-            obj.end_obj = end_obj
-            end_obj.blocktype = node.__name__.lower()
-            end_obj.match_class = base_classes.EndStatement
+            if node!=block_statements.BeginSource:
+                obj.end_obj = end_obj
+                end_obj.parent = obj
+                end_obj.blocktype = node.__name__.lower()
+                end_obj.match_class = base_classes.EndStatement
+                end_obj.isvalid = True
         elif issubclass(node, base_classes.Statement):
             if gentype==KERNEL_CHAR:
                 obj = GenK_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.KERNEL
             elif gentype==STATE_CHAR:
                 obj = GenS_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+                file_type = FILE_TYPE.STATE
             else: raise ProgramException('Unknown gentype: %s'%gentype)
         else: raise ProgramException('Unknown class: %s'%node.__class__)
         obj.match_class = node
     except:
         raise
 
-    mro_classes = inspect.getmro(node)
-    for cls in mro_classes:
-        if cls.__dict__.has_key('tokgen'):
-            tokgen = cls.__dict__['tokgen']
-            obj.tokgen = types.MethodType( tokgen, obj )
-            break
-    if not hasattr(obj, 'tokgen') or obj.tokgen is None:
-        raise ProgramException('%s does not have tokgen function'%node)
-
     if obj:
-        event_point(NODE_CREATED, obj)
+        mro_classes = inspect.getmro(node)
+        for cls in mro_classes:
+            if cls.__dict__.has_key('tokgen'):
+                tokgen = cls.__dict__['tokgen']
+                obj.tokgen = types.MethodType( tokgen, obj )
+                break
+        if not hasattr(obj, 'tokgen') or obj.tokgen is None:
+            raise ProgramException('%s does not have tokgen function'%node)
+
+        if end_obj:
+            mro_classes = inspect.getmro(base_classes.EndStatement)
+            for cls in mro_classes:
+                if cls.__dict__.has_key('tokgen'):
+                    tokgen = cls.__dict__['tokgen']
+                    end_obj.tokgen = types.MethodType( tokgen, end_obj )
+                    break
+            if not hasattr(end_obj, 'tokgen') or end_obj.tokgen is None:
+                raise ProgramException('%s does not have tokgen function'%end_obj.__class__)
+
+        event_point(obj.kernel_id, GENERATION_STAGE.NODE_CREATED, file_type, obj)
 
     return obj
 
@@ -161,34 +191,75 @@ def gensobj(parent, node, kernel_id, tokgen_attr=None):
 
 
 ########### Plugin ############
-class PluginMsg(object):
-    (NODE_CREATED, BEGIN_PROCESS, FINISH_PROCESS, BEGIN_TOSTR, END_TOSTR) = event_locations
+class KERNEL_INFO(object):
+    pass
 
+class UI_INFO(object):
+    pass
+
+class PluginMsg(object):
     def __init__(self, event):
         self.event = event
 
-    def add_event(self, event_loc, cls, matchfunc, callbackfunc):
-        if not self.event.has_key(event_loc):
-            self.event[event_loc] = OrderedDict()
-        if not self.event[event_loc].has_key(cls):
-            self.event[event_loc][cls] = []
-        self.event[event_loc][cls].append((matchfunc, callbackfunc))
+    def add_event(self, kernel_id, file_type, gen_stage, target, matchfunc, callbackfunc):
+        nextdict = self.event
+        if not nextdict.has_key(kernel_id):
+            nextdict[kernel_id] = OrderedDict()
+            nextdict = nextdict[kernel_id]
 
-def event_point(event_loc, node):
-    for plugin, loc_events in event_register.iteritems():
-        for loc, cls_events in loc_events.iteritems():
-            if loc==event_loc:
-                for cls, funclist in cls_events.iteritems():
-                    for matchfunc, cbfunc in funclist:
-                        if node.stmt:
-                            if node.stmt.__class__==cls and matchfunc(node):
-                                cbfunc(node)
-                        elif node.match_class:
-                            #if node.match_class==cls and matchfunc(pobj, node):
-                            if node.match_class==cls and matchfunc(node):
-                                #cbfunc(pobj, node)
-                                cbfunc(node)
-                        else: raise ProgramException('Not correct gen object')
+        if not nextdict.has_key(file_type):
+            nextdict[file_type] = OrderedDict()
+            nextdict = nextdict[file_type]
+
+        if not nextdict.has_key(gen_stage):
+            nextdict[gen_stage] = OrderedDict()
+            nextdict = nextdict[gen_stage]
+
+        if not nextdict.has_key(target):
+            nextdict[target] = []
+            nextlist = nextdict[target]
+
+        nextlist.append((matchfunc, callbackfunc))
+
+def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node):
+    for plugin_name, plugin_classes in event_register.iteritems():
+        for plugin_class, kernel_ids in plugin_classes.iteritems():
+            for kernel_id, file_types in kernel_ids.iteritems():
+                if  kernel_id==KERNEL_SELECTION.ALL: pass
+                else:
+                    if kernel_id==KERNEL_SELECTION.FIRST and kernel_id!=0: continue
+                    if kernel_id==KERNEL_SELECTION.LAST and kernel_id!=len(State.kernels)-1: continue
+                    if isinstance(kernel_id, int) and kernel_id!=cur_kernel_id: continue
+            
+                for file_type, gen_stages in file_types.iteritems():
+                    if file_type!=cur_file_type: continue
+
+                    for gen_stage, targets in gen_stages.iteritems():
+                        if gen_stage==GENERATION_STAGE.ALL_STAGES: pass
+                        elif gen_stage!=cur_gen_stage: continue
+
+                        for target, funclist in targets.iteritems():
+                            if inspect.isclass(target):
+                                if node.stmt:
+                                    if isinstance(node.stmt, target):
+                                        for matchfunc, cbfunc in funclist:
+                                            if matchfunc(node): cbfunc(node)
+                                elif node.match_class:
+                                    if node.match_class is target:
+                                        for matchfunc, cbfunc in funclist:
+                                            if matchfunc(node): cbfunc(node)
+                                else: raise ProgramException('Incorrect node type: %s'%node)
+                            else:
+                                if node.stmt is target:
+                                    for matchfunc, cbfunc in funclist:
+                                        if matchfunc(node): cbfunc(node)
+
+def set_plugin_env(mod):
+    mod.GENERATION_STAGE = GENERATION_STAGE
+    mod.FILE_TYPE = FILE_TYPE
+    mod.KERNEL_SELECTION = KERNEL_SELECTION
+    mod.KERNEL_INFO = KERNEL_INFO()
+    mod.UI_INFO = UI_INFO()
 
 def init_plugins():
     global plugin_register
@@ -203,13 +274,16 @@ def init_plugins():
         plugin_files = [x[:-3] for x in os.listdir(plugin_path) if x.endswith(".py")]
         for plugin in plugin_files:
             mod = __import__(plugin)
+            set_plugin_env(mod)
             for name, cls in inspect.getmembers(mod): 
                 if inspect.isclass(cls) and cls is not kgen_plugin.Kgen_Plugin and \
                     issubclass(cls, kgen_plugin.Kgen_Plugin):
                     obj = cls()
                     if not event_register.has_key(cls.__module__):
                         event_register[cls.__module__] = OrderedDict() 
-                    obj.register(PluginMsg(event_register[cls.__module__]))
+                    if not event_register[cls.__module__].has_key(cls):
+                        event_register[cls.__module__][cls] = OrderedDict() 
+                    obj.register(PluginMsg(event_register[cls.__module__][cls]))
 
 ########### Statement ############
 class Gen_Statement(object):

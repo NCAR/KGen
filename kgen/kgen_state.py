@@ -3,6 +3,7 @@
 
 from kgen_utils import Logger, Config, singleton
 from api import parse, walk
+from collections import OrderedDict
 
 @singleton
 class State(object):
@@ -107,6 +108,11 @@ class State(object):
 
         # program units
         self._attrs['program_units'] = {}
+
+        # new attribute holder for multiple kernels
+        self._attrs['kernels'] = OrderedDict()
+        self._attrs['kernels'][0] = OrderedDict()
+        self._attrs['kernels'][0]['name'] = 'dummy_name_test'
 
     def __getattr__(self, name):
         return self._attrs[name]

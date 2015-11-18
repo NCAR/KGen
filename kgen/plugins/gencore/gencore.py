@@ -1,5 +1,6 @@
 # gencore.py
-
+# kernel_info, ui_info, other envs.
+ 
 import block_statements
 from kgen_plugin import Kgen_Plugin
 
@@ -9,11 +10,10 @@ class Gen_K_Program(Kgen_Plugin):
         else: return False
 
     def create_driver_header(self, obj):
-        print 'POOOO: '
         pass
 
     def register(self, msg):
-        msg.add_event(msg.NODE_CREATED, block_statements.Program, self.is_driver, self.create_driver_header) 
+        msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, block_statements.Program, self.is_driver, self.create_driver_header) 
 
 class Gen_K_Module(Kgen_Plugin):
     def match_func(self, obj):
@@ -23,4 +23,4 @@ class Gen_K_Module(Kgen_Plugin):
         pass
 
     def register(self, msg):
-        msg.add_event(msg.NODE_CREATED, block_statements.Module, self.match_func, self.event_occurred) 
+        msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, block_statements.Module, self.match_func, self.event_occurred) 
