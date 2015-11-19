@@ -74,7 +74,7 @@ class StatementWithNamelist(Statement):
         return self.get_indent_tab(isfix=isfix) + clsname + s
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         if hasattr(self,'stmtname'):
             clsname = self.stmtname.upper()
         else:
@@ -139,7 +139,7 @@ class GeneralAssignment(Statement):
         return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return '%s %s %s' % (self.variable, self.sign, self.expr)
     # end of KGEN addition
 
@@ -229,9 +229,9 @@ class Call(Statement):
         return s
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         s = 'CALL '+str(self.designator)
-        if self.items:
+        if hasattr(self, 'items') and self.items:
             s += '('+', '.join(map(str,self.items))+ ')'
         return s
     # end of KGEN addition
@@ -349,7 +349,7 @@ class Return(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         if self.expr:
             return 'RETURN %s' % (self.expr)
         return 'RETURN'
@@ -377,7 +377,7 @@ class Stop(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         if self.code:
             return 'STOP %s' % (self.code)
         return 'STOP'
@@ -413,7 +413,7 @@ class Print(Statement):
                % (', '.join([self.format]+self.items))
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'PRINT %s' % (', '.join([self.format]+self.items))
     # end of KGEN addition
 
@@ -501,9 +501,12 @@ class Write(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
+        if not hasattr(self, 'specs'):
+            self.specs = ['*', '*']
+
         s = 'WRITE (%s)' % ', '.join(self.specs)
-        if self.items:
+        if hasattr(self, 'items') and self.items:
             s += ' ' + ', '.join(self.items)
         return s
     # end of KGEN addition
@@ -578,7 +581,7 @@ class Contains(Statement):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
 
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'CONTAINS'
 
     def resolve_uname(self, uname, request):
@@ -632,7 +635,7 @@ class Allocate(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         t = ''
         if self.spec:
             t = self.spec.tostr() + ' :: '
@@ -661,7 +664,7 @@ class Deallocate(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'DEALLOCATE (%s)' % (', '.join(self.items))
     # end of KGEN addition
 
@@ -695,7 +698,7 @@ class ModuleProcedure(Statement):
         return
 
     # start of KGEN
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'MODULE PROCEDURE %s' % (', '.join(self.items))
     # end of KGEN
 
@@ -710,10 +713,11 @@ class Access(Statement):
     match = re.compile(r'(public|private)\b',re.I).match
 
     # start of KGEN
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         items = self.items
-        if kwargs.has_key('items') and kwargs['items']:
-            items = kwargs['items']
+        if hasattr(self, 'new_items'):
+            items = self.new_items
+            del self.new_items
 
         clsname = self.__class__.__name__.upper()
         if self.items:
@@ -806,7 +810,7 @@ class Close(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'CLOSE (%s)' % (', '.join(self.specs))
     # end of KGEN addition
 
@@ -827,7 +831,7 @@ class Cycle(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         if self.name:
             return 'CYCLE ' + self.name
         return 'CYCLE'
@@ -868,7 +872,7 @@ class FilePositioningStatement(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         clsname = self.__class__.__name__.upper()
         return clsname + ' (%s)' % (', '.join(self.specs))
     # end of KGEN addition
@@ -905,7 +909,7 @@ class Open(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'OPEN (%s)' % (', '.join(self.specs))
     # end of KGEN addition
 
@@ -951,7 +955,7 @@ class Format(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'FORMAT (%s)' % (', '.join(self.specs))
     # end of KGEN addition
 
@@ -1001,7 +1005,7 @@ class Save(Statement):
         # end of KGEN addition
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         if not self.items:
             return 'SAVE'
         return 'SAVE %s' % (', '.join(self.items))
@@ -1075,7 +1079,7 @@ class Data(Statement):
         # end of KGEN addition
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         l = []
         for o,v in self.stmts:
             l.append('%s / %s /' %(', '.join(o),', '.join(v)))
@@ -1104,7 +1108,7 @@ class Nullify(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'NULLIFY (%s)' % (', '.join(self.items))
     # end of KGEN addition
 
@@ -1162,7 +1166,6 @@ class Use(Statement):
         if self.items:
             s += ' ' + ', '.join(self.items)
         return tab + s
-
     # start of KGEN
 
     class KgenIntrinsicModule(object):
@@ -1251,29 +1254,30 @@ class Use(Statement):
             elif not self.module in State.srcfiles[self.top.reader.id][1]:
                 State.srcfiles[self.top.reader.id][1].append(self.module)
 
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         def get_rename(node, bag, depth):
             from Fortran2003 import Rename
             if isinstance(node, Rename) and node.items[1].string==bag['newname']:
                 bag['onlyitem'] = '%s => %s'%(node.items[1].string, node.items[2].string)
                 return True
-                 
+
         items = self.items
-        if kwargs.has_key('items') and kwargs['items']:
+        if hasattr(self, 'new_items'):
             items = []
-            for item in kwargs['items']:
+            for item in self.new_items:
                 if item in self.norenames:
                     items.append(item)
                 else:
                     rename = {'newname':item, 'onlyitem': item}
                     traverse(self.f2003, get_rename, rename)
                     items.append(rename['onlyitem'])
+            del self.new_items
 
         s = 'USE'
-        if self.nature:
+        if hasattr(self, 'nature') and self.nature:
             s += ', ' + self.nature + ' ::'
         s += ' ' + self.name
-        if self.isonly:
+        if hasattr(self, 'isonly') and self.isonly:
             s += ', ONLY:'
         elif items:
             s += ','
@@ -1365,7 +1369,7 @@ class Exit(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         if self.name:
             return 'EXIT ' + self.name
         return 'EXIT'
@@ -1433,18 +1437,8 @@ class Parameter(Statement):
                         if request.state != ResState.RESOLVED:
                             self.resolve(request)
 
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'PARAMETER (%s)' % (', '.join(self.items))
-
-#    def tokgen(self, items=None):
-#        if not items is None:
-#            tmpitems = self.items
-#            self.items = items
-#            outstr = self.tofortran().lstrip()
-#            self.items = tmpitems
-#            return outstr
-#        else:
-#            return super(Parameter, self).tokgen()
     # end of KGEN addition
 
 class Equivalence(Statement):
@@ -1491,7 +1485,7 @@ class Equivalence(Statement):
         if len(names['equiv_names'])>0:
             raise ProgramException('Equivalent names are not correctly resolved.')
 
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'EQUIVALENCE %s' % (', '.join(self.items))
     # end of KGEN addition
 
@@ -1894,7 +1888,7 @@ class Common(Statement):
         return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         l = []
         for name,s in self.items:
             s = ', '.join(s)
@@ -2171,7 +2165,7 @@ class SpecificBinding(Statement):
     def analyze(self):
         return
 
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         s = 'PROCEDURE '
         if self.iname:
             s += '(' + self.iname + ') '
@@ -2348,7 +2342,7 @@ class Else(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         if self.name:
             return 'ELSE ' + self.name
         return 'ELSE'
@@ -2387,7 +2381,7 @@ class ElseIf(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         s = ''
         if self.name:
             s = ' ' + self.name
@@ -2452,7 +2446,7 @@ class Case(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         s = 'CASE'
         if self.items:
             l = []
@@ -2496,7 +2490,7 @@ class Where(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'WHERE ( %s ) %s' % (self.expr, str(self.content[0]).lstrip())
     # end of KGEN addition
 
@@ -2539,7 +2533,7 @@ class ElseWhere(Statement):
     def analyze(self): return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         s = 'ELSEWHERE' # KGEN addition
         if self.expr is not None:
             s += ' ( %s )' % (self.expr)
@@ -2695,3 +2689,10 @@ class Comment(Statement):
             tab = self.get_indent_tab(isfix=isfix) + '!'
         return tab + self.content
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self):
+        if hasattr(self, 'comment') and self.comment:
+            return '!%s'%self.comment
+        else: return ''
+    # start of KGEN deletion

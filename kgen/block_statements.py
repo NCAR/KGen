@@ -223,7 +223,7 @@ class BeginSource(BeginStatement):
         return self.blocktype.upper() + ' '+ self.name
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return
 
     # end of KGEN addition
@@ -677,25 +677,10 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         return '\n'.join(l)
 
     # start of KGEN
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         construct_name = self.construct_name
         construct_name = construct_name + ': ' if construct_name else ''
-        return construct_name + self.tostr(**kwargs)
-
-#    def tokgen(self, items=None, to_subr=False):
-#        construct_name = self.construct_name
-#        construct_name = construct_name + ': ' if construct_name else ''
-#
-#        if not items is None:
-#            tmpargs = self.args
-#            self.args = items
-#            outstr = self.get_indent_tab(isfix=False).lstrip() + construct_name + self.tostr(to_subr=to_subr)
-#            self.args = tmpargs
-#            return self.item.apply_map(outstr)
-#        else:
-#            return self.get_indent_tab(isfix=None).lstrip() + construct_name + self.tostr(to_subr=to_subr)
-#            #return super(SubProgramStatement, self).tokgen()
-    # end of KGEN
+        return construct_name + self.tostr()
 
     def process_item(self):
         clsname = self.__class__.__name__.lower()
@@ -732,29 +717,29 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         self.typedecl = None
         return BeginStatement.process_item(self)
 
-    def tostr(self, **kwargs):
+    def tostr(self):
         # start of KGEN addition
-        if kwargs.has_key('to_subr'): to_subr = True
-        else: to_subr = False 
+        tosubr = False
+        if hasattr(self, 'tosurb'): tosubr = True
 
-        if to_subr: clsname = 'SUBROUTINE'
+        if tosubr: clsname = 'SUBROUTINE'
         else: clsname = self.__class__.__name__.upper()
 
-        if kwargs.has_key('name'): subpname = kwargs['name']
-        else: subpname = self.name
-
-        if kwargs.has_key('args'): args = kwargs['args']
+        if hasattr(self, 'new_args'):
+            args = self.new_args
+            del self.new_args
         else: args = self.args
         # end of KGEN addition
 
         #clsname = self.__class__.__name__.upper() # KGEN deletion
         s = ''
-        if self.prefix:
+        #if self.prefix: # KGEN deletion
+        if hasattr(self, 'prefix') and self.prefix: # KGEN addition
             s += self.prefix + ' '
         #if self.typedecl is not None: # KGEN deletion
-        if not to_subr: # KGEN addition
+        if not tosubr: # KGEN addition
             # start of KGEN addtion
-            if self.typedecl is not None:
+            if hasattr(self, 'typedecl') and self.typedecl is not None:
                 assert isinstance(self, Function),`self.__class__.__name__`
                 if not hasattr(self, 'result_in_typedecl') or not self.result_in_typedecl:
                     s += self.typedecl.tostr() + ' '
@@ -765,12 +750,13 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         s += clsname
         suf = ''
         #if self.result and self.result!=self.name: # KGEN deletion
-        if not to_subr and self.result and self.result!=self.name: # KGEN addition
-            suf += ' RESULT ( %s )' % (self.result)
-        if self.bind:
+        if not tosubr:
+            if hasattr(self, 'result') and self.result and self.result!=self.name: # KGEN addition
+                suf += ' RESULT ( %s )' % (self.result)
+        if hasattr(self, 'bind') and self.bind:
             suf += ' BIND ( %s )' % (', '.join(self.bind))
 
-        return '%s %s(%s)%s' % (s, subpname,', '.join(args),suf) # KGEN additon
+        return '%s %s(%s)%s' % (s, clsname,', '.join(args),suf) # KGEN additon
         #return '%s %s(%s)%s' % (s, self.name,', '.join(self.args),suf) # KGEN deletion
 
     def get_classes(self):
@@ -878,24 +864,15 @@ class EndFunction(EndStatement):
 
     match = re.compile(r'end(\s*function\s*\w*|)\Z', re.I).match
 
-    def tokgen(self, **kwargs):
-        if kwargs.has_key('to_subr'):
-            to_subr = True
-        else: to_subr = False
+    def tokgen(self):
+        tosubr = False
+        if hasattr(self, 'tosubr'):
+            tosubr = True
+            del self.tosubr
 
-        if to_subr:
-            subp_name = 'SUBROUTINE'
-        else:
-            subp_name = 'FUNCTION'
+        if tosubr: subp_name = 'SUBROUTINE'
+        else: subp_name = 'FUNCTION'
         return 'END %s %s'%(subp_name,self.name or '')
-
-#    def tokgen(self, to_subr=False):
-#        if to_subr:
-#            subp_name = 'SUBROUTINE'
-#        else:
-#            subp_name = 'FUNCTION'
-#        return self.get_indent_tab(isfix=None).lstrip() + 'END %s %s'\
-#               % (subp_name,self.name or '')
 
 class Function(SubProgramStatement):
     """
@@ -1205,9 +1182,17 @@ class Do(BeginStatement):
 
     def tostr(self):
         l = ['DO']
-        for part in [self.endlabel, self.loopcontrol]:
-            if part:
-                l.append(str(part))
+    # start of KGEN addition
+        if hasattr(self, 'endlabel') and self.endlabel:
+            l.append(str(self.endlabel))
+        if hasattr(self, 'loopcontrol') and self.loopcontrol:
+            l.append(str(self.loopcontrol))
+    # end of KGEN addition
+    # start of KGEN deletion
+#        for part in [self.endlabel, self.loopcontrol]:
+#            if part:
+#                l.append(str(part))
+    # end of KGEN deletion
         return ' '.join(l)
 
     def process_item(self):

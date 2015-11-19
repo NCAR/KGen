@@ -654,7 +654,7 @@ class Statement(object):
 
         return line
 
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         raise ProgramException('%s should implement tokgen().'%self.__class__)
 #        from statements import Comment, Where
 #
@@ -1289,16 +1289,13 @@ class BeginStatement(Statement):
         if request.state != ResState.RESOLVED:
             super(BeginStatement, self).resolve(request)
 
-    def tokgen(self, **kwargs):
-        if hasattr(self, 'construct_name'):
-            construct_name = self.construct_name
-            construct_name = construct_name + ': ' if construct_name else ''
-        else: construct_name = ''
+    def tokgen(self):
+        construct_name = self.construct_name
+        construct_name = construct_name + ': ' if construct_name else ''
         if hasattr(self, 'item') and hasattr(self.item, 'apply_map'):
             return construct_name + self.item.apply_map(self.tostr())
         else:
-            return construct_name + self.blocktype.upper() + ' '+ self.name
-
+            return construct_name + self.tostr()
     # end of KGEN
 
     def tostr(self):
@@ -1533,6 +1530,6 @@ class EndStatement(Statement):
                % (self.blocktype.upper(),self.name or '')
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         return 'END %s %s' % (self.blocktype.upper(),self.name or '')
     # end of KGEN addition

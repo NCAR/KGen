@@ -91,7 +91,7 @@ class TypeDeclarationStatement(Statement):
 
     # start of KGEN
 
-    def tokgen(self, **kwargs):
+    def tokgen(self):
         from kgen_utils import traverse
 
         def get_edecl(node, bag, depth):
@@ -101,31 +101,31 @@ class TypeDeclarationStatement(Statement):
                 return True
 
         decls = self.entity_decls
-        if kwargs.has_key('entity_decls'):
-
-            if not kwargs['entity_decls']: return ''
-
+        if hasattr(self, 'new_entity_decls'):
             decls = []
-            for decl in kwargs['entity_decls']:
+            for decl in self.new_entity_decls:
                 edecl = {'name': decl, 'edecl': decl}
-                if kwargs.has_key('full_decl') and kwargs['full_decl']:
+                if hasattr(self, 'full_decl') and self.full_decl:
                     traverse(self.f2003, get_edecl, edecl)
                 decls.append(edecl['edecl'])
+            del new_entity_decls
 
-        attrs = self.attrspec
-        if kwargs.has_key('attr_specs') and kwargs['attr_specs']:
+        attrs = self.attrspec if hasattr(self, 'attrspec') else None
+        if hasattr(self, 'new_attrspec'):
             attrs = []
-            for attr in kwargs['attr_specs']:
+            for attr in self.new_attr_specs:
                 attrs.append(attr)
+            del self.new_attr_specs
 
-        if kwargs.has_key('remove_attr') and kwargs['remove_attr']:
+        if hasattr(self, 'remove_attr'):
             newattrs = []
             for attr in attrs:
-                if any(attr.startswith(rattr) for rattr in kwargs['remove_attr']):
+                if any(attr.startswith(rattr) for rattr in self.remove_attr):
                     pass
                 else:
                     newattrs.append(attr)
             attrs = newattrs
+            del self.remove_attr
 
         s = self.tostr()
         if attrs:
@@ -344,31 +344,57 @@ class TypeDeclarationStatement(Statement):
     # end of KGEN addition
 
     def tostr(self):
-        clsname = self.__class__.__name__.upper()
+        # start of KGEN addition
+        if hasattr(self, 'type_spec'):
+            clsname = self.type_spec
 
-        s = ''
-        length, kind = self.selector
-        if isinstance(self, Character):
-            if length and kind:
-                s += '(LEN=%s, KIND=%s)' % (length,kind)
-            elif length:
-                s += '(LEN=%s)' % (length)
-            elif kind:
-                s += '(KIND=%s)' % (kind)
-        else:
-            if isinstance(self, Type):
-                s += '(%s)' % (kind)
+            s = ''
+            length, kind = self.selector if hasattr(self, 'selector') else (None, None)
+            if self.type_spec.lower()=='character':
+                if length and kind:
+                    s += '(LEN=%s, KIND=%s)' % (length,kind)
+                elif length:
+                    s += '(LEN=%s)' % (length)
+                elif kind:
+                    s += '(KIND=%s)' % (kind)
             else:
-                if length:
-                    s += '*%s' % (length)
-                if kind:
-                    # start of KGEN addition
-                    if isinstance(self, Class):
-                        s += '(%s)' % (kind)
-                    else:
-                        s += '(KIND=%s)' % (kind)
-                    # end of KGEN addition
-                    #s += '(KIND=%s)' % (kind) # KGEN deletion
+                if self.type_spec.lower() in ['type', 'class']:
+                    s += '(%s)' % (kind)
+                else:
+                    if length:
+                        s += '*%s' % (length)
+                    if kind:
+                        if self.type_spec.lower()=='class':
+                            s += '(%s)' % (kind)
+                        else:
+                            s += '(KIND=%s)' % (kind)
+        else:
+        # end of KGEN addition
+            clsname = self.__class__.__name__.upper()
+
+            s = ''
+            length, kind = self.selector
+            if isinstance(self, Character):
+                if length and kind:
+                    s += '(LEN=%s, KIND=%s)' % (length,kind)
+                elif length:
+                    s += '(LEN=%s)' % (length)
+                elif kind:
+                    s += '(KIND=%s)' % (kind)
+            else:
+                if isinstance(self, Type):
+                    s += '(%s)' % (kind)
+                else:
+                    if length:
+                        s += '*%s' % (length)
+                    if kind:
+                        # start of KGEN addition
+                        if isinstance(self, Class):
+                            s += '(%s)' % (kind)
+                        else:
+                            s += '(KIND=%s)' % (kind)
+                        # end of KGEN addition
+                        #s += '(KIND=%s)' % (kind) # KGEN deletion
 
         return clsname + s
 
@@ -679,8 +705,8 @@ class Implicit(Statement):
         return
 
     # start of KGEN addition
-    def tokgen(self, **kwargs):
-        if not self.items:
+    def tokgen(self):
+        if not hasattr(self, 'items') or not self.items:
             return 'IMPLICIT NONE'
         l = []
         for stmt,specs in self.items:
