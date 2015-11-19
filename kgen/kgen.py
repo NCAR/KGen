@@ -24,10 +24,10 @@ Author: Youngsung Kim <youngsun@ucar.edu>
 # if topblock is program, keep origianl code as much as possible
 
 # Python version check
-import sys
-if sys.hexversion < 0x020700F0:
-    print 'ERROR: KGEN works with Python Version 2.7 or later.'
-    sys.exit(-1)
+#import sys
+#if sys.hexversion < 0x020600F0:
+#    print 'ERROR: KGEN works with Python Version 2.7 or later.'
+#    sys.exit(-1)
 
 from kgen_utils import Logger, UserException, ProgramException
 from kgen_analyze import locate_callsite, collect_kernel_info

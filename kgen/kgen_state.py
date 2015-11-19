@@ -3,7 +3,7 @@
 
 from kgen_utils import Logger, Config, singleton
 from api import parse, walk
-from collections import OrderedDict
+from ordereddict import OrderedDict
 
 @singleton
 class State(object):
@@ -95,16 +95,16 @@ class State(object):
 
         # kernel_driver attributes
         self._attrs['kernel_driver'] = {}
+        self._attrs['kernel_driver'] = {}
         self._attrs['kernel_driver']['input'] = {}
         self._attrs['kernel_driver']['input']['names'] = []
         self._attrs['kernel_driver']['input']['typedecl_stmt'] = {}
         self._attrs['kernel_driver']['input']['tkdpat'] = []
         self._attrs['kernel_driver']['mod_rw_var_depends'] = []
-
         # new kernel_driver attributes
-        self._attrs['driver'] = {}
-        self._attrs['driver']['program'] = None
-        self._attrs['driver']['args'] = ['kgen_unit', 'total_time']
+        self._attrs['kernel_driver']['name'] = 'kernel_driver'
+        self._attrs['kernel_driver']['program'] = None
+        self._attrs['kernel_driver']['args'] = ['kgen_unit', 'total_time']
 
         # program units
         self._attrs['program_units'] = {}

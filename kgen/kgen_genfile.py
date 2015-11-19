@@ -1,6 +1,5 @@
 ### kgen_genfile.py ###
-# funcaaa = A.__dict__['aaa']
-# b.aaa = types.MethodType( funcaaa, b )
+# dupulicate parts before invoke callback function
 
 import os 
 import re
@@ -12,24 +11,29 @@ import block_statements
 import typedecl_statements
 from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath
 from kgen_state import State
-from collections import OrderedDict
+from ordereddict import OrderedDict
 
 ########### Common ############
 
 class GENERATION_STAGE(object):
-    NODE_CREATED, BEGIN_PROCESS, FINISH_PROCESS, BEGIN_TOSTR, END_TOSTR, ALL_STAGES = range(6)
+    NODE_CREATED, BEGIN_PROCESS, FINISH_PROCESS, ALL_STAGES = range(4)
 
 class FILE_TYPE(object):
-    KERNEL, STATE, BOTH = range(3)
+    KERNEL, STATE, BOTH = ('K', 'S', 'B')
 
 class KERNEL_SELECTION(object):
     ALL, FIRST, LAST = ('all', 'first', 'last')
+
+class KERNEL_INFO(object):
+    pass
+
+class UI_INFO(object):
+    KERNEL_DRIVER_NAME = State.kernel_driver['name']
 
 
 event_register = OrderedDict()
 
 TAB = ' '*4
-KERNEL_CHAR, STATE_CHAR = ( 'K', 'S' )
 DUMMY_KERNEL_ID = 0
 
 UNIT_PART = 'unit'
@@ -77,71 +81,65 @@ part_classes = {
 def get_indent(line):
     return re.match(r"\s*", line).group()
 
-def _genobj_from_obj(gentype, parent, node, kernel_id, tokgen_attr=None):
+def _genobj_from_obj(file_type, parent, node, kernel_id, tokgen_attr=None):
 
     obj = None
     try:
         if isinstance(node, base_classes.BeginStatement):
-            if gentype==KERNEL_CHAR:
-                obj = GenK_BeginStatement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+            if file_type==FILE_TYPE.KERNEL:
+                obj = GenK_BeginStatement(parent, node, node.__class__, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.KERNEL
-            elif gentype==STATE_CHAR:
-                obj = GenS_BeginStatement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+            elif file_type==FILE_TYPE.STATE:
+                obj = GenS_BeginStatement(parent, node, node.__class__, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.STATE
-            else: raise ProgramException('Unknown gentype: %s'%gentype)
+            else: raise ProgramException('Unknown file_type: %s'%file_type)
 
             obj.construct_name = node.construct_name
             obj.blocktype = node.__class__.__name__.lower()
         elif isinstance(node, base_classes.Statement):
-            if gentype==KERNEL_CHAR:
-                obj = GenK_Statement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+            if file_type==FILE_TYPE.KERNEL:
+                obj = GenK_Statement(parent, node, node.__class__, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.KERNEL
-            elif gentype==STATE_CHAR:
-                obj = GenS_Statement(parent, node, kernel_id, tokgen_attr=tokgen_attr)
+            elif file_type==FILE_TYPE.STATE:
+                obj = GenS_Statement(parent, node, node.__class__, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.STATE
-            else: raise ProgramException('Unknown gentype: %s'%gentype)
+            else: raise ProgramException('Unknown file_type: %s'%file_type)
         else: raise ProgramException('Unknown class: %s'%node.__class__)
     except:
         raise
 
-    if obj:
-        event_point(obj.kernel_id, file_type, GENERATION_STAGE.NODE_CREATED, obj)
-
     return obj
 
-def _genobj_from_cls(gentype, parent, node, kernel_id, tokgen_attr=None):
+def _genobj_from_cls(file_type, parent, node, kernel_id, tokgen_attr=None):
     import types
 
     obj = None
     end_obj = None
     try:
         if issubclass(node, base_classes.BeginStatement):
-            if gentype==KERNEL_CHAR:
-                obj = GenK_BeginStatement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
-                end_obj = GenK_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+            if file_type==FILE_TYPE.KERNEL:
+                obj = GenK_BeginStatement(parent, None, node, kernel_id, tokgen_attr=tokgen_attr)
+                end_obj = GenK_Statement(parent, None, base_classes.EndStatement, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.KERNEL
-            elif gentype==STATE_CHAR:
-                obj = GenS_BeginStatement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
-                end_obj = GenS_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+            elif file_type==FILE_TYPE.STATE:
+                obj = GenS_BeginStatement(parent, None, node, kernel_id, tokgen_attr=tokgen_attr)
+                end_obj = GenS_Statement(parent, None, base_classes.EndStatement, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.STATE
-            else: raise ProgramException('Unknown gentype: %s'%gentype)
+            else: raise ProgramException('Unknown file_type: %s'%file_type)
             obj.blocktype = node.__name__.lower()
             if node!=block_statements.BeginSource:
                 obj.end_obj = end_obj
                 end_obj.parent = obj
                 end_obj.blocktype = node.__name__.lower()
-                end_obj.match_class = base_classes.EndStatement
-                end_obj.isvalid = True
         elif issubclass(node, base_classes.Statement):
-            if gentype==KERNEL_CHAR:
-                obj = GenK_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+            if file_type==FILE_TYPE.KERNEL:
+                obj = GenK_Statement(parent, None, node, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.KERNEL
-            elif gentype==STATE_CHAR:
-                obj = GenS_Statement(parent, None, kernel_id, tokgen_attr=tokgen_attr)
+            elif file_type==FILE_TYPE.STATE:
+                obj = GenS_Statement(parent, None, node, kernel_id, tokgen_attr=tokgen_attr)
                 file_type = FILE_TYPE.STATE
-            else: raise ProgramException('Unknown gentype: %s'%gentype)
+            else: raise ProgramException('Unknown file_type: %s'%file_type)
         else: raise ProgramException('Unknown class: %s'%node.__class__)
-        obj.match_class = node
     except:
         raise
 
@@ -165,37 +163,26 @@ def _genobj_from_cls(gentype, parent, node, kernel_id, tokgen_attr=None):
             if not hasattr(end_obj, 'tokgen') or end_obj.tokgen is None:
                 raise ProgramException('%s does not have tokgen function'%end_obj.__class__)
 
-        event_point(obj.kernel_id, GENERATION_STAGE.NODE_CREATED, file_type, obj)
-
     return obj
 
 def genkobj(parent, node, kernel_id, tokgen_attr=None):
     if node is None: return
 
     if inspect.isclass(node):
-        obj = _genobj_from_cls(KERNEL_CHAR, parent, node, kernel_id, tokgen_attr=tokgen_attr)
-        if obj: obj.isvalid = True
-        return obj
+        return _genobj_from_cls(FILE_TYPE.KERNEL, parent, node, kernel_id, tokgen_attr=tokgen_attr)
     else:
-        return _genobj_from_obj(KERNEL_CHAR, parent, node, kernel_id, tokgen_attr=tokgen_attr)
+        return _genobj_from_obj(FILE_TYPE.KERNEL, parent, node, kernel_id, tokgen_attr=tokgen_attr)
 
 def gensobj(parent, node, kernel_id, tokgen_attr=None):
     if node is None: return
 
     if inspect.isclass(node):
-        obj = _genobj_from_cls(STATE_CHAR, parent, node, kernel_id, tokgen_attr=tokgen_attr)
-        if obj: obj.isvalid = True
-        return obj
+        return _genobj_from_cls(FILE_TYPE.STATE, parent, node, kernel_id, tokgen_attr=tokgen_attr)
     else:
-        return _genobj_from_obj(STATE_CHAR, parent, node, kernel_id, tokgen_attr=tokgen_attr)
+        return _genobj_from_obj(FILE_TYPE.STATE, parent, node, kernel_id, tokgen_attr=tokgen_attr)
 
 
 ########### Plugin ############
-class KERNEL_INFO(object):
-    pass
-
-class UI_INFO(object):
-    pass
 
 class PluginMsg(object):
     def __init__(self, event):
@@ -206,53 +193,59 @@ class PluginMsg(object):
         if not nextdict.has_key(kernel_id):
             nextdict[kernel_id] = OrderedDict()
             nextdict = nextdict[kernel_id]
+        else: nextdict = nextdict[kernel_id]
 
         if not nextdict.has_key(file_type):
             nextdict[file_type] = OrderedDict()
             nextdict = nextdict[file_type]
+        else: nextdict = nextdict[file_type]
 
         if not nextdict.has_key(gen_stage):
             nextdict[gen_stage] = OrderedDict()
             nextdict = nextdict[gen_stage]
+        else: nextdict = nextdict[gen_stage]
 
         if not nextdict.has_key(target):
             nextdict[target] = []
             nextlist = nextdict[target]
+        else: nextlist = nextdict[target]
 
         nextlist.append((matchfunc, callbackfunc))
 
-def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node):
-    for plugin_name, plugin_classes in event_register.iteritems():
-        for plugin_class, kernel_ids in plugin_classes.iteritems():
-            for kernel_id, file_types in kernel_ids.iteritems():
-                if  kernel_id==KERNEL_SELECTION.ALL: pass
-                else:
-                    if kernel_id==KERNEL_SELECTION.FIRST and kernel_id!=0: continue
-                    if kernel_id==KERNEL_SELECTION.LAST and kernel_id!=len(State.kernels)-1: continue
-                    if isinstance(kernel_id, int) and kernel_id!=cur_kernel_id: continue
-            
-                for file_type, gen_stages in file_types.iteritems():
-                    if file_type!=cur_file_type: continue
+def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None):
+    for plugin_dir, plugin_modules in event_register.iteritems():
+        if plugins and plugin_dir not in plugins: continue
+        for plugin_name, plugin_classes in plugin_modules.iteritems():
+            for plugin_class, kernel_ids in plugin_classes.iteritems():
+                for kernel_id, file_types in kernel_ids.iteritems():
+                    if  kernel_id==KERNEL_SELECTION.ALL: pass
+                    else:
+                        if kernel_id==KERNEL_SELECTION.FIRST and kernel_id!=0: continue
+                        if kernel_id==KERNEL_SELECTION.LAST and kernel_id!=len(State.kernels)-1: continue
+                        if isinstance(kernel_id, int) and kernel_id!=cur_kernel_id: continue
+                
+                    for file_type, gen_stages in file_types.iteritems():
+                        if file_type!=cur_file_type: continue
 
-                    for gen_stage, targets in gen_stages.iteritems():
-                        if gen_stage==GENERATION_STAGE.ALL_STAGES: pass
-                        elif gen_stage!=cur_gen_stage: continue
+                        for gen_stage, targets in gen_stages.iteritems():
+                            if gen_stage==GENERATION_STAGE.ALL_STAGES: pass
+                            elif gen_stage!=cur_gen_stage: continue
 
-                        for target, funclist in targets.iteritems():
-                            if inspect.isclass(target):
-                                if node.stmt:
-                                    if isinstance(node.stmt, target):
+                            for target, funclist in targets.iteritems():
+                                if inspect.isclass(target):
+                                    if node.stmt:
+                                        if isinstance(node.stmt, target):
+                                            for matchfunc, cbfunc in funclist:
+                                                if matchfunc(node): cbfunc(node)
+                                    elif node.match_class:
+                                        if node.match_class is target:
+                                            for matchfunc, cbfunc in funclist:
+                                                if matchfunc(node): cbfunc(node)
+                                    else: raise ProgramException('Incorrect node type: %s'%node)
+                                else:
+                                    if node.stmt is target:
                                         for matchfunc, cbfunc in funclist:
                                             if matchfunc(node): cbfunc(node)
-                                elif node.match_class:
-                                    if node.match_class is target:
-                                        for matchfunc, cbfunc in funclist:
-                                            if matchfunc(node): cbfunc(node)
-                                else: raise ProgramException('Incorrect node type: %s'%node)
-                            else:
-                                if node.stmt is target:
-                                    for matchfunc, cbfunc in funclist:
-                                        if matchfunc(node): cbfunc(node)
 
 def set_plugin_env(mod):
     mod.GENERATION_STAGE = GENERATION_STAGE
@@ -263,37 +256,45 @@ def set_plugin_env(mod):
 
 def init_plugins():
     global plugin_register
+    global plugin_module_priority
 
     plugin_home = os.path.dirname(os.path.realpath(__file__))+'/plugins'
     sys.path.insert(0, plugin_home)
     kgen_plugin = __import__('kgen_plugin')
     plugin_dirs = next(os.walk(plugin_home))[1]
-    for plugin_dir in plugin_dirs:
+    sorted_plugin_dirs = []
+    for plugin_dir in kgen_plugin.Kgen_Plugin.priority:
+        if plugin_dir in plugin_dirs:
+            sorted_plugin_dirs.append(plugin_dir)
+    for plugin_dir in sorted_plugin_dirs:
         plugin_path = '%s/%s'%(plugin_home, plugin_dir)
         sys.path.insert(0, plugin_path)
         plugin_files = [x[:-3] for x in os.listdir(plugin_path) if x.endswith(".py")]
         for plugin in plugin_files:
             mod = __import__(plugin)
+            #import pdb; pdb.set_trace()
             set_plugin_env(mod)
             for name, cls in inspect.getmembers(mod): 
                 if inspect.isclass(cls) and cls is not kgen_plugin.Kgen_Plugin and \
                     issubclass(cls, kgen_plugin.Kgen_Plugin):
                     obj = cls()
-                    if not event_register.has_key(cls.__module__):
-                        event_register[cls.__module__] = OrderedDict() 
-                    if not event_register[cls.__module__].has_key(cls):
-                        event_register[cls.__module__][cls] = OrderedDict() 
-                    obj.register(PluginMsg(event_register[cls.__module__][cls]))
+                    if not event_register.has_key(plugin_dir):
+                        event_register[plugin_dir] = OrderedDict() 
+                    if not event_register[plugin_dir].has_key(cls.__module__):
+                        event_register[plugin_dir][cls.__module__] = OrderedDict() 
+                    if not event_register[plugin_dir][cls.__module__].has_key(cls):
+                        event_register[plugin_dir][cls.__module__][cls] = OrderedDict() 
+                    obj.register(PluginMsg(event_register[plugin_dir][cls.__module__][cls]))
 
 ########### Statement ############
 class Gen_Statement(object):
     gen_attrs = {'indent': ''}
 
-    def __init__(self, parent, stmt, kernel_id, tokgen_attr=None):
+    def __init__(self, parent, stmt, match_class, kernel_id, tokgen_attr=None):
         self.isvalid = True
         self.parent = parent
         self.stmt = stmt
-        self.match_class = stmt.__class__
+        self.match_class = match_class
         self.kernel_id = kernel_id
         self.tokgen_attrs = {}
         if tokgen_attr: self.tokgen_attrs.update(tokgen_attr)
@@ -314,8 +315,14 @@ class Gen_Statement(object):
         for k, v in tokgen_attr:
             self.tokgen_attrs[k].extend(v)
 
-    def process(self):
-        pass
+    def statement_created(self, plugins):
+        event_point(self.kernel_id, self.file_type, GENERATION_STAGE.NODE_CREATED, self, plugins=plugins)
+
+    def statement_process(self, plugins):
+        event_point(self.kernel_id, self.file_type, GENERATION_STAGE.BEGIN_PROCESS, self, plugins=plugins)
+
+    def statement_finalize(self, plugins):
+        event_point(self.kernel_id, self.file_type, GENERATION_STAGE.FINISH_PROCESS, self, plugins=plugins)
 
     def tostr(self):
 
@@ -381,8 +388,8 @@ class Gen_Statement(object):
         raise ProgramException('Inherited class should implement tokgen().')
 
 class GenK_Statement(Gen_Statement):
-    gentype = KERNEL_CHAR
-    def __init__(self, parent, stmt, kernel_id, tokgen_attr=None):
+    file_type = FILE_TYPE.KERNEL
+    def __init__(self, parent, stmt, match_class, kernel_id, tokgen_attr=None):
 
         def process_exclude(node, bag, depth):
             from Fortran2003 import Name
@@ -392,44 +399,141 @@ class GenK_Statement(Gen_Statement):
                         bag['matched'] = True
                         return True
 
-        super(GenK_Statement, self).__init__(parent, stmt, kernel_id, tokgen_attr=tokgen_attr)
+        super(GenK_Statement, self).__init__(parent, stmt, match_class, kernel_id, tokgen_attr=tokgen_attr)
 
-        if stmt: stmt.genkpair = self
+        if stmt:
+            stmt.genkpair = self
 
-        if not hasattr(stmt, 'geninfo') and not hasattr(stmt, 'unknowns'):
-            self.isvalid = False
-        elif stmt and hasattr(stmt, 'f2003') and Config.exclude.has_key('namepath'):
-            bag = {'excludes': Config.exclude['namepath'], 'matched': False, 'stmt':stmt}
-            traverse(stmt.f2003, process_exclude, bag)
-            if bag['matched']:
+            if not hasattr(stmt, 'geninfo') and not hasattr(stmt, 'unknowns'):
                 self.isvalid = False
+            elif stmt and hasattr(stmt, 'f2003') and Config.exclude.has_key('namepath'):
+                bag = {'excludes': Config.exclude['namepath'], 'matched': False, 'stmt':stmt}
+                traverse(stmt.f2003, process_exclude, bag)
+                if bag['matched']:
+                    self.isvalid = False
+
+    def created(self, plugins):
+        self.statement_created(plugins)
+
+    def process(self, plugins):
+        self.statement_process(plugins)
+
+    def finalize(self, plugins):
+        self.statement_finalize(plugins)
 
 class GenS_Statement(Gen_Statement):
-    gentype = STATE_CHAR
-    def __init__(self, parent, stmt, kernel_id, tokgen_attr=None):
-        super(GenS_Statement, self).__init__(parent, stmt, kernel_id, tokgen_attr=tokgen_attr)
+    file_type = FILE_TYPE.STATE
+    def __init__(self, parent, stmt, match_class, kernel_id, tokgen_attr=None):
+        super(GenS_Statement, self).__init__(parent, stmt, match_class, kernel_id, tokgen_attr=tokgen_attr)
 
         if stmt: stmt.genspair = self
 
+    def created(self, plugins):
+        self.statement_created(plugins)
+
+    def process(self, plugins):
+        self.statement_process(plugins)
+
+    def finalize(self, plugins):
+        self.statement_finalize(plugins)
+
 ########### BeginStatement ############
 class Gen_BeginStatement(object):
-    def append_item(self, item):
-        self.items.append(item)
+    def beginstatement_init(self, stmt, match_class):
 
-    def process(self):
+        self.end_obj = None
+
+        self.part_order = []
+        if match_classes.has_key(match_class):
+            # add partition
+            for part_name in match_classes[match_class]:
+                part = 'part_%s'%part_name
+                self.part_order.append(part_name)
+                setattr(self, part, [])
+        else:
+            # add default partition
+            for part_name in default_part_names:
+                part = 'part_%s'%part_name
+                self.part_order.append(part_name)
+                setattr(self, part, [])
+
+        if self.file_type==FILE_TYPE.KERNEL:
+            if not self.isvalid: return
+            genobj = genkobj
+        elif self.file_type==FILE_TYPE.STATE:
+            genobj = gensobj
+
+        if stmt:
+            insert_order = self.part_order[:]
+            for node in stmt.content[:-1]:
+                item = genobj(self, node, self.kernel_id)
+
+                if node.__class__ is typedecl_statements.Integer and insert_order[0]==TYPE_PD_PART:
+                    if any(attr in ['kind', 'len'] for attr in node.attrspec) and all(decl.find('=')>0 for decl in node.entity_decls):
+                        insert_order = self.insert_in_order(item, insert_order)
+                    else:
+                        insert_order = self.insert_in_order(item, insert_order[1:])
+                else:
+                    insert_order = self.insert_in_order(item, insert_order)
+
+            if isinstance(stmt.content[-1], base_classes.EndStatement):
+                self.end_obj = genobj(self, stmt.content[-1], self.kernel_id)
+            else:
+                item = genobj(self, stmt.content[-1], self.kernel_id)
+                self.insert_in_order(item, insert_order)
+
+    def beginstatement_tostr(self):
+        lines = []
+
+        # tostr head
+        if self.file_type==FILE_TYPE.KERNEL:
+            l = super(GenK_BeginStatement, self).tostr()
+        else:
+            l = super(GenS_BeginStatement, self).tostr()
+        if l is not None: lines.append(l)
+
+        lines.extend(self.tostr_parts())
+
+        if self.end_obj:
+            l = self.end_obj.tostr()
+            if l is not None: lines.append(l)
+
+        return '\n'.join(lines)
+
+    def tostr_parts(self):
+        lines = []
+        for part_name in self.part_order:
+            part = getattr(self, 'part_%s'%part_name)
+            for item in part:
+                l = item.tostr()
+                if l is not None: lines.append(l)
+        return lines
+
+    def beginstatement_created(self, plugins):
+        event_point(self.kernel_id, self.file_type, GENERATION_STAGE.NODE_CREATED, self, plugins=plugins)
+
+        for part_name in self.part_order:
+            part = getattr(self, 'part_%s'%part_name)
+            for item in part:
+                item.created(plugins)
+
+    def beginstatement_process(self, plugins):
+        event_point(self.kernel_id, self.file_type, GENERATION_STAGE.BEGIN_PROCESS, self, plugins=plugins)
         # process head
 
         # process children
-        for item in self.items:
-            item.process()
+        for part_name in self.part_order:
+            part = getattr(self, 'part_%s'%part_name)
+            for item in part:
+                item.process(plugins)
 
-    def tostr_items(self):
-        lines = []
-        # tostr children
-        for item in self.items:
-            l = item.tostr()
-            if l is not None: lines.append(l)
-        return lines
+    def beginstatement_finalize(self, plugins):
+        event_point(self.kernel_id, self.file_type, GENERATION_STAGE.FINISH_PROCESS, self, plugins=plugins)
+
+        for part_name in self.part_order:
+            part = getattr(self, 'part_%s'%part_name)
+            for item in part:
+                item.finalize(plugins)
 
     def append_in_part(self, part_name, item):
         part = getattr(self, 'part_%s'%part_name)
@@ -461,96 +565,44 @@ class Gen_BeginStatement(object):
         return new_order
 
 class GenK_BeginStatement(GenK_Statement, Gen_BeginStatement):
-    def __init__(self, parent, stmt, kernel_id, tokgen_attr=None):
+    def __init__(self, parent, stmt, match_class, kernel_id, tokgen_attr=None):
 
-        super(GenK_BeginStatement, self).__init__(parent, stmt, kernel_id, tokgen_attr=tokgen_attr)
+        super(GenK_BeginStatement, self).__init__(parent, stmt, match_class, kernel_id, tokgen_attr=tokgen_attr)
 
-        self.items = []
         self.end_obj = None
 
-        if self.isvalid:
-            self.part_order = []
-            if match_classes.has_key(stmt.__class__):
-                # add partition
-                for part_name in match_classes[stmt.__class__]:
-                    part = 'part_%s'%part_name
-                    self.part_order.append(part_name)
-                    setattr(self, part, [])
-            else:
-                # add default partition
-                for part_name in default_part_names:
-                    part = 'part_%s'%part_name
-                    self.part_order.append(part_name)
-                    setattr(self, part, [])
+        self.beginstatement_init(stmt, match_class)
 
-            if stmt:
-                insert_order = self.part_order[:]
-                for node in stmt.content[:-1]:
-                    item = genkobj(self, node, kernel_id, tokgen_attr=tokgen_attr)
-                    self.items.append(item)
+    def created(self, plugins):
+        self.beginstatement_created(plugins)
 
-                    if node.__class__ is typedecl_statements.Integer and insert_order[0]==TYPE_PD_PART:
-                        if any(attr in ['kind', 'len'] for attr in node.attrspec) and all(decl.find('=')>0 for decl in node.entity_decls):
-                            insert_order = self.insert_in_order(item, insert_order)
-                        else:
-                            insert_order = self.insert_in_order(item, insert_order[1:])
-                    else:
-                        insert_order = self.insert_in_order(item, insert_order)
+    def process(self, plugins):
+        self.beginstatement_process(plugins)
 
-                if isinstance(stmt.content[-1], base_classes.EndStatement):
-                    self.end_obj = genkobj(self, stmt.content[-1], kernel_id, tokgen_attr=tokgen_attr)
-                else:
-                    item = genkobj(self, stmt.content[-1], kernel_id, tokgen_attr=tokgen_attr)
-                    self.items.append(item)
-                    self.insert_in_order(item, insert_order)
+    def finalize(self, plugins):
+        self.beginstatement_finalize(plugins)
 
     def tostr(self):
-        lines = []
-
-        # tostr head
-        l = super(GenK_BeginStatement, self).tostr()
-        if l is not None: lines.append(l)
-
-        lines.extend(self.tostr_items())
-
-        if self.end_obj:
-            l = self.end_obj.tostr()
-            if l is not None: lines.append(l)
-
-        return '\n'.join(lines)
+        return self.beginstatement_tostr()
 
 class GenS_BeginStatement(GenS_Statement, Gen_BeginStatement):
-    def __init__(self, parent, stmt, kernel_id, tokgen_attr=None):
+    def __init__(self, parent, stmt, match_class, kernel_id, tokgen_attr=None):
 
-        super(GenS_BeginStatement, self).__init__(parent, stmt, kernel_id, tokgen_attr=tokgen_attr)
+        super(GenS_BeginStatement, self).__init__(parent, stmt, match_class, kernel_id, tokgen_attr=tokgen_attr)
 
-        self.items = []
-        self.end_obj = None
-        if stmt:
-            if isinstance(stmt.content[-1], base_classes.EndStatement):
-                self.end_obj = gensobj(self, stmt.content[-1], kernel_id, tokgen_attr=tokgen_attr)
-                
-                for node in stmt.content[:-1]:
-                    self.items.append(gensobj(self, node, kernel_id, tokgen_attr=tokgen_attr))
-            else:
-                for node in stmt.content:
-                    self.items.append(gensobj(self, node, kernel_id, tokgen_attr=tokgen_attr))
+        self.beginstatement_init(stmt, match_class)
+
+    def created(self, plugins):
+        self.beginstatement_created(plugins)
+
+    def process(self, plugins):
+        self.beginstatement_process(plugins)
+
+    def finalize(self, plugins):
+        self.beginstatement_finalize(plugins)
 
     def tostr(self):
-        lines = []
-
-        # tostr head
-        l = super(GenS_BeginStatement, self).tostr()
-        if l is not None: lines.append(l)
-
-        lines.extend(self.tostr_items())
-
-        if self.end_obj:
-            l = self.end_obj.tostr()
-            if l is not None: lines.append(l)
-
-        return '\n'.join(lines)
-
+        return self.beginstatement_tostr()
 
 ########### functions ############
 
@@ -584,8 +636,8 @@ def generate_srcfiles():
 
     # generate kgen_driver.f90 in kernel directory
     driver = genkobj(None, block_statements.BeginSource, DUMMY_KERNEL_ID)
-    program = genkobj(driver, block_statements.Program, DUMMY_KERNEL_ID, tokgen_attr={'name':'kernel_driver'})
-    driver.append_item(program)
+    program = genkobj(driver, block_statements.Program, DUMMY_KERNEL_ID, tokgen_attr={'name':UI_INFO.KERNEL_DRIVER_NAME})
+    driver.append_in_part(UNIT_PART, program)
 
     # construct a generation tree
     genfiles = []
@@ -598,10 +650,21 @@ def generate_srcfiles():
             genfiles.append((kfile, sfile, filepath))
 
     # process each nodes in the tree
-    for kfile, sfile, filepath in genfiles:
-        kfile.process()
-        sfile.process()
-    driver.process()
+    for plugin_dir in event_register.keys():
+        for kfile, sfile, filepath in genfiles:
+            kfile.created([plugin_dir])
+            sfile.created([plugin_dir])
+        driver.created([plugin_dir])
+
+        for kfile, sfile, filepath in genfiles:
+            kfile.process([plugin_dir])
+            sfile.process([plugin_dir])
+        driver.process([plugin_dir])
+
+        for kfile, sfile, filepath in genfiles:
+            kfile.finalize([plugin_dir])
+            sfile.finalize([plugin_dir])
+        driver.finalize([plugin_dir])
 
     # generate source files from each node of the tree
     for kfile, sfile, filepath in genfiles:
@@ -616,7 +679,7 @@ def generate_srcfiles():
             with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
                 fd.write(slines)
 
-    with open('%s/kernel_driver.f90'%Config.path['kernel'], 'wb') as fd:
+    with open('%s/%s.f90'%(Config.path['kernel'], UI_INFO.KERNEL_DRIVER_NAME), 'wb') as fd:
         #import pdb; pdb.set_trace()
         lines = driver.tostr()
         if lines is not None: fd.write(lines)

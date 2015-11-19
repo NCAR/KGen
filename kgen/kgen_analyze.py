@@ -229,7 +229,7 @@ def locate_callsite():
     from block_statements import Module, action_stmt, EndStatement
     from statements import Assignment, Call
     from kgen_state import ResState
-    from collections import OrderedDict
+    from ordereddict import OrderedDict
 
     # read source file that contains callsite stmt
     cs_file = SrcFile(Config.callsite['filename'])
