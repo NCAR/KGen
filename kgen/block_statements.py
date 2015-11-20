@@ -1156,18 +1156,22 @@ class If(BeginStatement):
         return
 
     def tostr(self):
-        assert len(self.content)==1,`self.content`
+        if isinstance(self, Statement): # KGEN addition
+            assert len(self.content)==1,`self.content`
 
-        # start of KGEN addtion
-        line = str(self.content[0]).lstrip()
+            # start of KGEN addtion
+            line = str(self.content[0]).lstrip()
 
-        # remove label
-        line = self.remove_label(line)
-        line = self.remove_construct_name(line)
+            # remove label
+            line = self.remove_label(line)
+            line = self.remove_construct_name(line)
 
-        return 'IF (%s) %s' % (self.expr, line)
-        # end of KGEN addtion
-        #return 'IF (%s) %s' % (self.expr, str(self.content[0]).lstrip()) # KGEN deletion
+            return 'IF (%s) %s' % (self.expr, line)
+            # end of KGEN addtion
+            #return 'IF (%s) %s' % (self.expr, str(self.content[0]).lstrip()) # KGEN deletion
+        else:
+            return 'IF (%s) %s' % (self.expr, self.action_stmt)
+
 
     def tofortran(self,isfix=None):
         return self.get_indent_tab(isfix=isfix) + self.tostr()

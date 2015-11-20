@@ -9,7 +9,7 @@ import base_classes
 import statements
 import block_statements
 import typedecl_statements
-from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath
+from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath, pack_exnamepath
 from kgen_state import State
 from ordereddict import OrderedDict
 
@@ -73,6 +73,12 @@ part_classes = {
 
 def get_indent(line):
     return re.match(r"\s*", line).group()
+
+def get_entity_name(entity):
+    from Fortran2003 import Entity_Decl
+ 
+    edecl = Entity_Decl(entity)
+    return edecl.items[0].string
 
 def _take_functions(cls, obj, end_obj):
     import types
@@ -261,6 +267,7 @@ def getinfo(name):
     elif name=='mpi_ranks': return Config.mpi['ranks']
     elif name=='invocation_size': return Config.invocation['size']
     elif name=='invocation_numbers': return Config.invocation['numbers']
+    elif name=='print_var_names': return Config.debug['printvar']
     else: raise ProgramException('No information for %s'%name)
 
 def set_plugin_env(mod):
@@ -269,6 +276,9 @@ def set_plugin_env(mod):
     mod.gensobj = genkobj
 
     mod.getinfo =  getinfo
+    mod.get_entity_name = get_entity_name
+    mod.pack_exnamepath = pack_exnamepath
+    mod.match_namepath = match_namepath
 
     mod.GENERATION_STAGE = GENERATION_STAGE
     mod.FILE_TYPE = FILE_TYPE

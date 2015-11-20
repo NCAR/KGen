@@ -7,7 +7,7 @@ from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import DRIVER_IN_LOCAL_PART, DRIVER_CALLSITE_PART, gencore_parts
 
-class Gen_K_Program(Kgen_Plugin):
+class Gen_K_Driver(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
         self.insertion_index = 0

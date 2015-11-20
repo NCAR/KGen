@@ -2347,7 +2347,7 @@ class Else(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             return 'ELSE ' + self.name
         return 'ELSE'
 
