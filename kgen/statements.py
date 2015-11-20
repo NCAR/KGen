@@ -714,14 +714,18 @@ class Access(Statement):
 
     # start of KGEN
     def tokgen(self):
-        items = self.items
         if hasattr(self, 'new_items'):
             items = self.new_items
             del self.new_items
+        elif hasattr(self, 'items'): items = self.items
+        else: items = None
 
-        clsname = self.__class__.__name__.upper()
-        if self.items:
-            return clsname + ' ' + ', '.join(self.items)
+        if isinstance(self, Statement):
+            clsname = self.__class__.__name__.upper()
+        else: clsname = self.kgen_match_class.__name__.upper()
+
+        if items:
+            return clsname + ' ' + ', '.join(items)
         return clsname
     # end of KGEN
 

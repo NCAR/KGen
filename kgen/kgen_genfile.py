@@ -240,16 +240,16 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
                                     if node.kgen_stmt:
                                         if isinstance(node.kgen_stmt, target):
                                             for matchfunc, cbfunc in funclist:
-                                                if matchfunc(node): cbfunc(node)
+                                                if matchfunc is None or matchfunc(node): cbfunc(node)
                                     elif node.kgen_match_class:
                                         if node.kgen_match_class is target:
                                             for matchfunc, cbfunc in funclist:
-                                                if matchfunc(node): cbfunc(node)
+                                                if matchfunc is None or matchfunc(node): cbfunc(node)
                                     else: raise ProgramException('Incorrect node type: %s'%node)
                                 else:
-                                    if node.kgen_stmt is target:
+                                    if node is target:
                                         for matchfunc, cbfunc in funclist:
-                                            if matchfunc(node): cbfunc(node)
+                                            if matchfunc is None or matchfunc(node): cbfunc(node)
 
 def getinfo(name):
     if name=='kernel_name': return Config.callsite['subpname'].firstpartname()
@@ -277,6 +277,7 @@ def set_plugin_env(mod):
     mod.create_part = create_part
     mod.remove_part = remove_part
     mod.get_part = get_part
+    mod.has_object_in_part = has_object_in_part
     mod.get_index_part_order = get_index_part_order
     mod.register_part_to_part_order = register_part_to_part_order
     mod.unregister_part_from_part_order = unregister_part_from_part_order
@@ -375,6 +376,17 @@ def extend_part(node, part_name, items):
 def discard_items_in_part(node, part_name):
     part = get_part(node, part_name)
     part = []
+
+
+def has_object_in_part(node, part_name, cls, attrs=None ):
+    part = get_part(node, part_name)
+    for item in part:
+        if hasattr(item, 'kgen_stmt') and isinstance(item.kgen_stmt, cls):
+            if attrs is None:
+                return True
+            elif all(hasattr(item, k)  and getattr(item, k)==v for k, v in attrs.items()):
+                return True
+    return False
 
 ########### Statement ############
 class Gen_Statement(object):
@@ -592,27 +604,37 @@ class Gen_BeginStatement(object):
     def beginstatement_created(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.NODE_CREATED, self, plugins=plugins)
 
+        temp_parts = {}
         for part_name in self.kgen_part_order:
             part = getattr(self, 'part_%s'%part_name)
-            for item in part:
+            temp_parts[part_name] = part[:]
+
+        for part_name in self.kgen_part_order:
+            for item in temp_parts[part_name]:
                 item.created(plugins)
 
     def beginstatement_process(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.BEGIN_PROCESS, self, plugins=plugins)
-        # process head
 
-        # process children
+        temp_parts = {}
         for part_name in self.kgen_part_order:
             part = getattr(self, 'part_%s'%part_name)
-            for item in part:
+            temp_parts[part_name] = part[:]
+
+        for part_name in self.kgen_part_order:
+            for item in temp_parts[part_name]:
                 item.process(plugins)
 
     def beginstatement_finalize(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.FINISH_PROCESS, self, plugins=plugins)
 
+        temp_parts = {}
         for part_name in self.kgen_part_order:
             part = getattr(self, 'part_%s'%part_name)
-            for item in part:
+            temp_parts[part_name] = part[:]
+
+        for part_name in self.kgen_part_order:
+            for item in temp_parts[part_name]:
                 item.finalize(plugins)
 
     def insert_in_order(self, item, insert_order):

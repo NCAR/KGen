@@ -680,7 +680,42 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
     def tokgen(self):
         construct_name = self.construct_name
         construct_name = construct_name + ': ' if construct_name else ''
-        return construct_name + self.tostr()
+
+        tosubr = False
+        if hasattr(self, 'tosurb'):
+            tosubr = True
+            del self.tosurb
+
+        if tosubr: clsname = 'SUBROUTINE'
+        elif isinstance(self, Statement): clsname = self.__class__.__name__.upper()
+        else: clsname = self.kgen_match_class.__name__.upper()
+
+        if hasattr(self, 'new_args'):
+            args = self.new_args
+            del self.new_args
+        elif hasattr(self, 'args'): args = self.args
+        else: args = None
+
+        s = ''
+        if hasattr(self, 'prefix') and self.prefix:
+            s += self.prefix + ' '
+        if not tosubr:
+            if isinstance(self, Statement):
+                if hasattr(self, 'typedecl') and self.typedecl is not None:
+                    assert isinstance(self, Function),`self.__class__.__name__`
+                    if not hasattr(self, 'result_in_typedecl') or not self.result_in_typedecl:
+                        s += self.typedecl.tostr() + ' '
+                elif hasattr(self.parent, 'funcresult_in_stmt') and self.name in self.parent.funcresult_in_stmt.keys():
+                    s += self.parent.funcresult_in_stmt[self.name] + ' '
+        s += clsname
+        suf = ''
+        if not tosubr:
+            if hasattr(self, 'result') and self.result and self.result!=self.name:
+                suf += ' RESULT ( %s )' % (self.result)
+        if hasattr(self, 'bind') and self.bind:
+            suf += ' BIND ( %s )' % (', '.join(self.bind))
+
+        return construct_name + '%s %s(%s)%s' % (s, self.name,', '.join(args),suf) 
 
     def process_item(self):
         clsname = self.__class__.__name__.lower()
@@ -718,26 +753,12 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         return BeginStatement.process_item(self)
 
     def tostr(self):
-        # start of KGEN addition
-        tosubr = False
-        if hasattr(self, 'tosurb'): tosubr = True
+        clsname = self.__class__.__name__.upper()
 
-        if tosubr: clsname = 'SUBROUTINE'
-        else: clsname = self.__class__.__name__.upper()
-
-        if hasattr(self, 'new_args'):
-            args = self.new_args
-            del self.new_args
-        else: args = self.args
-        # end of KGEN addition
-
-        #clsname = self.__class__.__name__.upper() # KGEN deletion
         s = ''
-        #if self.prefix: # KGEN deletion
-        if hasattr(self, 'prefix') and self.prefix: # KGEN addition
+        if self.prefix: # KGEN deletion
             s += self.prefix + ' '
-        #if self.typedecl is not None: # KGEN deletion
-        if not tosubr: # KGEN addition
+        if self.typedecl is not None: # KGEN deletion
             # start of KGEN addtion
             if hasattr(self, 'typedecl') and self.typedecl is not None:
                 assert isinstance(self, Function),`self.__class__.__name__`
@@ -750,14 +771,12 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         s += clsname
         suf = ''
         #if self.result and self.result!=self.name: # KGEN deletion
-        if not tosubr:
-            if hasattr(self, 'result') and self.result and self.result!=self.name: # KGEN addition
-                suf += ' RESULT ( %s )' % (self.result)
-        if hasattr(self, 'bind') and self.bind:
+        if self.result and self.result!=self.name: # KGEN addition
+            suf += ' RESULT ( %s )' % (self.result)
+        if self.bind:
             suf += ' BIND ( %s )' % (', '.join(self.bind))
 
-        return '%s %s(%s)%s' % (s, clsname,', '.join(args),suf) # KGEN additon
-        #return '%s %s(%s)%s' % (s, self.name,', '.join(self.args),suf) # KGEN deletion
+        return '%s %s(%s)%s' % (s, self.name,', '.join(self.args),suf) # KGEN deletion
 
     def get_classes(self):
         return f2py_stmt + specification_part + execution_part \
