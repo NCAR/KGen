@@ -48,6 +48,7 @@ match_classes = {
     block_statements.Program: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART, EXEC_PART, CONTAINS_PART, SUBP_PART ],
     block_statements.Module: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART, CONTAINS_PART, SUBP_PART ],
     block_statements.Subroutine: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART, EXEC_PART, CONTAINS_PART, SUBP_PART ],
+    block_statements.Function: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART, EXEC_PART, CONTAINS_PART, SUBP_PART ],
     block_statements.Type: [ TYPE_PD_PART, TYPE_POS_PART, TYPE_COMP_PART, TYPE_BP_PART ],
     block_statements.BlockData: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART ],
     block_statements.Interface: [ INTF_SPEC_PART ]
@@ -388,13 +389,18 @@ def discard_items_in_part(node, part_name):
     part = []
 
 
-def has_object_in_part(node, part_name, cls, attrs=None ):
+def has_object_in_part(node, part_name, cls, attrs=None, method=lambda x,y:x==y ):
     part = get_part(node, part_name)
     for item in part:
         if hasattr(item, 'kgen_stmt') and isinstance(item.kgen_stmt, cls):
             if attrs is None:
                 return True
-            elif all(hasattr(item, k)  and getattr(item, k)==v for k, v in attrs.items()):
+            else:
+                for k, v in attrs.items():
+                    try:
+                        exec('attr_value = item.%s'%k)
+                        if not method(v, attr_value): return False
+                    except: return False
                 return True
     return False
 

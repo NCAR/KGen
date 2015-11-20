@@ -1090,6 +1090,20 @@ class Data(Statement):
         return 'DATA ' + ' '.join(l)
 
     def resolve_uname(self, uname, request):
+        # need to add geninfo if uname is used
+        # need to resolve if any new name is used
+
+#        from kgen_utils import KGName
+#        for item in self.items:
+#            if item.startswith('/') and item.endswith('/'):
+#                if uname.firstpartname()==item[1:-1].strip():
+#                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
+#                    self.add_geninfo(newname, request)
+#            else:
+#                if uname.firstpartname()==item:
+#                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
+#                    self.add_geninfo(newname, request)
+
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
     # end of KGEN addition
@@ -2387,7 +2401,7 @@ class ElseIf(Statement):
     # start of KGEN addition
     def tokgen(self):
         s = ''
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             s = ' ' + self.name
         return 'ELSE IF (%s) THEN%s'%(self.expr, s)
 

@@ -1,4 +1,4 @@
-# gen_write_type_state.py
+# gen_write_type.py
  
 import statements
 import block_statements
@@ -11,6 +11,8 @@ class Gen_S_Type(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
         self.is_contains_created = False
+        self.created_use_items = []
+        self.created_public_items = []
 
     # registration
     def register(self, msg):
@@ -18,13 +20,18 @@ class Gen_S_Type(Kgen_Plugin):
 
         # register initial events
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            block_statements.Type, None, self.create_dtype_write_subr) 
+            block_statements.Type, self.has_state_info, self.create_dtype_write_subr) 
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
             statements.Use, self.has_dtype_res_path, self.add_subrnames_in_use_public) 
 
+    def has_state_info(self, node):
+        if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0:
+            return True
+        else: return False
+
     def has_dtype_res_path(self, node):
-        if hasattr(node, 'kgen_stmt') and hasattr(node.kgen_stmt, 'geninfo'):
+        if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo'):
             if not node.kgen_stmt.isonly: return False
             for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
                 if any(isinstance(req.res_stmts[0], block_statements.Type) for uname, req in reqlist):
@@ -32,13 +39,22 @@ class Gen_S_Type(Kgen_Plugin):
         return False
 
     def add_subrnames_in_use_public(self, node):
+        parent = node.kgen_parent
+
         for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
             for uname, req in reqlist:
                 if isinstance(req.res_stmts[0], block_statements.Type):
-                    # add kwname in use and public
-                    import pdb; pdb.set_trace()
-                    #attrs = {'items': ['var%%%s'%entity_name], 'specs': ['UNIT = kgen_unit']}
-                    #append_item_in_part(subrobj, EXEC_PART, gensobj(subrobj, statements.Write, subrobj.kgen_kernel_id, attrs=attrs))
+                    subrname = get_dtype_writename(node.kgen_stmt)
+                    if subrname not in self.created_use_items and \
+                        not has_object_in_part(parent, USE_PART, statements.Use, attrs={'kgen_stmt.items':subrname}, method=lambda x, y: x in y ): 
+                        attrs = {'name':node.kgen_stmt.name, 'isonly': True, 'items':[subrname]}
+                        append_item_in_part(parent, USE_PART, gensobj(parent, statements.Use, parent.kgen_kernel_id, attrs=attrs))
+                        self.created_use_items.append(subrname)
+                    if subrname not in self.created_public_items and \
+                        not has_object_in_part(parent, DECL_PART, statements.Use, attrs={'kgen_stmt.items':subrname}, method=lambda x, y: x in y ):
+                        attrs = {'items':[subrname]}
+                        append_item_in_part(parent, DECL_PART, gensobj(parent, statements.Public, parent.kgen_kernel_id, attrs=attrs))
+                        self.created_public_items.append(subrname)
 
     def create_write_intrinsic(self, subrobj, entity_name):
         attrs = {'items': ['var%%%s'%entity_name], 'specs': ['UNIT = kgen_unit']}
@@ -80,7 +96,7 @@ class Gen_S_Type(Kgen_Plugin):
         if subrname is None: return
 
         parent = node.kgen_parent
-        if not has_object_in_part(parent, SUBP_PART, block_statements.Subroutine, attrs={'name':subrname} ):
+        if  not has_object_in_part(parent, SUBP_PART, block_statements.Subroutine, attrs={'name':subrname} ):
 
             if not self.is_contains_created and not has_object_in_part(parent, CONTAINS_PART, statements.Contains ):
                 append_comment_in_part(parent, CONTAINS_PART, '')
@@ -102,11 +118,11 @@ class Gen_S_Type(Kgen_Plugin):
 
             # kgen_unit
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
-            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Type, node.kgen_kernel_id, attrs=attrs))
+            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Integer, node.kgen_kernel_id, attrs=attrs))
 
             # printvar
             attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(IN)', 'OPTIONAL'], 'selector':('*', None), 'entity_decls': ['printvar']}
-            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Type, node.kgen_kernel_id, attrs=attrs))
+            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Character, node.kgen_kernel_id, attrs=attrs))
             append_comment_in_part(subrobj, DECL_PART, '')
 
             comp_part = get_part(node, TYPE_COMP_PART) 
@@ -147,6 +163,7 @@ class Gen_S_Type(Kgen_Plugin):
                 append_comment_in_part(subrobj, EXEC_PART, '')
 
             # create public stmt
-            attrs = {'items': [subrname]}
-            append_item_in_part(parent, DECL_PART, gensobj(parent, statements.Public, node.kgen_kernel_id, attrs=attrs))
+            if parent.kgen_match_class in [ block_statements.Program, block_statements.Module ]:
+                attrs = {'items': [subrname]}
+                append_item_in_part(parent, DECL_PART, gensobj(parent, statements.Public, node.kgen_kernel_id, attrs=attrs))
 
