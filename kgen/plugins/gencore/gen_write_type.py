@@ -56,25 +56,71 @@ class Gen_S_Type(Kgen_Plugin):
                         append_item_in_part(parent, DECL_PART, gensobj(parent, statements.Public, parent.kgen_kernel_id, attrs=attrs))
                         self.created_public_items.append(subrname)
 
-    def create_write_intrinsic(self, subrobj, entity_name):
+    def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
+        pobj = subrobj
+        if not var.is_array() and var.is_pointer():
+            attrs = {'expr': 'ASSOCIATED(var%%%s)'%entity_name}
+            ifptrobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
+            append_item_in_part(subrobj, EXEC_PART, ifptrobj)
+
+            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
+            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+
+            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Else, ifptrobj.kgen_kernel_id))
+
+            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
+            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+
+            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+            append_item_in_part(subrobj, EXEC_PART, gensobj(subrobj, statements.Write, subrobj.kgen_kernel_id, attrs=attrs))
+
+            attrs = {'expr': 'is_true'}
+            iftrueobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
+            append_item_in_part(subrobj, EXEC_PART, iftrueobj)
+
+            pobj = iftrueobj
+
         attrs = {'items': ['var%%%s'%entity_name], 'specs': ['UNIT = kgen_unit']}
-        append_item_in_part(subrobj, EXEC_PART, gensobj(subrobj, statements.Write, subrobj.kgen_kernel_id, attrs=attrs))
+        append_item_in_part(pobj, EXEC_PART, gensobj(pobj, statements.Write, pobj.kgen_kernel_id, attrs=attrs))
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'var%%%s'%entity_name]}
-            append_item_in_part(subrobj, EXEC_PART, gensobj(subrobj, statements.Write, subrobj.kgen_kernel_id, attrs=attrs))
+            append_item_in_part(pobj, EXEC_PART, gensobj(pobj, statements.Write, pobj.kgen_kernel_id, attrs=attrs))
         else:
             attrs = {'expr': 'PRESENT( printvar )'}
-            ifobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-            append_item_in_part(subrobj, EXEC_PART, ifobj)
+            ifobj = gensobj(pobj, block_statements.IfThen, pobj.kgen_kernel_id, attrs=attrs)
+            append_item_in_part(pobj, EXEC_PART, ifobj)
 
             attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'var%%%s'%entity_name]}
             append_item_in_part(ifobj, EXEC_PART, gensobj(ifobj, statements.Write, ifobj.kgen_kernel_id, attrs=attrs))
 
-    def create_write_call(self, subrobj, callname, entity_name):
+    def create_write_call(self, subrobj, callname, entity_name, stmt, var):
+        pobj = subrobj
+        if not var.is_array() and var.is_pointer():
+            attrs = {'expr': 'ASSOCIATED(var%%%s)'%entity_name}
+            ifptrobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
+            append_item_in_part(subrobj, EXEC_PART, ifptrobj)
+
+            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
+            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+
+            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Else, ifptrobj.kgen_kernel_id))
+
+            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
+            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+
+            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+            append_item_in_part(subrobj, EXEC_PART, gensobj(subrobj, statements.Write, subrobj.kgen_kernel_id, attrs=attrs))
+
+            attrs = {'expr': 'is_true'}
+            iftrueobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
+            append_item_in_part(subrobj, EXEC_PART, iftrueobj)
+
+            pobj = iftrueobj
+
         attrs = {'expr': 'PRESENT( printvar )'}
-        ifobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-        append_item_in_part(subrobj, EXEC_PART, ifobj)
+        ifobj = gensobj(pobj, block_statements.IfThen, pobj.kgen_kernel_id, attrs=attrs)
+        append_item_in_part(pobj, EXEC_PART, ifobj)
 
         attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit', 'printvar // "%%%s"'%entity_name]}
         append_item_in_part(ifobj, EXEC_PART, gensobj(ifobj, statements.Call, ifobj.kgen_kernel_id, attrs=attrs))
@@ -105,7 +151,7 @@ class Gen_S_Type(Kgen_Plugin):
                 self.is_contains_created = True
 
             append_comment_in_part(parent, SUBP_PART, 'read state subroutine for %s'%subrname)
-            attrs = {'name': subrname, 'args': ['var', 'kgen_unit', 'printvar']}
+            attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['var', 'kgen_unit', 'printvar']}
             subrobj = gensobj(parent, block_statements.Subroutine, node.kgen_kernel_id, attrs=attrs)
             append_item_in_part(parent, SUBP_PART, subrobj)
             append_comment_in_part(parent, SUBP_PART, '')
@@ -123,6 +169,10 @@ class Gen_S_Type(Kgen_Plugin):
             # printvar
             attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(IN)', 'OPTIONAL'], 'selector':('*', None), 'entity_decls': ['printvar']}
             append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Character, node.kgen_kernel_id, attrs=attrs))
+
+            # is_true
+            attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_true']}
+            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Logical, subrobj.kgen_kernel_id, attrs=attrs))
             append_comment_in_part(subrobj, DECL_PART, '')
 
             comp_part = get_part(node, TYPE_COMP_PART) 
@@ -138,12 +188,12 @@ class Gen_S_Type(Kgen_Plugin):
 
                     if var.is_array():
                         if stmt.is_derived():
-                            self.create_write_call(subrobj, callname, entity_name)
+                            self.create_write_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
                             if var.is_explicit_shape_array():
-                                self.create_write_intrinsic(subrobj, entity_name)
+                                self.create_write_intrinsic(subrobj, entity_name, stmt, var)
                             else: # implicit array
-                                self.create_write_call(subrobj, callname, entity_name)
+                                self.create_write_call(subrobj, callname, entity_name, stmt, var)
                     else: # scalar
                         if stmt.is_derived():
                             callname = None
@@ -153,12 +203,12 @@ class Gen_S_Type(Kgen_Plugin):
                                     callname = get_dtype_writename(res)
                                     break
                             if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
-                            self.create_write_call(subrobj, callname, entity_name)
+                            self.create_write_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
                             if var.is_pointer():
-                                self.create_write_call(subrobj, callname, entity_name)
+                                self.create_write_call(subrobj, callname, entity_name, stmt, var)
                             else: # not a pointer
-                                self.create_write_intrinsic(subrobj, entity_name)
+                                self.create_write_intrinsic(subrobj, entity_name, stmt, var)
 
                 append_comment_in_part(subrobj, EXEC_PART, '')
 
