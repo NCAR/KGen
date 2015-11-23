@@ -15,6 +15,8 @@ from ordereddict import OrderedDict
 
 ########### Common ############
 
+TAB = ' '*4
+
 class GENERATION_STAGE(object):
     NODE_CREATED, BEGIN_PROCESS, FINISH_PROCESS, ALL_STAGES = range(4)
 
@@ -24,10 +26,13 @@ class FILE_TYPE(object):
 class KERNEL_SELECTION(object):
     ALL, FIRST, LAST = ('all', 'first', 'last')
 
-event_register = OrderedDict()
+KERNEL_ID_0 = 0
 
-TAB = ' '*4
-DUMMY_KERNEL_ID = 0
+event_register = OrderedDict()
+named_parts = {}
+
+
+PART_PREFIX = '_kgen_part_'
 
 UNIT_PART = 'unit'
 USE_PART = 'use'
@@ -254,21 +259,30 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
                                                 if matchfunc is None or matchfunc(node): cbfunc(node)
                                     else: raise ProgramException('Incorrect node type: %s'%node)
                                 else:
-                                    if node is target:
+                                    if isinstance(target, Gen_Statement) and node is target:
+                                        for matchfunc, cbfunc in funclist:
+                                            if matchfunc is None or matchfunc(node): cbfunc(node)
+                                    elif isinstance(target, base_classes.Statement) and node.kgen_stmt is target:
                                         for matchfunc, cbfunc in funclist:
                                             if matchfunc is None or matchfunc(node): cbfunc(node)
 
 def getinfo(name):
     if name=='kernel_name': return Config.callsite['subpname'].firstpartname()
+    elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
     elif name=='kernel_driver_name': return State.kernel_driver['name']
     elif name=='kernel_driver_args': return State.kernel_driver['args']
     elif name=='parentblock_subp_name': return State.parentblock['stmt'].name
     elif name=='is_mpi_app': return Config.mpi['enabled']
     elif name=='mpi_rank_size': return Config.mpi['size']
     elif name=='mpi_ranks': return Config.mpi['ranks']
+    elif name=='mpi_comm': return Config.mpi['comm']
     elif name=='invocation_size': return Config.invocation['size']
     elif name=='invocation_numbers': return Config.invocation['numbers']
     elif name=='print_var_names': return Config.debug['printvar']
+    elif name=='callsite_file_path': return Config.callsite['filepath']
+    elif name=='callsite_stmt': return State.callsite['stmt']
+    elif name=='parentblock_stmt': return State.parentblock['stmt']
+    elif name=='topblock_stmt': return State.topblock['stmt']
     else: raise ProgramException('No information for %s'%name)
 
 def set_plugin_env(mod):
@@ -285,21 +299,40 @@ def set_plugin_env(mod):
     mod.FILE_TYPE = FILE_TYPE
     mod.KERNEL_SELECTION = KERNEL_SELECTION
 
-    mod.create_part = create_part
-    mod.remove_part = remove_part
+    mod.get_partname = get_partname
+    mod.get_rawname = get_rawname
+    mod.check_node = check_node
+
+    mod.get_namedpart = get_namedpart
+    mod.namedpart_gennode = namedpart_gennode
+    mod.namedpart_create_subpart = namedpart_create_subpart
+    mod.namedpart_link_part = namedpart_link_part
+    mod.namedpart_remove_subpart = namedpart_remove_subpart
+    mod.namedpart_has_node = namedpart_has_node
+    mod.namedpart_get_node = namedpart_get_node
+    mod.namedpart_append_node = namedpart_append_node
+    mod.namedpart_append_genknode = namedpart_append_genknode
+    mod.namedpart_append_gensnode = namedpart_append_gensnode
+    mod.namedpart_append_comment = namedpart_append_comment
+    mod.namedpart_insert_node = namedpart_insert_node
+    mod.namedpart_insert_genknode = namedpart_insert_genknode
+    mod.namedpart_insert_gensnode = namedpart_insert_gensnode
+    mod.namedpart_remove_node = namedpart_remove_node
+
     mod.get_part = get_part
-    mod.has_object_in_part = has_object_in_part
-    mod.get_index_part_order = get_index_part_order
-    mod.register_part_to_part_order = register_part_to_part_order
-    mod.unregister_part_from_part_order = unregister_part_from_part_order
-    mod.insert_item_in_part = insert_item_in_part
-    mod.append_item_in_part = append_item_in_part
-    mod.append_comment_in_part = append_comment_in_part
-    mod.extend_part = extend_part
-    mod.discard_items_in_part = discard_items_in_part
+    mod.get_part_index = get_part_index
+    mod.part_has_node = part_has_node
+    mod.part_get_node = part_get_node
+    mod.part_append_node = part_append_node
+    mod.part_append_genknode = part_append_genknode
+    mod.part_append_gensnode = part_append_gensnode
+    mod.part_append_comment = part_append_comment
+    mod.part_insert_node = part_insert_node
+    mod.part_insert_genknode = part_insert_genknode
+    mod.part_insert_gensnode = part_insert_gensnode
+    mod.part_remove_node = part_remove_node
 
     mod.TAB = TAB
-    mod.DUMMY_KERNEL_ID = DUMMY_KERNEL_ID
 
     mod.UNIT_PART = UNIT_PART
     mod.USE_PART = USE_PART
@@ -345,64 +378,261 @@ def init_plugins():
                     event_register[plugin_dir][cls.__module__][obj] = OrderedDict() 
                 obj.register(PluginMsg(event_register[plugin_dir][cls.__module__][obj]))
 
-def create_part(node, part_name):
-    part = 'part_%s'%part_name
-    setattr(node, part, [])
-    return getattr(node, part)
 
-def remove_part(node, part_name):
-    part = 'part_%s'%part_name
-    delattr(node, part)
+def get_namedpart(kernel_id, name):
+    assert named_parts.has_key(kernel_id), 'missing kernel id %s'%str(kernel_id)
+    assert named_parts[kernel_id].has_key(name), 'No part is found by the name of %s'%name
 
-def get_index_part_order(node, part_name):
-    return node.kgen_part_order.index(part_name)
+    return named_parts[kernel_id][name]
 
-def unregister_part_from_part_order(node, part_name):
-    node.kgen_part_order.remove(part_name)
+def namedpart_gennode(genfunc, clsobj, kernel_id, name, attrs=None):
+    assert clsobj
 
-def register_part_to_part_order(node, index, part_name):
-    node.kgen_part_order.insert(index, part_name)
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    return  genfunc(pnode, clsobj, kernel_id, attrs=attrs)
 
-def get_part(node, part_name):
-    part = 'part_%s'%part_name
-    return getattr(node, part)
+def get_partname(name, is_partname):
+    if is_partname:return name
+    else: return PART_PREFIX + name
 
-def insert_item_in_part(node, part_name, index, item):
-    part = get_part(node, part_name)
+def get_rawname(name, is_partname):
+    if is_partname:return name[len(PART_PREFIX):]
+    else: return name
+
+def get_part(node, name, is_partname=False):
+    partname = get_partname(name, is_partname)
+    return getattr(node, partname)
+
+def get_part_index(node):
+    pnode = node.kgen_parent
+    for name in pnode.kgen_part_order:
+        part = get_part(pnode, name)
+        for i, partnode in enumerate(part):
+            if partnode==node:
+                return part, i
+            elif isinstance(partnode, list):
+                for j, subpartnode in enumerate(partnode):
+                    if subpartnode==node:
+                        return part, i
+    return None, -1
+
+def check_node(node, checks):
+    if not isinstance(node, Gen_Statement):
+        import pdb; pdb.set_trace()
+        raise ProgramException('Not Gen_Statement type')
+
+    for checkfunc in checks:
+        if not callable(checkfunc): return False
+        if not checkfunc(node): return False
+    return True
+
+def namedpart_create_subpart(pnode, name, rawname, index=None):
+    assert pnode
+
+    kernel_id = pnode.kgen_kernel_id
+    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = {} 
+    
+    named_part = []
+    named_parts[kernel_id][name] = (pnode, rawname, named_part)
+    part_insert_node(pnode, rawname, index, named_part)
+    return named_part
+
+def namedpart_link_part(pnode, name, rawname):
+    assert pnode
+
+    kernel_id = pnode.kgen_kernel_id
+    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = {} 
+   
+    part = get_part(pnode, rawname) 
+    named_parts[kernel_id][name] = (pnode, rawname, part)
+    return part
+
+def namedpart_remove_subpart(kernel_id, name):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    part_remove_node(pnode, rawname, named_part)
+    return named_part
+
+def namedpart_has_node(kernel_id, name, checks, is_partname=False):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    for node in named_part:
+        if check_node(node, checks): return True
+    return False
+
+def namedpart_get_node(kernel_id, name, checks, is_partname=False):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    for node in named_part:
+        if check_node(node, checks): return node
+
+def namedpart_append_node(kernel_id, name, node):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    named_part.append(node)
+    return node
+
+def namedpart_append_gennode(genfunc, kernel_id, name, clsobj, attrs=None):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    node = namedpart_gennode(genfunc, clsobj, kernel_id, name, attrs=attrs)
+    named_part.append(node)
+    return node
+
+def namedpart_append_genknode(kernel_id, name, clsobj, attrs=None):
+    return namedpart_append_gennode(genkobj, kernel_id, name, clsobj, attrs=attrs)
+
+def namedpart_append_gensnode(kernel_id, name, clsobj, attrs=None):
+    return namedpart_append_gennode(gensobj, kernel_id, name, clsobj, attrs=attrs)
+
+def namedpart_append_comment(kernel_id, name, comment_string, style=None):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    comment = gensobj(pnode, statements.Comment, kernel_id, attrs={'comment': comment_string, 'style':style})
+    named_part.append(comment)
+    return comment
+
+def namedpart_insert_node(kernel_id, name, index, node):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    named_part.insert(index, node)
+    return node
+
+def namedpart_insert_gennode(genfunc, kernel_id, name, clsobj, index, attrs=None):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    node = namedpart_gennode(genfunc, clsobj, kernel_id, name, attrs=attrs)
+    named_part.insert(index, node)
+    return node
+
+def namedpart_insert_genknode(kernel_id, name, clsobj, index, attrs=None):
+    return namedpart_insert_node(genkobj, kernel_id, name, clsobj, index, attrs=attrs)
+
+def namedpart_insert_gensnode(kernel_id, name, clsobj, index, attrs=None):
+    return namedpart_insert_node(gensobj, kernel_id, name, clsobj, index, attrs=None)
+
+def namedpart_remove_node(kernel_id, name, node):
+    pnode, rawname, named_part = get_namedpart(kernel_id, name)
+    named_part.remove(node)
+    return node
+
+def part_has_node(pnode, name, checks, is_partname=False):
+    part = get_part(pnode, name, is_partname=is_partname)
+    for node in part:
+        if isinstance(node, list):
+            for subnode in node:
+                if check_node(subnode, checks): return True
+        elif check_node(node, checks): return True
+    return False
+
+def part_get_node(pnode, name, checks, is_partname=False):
+    part = get_part(pnode, name, is_partname=is_partname)
+    for node in part:
+        if isinstance(node, list):
+            for subnode in node:
+                if check_node(subnode, checks): return subnode
+        elif check_node(node, checks): return node
+
+def part_append_node(pnode, name, node, is_partname=None):
+    part = get_part(pnode, name, is_partname=is_partname)
+    part.append(node)
+    return node
+
+def part_append_gennode(genfunc, pnode, name, clsobj, attrs=None, is_partname=None):
+    part = get_part(pnode, name, is_partname=is_partname)
+    node = genfunc(pnode, clsobj, pnode.kgen_kernel_id, attrs=attrs)
+    part.append(node)
+    return node
+
+def part_append_genknode(pnode, name, clsobj, attrs=None, is_partname=None):
+    return part_append_gennode(genkobj, pnode, name, clsobj, attrs=attrs, is_partname=is_partname)
+
+def part_append_gensnode(pnode, name, clsobj, attrs=None, is_partname=None):
+    return part_append_gennode(gensobj, pnode, name, clsobj, attrs=attrs, is_partname=is_partname)
+
+def part_append_comment(pnode, name, comment_string, is_partname=None, style=None):
+    part = get_part(pnode, name, is_partname=is_partname)
+    comment = gensobj(pnode, statements.Comment, pnode.kgen_kernel_id, attrs={'comment': comment_string, 'style':style})
+    part.append(comment)
+    return comment
+
+def part_insert_node(pnode, name, index, node, is_partname=None):
+    part = get_part(pnode, name, is_partname=is_partname)
+    if index is None: index = len(part)
+    part.insert(index, node)
+    return node
+
+def part_insert_gennode(genfunc, pnode, name, clsobj, index, attrs=None, is_partname=None):
+    part = get_part(pnode, name, is_partname=is_partname)
+    node = genfunc(pnode, clsobj, pnode.kgen_kernel_id, attrs=attrs)
+    part.insert(index, node)
+    return node
+
+def part_insert_genknode(pnode, name, clsobj, index, attrs=None, is_partname=None):
+    return part_append_gennode(genkobj, pnode, name, clsobj, index, attrs=attrs, is_partname=is_partname)
+
+def part_insert_gensnode(pnode, name, clsobj, index, attrs=None, is_partname=None):
+    return part_append_gennode(gensobj, pnode, name, clsobj, index, attrs=attrs, is_partname=is_partname)
+
+def part_remove_node(pnode, name, node):
+    part = get_part(pnode, name, is_partname=is_partname)
+    part.remove(node)
+    return node
+
+#######################################3
+
+def create_part(node, name, is_partname=False):
+    partname = get_partname(name, is_partname)
+    setattr(node, partname, [])
+    return getattr(node, partname)
+
+def remove_part(node, name, is_partname=False):
+    partname = get_partname(name, is_partname)
+    delattr(node, partname)
+
+def get_index_part_order(node, name, is_partname=False):
+    rawname = get_rawname(name, is_partname)
+    return node.kgen_part_order.index(rawname)
+
+def unregister_part_from_part_order(node, name, is_partname=False):
+    rawname = get_rawname(name, is_partname)
+    node.kgen_part_order.remove(rawname)
+
+def register_part_to_part_order(node, index, name, is_partname=False):
+    rawname = get_rawname(name, is_partname)
+    node.kgen_part_order.insert(index, rawname)
+
+def insert_item_in_part(node, name, index, item, is_partname=False):
+    part = get_part(node, name, is_partname=is_partname)
     part.insert(index, item)
 
-def append_item_in_part(node, part_name, item):
-    part = get_part(node, part_name)
+def insert_itemlist_in_part(node, name, index, itemlist, is_partname=False):
+    part = get_part(node, name, is_partname=is_partname)
+    part[index:index] = itemlist
+
+def append_item_in_part(node, name, item, is_partname=False):
+    part = get_part(node, name, is_partname=is_partname)
     part.append(item)
 
-def append_comment_in_part(node, part_name, comment_string):
-    part = get_part(node, part_name)
-    comment = gensobj(node, statements.Comment, DUMMY_KERNEL_ID, attrs={'comment': comment_string})
-    part.append(comment)
-
-def extend_part(node, part_name, items):
-    part = get_part(node, part_name)
+def extend_part(node, name, items, is_partname=False):
+    part = get_part(node, name, is_partname=is_partname)
     part.extend(items)
 
-def discard_items_in_part(node, part_name):
-    part = get_part(node, part_name)
+def replace_part(node, old_part, new_part):
+    for partname in [p for p in dir(node) if p.startswith(PART_PREFIX)]:
+        part = get_part(node, partname, is_partname=True)
+        if part==old_part:
+            setattr(node, partname, new_part)
+
+def get_mypart(node, only_in_part_order=True):
+    if only_in_part_order:
+        upper_node = node.kgen_parent
+        for name in upper_node.kgen_part_order:
+            part = get_part(upper_node, name)
+            if node in part: return part
+    else:
+        pass
+
+def discard_items_in_part(node, name, is_partname=False):
+    part = get_part(node, name, is_partname=is_partname)
     part = []
 
 
-def has_object_in_part(node, part_name, cls, attrs=None, method=lambda x,y:x==y ):
-    part = get_part(node, part_name)
-    for item in part:
-        if hasattr(item, 'kgen_stmt') and isinstance(item.kgen_stmt, cls):
-            if attrs is None:
-                return True
-            else:
-                for k, v in attrs.items():
-                    try:
-                        exec('attr_value = item.%s'%k)
-                        if not method(v, attr_value): return False
-                    except: return False
-                return True
-    return False
+
+###################################
+
 
 ########### Statement ############
 class Gen_Statement(object):
@@ -554,16 +784,16 @@ class Gen_BeginStatement(object):
         self.kgen_part_order = []
         if match_classes.has_key(match_class):
             # add partition
-            for part_name in match_classes[match_class]:
-                part = 'part_%s'%part_name
-                self.kgen_part_order.append(part_name)
-                setattr(self, part, [])
+            for name in match_classes[match_class]:
+                partname = PART_PREFIX + name
+                self.kgen_part_order.append(name)
+                setattr(self, partname, [])
         else:
             # add default partition
-            for part_name in default_part_names:
-                part = 'part_%s'%part_name
-                self.kgen_part_order.append(part_name)
-                setattr(self, part, [])
+            for name in default_part_names:
+                partname = PART_PREFIX + name
+                self.kgen_part_order.append(name)
+                setattr(self, partname, [])
 
         if self.kgen_file_type==FILE_TYPE.KERNEL:
             if not self.kgen_isvalid: return
@@ -610,48 +840,65 @@ class Gen_BeginStatement(object):
 
     def tostring_parts(self):
         lines = []
-        for part_name in self.kgen_part_order:
-            part = getattr(self, 'part_%s'%part_name)
-            for item in part:
-                l = item.tostring()
-                if l is not None: lines.append(l)
+        for name in self.kgen_part_order:
+            part = getattr(self, PART_PREFIX + name)
+            for node in part:
+                if isinstance(node, list):
+                    for sub_node in node:
+                        l = sub_node.tostring()
+                        if l is not None: lines.append(l)
+                else:
+                    l = node.tostring()
+                    if l is not None: lines.append(l)
         return lines
 
     def beginstatement_created(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.NODE_CREATED, self, plugins=plugins)
 
         temp_parts = {}
-        for part_name in self.kgen_part_order:
-            part = getattr(self, 'part_%s'%part_name)
-            temp_parts[part_name] = part[:]
+        for name in self.kgen_part_order:
+            part = getattr(self, PART_PREFIX + name)
+            temp_parts[name] = part[:]
 
-        for part_name in self.kgen_part_order:
-            for item in temp_parts[part_name]:
-                item.created(plugins)
+        for name in self.kgen_part_order:
+            for node in temp_parts[name]:
+                if isinstance(node, list):
+                    for sub_node in node:
+                        sub_node.created(plugins)
+                else:
+                    node.created(plugins)
 
     def beginstatement_process(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.BEGIN_PROCESS, self, plugins=plugins)
 
         temp_parts = {}
-        for part_name in self.kgen_part_order:
-            part = getattr(self, 'part_%s'%part_name)
-            temp_parts[part_name] = part[:]
+        for name in self.kgen_part_order:
+            part = getattr(self, PART_PREFIX + name)
+            temp_parts[name] = part[:]
 
-        for part_name in self.kgen_part_order:
-            for item in temp_parts[part_name]:
-                item.process(plugins)
+        for name in self.kgen_part_order:
+            for node in temp_parts[name]:
+                if isinstance(node, list):
+                    for sub_node in node:
+                        sub_node.process(plugins)
+                else:
+                    node.process(plugins)
 
     def beginstatement_finalize(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.FINISH_PROCESS, self, plugins=plugins)
 
         temp_parts = {}
-        for part_name in self.kgen_part_order:
-            part = getattr(self, 'part_%s'%part_name)
-            temp_parts[part_name] = part[:]
+        for name in self.kgen_part_order:
+            part = getattr(self, PART_PREFIX + name)
+            temp_parts[name] = part[:]
 
-        for part_name in self.kgen_part_order:
-            for item in temp_parts[part_name]:
-                item.finalize(plugins)
+        for name in self.kgen_part_order:
+            for node in temp_parts[name]:
+                if isinstance(node, list):
+                    for sub_node in node:
+                        sub_node.finalize(plugins)
+                else:
+                    node.finalize(plugins)
 
     def insert_in_order(self, item, insert_order):
 
@@ -661,12 +908,12 @@ class Gen_BeginStatement(object):
 
         new_order = []
         matched = False
-        for part_name in insert_order:
-            if not matched and item.kgen_stmt.__class__ in part_classes[part_name]:
+        for name in insert_order:
+            if not matched and item.kgen_stmt.__class__ in part_classes[name]:
                 matched = True
-                append_item_in_part(self, part_name, item)
+                append_item_in_part(self, name, item)
             if matched:
-                new_order.append(part_name)
+                new_order.append(name)
 
         if not matched:
             import pdb; pdb.set_trace()
@@ -745,8 +992,8 @@ def generate_srcfiles():
     init_plugins()
 
     # generate kgen_driver.f90 in kernel directory
-    driver = genkobj(None, block_statements.BeginSource, DUMMY_KERNEL_ID)
-    program = genkobj(driver, block_statements.Program, DUMMY_KERNEL_ID)
+    driver = genkobj(None, block_statements.BeginSource, KERNEL_ID_0)
+    program = genkobj(driver, block_statements.Program, KERNEL_ID_0)
     program.name = getinfo('kernel_driver_name')
     append_item_in_part(driver, UNIT_PART, program)
 
@@ -754,8 +1001,8 @@ def generate_srcfiles():
     genfiles = []
     for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
         if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
-            kfile = genkobj(None, srcobj.tree, DUMMY_KERNEL_ID)
-            sfile = gensobj(None, srcobj.tree, DUMMY_KERNEL_ID)
+            kfile = genkobj(None, srcobj.tree, KERNEL_ID_0)
+            sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
             if kfile is None or sfile is None:
                 raise ProgramException('Kernel source file is not generated for %s.'%filepath)
             genfiles.append((kfile, sfile, filepath))
@@ -785,17 +1032,18 @@ def generate_srcfiles():
             with open('%s/%s'%(Config.path['kernel'], filename), 'wb') as fd:
                 fd.write(klines)
 
-        slines = sfile.tostring()
-        if slines is not None:
-            with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
-                fd.write(slines)
+        if sfile.kgen_stmt.used4genstate:
+            slines = sfile.tostring()
+            if slines is not None:
+                with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
+                    fd.write(slines)
 
     with open('%s/%s.f90'%(Config.path['kernel'], getinfo('kernel_driver_name')), 'wb') as fd:
         lines = driver.tostring()
         if lines is not None: fd.write(lines)
 
     # generate kgen_utils.f90 in kernel directory
-    generate_kgen_utils(DUMMY_KERNEL_ID)
+    generate_kgen_utils(KERNEL_ID_0)
 
     State.state = State.STATE_GENERATED
 

@@ -694,7 +694,7 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
             args = self.new_args
             del self.new_args
         elif hasattr(self, 'args'): args = self.args
-        else: args = None
+        else: args = []
 
         s = ''
         if hasattr(self, 'prefix') and self.prefix:

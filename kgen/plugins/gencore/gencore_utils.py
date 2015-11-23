@@ -1,9 +1,24 @@
 # gencore_utils.py
 
+gencore_parts = {}
+
 DRIVER_IN_LOCAL_PART = 'driver_in_local'
 DRIVER_CALLSITE_PART = 'callsite'
-
-gencore_parts = {}
+MODULE_EXTERNS_PART = 'module_externs'
+CALLSITE_PART = 'callsite_part'
+PARENTBLOCK_USE_PART = 'parentblock_use_part'
+PARENTBLOCK_DECL_PART = 'parentblock_decl_part'
+PARENTBLOCK_EXEC_PART ='parentblock_exec_part'
+PARENTBLOCK_CONTAINS_PART = 'parentblock_contains_part'
+PARENTBLOCK_SUBP_PART = 'parentblock_subp_part'
+PARENTBLOCK_WRITE_IN_EXTERNS = 'parentblock_write_in_externs'
+PARENTBLOCK_WRITE_IN_LOCALS ='parentblock_write_in_locals'
+PARENTBLOCK_WRITE_OUT_EXTERNS = 'parentblock_write_out_externs'
+PARENTBLOCK_WRITE_OUT_LOCALS = 'parentblock_write_out_locals'
+TOPBLOCK_USE_PART = 'topblock_use_part'
+TOPBLOCK_DECL_PART = 'topblock_decl_part'
+TOPBLOCK_CONTAINS_PART = 'topblock_contains_part'
+TOPBLOCK_SUBP_PART = 'topblock_subp_part'
 
 rprefix = 'kr'
 wprefix = 'kw'
@@ -49,3 +64,8 @@ def get_dtype_writename(typestmt):
     if typestmt is None: return
     subpname = get_dtype_subpname(typestmt)
     if subpname: return '%s_%s'%(wprefix, subpname)
+
+def get_module_writename(modstmt):
+    if modstmt is None: return
+    return '%s_externs_%s'%(wprefix, modstmt.name)
+

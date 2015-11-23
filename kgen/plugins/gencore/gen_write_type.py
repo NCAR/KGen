@@ -44,95 +44,92 @@ class Gen_S_Type(Kgen_Plugin):
         for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
             for uname, req in reqlist:
                 if isinstance(req.res_stmts[0], block_statements.Type):
-                    subrname = get_dtype_writename(node.kgen_stmt)
-                    if subrname not in self.created_use_items and \
-                        not has_object_in_part(parent, USE_PART, statements.Use, attrs={'kgen_stmt.items':subrname}, method=lambda x, y: x in y ): 
+                    subrname = get_dtype_writename(req.res_stmts[0])
+                    checks = [ lambda n: isinstance(n.kgen_stmt, statements.Use), \
+                        lambda n: not n.kgen_stmt.isonly or subrname in n.kgen_stmt.items]
+                    if subrname not in self.created_use_items and not part_has_node(parent, USE_PART, checks):
                         attrs = {'name':node.kgen_stmt.name, 'isonly': True, 'items':[subrname]}
-                        append_item_in_part(parent, USE_PART, gensobj(parent, statements.Use, parent.kgen_kernel_id, attrs=attrs))
+                        part_append_gensnode(parent, USE_PART, statements.Use, attrs=attrs)
                         self.created_use_items.append(subrname)
-                    if subrname not in self.created_public_items and \
-                        not has_object_in_part(parent, DECL_PART, statements.Use, attrs={'kgen_stmt.items':subrname}, method=lambda x, y: x in y ):
+                        parent.kgen_stmt.top.used4genstate = True
+
+                    if subrname not in self.created_public_items and not part_has_node(parent, DECL_PART, checks):
                         attrs = {'items':[subrname]}
-                        append_item_in_part(parent, DECL_PART, gensobj(parent, statements.Public, parent.kgen_kernel_id, attrs=attrs))
+                        part_append_gensnode(parent, DECL_PART, statements.Public, attrs=attrs)
                         self.created_public_items.append(subrname)
+                        parent.kgen_stmt.top.used4genstate = True
 
     def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
         pobj = subrobj
-        if not var.is_array() and var.is_pointer():
+        if var.is_pointer():
             attrs = {'expr': 'ASSOCIATED(var%%%s)'%entity_name}
-            ifptrobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-            append_item_in_part(subrobj, EXEC_PART, ifptrobj)
+            ifptrobj = part_append_gensnode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
-            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Else, ifptrobj.kgen_kernel_id))
+            part_append_gensnode(ifptrobj, EXEC_PART, statements.Else)
 
             attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
-            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
-            append_item_in_part(subrobj, EXEC_PART, gensobj(subrobj, statements.Write, subrobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'expr': 'is_true'}
-            iftrueobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-            append_item_in_part(subrobj, EXEC_PART, iftrueobj)
+            iftrueobj = part_append_gensnode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             pobj = iftrueobj
 
         attrs = {'items': ['var%%%s'%entity_name], 'specs': ['UNIT = kgen_unit']}
-        append_item_in_part(pobj, EXEC_PART, gensobj(pobj, statements.Write, pobj.kgen_kernel_id, attrs=attrs))
+        part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'var%%%s'%entity_name]}
-            append_item_in_part(pobj, EXEC_PART, gensobj(pobj, statements.Write, pobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             attrs = {'expr': 'PRESENT( printvar )'}
-            ifobj = gensobj(pobj, block_statements.IfThen, pobj.kgen_kernel_id, attrs=attrs)
-            append_item_in_part(pobj, EXEC_PART, ifobj)
+            ifobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'var%%%s'%entity_name]}
-            append_item_in_part(ifobj, EXEC_PART, gensobj(ifobj, statements.Write, ifobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_write_call(self, subrobj, callname, entity_name, stmt, var):
         pobj = subrobj
-        if not var.is_array() and var.is_pointer():
+        if var.is_pointer():
             attrs = {'expr': 'ASSOCIATED(var%%%s)'%entity_name}
-            ifptrobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-            append_item_in_part(subrobj, EXEC_PART, ifptrobj)
+            ifptrobj = part_append_gensnode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
-            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Else, ifptrobj.kgen_kernel_id))
+            part_append_gensnode(ifptrobj, EXEC_PART, statements.Else)
 
             attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
-            append_item_in_part(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
-            append_item_in_part(subrobj, EXEC_PART, gensobj(subrobj, statements.Write, subrobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'expr': 'is_true'}
-            iftrueobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-            append_item_in_part(subrobj, EXEC_PART, iftrueobj)
+            iftrueobj = part_append_gensnode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             pobj = iftrueobj
 
         attrs = {'expr': 'PRESENT( printvar )'}
-        ifobj = gensobj(pobj, block_statements.IfThen, pobj.kgen_kernel_id, attrs=attrs)
-        append_item_in_part(pobj, EXEC_PART, ifobj)
+        ifobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit', 'printvar // "%%%s"'%entity_name]}
-        append_item_in_part(ifobj, EXEC_PART, gensobj(ifobj, statements.Call, ifobj.kgen_kernel_id, attrs=attrs))
+        part_append_gensnode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
 
-        append_item_in_part(ifobj, EXEC_PART, gensobj(ifobj, statements.Else, ifobj.kgen_kernel_id))
+        part_append_gensnode(ifobj, EXEC_PART, statements.Else)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit', '"%%%s"'%entity_name]}
-            append_item_in_part(ifobj, EXEC_PART, gensobj(ifobj, statements.Call, ifobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
         else:
             attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit']}
-            append_item_in_part(ifobj, EXEC_PART, gensobj(ifobj, statements.Call, ifobj.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
 
     # process function
     def create_dtype_write_subr(self, node):
@@ -142,38 +139,39 @@ class Gen_S_Type(Kgen_Plugin):
         if subrname is None: return
 
         parent = node.kgen_parent
-        if  not has_object_in_part(parent, SUBP_PART, block_statements.Subroutine, attrs={'name':subrname} ):
+        checks = [ lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine), lambda n: n.name==subrname ]
+        if  not part_has_node(parent, SUBP_PART, checks):
 
-            if not self.is_contains_created and not has_object_in_part(parent, CONTAINS_PART, statements.Contains ):
-                append_comment_in_part(parent, CONTAINS_PART, '')
-                append_item_in_part(parent, CONTAINS_PART, gensobj(parent, statements.Contains, node.kgen_kernel_id))
-                append_comment_in_part(parent, CONTAINS_PART, '')
+            checks = [ lambda n: isinstance(n.kgen_stmt, statements.Contains) ]
+            if not self.is_contains_created and not part_has_node(parent, CONTAINS_PART, checks):
+                part_append_comment(parent, CONTAINS_PART, '')
+                part_append_gensnode(parent, CONTAINS_PART, statements.Contains)
+                part_append_comment(parent, CONTAINS_PART, '')
                 self.is_contains_created = True
 
-            append_comment_in_part(parent, SUBP_PART, 'read state subroutine for %s'%subrname)
+            part_append_comment(parent, SUBP_PART, 'read state subroutine for %s'%subrname)
             attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['var', 'kgen_unit', 'printvar']}
-            subrobj = gensobj(parent, block_statements.Subroutine, node.kgen_kernel_id, attrs=attrs)
-            append_item_in_part(parent, SUBP_PART, subrobj)
-            append_comment_in_part(parent, SUBP_PART, '')
+            subrobj = part_append_gensnode(parent, SUBP_PART, block_statements.Subroutine, attrs=attrs)
+            part_append_comment(parent, SUBP_PART, '')
 
             node.kgen_stmt.top.used4genstate = True
 
             # variable
             attrs = {'type_spec': 'TYPE', 'attrspec': ['INTENT(IN)'], 'selector':(None, node.name), 'entity_decls': ['var']}
-            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Type, node.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
 
             # kgen_unit
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
-            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Integer, node.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             # printvar
             attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(IN)', 'OPTIONAL'], 'selector':('*', None), 'entity_decls': ['printvar']}
-            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Character, node.kgen_kernel_id, attrs=attrs))
+            part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
             # is_true
             attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_true']}
-            append_item_in_part(subrobj, DECL_PART, gensobj(subrobj, typedecl_statements.Logical, subrobj.kgen_kernel_id, attrs=attrs))
-            append_comment_in_part(subrobj, DECL_PART, '')
+            part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+            part_append_comment(subrobj, DECL_PART, '')
 
             comp_part = get_part(node, TYPE_COMP_PART) 
             for item in comp_part:
@@ -205,15 +203,12 @@ class Gen_S_Type(Kgen_Plugin):
                             if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
                             self.create_write_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
-                            if var.is_pointer():
-                                self.create_write_call(subrobj, callname, entity_name, stmt, var)
-                            else: # not a pointer
-                                self.create_write_intrinsic(subrobj, entity_name, stmt, var)
+                            self.create_write_intrinsic(subrobj, entity_name, stmt, var)
 
-                append_comment_in_part(subrobj, EXEC_PART, '')
+                part_append_comment(subrobj, EXEC_PART, '')
 
             # create public stmt
             if parent.kgen_match_class in [ block_statements.Program, block_statements.Module ]:
                 attrs = {'items': [subrname]}
-                append_item_in_part(parent, DECL_PART, gensobj(parent, statements.Public, node.kgen_kernel_id, attrs=attrs))
+                part_append_gensnode(parent, DECL_PART, statements.Public, attrs=attrs)
 

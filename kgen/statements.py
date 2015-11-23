@@ -378,7 +378,7 @@ class Stop(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        if self.code:
+        if hasattr(self, 'code') and self.code:
             return 'STOP %s' % (self.code)
         return 'STOP'
 
@@ -877,7 +877,10 @@ class FilePositioningStatement(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        clsname = self.__class__.__name__.upper()
+        if isinstance(self, Statement): 
+            clsname = self.__class__.__name__.upper()
+        elif hasattr(self, 'kgen_match_class'):
+            clsname = self.kgen_match_class.__name__.upper()
         return clsname + ' (%s)' % (', '.join(self.specs))
     # end of KGEN addition
 
@@ -1388,7 +1391,7 @@ class Exit(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             return 'EXIT ' + self.name
         return 'EXIT'
     # end of KGEN addition
@@ -1760,6 +1763,13 @@ class Inquire(Statement):
         return self.get_indent_tab(isfix=isfix) + 'INQUIRE (%s)' \
                    % (', '.join(self.specs))
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self):
+        if hasattr(self, 'items') and self.items:
+            return 'INQUIRE (%s) %s'%(', '.join(self.specs), ', '.join(self.items))
+        return 'INQUIRE (%s)'%(', '.join(self.specs))
+    # start of KGEN addition
 
 class Sequence(Statement):
     """
@@ -2711,6 +2721,13 @@ class Comment(Statement):
     # start of KGEN addition
     def tokgen(self):
         if hasattr(self, 'comment') and self.comment:
-            return '!%s'%self.comment
+            if hasattr(self, 'style') and self.style:
+                if self.style=='openmp':
+                    return '!$OMP %s'%self.comment
+                else:
+                    return '!%s'%self.comment
+            else:
+                return '!%s'%self.comment
         else: return ''
+
     # start of KGEN deletion

@@ -232,7 +232,7 @@ def locate_callsite():
     from ordereddict import OrderedDict
 
     # read source file that contains callsite stmt
-    cs_file = SrcFile(Config.callsite['filename'])
+    cs_file = SrcFile(Config.callsite['filepath'])
 
     #[Call, Assignment]
     State.callsite['stmt'], State.callsite['expr'] = cs_file.stmt_by_name(Config.callsite['subpname'], cls=action_stmt, \

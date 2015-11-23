@@ -477,7 +477,7 @@ class Config(object):
 
         # callsite parameters
         self._attrs['callsite'] = {}
-        self._attrs['callsite']['filename'] = ''
+        self._attrs['callsite']['filepath'] = ''
         self._attrs['callsite']['subpname'] = ''
         self._attrs['callsite']['lineafter'] = -1
 
@@ -623,8 +623,8 @@ class Config(object):
             print 'ERROR: %s can not be found.' % callsite[0]
             sys.exit(-1)
 
-        # set callsite filename
-        self.callsite['filename'] = callsite[0]
+        # set callsite filepath
+        self.callsite['filepath'] = callsite[0]
 
         # read directives from source file
         self.process_directives(callsite[0])
@@ -633,7 +633,7 @@ class Config(object):
         if len(callsite)==2:
             self.callsite['subpname'] = KGName(callsite[1])
         elif len(callsite)>2:
-            print 'ERROR: Unrecognized call-site information(Syntax -> filename[:subprogramname]): %s'%str(callsite)
+            print 'ERROR: Unrecognized call-site information(Syntax -> filepath[:subprogramname]): %s'%str(callsite)
             sys.exit(-1)
 
         # read options from command line. overwrite settings from directives
