@@ -44,7 +44,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             node, None, self.modify_parentblock_stmts)
 
         # ensure contains
-        checks = [ lambda n: isinstance(n.kgen_stmt, statements.Contains) ]
+        checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
         if not part_has_node(node, CONTAINS_PART, checks):
             part_append_comment(node, CONTAINS_PART, '')
             part_append_gensnode(node, CONTAINS_PART, statements.Contains)

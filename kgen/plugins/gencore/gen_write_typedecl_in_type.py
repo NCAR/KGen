@@ -30,12 +30,12 @@ class Gen_S_Typedecl_In_Type(Kgen_Plugin):
         else: return False
 
     def create_write_subr(self, subrname, entity_name, parent, var, stmt):
-        checks = [ lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine), lambda n: n.name==subrname ]
+        checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if subrname not in self.created_subrs and not part_has_node(parent, SUBP_PART, checks):
 
             self.created_subrs.append(subrname)
 
-            checks = [ lambda n: isinstance(n.kgen_stmt, statements.Contains) ]
+            checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
             if not self.is_contains_created and not part_has_node(parent, CONTAINS_PART, checks):
                 part_append_comment(parent, CONTAINS_PART, '')
                 part_append_gensnode(parent, CONTAINS_PART, statements.Contains)

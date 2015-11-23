@@ -416,15 +416,13 @@ def get_part_index(node):
                         return part, i
     return None, -1
 
-def check_node(node, checks):
+def check_node(node, checkfunc):
     if not isinstance(node, Gen_Statement):
         import pdb; pdb.set_trace()
         raise ProgramException('Not Gen_Statement type')
 
-    for checkfunc in checks:
-        if not callable(checkfunc): return False
-        if not checkfunc(node): return False
-    return True
+    if callable(checkfunc) and checkfunc(node): return True
+    return False
 
 def namedpart_create_subpart(pnode, name, rawname, index=None):
     assert pnode

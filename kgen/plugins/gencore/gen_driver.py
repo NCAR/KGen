@@ -116,10 +116,6 @@ class Gen_K_Driver(Kgen_Plugin):
         namedpart_create_subpart(doobj, DRIVER_IN_LOCAL_PART, EXEC_PART)
         namedpart_create_subpart(doobj, DRIVER_CALLSITE_PART, EXEC_PART)
 
-#        attrs = {'designator': getinfo('parentblock_subp_name'), 'items': getinfo('kernel_driver_args')}
-#        part_append_genknode(doobj, EXEC_PART, genkobj(doobj, statements.Call, doobj.kgen_kernel_id, attrs=attrs))
-#        part_append_comment(doobj, EXEC_PART, '')
-
         attrs = {'specs': ['UNIT=kgen_unit']}
         part_append_genknode(doobj, EXEC_PART, statements.Close, attrs=attrs)
         part_append_comment(doobj, EXEC_PART, '')
@@ -140,4 +136,3 @@ class Gen_K_Driver(Kgen_Plugin):
 
         attrs = {'items': ['"******************************************************************************"']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
-#

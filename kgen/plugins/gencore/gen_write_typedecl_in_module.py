@@ -14,10 +14,6 @@ class Gen_S_Typedecl_In_Module(Kgen_Plugin):
         self.externs_part = None
         self.subrname = None
 
-#        self.is_contains_created = False
-#        self.created_subrs = []
-#        self.created_public_items = []
-
     # registration
     def register(self, msg):
         self.frame_msg = msg
@@ -27,9 +23,9 @@ class Gen_S_Typedecl_In_Module(Kgen_Plugin):
             block_statements.Module, self.has_externs_in_module, self.create_module_parts) 
 
     def has_externs_in_module(self, node):
-        checks = [ lambda n: hasattr(n.kgen_stmt, 'geninfo'), lambda n: len(n.kgen_stmt.geninfo)>0, \
-            lambda n: isinstance(n.kgen_stmt, typedecl_statements.TypeDeclarationStatement), \
-            lambda n: "parameter" not in n.kgen_stmt.attrspec]
+        checks = lambda n: hasattr(n.kgen_stmt, 'geninfo') and len(n.kgen_stmt.geninfo)>0 \
+            and isinstance(n.kgen_stmt, typedecl_statements.TypeDeclarationStatement) \
+            and "parameter" not in n.kgen_stmt.attrspec
         if part_has_node(node, DECL_PART, checks):
             return True
         return False
@@ -68,15 +64,18 @@ class Gen_S_Typedecl_In_Module(Kgen_Plugin):
 
 
     def create_stmts_in_callsite(self, node):
-        # TODO add if not exist
-        attrs = {'name':self.modname, 'isonly': True, 'items':[self.subrname]}
-        namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_USE_PART, statements.Use, attrs=attrs)
+        checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.name==self.modname and \
+            ( not n.kgen_stmt.isonly or self.subrname in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+        if not namedpart_has_node(node.kgen_kernel_id, PARENTBLOCK_USE_PART, checks):
+            attrs = {'name':self.modname, 'isonly': True, 'items':[self.subrname]}
+            namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_USE_PART, statements.Use, attrs=attrs)
 
         attrs = {'designator': self.subrname, 'items': ['kgen_unit']}
         namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_EXTERNS, statements.Call, attrs=attrs)
 
     def create_subr_write_typedecl_in_module(self, node):
         pass
+        #import pdb; pdb.set_trace()
         # create write or call stmt
 
         # create subr if necessary

@@ -45,14 +45,15 @@ class Gen_S_Type(Kgen_Plugin):
             for uname, req in reqlist:
                 if isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_writename(req.res_stmts[0])
-                    checks = [ lambda n: isinstance(n.kgen_stmt, statements.Use), \
-                        lambda n: not n.kgen_stmt.isonly or subrname in n.kgen_stmt.items]
+                    checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and (not n.kgen_stmt.isonly or \
+                        subrname in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                     if subrname not in self.created_use_items and not part_has_node(parent, USE_PART, checks):
                         attrs = {'name':node.kgen_stmt.name, 'isonly': True, 'items':[subrname]}
                         part_append_gensnode(parent, USE_PART, statements.Use, attrs=attrs)
                         self.created_use_items.append(subrname)
                         parent.kgen_stmt.top.used4genstate = True
 
+                    checks = lambda n: isinstance(n.kgen_stmt, statements.Public) and n.kgen_stmt.items and subrname in n.kgen_stmt.items
                     if subrname not in self.created_public_items and not part_has_node(parent, DECL_PART, checks):
                         attrs = {'items':[subrname]}
                         part_append_gensnode(parent, DECL_PART, statements.Public, attrs=attrs)
@@ -139,10 +140,10 @@ class Gen_S_Type(Kgen_Plugin):
         if subrname is None: return
 
         parent = node.kgen_parent
-        checks = [ lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine), lambda n: n.name==subrname ]
+        checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if  not part_has_node(parent, SUBP_PART, checks):
 
-            checks = [ lambda n: isinstance(n.kgen_stmt, statements.Contains) ]
+            checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
             if not self.is_contains_created and not part_has_node(parent, CONTAINS_PART, checks):
                 part_append_comment(parent, CONTAINS_PART, '')
                 part_append_gensnode(parent, CONTAINS_PART, statements.Contains)
