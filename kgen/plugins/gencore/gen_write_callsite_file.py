@@ -8,7 +8,7 @@ from kgen_plugin import Kgen_Plugin
 from gencore_utils import PARENTBLOCK_USE_PART, PARENTBLOCK_DECL_PART, PARENTBLOCK_EXEC_PART, \
     PARENTBLOCK_CONTAINS_PART, PARENTBLOCK_SUBP_PART, PARENTBLOCK_WRITE_IN_EXTERNS, PARENTBLOCK_WRITE_IN_LOCALS, \
     PARENTBLOCK_WRITE_OUT_EXTERNS, PARENTBLOCK_WRITE_OUT_LOCALS, TOPBLOCK_USE_PART, TOPBLOCK_DECL_PART, \
-    TOPBLOCK_CONTAINS_PART, TOPBLOCK_SUBP_PART, DRIVER_IN_LOCAL_PART
+    TOPBLOCK_CONTAINS_PART, TOPBLOCK_SUBP_PART, PARENTBLOCK_WRITE_IN_ARGS, gencore_contains
 
 BEFORE_CALLSITE = 'before_callsite'
 AFTER_CALLSITE = 'after_callsite'
@@ -45,10 +45,11 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         # ensure contains
         checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
-        if not part_has_node(node, CONTAINS_PART, checks):
+        if not node in gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
             part_append_comment(node, CONTAINS_PART, '')
             part_append_gensnode(node, CONTAINS_PART, statements.Contains)
             part_append_comment(node, CONTAINS_PART, '')
+            gencore_contains.append(node)
 
         #FUNCTION kgen_get_newunit() RESULT(new_unit)
         attrs = {'name': 'kgen_get_newunit', 'result': 'new_unit' }
@@ -249,14 +250,24 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'designator': 'kgen_print_counter', 'items': ['kgen_counter']}
             part_append_gensnode(ifcnt, EXEC_PART, statements.Call, attrs=attrs)
 
-        namedpart_create_subpart(ifcnt, DRIVER_IN_LOCAL_PART, EXEC_PART)
+        namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_IN_ARGS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_ARGS, '')
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_ARGS, 'argument input variables')
+
         namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_IN_EXTERNS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_EXTERNS, 'extern input variables')
+
         namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_IN_LOCALS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_LOCALS, '')
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_LOCALS, 'local input variables')
 
         namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END MASTER', style='openmp')
+        namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, '')
 
         namedpart_create_subpart(node.kgen_parent, AFTER_CALLSITE, EXEC_PART, index=index+2)
 
+        namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, '')
         namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'MASTER', style='openmp')
 
         if getinfo('is_mpi_app'):
@@ -280,7 +291,12 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             ifcnt = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
 
         namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_OUT_EXTERNS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_EXTERNS, 'extern output variables')
+
         namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_OUT_LOCALS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_LOCALS, 'local output variables')
 
         attrs = {'specs': [ 'kgen_unit' ]}
         part_append_gensnode(ifcnt, EXEC_PART, statements.Endfile, attrs=attrs)

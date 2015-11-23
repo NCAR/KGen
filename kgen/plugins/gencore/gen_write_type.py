@@ -5,12 +5,11 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
-from gencore_utils import get_dtype_writename, get_typedecl_subpname
+from gencore_utils import get_dtype_writename, get_typedecl_writename, gencore_contains
 
 class Gen_S_Type(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
-        self.is_contains_created = False
         self.created_use_items = []
         self.created_public_items = []
 
@@ -144,11 +143,11 @@ class Gen_S_Type(Kgen_Plugin):
         if  not part_has_node(parent, SUBP_PART, checks):
 
             checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
-            if not self.is_contains_created and not part_has_node(parent, CONTAINS_PART, checks):
+            if not parent in gencore_contains and not part_has_node(parent, CONTAINS_PART, checks):
                 part_append_comment(parent, CONTAINS_PART, '')
                 part_append_gensnode(parent, CONTAINS_PART, statements.Contains)
                 part_append_comment(parent, CONTAINS_PART, '')
-                self.is_contains_created = True
+                gencore_contains.append(parent)
 
             part_append_comment(parent, SUBP_PART, 'read state subroutine for %s'%subrname)
             attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['var', 'kgen_unit', 'printvar']}
@@ -183,7 +182,7 @@ class Gen_S_Type(Kgen_Plugin):
                 entity_names = [ get_entity_name(decl) for decl in stmt.entity_decls ]
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
                     var = stmt.get_variable(entity_name)
-                    callname = get_typedecl_subpname(stmt, entity_name)
+                    callname = get_typedecl_writename(stmt, entity_name)
 
                     if var.is_array():
                         if stmt.is_derived():

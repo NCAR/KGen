@@ -289,6 +289,7 @@ def set_plugin_env(mod):
 
     mod.genkobj = genkobj
     mod.gensobj = genkobj
+    mod.KGGenType = KGGenType
 
     mod.getinfo =  getinfo
     mod.get_entity_name = get_entity_name
@@ -839,8 +840,7 @@ class Gen_BeginStatement(object):
     def tostring_parts(self):
         lines = []
         for name in self.kgen_part_order:
-            part = getattr(self, PART_PREFIX + name)
-            for node in part:
+            for node in get_part(self, name):
                 if isinstance(node, list):
                     for sub_node in node:
                         l = sub_node.tostring()

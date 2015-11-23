@@ -1,16 +1,19 @@
 # gencore_utils.py
 
 gencore_parts = {}
+gencore_contains = []
 
 DRIVER_IN_LOCAL_PART = 'driver_in_local'
 DRIVER_CALLSITE_PART = 'callsite'
-MODULE_EXTERNS_PART = 'module_externs'
+
 CALLSITE_PART = 'callsite_part'
 PARENTBLOCK_USE_PART = 'parentblock_use_part'
 PARENTBLOCK_DECL_PART = 'parentblock_decl_part'
 PARENTBLOCK_EXEC_PART ='parentblock_exec_part'
 PARENTBLOCK_CONTAINS_PART = 'parentblock_contains_part'
 PARENTBLOCK_SUBP_PART = 'parentblock_subp_part'
+
+PARENTBLOCK_WRITE_IN_ARGS = 'parentblock_write_in_args'
 PARENTBLOCK_WRITE_IN_EXTERNS = 'parentblock_write_in_externs'
 PARENTBLOCK_WRITE_IN_LOCALS ='parentblock_write_in_locals'
 PARENTBLOCK_WRITE_OUT_EXTERNS = 'parentblock_write_out_externs'
@@ -68,4 +71,9 @@ def get_dtype_writename(typestmt):
 def get_module_writename(modstmt):
     if modstmt is None: return
     return '%s_externs_%s'%(wprefix, modstmt.name)
+
+def get_typedecl_writename(typestmt, entity_name):
+    if typestmt is None: return
+    subpname = get_typedecl_subpname(typestmt, entity_name)
+    if subpname: return '%s_%s'%(wprefix, subpname)
 

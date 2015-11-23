@@ -5,12 +5,11 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
-from gencore_utils import get_dtype_writename, get_typedecl_subpname
+from gencore_utils import get_dtype_writename, get_typedecl_writename, gencore_contains
 
 class Gen_S_Typedecl_In_Type(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
-        self.is_contains_created = False
         self.created_subrs = []
 #        self.created_public_items = []
 
@@ -36,11 +35,11 @@ class Gen_S_Typedecl_In_Type(Kgen_Plugin):
             self.created_subrs.append(subrname)
 
             checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
-            if not self.is_contains_created and not part_has_node(parent, CONTAINS_PART, checks):
+            if not parent in gencore_contains and not part_has_node(parent, CONTAINS_PART, checks):
                 part_append_comment(parent, CONTAINS_PART, '')
                 part_append_gensnode(parent, CONTAINS_PART, statements.Contains)
                 part_append_comment(parent, CONTAINS_PART, '')
-                self.is_contains_created = True
+                gencore_contains.append(parent)
 
             part_append_comment(parent, SUBP_PART, 'write state subroutine for %s'%subrname)
             attrs = {'name': subrname, 'args': ['var', 'kgen_unit', 'printvar']}
@@ -54,7 +53,7 @@ class Gen_S_Typedecl_In_Type(Kgen_Plugin):
             attrspec = ['INTENT(IN)']
             #if var.is_pointer(): attrspec.append('POINTER')
             if var.is_array(): attrspec.append('DIMENSION(%s)'% ','.join(':'*var.rank))
-            attrs = {'type_spec': stmt.name.upper(), 'attrspec': attrspec, 'selector':stmt.selector, 'entity_decls': ['var']}
+            attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, 'selector':stmt.selector, 'entity_decls': ['var']}
             part_append_gensnode(subrobj, DECL_PART, stmt.__class__, attrs=attrs)
 
             # kgen_unit
@@ -174,7 +173,7 @@ class Gen_S_Typedecl_In_Type(Kgen_Plugin):
                         attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(%s)"'%(entity_name, str_indexes)]}
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
                     else:
-                        attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit']}
+                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit']}
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 else: # intrinsic type
@@ -239,7 +238,7 @@ class Gen_S_Typedecl_In_Type(Kgen_Plugin):
 
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             var = stmt.get_variable(entity_name)
-            subrname = get_typedecl_subpname(stmt, entity_name)
+            subrname = get_typedecl_writename(stmt, entity_name)
             if subrname is None: raise ProgramException('Can not get subroutinename')
 
             if var.is_array():
