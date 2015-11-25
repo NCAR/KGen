@@ -229,6 +229,11 @@ class PluginMsg(object):
         nextlist.append((matchfunc, callbackfunc))
 
 def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None):
+    # event debugging
+    #if cur_file_type=='K' and cur_gen_stage==0 and isinstance(node.kgen_stmt, statements.Call):
+    #    import pdb; pdb.set_trace() 
+    if not node.kgen_isvalid: return
+
     for plugin_dir, plugin_modules in event_register.iteritems():
         if plugins and plugin_dir not in plugins: continue
         for plugin_name, plugin_objects in plugin_modules.iteritems():
@@ -261,17 +266,19 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
                                 else:
                                     if isinstance(target, Gen_Statement) and node is target:
                                         for matchfunc, cbfunc in funclist:
-                                            if matchfunc is None or matchfunc(node): cbfunc(node)
+                                            if matchfunc is None or matchfunc(node):
+                                                cbfunc(node)
                                     elif isinstance(target, base_classes.Statement) and node.kgen_stmt is target:
                                         for matchfunc, cbfunc in funclist:
-                                            if matchfunc is None or matchfunc(node): cbfunc(node)
+                                            if matchfunc is None or matchfunc(node):
+                                                cbfunc(node)
+
 
 def getinfo(name):
     if name=='kernel_name': return Config.callsite['subpname'].firstpartname()
     elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
     elif name=='kernel_driver_name': return State.kernel_driver['name']
-    elif name=='kernel_driver_args': return State.kernel_driver['args']
-    elif name=='parentblock_subp_name': return State.parentblock['stmt'].name
+    elif name=='kernel_driver_callsite_args': return State.kernel_driver['callsite_args']
     elif name=='is_mpi_app': return Config.mpi['enabled']
     elif name=='mpi_rank_size': return Config.mpi['size']
     elif name=='mpi_ranks': return Config.mpi['ranks']
@@ -643,7 +650,7 @@ class Gen_Statement(object):
         self.kgen_stmt = stmt
         self.kgen_match_class = match_class
         self.kgen_kernel_id = kernel_id
-        self.kgen_stmt_tokgen = False
+        self.kgen_use_tokgen = False
 
         if attrs:
             for key, value in attrs.iteritems():
@@ -683,13 +690,14 @@ class Gen_Statement(object):
                     lines = self.kgen_stmt.top.prep[start:end]
                     lines_str = '\n'.join(lines)
 
-                if self.kgen_stmt_tokgen:
+                if self.kgen_use_tokgen:
                     if isinstance(self.kgen_stmt, block_statements.BeginStatement):
                         self.kgen_indent = cur_indent
                         self.kgen_gen_attrs['indent'] = cur_indent + TAB
                     elif isinstance(self.kgen_stmt, base_classes.EndStatement):
                         self.kgen_gen_attrs['indent'] = self.kgen_parent.kgen_indent
-                    return cur_indent + self.stmt.tokgen()
+                        cur_indent = self.kgen_parent.kgen_indent
+                    return cur_indent + self.tokgen()
                 else:
                     if lines_str:
                         cur_indent = get_indent(lines_str)
@@ -784,18 +792,18 @@ class Gen_BeginStatement(object):
         if match_classes.has_key(match_class):
             # add partition
             for name in match_classes[match_class]:
-                partname = PART_PREFIX + name
+                partname = get_partname(name, False)
                 self.kgen_part_order.append(name)
                 setattr(self, partname, [])
         else:
             # add default partition
             for name in default_part_names:
-                partname = PART_PREFIX + name
+                partname = get_partname(name, False)
                 self.kgen_part_order.append(name)
                 setattr(self, partname, [])
 
         if self.kgen_file_type==FILE_TYPE.KERNEL:
-            if not self.kgen_isvalid: return
+            #if not self.kgen_isvalid: return
             genobj = genkobj
         elif self.kgen_file_type==FILE_TYPE.STATE:
             genobj = gensobj
@@ -815,6 +823,8 @@ class Gen_BeginStatement(object):
 
             if isinstance(stmt.content[-1], base_classes.EndStatement):
                 self.kgen_end_obj = genobj(self, stmt.content[-1], self.kgen_kernel_id)
+                if hasattr(self.kgen_end_obj.kgen_stmt, 'blocktype'):
+                    self.kgen_end_obj.blocktype = self.kgen_end_obj.kgen_stmt.blocktype
             else:
                 item = genobj(self, stmt.content[-1], self.kgen_kernel_id)
                 self.insert_in_order(item, insert_order)
@@ -871,7 +881,7 @@ class Gen_BeginStatement(object):
 
         temp_parts = {}
         for name in self.kgen_part_order:
-            part = getattr(self, PART_PREFIX + name)
+            part = getattr(self, get_partname(name, False))
             temp_parts[name] = part[:]
 
         for name in self.kgen_part_order:
@@ -887,7 +897,7 @@ class Gen_BeginStatement(object):
 
         temp_parts = {}
         for name in self.kgen_part_order:
-            part = getattr(self, PART_PREFIX + name)
+            part = getattr(self, get_partname(name, False))
             temp_parts[name] = part[:]
 
         for name in self.kgen_part_order:

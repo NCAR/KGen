@@ -1,27 +1,51 @@
-# gencore_utils.py
+# gen_core_utils.py
 
-gencore_parts = {}
-gencore_contains = []
+state_gencore_parts = {}
+state_gencore_contains = []
 
-DRIVER_IN_LOCAL_PART = 'driver_in_local'
-DRIVER_CALLSITE_PART = 'callsite'
+kernel_gencore_parts = {}
+kernel_gencore_contains = []
 
-CALLSITE_PART = 'callsite_part'
-PARENTBLOCK_USE_PART = 'parentblock_use_part'
-PARENTBLOCK_DECL_PART = 'parentblock_decl_part'
-PARENTBLOCK_EXEC_PART ='parentblock_exec_part'
-PARENTBLOCK_CONTAINS_PART = 'parentblock_contains_part'
-PARENTBLOCK_SUBP_PART = 'parentblock_subp_part'
+DRIVER_USE_PART = 'DUP'
+DRIVER_DECL_PART = 'DDP'
+DRIVER_EXEC_PART ='DEP'
+DRIVER_CONTAINS_PART = 'DCP'
+DRIVER_SUBP_PART = 'DSP'
+DRIVER_ALLOC_PART = 'DAP'
+DRIVER_DEALLOC_PART = 'DDAP'
+DRIVER_READ_IN_ARGS = 'DRIA'
+DRIVER_CALLSITE_PART = 'DCP'
 
-PARENTBLOCK_WRITE_IN_ARGS = 'parentblock_write_in_args'
-PARENTBLOCK_WRITE_IN_EXTERNS = 'parentblock_write_in_externs'
-PARENTBLOCK_WRITE_IN_LOCALS ='parentblock_write_in_locals'
-PARENTBLOCK_WRITE_OUT_EXTERNS = 'parentblock_write_out_externs'
-PARENTBLOCK_WRITE_OUT_LOCALS = 'parentblock_write_out_locals'
-TOPBLOCK_USE_PART = 'topblock_use_part'
-TOPBLOCK_DECL_PART = 'topblock_decl_part'
-TOPBLOCK_CONTAINS_PART = 'topblock_contains_part'
-TOPBLOCK_SUBP_PART = 'topblock_subp_part'
+STATE_PBLOCK_USE_PART = 'SPBUP'
+STATE_PBLOCK_DECL_PART = 'SPBDP'
+STATE_PBLOCK_EXEC_PART ='SPBEP'
+STATE_PBLOCK_CONTAINS_PART = 'SPBCP'
+STATE_PBLOCK_SUBP_PART = 'SPBSP'
+STATE_PBLOCK_WRITE_IN_ARGS = 'SPBWIA'
+STATE_PBLOCK_WRITE_IN_EXTERNS = 'SPBWIE'
+STATE_PBLOCK_WRITE_IN_LOCALS ='SPBWIL'
+STATE_PBLOCK_WRITE_OUT_EXTERNS = 'SPBWOE'
+STATE_PBLOCK_WRITE_OUT_LOCALS = 'SPBWOL'
+
+STATE_TBLOCK_USE_PART = 'STBUP'
+STATE_TBLOCK_DECL_PART = 'STBDP'
+STATE_TBLOCK_CONTAINS_PART = 'STBCP'
+STATE_TBLOCK_SUBP_PART = 'STBSP'
+
+KERNEL_PBLOCK_USE_PART = 'KPBUP'
+KERNEL_PBLOCK_DECL_PART = 'KPBDP'
+KERNEL_PBLOCK_EXEC_PART ='KPBEP'
+KERNEL_PBLOCK_CONTAINS_PART = 'KPBCP'
+KERNEL_PBLOCK_SUBP_PART = 'KPBSP'
+KERNEL_PBLOCK_READ_IN_EXTERNS = 'KPBRIE'
+KERNEL_PBLOCK_READ_IN_LOCALS ='KPBRIL'
+KERNEL_PBLOCK_READ_OUT_EXTERNS = 'KPBROE'
+KERNEL_PBLOCK_READ_OUT_LOCALS = 'KPBROL'
+
+KERNEL_TBLOCK_USE_PART = 'KTBUP'
+KERNEL_TBLOCK_DECL_PART = 'KTBDP'
+KERNEL_TBLOCK_CONTAINS_PART = 'KTBCP'
+KERNEL_TBLOCK_SUBP_PART = 'KTBSP'
 
 rprefix = 'kr'
 wprefix = 'kw'
@@ -68,12 +92,31 @@ def get_dtype_writename(typestmt):
     subpname = get_dtype_subpname(typestmt)
     if subpname: return '%s_%s'%(wprefix, subpname)
 
+def get_dtype_readname(typestmt):
+    if typestmt is None: return
+    subpname = get_dtype_subpname(typestmt)
+    if subpname: return '%s_%s'%(rprefix, subpname)
+
 def get_module_writename(modstmt):
     if modstmt is None: return
     return '%s_externs_%s'%(wprefix, modstmt.name)
+
+def get_module_readname(modstmt):
+    if modstmt is None: return
+    return '%s_externs_%s'%(rprefix, modstmt.name)
 
 def get_typedecl_writename(typestmt, entity_name):
     if typestmt is None: return
     subpname = get_typedecl_subpname(typestmt, entity_name)
     if subpname: return '%s_%s'%(wprefix, subpname)
+
+def get_typedecl_readname(typestmt, entity_name):
+    if typestmt is None: return
+    subpname = get_typedecl_subpname(typestmt, entity_name)
+    if subpname: return '%s_%s'%(rprefix, subpname)
+
+def get_typedecl_verifyename(typestmt, entity_name):
+    if typestmt is None: return
+    subpname = get_typedecl_subpname(typestmt, entity_name)
+    if subpname: return '%s_%s'%(vprefix, subpname)
 

@@ -5,7 +5,8 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
-from gencore_utils import DRIVER_IN_LOCAL_PART, DRIVER_CALLSITE_PART
+from gencore_utils import DRIVER_USE_PART, DRIVER_READ_IN_ARGS, DRIVER_CALLSITE_PART, DRIVER_DECL_PART, \
+    DRIVER_EXEC_PART, DRIVER_CONTAINS_PART, DRIVER_SUBP_PART, DRIVER_ALLOC_PART, DRIVER_DEALLOC_PART
 
 class Gen_K_Driver(Kgen_Plugin):
     def __init__(self):
@@ -19,15 +20,30 @@ class Gen_K_Driver(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             block_statements.Program, self.is_driver_name, self.create_kernel_driver_parts) 
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
+            block_statements.Program, self.is_driver_name, self.add_callsite_stmt) 
     # match functions
     def is_driver_name(self, node):
         if node.name==getinfo('kernel_driver_name'): return True
         else: return False
 
+    def add_callsite_stmt(self, node):
+        attrs = {'designator': getinfo('parentblock_stmt').name, 'items': getinfo('kernel_driver_callsite_args')}
+        namedpart_append_genknode(node.kgen_kernel_id, DRIVER_CALLSITE_PART, statements.Call, attrs=attrs)
+
     #  process after node creation
     def create_kernel_driver_parts(self, node):
 
+        namedpart_link_part(node, DRIVER_USE_PART, USE_PART)
+        namedpart_link_part(node, DRIVER_DECL_PART, DECL_PART)
+        namedpart_link_part(node, DRIVER_EXEC_PART, EXEC_PART)
+        namedpart_link_part(node, DRIVER_CONTAINS_PART, CONTAINS_PART)
+        namedpart_link_part(node, DRIVER_SUBP_PART, SUBP_PART)
+
         attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp']}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+
+        attrs = {'name':getinfo('topblock_stmt').name, 'isonly': True, 'items':[getinfo('parentblock_stmt').name]}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
         part_append_comment(node, USE_PART, '')
 
@@ -113,8 +129,10 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_comment(doobj, EXEC_PART, '')
 
         # register gencore parts
-        namedpart_create_subpart(doobj, DRIVER_IN_LOCAL_PART, EXEC_PART)
+        namedpart_create_subpart(doobj, DRIVER_ALLOC_PART, EXEC_PART)
+        namedpart_create_subpart(doobj, DRIVER_READ_IN_ARGS, EXEC_PART)
         namedpart_create_subpart(doobj, DRIVER_CALLSITE_PART, EXEC_PART)
+        namedpart_create_subpart(doobj, DRIVER_DEALLOC_PART, EXEC_PART)
 
         attrs = {'specs': ['UNIT=kgen_unit']}
         part_append_genknode(doobj, EXEC_PART, statements.Close, attrs=attrs)
@@ -128,10 +146,10 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['"******************************************************************************"']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Total number of verification cases: %d"'%(getinfo('parentblock_subp_name'), repeat_count)]}
+        attrs = {'items': ['"%s summary: Total number of verification cases: %d"'%(getinfo('parentblock_stmt').name, repeat_count)]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Total time of all calls (usec): ", total_time'%getinfo('parentblock_subp_name')]}
+        attrs = {'items': ['"%s summary: Total time of all calls (usec): ", total_time'%getinfo('parentblock_stmt').name]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"******************************************************************************"']}

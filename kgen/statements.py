@@ -447,6 +447,18 @@ Read1:    READ <format> [, <input-item-list>]
         return
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self):
+        if hasattr(self, 'format'):
+            return 'READ ' + ', '.join([self.format]+self.items)
+        elif not hasattr(self, 'specs'):
+            self.specs = ['*', '*']
+        s = 'READ (%s)' % ', '.join(self.specs)
+        if hasattr(self, 'items') and self.items:
+            s += ' ' + ', '.join(self.items)
+        return s
+    # end of KGEN addition
+
 class Read0(Read):
 
     def process_item(self):
@@ -637,7 +649,7 @@ class Allocate(Statement):
     # start of KGEN addition
     def tokgen(self):
         t = ''
-        if self.spec:
+        if hasattr(self, 'spec') and self.spec:
             t = self.spec.tostr() + ' :: '
         return 'ALLOCATE (%s%s)' % (t,', '.join(self.items))
 

@@ -5,10 +5,10 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
-from gencore_utils import PARENTBLOCK_USE_PART, PARENTBLOCK_DECL_PART, PARENTBLOCK_EXEC_PART, \
-    PARENTBLOCK_CONTAINS_PART, PARENTBLOCK_SUBP_PART, PARENTBLOCK_WRITE_IN_EXTERNS, PARENTBLOCK_WRITE_IN_LOCALS, \
-    PARENTBLOCK_WRITE_OUT_EXTERNS, PARENTBLOCK_WRITE_OUT_LOCALS, TOPBLOCK_USE_PART, TOPBLOCK_DECL_PART, \
-    TOPBLOCK_CONTAINS_PART, TOPBLOCK_SUBP_PART, PARENTBLOCK_WRITE_IN_ARGS, gencore_contains
+from gencore_utils import STATE_PBLOCK_USE_PART, STATE_PBLOCK_DECL_PART, STATE_PBLOCK_EXEC_PART, \
+    STATE_PBLOCK_CONTAINS_PART, STATE_PBLOCK_SUBP_PART, STATE_PBLOCK_WRITE_IN_EXTERNS, STATE_PBLOCK_WRITE_IN_LOCALS, \
+    STATE_PBLOCK_WRITE_OUT_EXTERNS, STATE_PBLOCK_WRITE_OUT_LOCALS, STATE_TBLOCK_USE_PART, STATE_TBLOCK_DECL_PART, \
+    STATE_TBLOCK_CONTAINS_PART, STATE_TBLOCK_SUBP_PART, STATE_PBLOCK_WRITE_IN_ARGS, state_gencore_contains
 
 BEFORE_CALLSITE = 'before_callsite'
 AFTER_CALLSITE = 'after_callsite'
@@ -34,22 +34,19 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
     def create_parentblock_parts(self, node):
 
-        namedpart_link_part(node, PARENTBLOCK_USE_PART, USE_PART)
-        namedpart_link_part(node, PARENTBLOCK_DECL_PART, DECL_PART)
-        namedpart_link_part(node, PARENTBLOCK_EXEC_PART, EXEC_PART)
-        namedpart_link_part(node, PARENTBLOCK_CONTAINS_PART, CONTAINS_PART)
-        namedpart_link_part(node, PARENTBLOCK_SUBP_PART, SUBP_PART)
-
-        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.FINISH_PROCESS, \
-            node, None, self.modify_parentblock_stmts)
+        namedpart_link_part(node, STATE_PBLOCK_USE_PART, USE_PART)
+        namedpart_link_part(node, STATE_PBLOCK_DECL_PART, DECL_PART)
+        namedpart_link_part(node, STATE_PBLOCK_EXEC_PART, EXEC_PART)
+        namedpart_link_part(node, STATE_PBLOCK_CONTAINS_PART, CONTAINS_PART)
+        namedpart_link_part(node, STATE_PBLOCK_SUBP_PART, SUBP_PART)
 
         # ensure contains
         checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
-        if not node in gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
+        if not node in state_gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
             part_append_comment(node, CONTAINS_PART, '')
             part_append_gensnode(node, CONTAINS_PART, statements.Contains)
             part_append_comment(node, CONTAINS_PART, '')
-            gencore_contains.append(node)
+            state_gencore_contains.append(node)
 
         #FUNCTION kgen_get_newunit() RESULT(new_unit)
         attrs = {'name': 'kgen_get_newunit', 'result': 'new_unit' }
@@ -73,7 +70,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         docnt = part_append_gensnode(unitsubr, EXEC_PART, block_statements.Do, attrs=attrs)
 
         attrs = {'specs': ['UNIT=counter', 'OPENED=is_opened']}
-        part_append_gensnode(unitsubr, EXEC_PART, statements.Inquire, attrs=attrs)
+        part_append_gensnode(docnt, EXEC_PART, statements.Inquire, attrs=attrs)
 
         attrs = {'expr': '.NOT. is_opened'}
         ifopen = part_append_gensnode(docnt, EXEC_PART, block_statements.IfThen, attrs=attrs)
@@ -123,48 +120,43 @@ class Gen_S_Callsite_File(Kgen_Plugin):
     def create_topblock_parts(self, node):
         node.kgen_stmt.top.used4genstate = True
 
-        namedpart_link_part(node, TOPBLOCK_USE_PART, USE_PART)
-        namedpart_link_part(node, TOPBLOCK_DECL_PART, DECL_PART)
-        namedpart_link_part(node, TOPBLOCK_CONTAINS_PART, CONTAINS_PART)
-        namedpart_link_part(node, TOPBLOCK_SUBP_PART, SUBP_PART)
-
-    def modify_parentblock_stmts(self, node):
-        # modify arguments and others
-        pass
+        namedpart_link_part(node, STATE_TBLOCK_USE_PART, USE_PART)
+        namedpart_link_part(node, STATE_TBLOCK_DECL_PART, DECL_PART)
+        namedpart_link_part(node, STATE_TBLOCK_CONTAINS_PART, CONTAINS_PART)
+        namedpart_link_part(node, STATE_TBLOCK_SUBP_PART, SUBP_PART)
 
     def create_callsite_parts(self, node):
-
         if getinfo('is_mpi_app'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpi_rank', 'kgen_mpi_size', 'kgen_cur_rank']}
-            namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
         
             attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_mpi_rank_conv'], 'selector':('16', None)}
-            namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
+            namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER', 'DIMENSION(%s)'%getinfo('mpi_rank_size')], \
                 'entity_decls': ['kgen_mpi_rank_at = (/ %s /)'%', '.join(getinfo('mpi_ranks'))]}
-            namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_unit']}
-        namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_indexes'], 'attrspec': ['DIMENSION(3,10)']}
-        namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_counter = 1'], 'attrspec': ['SAVE']}
-        namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_counter_conv'], 'selector':('16', None)}
-        namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
+        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER', 'DIMENSION(%s)'%getinfo('invocation_size')], \
             'entity_decls': ['kgen_counter_at = (/ %s /)'%', '.join(getinfo('invocation_numbers'))]}
-        namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
-        namedpart_append_gensnode(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
+        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
 
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_DECL_PART, '')
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, '')
 
         part, index = get_part_index(node)
 
@@ -250,17 +242,17 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'designator': 'kgen_print_counter', 'items': ['kgen_counter']}
             part_append_gensnode(ifcnt, EXEC_PART, statements.Call, attrs=attrs)
 
-        namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_IN_ARGS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_ARGS, '')
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_ARGS, 'argument input variables')
+        namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_IN_ARGS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_ARGS, '')
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_ARGS, 'argument input variables')
 
-        namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_IN_EXTERNS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_EXTERNS, '')
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_EXTERNS, 'extern input variables')
+        namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_IN_EXTERNS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_EXTERNS, 'extern input variables')
 
-        namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_IN_LOCALS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_LOCALS, '')
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_IN_LOCALS, 'local input variables')
+        namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_IN_LOCALS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_LOCALS, '')
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_LOCALS, 'local input variables')
 
         namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END MASTER', style='openmp')
         namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, '')
@@ -290,13 +282,13 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'expr': 'ANY(kgen_counter == kgen_counter_at)'}
             ifcnt = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
 
-        namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_OUT_EXTERNS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_EXTERNS, '')
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_EXTERNS, 'extern output variables')
+        namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_OUT_EXTERNS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, 'extern output variables')
 
-        namedpart_create_subpart(ifcnt, PARENTBLOCK_WRITE_OUT_LOCALS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_EXTERNS, '')
-        namedpart_append_comment(node.kgen_kernel_id, PARENTBLOCK_WRITE_OUT_LOCALS, 'local output variables')
+        namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_OUT_LOCALS, EXEC_PART)
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_LOCALS, 'local output variables')
 
         attrs = {'specs': [ 'kgen_unit' ]}
         part_append_gensnode(ifcnt, EXEC_PART, statements.Endfile, attrs=attrs)

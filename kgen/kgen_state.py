@@ -104,7 +104,7 @@ class State(object):
         # new kernel_driver attributes
         self._attrs['kernel_driver']['name'] = 'kernel_driver'
         self._attrs['kernel_driver']['program'] = None
-        self._attrs['kernel_driver']['args'] = ['kgen_unit', 'total_time']
+        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'total_time']
 
         # program units
         self._attrs['program_units'] = {}
