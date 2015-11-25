@@ -38,7 +38,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
             self.kernel_created_subrs.append(subrname)
 
-            checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
+            checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Contains)
             if not parent in kernel_gencore_contains and not part_has_node(parent, CONTAINS_PART, checks):
                 part_append_comment(parent, CONTAINS_PART, '')
                 part_append_genknode(parent, CONTAINS_PART, statements.Contains)
@@ -81,26 +81,6 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
             part_append_comment(subrobj, DECL_PART, '')
 
-            #ifobj = None
-
-#            # if var is pointer
-#            if var.is_pointer():
-#                attrs = {'expr': '.NOT. ASSOCIATED(var)'}
-#                ifptrobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-#                part_append_genknode(subrobj, EXEC_PART, ifptrobj)
-#
-#                ifobj = ifptrobj
-#
-#                attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
-#                part_append_genknode(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
-#
-#                # if var is array
-#                if var.is_array():
-#                    attrs = {'expr': 'SIZE(var)==1'}
-#                    part_append_genknode(ifptrobj, EXEC_PART, gensobj(ifptrobj, block_statements.ElseIf, ifptrobj.kgen_kernel_id, attrs=attrs))
-#
-#            # if var is array
-#            elif var.is_array():
 
             attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
             part_append_genknode(subrobj, EXEC_PART, statements.Read, attrs=attrs)
@@ -271,26 +251,6 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
             part_append_comment(subrobj, DECL_PART, '')
 
-            #ifobj = None
-
-#            # if var is pointer
-#            if var.is_pointer():
-#                attrs = {'expr': '.NOT. ASSOCIATED(var)'}
-#                ifptrobj = gensobj(subrobj, block_statements.IfThen, subrobj.kgen_kernel_id, attrs=attrs)
-#                part_append_gensnode(subrobj, EXEC_PART, ifptrobj)
-#
-#                ifobj = ifptrobj
-#
-#                attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
-#                part_append_gensnode(ifptrobj, EXEC_PART, gensobj(ifptrobj, statements.Assignment, ifptrobj.kgen_kernel_id, attrs=attrs))
-#
-#                # if var is array
-#                if var.is_array():
-#                    attrs = {'expr': 'SIZE(var)==1'}
-#                    part_append_gensnode(ifptrobj, EXEC_PART, gensobj(ifptrobj, block_statements.ElseIf, ifptrobj.kgen_kernel_id, attrs=attrs))
-#
-#            # if var is array
-#            elif var.is_array():
             attrs = {'expr': 'SIZE(var)==1'}
             ifarrobj = part_append_gensnode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 

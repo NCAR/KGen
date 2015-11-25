@@ -223,7 +223,7 @@ class Gen_Type(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if  not part_has_node(parent, SUBP_PART, checks):
 
-            checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
+            checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Contains)
             if not parent in kernel_gencore_contains and not part_has_node(parent, CONTAINS_PART, checks):
                 part_append_comment(parent, CONTAINS_PART, '')
                 part_append_genknode(parent, CONTAINS_PART, statements.Contains)

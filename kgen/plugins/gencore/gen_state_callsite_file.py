@@ -187,7 +187,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
             attrs = {'loopcontrol': 'WHILE( kgen_cur_rank < kgen_mpi_size )'}
-            dorank = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Do, attrs=attrs)
+            dorank = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.Do, attrs=attrs)
 
             attrs = {'expr': 'ANY(kgen_mpi_rank == kgen_mpi_rank_at) .AND. kgen_cur_rank == kgen_mpi_rank'}
             ifrank = part_append_gensnode(dorank, EXEC_PART, block_statements.IfThen, attrs=attrs)
@@ -206,7 +206,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
             attrs = {'variable': 'kgen_filepath', 'sign': '=', 'expr': \
                 '"%s/%s." // TRIM(ADJUSTL(kgen_counter_conv)) // "." // TRIM(ADJUSTL(kgen_mpi_rank_conv))'% \
-                (geninfo('kernel_path'), geninfo('kernel_name'))}
+                (getinfo('kernel_path'), getinfo('kernel_name'))}
             part_append_gensnode(ifcnt, EXEC_PART, statements.Assignment, attrs=attrs)
 
         else:
@@ -267,7 +267,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Assignment, attrs=attrs)
 
             attrs = {'loopcontrol': 'WHILE( kgen_cur_rank < kgen_mpi_size )'}
-            dorank = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Do, attrs=attrs)
+            dorank = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.Do, attrs=attrs)
 
             attrs = {'expr': 'ANY(kgen_mpi_rank == kgen_mpi_rank_at) .AND. kgen_cur_rank == kgen_mpi_rank'}
             ifrank = part_append_gensnode(dorank, EXEC_PART, block_statements.IfThen, attrs=attrs)
@@ -293,59 +293,35 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'specs': [ 'kgen_unit' ]}
         part_append_gensnode(ifcnt, EXEC_PART, statements.Endfile, attrs=attrs)
 
+        attrs = {'designator': 'sleep', 'items': ['1']}
+        part_append_gensnode(ifcnt, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'specs': [ 'kgen_unit' ]}
+        part_append_gensnode(ifcnt, EXEC_PART, statements.Close, attrs=attrs)
+
         if getinfo('is_mpi_app'):
-            pass
-#            endfileobj = ifcntobj.create_endfile(insert_in=self.insert_in_output_local_state)
-#            endfileobj.set_attr('file_unit', 'kgen_unit')
-#
-#            callsleepobj = ifcntobj.create_callstmt(insert_in=self.insert_in_output_local_state)
-#            callsleepobj.set_attr('name', 'sleep')
-#            callsleepobj.set_attr('args', ['1'])
-#
-#            closeobj = ifcntobj.create_close(insert_in=self.insert_in_output_local_state)
-#            closeobj.set_attr('close_specs', ['UNIT=kgen_unit'])
-#
-#            endifcntobj = ifcntobj.create_endobj(insert_in=self.insert_in_output_local_state) 
-#            endifcntobj.set_attr('blockname', 'IF')
-#
-#            endifrankobj = ifrankobj.create_endobj(insert_in=self.insert_in_output_local_state) 
-#            endifrankobj.set_attr('blockname', 'IF')
-#
-#            incobj = dorankobj.create_assignstmt(insert_in=self.insert_in_output_local_state)
-#            incobj.set_attr('lhs', 'kgen_cur_rank')
-#            incobj.set_attr('rhs', 'kgen_cur_rank + 1')
-#            
-#            enddorankobj = dorankobj.create_endobj(insert_in=self.insert_in_output_local_state) 
-#            enddorankobj.set_attr('blockname', 'DO')
-#
-#            ifmaxcobj = self.create_ifthen(insert_in=self.insert_in_output_local_state)
-#            ifmaxcobj.set_attr('expr', 'kgen_counter > maxval(kgen_counter_at)')
-#
-#            callsleepobj = ifmaxcobj.create_callstmt(insert_in=self.insert_in_output_local_state)
-#            callsleepobj.set_attr('name', 'sleep')
-#            callsleepobj.set_attr('args', ['1'])
-#
-#            wstopobj = ifmaxcobj.create_write(insert_in=self.insert_in_output_local_state)
-#            wstopobj.set_attr('item_list', ['"All state data is collected.  Stopping program..."'])
-#
-#            callmpiaobj = ifmaxcobj.create_callstmt(insert_in=self.insert_in_output_local_state)
-#            callmpiaobj.set_attr('name', 'mpi_abort')
-#            callmpiaobj.set_attr('args', [Config.mpi['comm'], '1', 'kgen_ierr'])
-#
-#            elsemaxcobj = ifmaxcobj.create_else(insert_in=self.insert_in_output_local_state)
-#
-#            wcntobj = ifmaxcobj.create_write(insert_in=self.insert_in_output_local_state)
-#            wcntobj.set_attr('item_list', ['"kgen_counter = "', 'kgen_counter', '" at rank "', 'kgen_mpi_rank'])
-#           
-#            endifmaxcobj = ifmaxcobj.create_endobj(insert_in=self.insert_in_output_local_state)
-#            endifmaxcobj.set_attr('blockname', 'IF') 
+
+            attrs = {'variable': 'kgen_cur_rank', 'sign': '=', 'expr': 'kgen_cur_rank + 1'}
+            part_append_gensnode(dorank, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'expr': 'kgen_counter > maxval(kgen_counter_at)'}
+            ifmax = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'designator': 'sleep', 'items': ['1']}
+            part_append_gensnode(ifmax, EXEC_PART, statements.Call, attrs=attrs)
+
+            attrs = {'items': ['"All state data is collected.  Stopping program..."']}
+            part_append_gensnode(ifmax, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'designator': 'mpi_abort', 'items': [Config.mpi['comm'], '1', 'kgen_ierr']}
+            part_append_gensnode(ifmax, EXEC_PART, statements.Call, attrs=attrs)
+
+            part_append_gensnode(ifmax, EXEC_PART, statements.Else)
+
+            attrs = {'items': ['"kgen_counter = "', 'kgen_counter', '" at rank "', 'kgen_mpi_rank']}
+            part_append_gensnode(ifmax, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'designator': 'sleep', 'items': ['1']}
-            part_append_gensnode(ifcnt, EXEC_PART, statements.Call, attrs=attrs)
-
-            attrs = {'specs': [ 'kgen_unit' ]}
-            part_append_gensnode(ifcnt, EXEC_PART, statements.Close, attrs=attrs)
 
             attrs = {'expr': 'kgen_counter > maxval(kgen_counter_at)'}
             ifmax = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)

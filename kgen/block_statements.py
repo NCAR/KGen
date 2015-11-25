@@ -1507,7 +1507,7 @@ proc_binding_stmt = [SpecificBinding, GenericBinding, FinalBinding]
 
 type_bound_procedure_part = [Contains, Private] + proc_binding_stmt
 
-kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf ]# KGEN addition
+kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf, Case, ElseWhere ]# KGEN addition
 
 #R214
 action_stmt = [ Allocate, GeneralAssignment, Assign, Backspace, Call, Close,

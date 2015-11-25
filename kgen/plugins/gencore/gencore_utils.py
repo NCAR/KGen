@@ -120,3 +120,24 @@ def get_typedecl_verifyename(typestmt, entity_name):
     subpname = get_typedecl_subpname(typestmt, entity_name)
     if subpname: return '%s_%s'%(vprefix, subpname)
 
+def process_spec_stmts(stmt):
+    if not stmt: return
+    if not hasattr(stmt, 'spec_stmts'): return
+
+    for spec_stmt in stmt.spec_stmts:
+        node = spec_stmt.genkpair
+        if not node: continue
+        if not node.kgen_isvalid: continue
+        if not hasattr(spec_stmt, 'geninfo') or len(spec_stmt.geninfo)==0: continue
+
+        if hasattr(spec_stmt, 'items'):
+            new_items = []
+            unames = list(set([ uname.firstpartname() for uname, req in KGGenType.get_state(spec_stmt.geninfo) ]))
+            for item in spec_stmt.items:
+                if any(item.startswith(uname) for uname in unames):
+                    new_items.append(item)
+            node.new_items = new_items
+            node.kgen_use_tokgen = True
+        else:
+            pass
+            # maybe specific handling per classes

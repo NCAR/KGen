@@ -26,11 +26,17 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
             typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.create_subr_read_typedecl_in_parentblock) 
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
+            typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.remove_read_typedecl_in_parentblock) 
+
     def typedecl_has_state_parentblock(self, node):
         if hasattr(node.kgen_stmt, 'geninfo') and KGGenType.has_state(node.kgen_stmt.geninfo) \
             and "parameter" not in node.kgen_stmt.attrspec and node.kgen_parent.kgen_stmt==getinfo('parentblock_stmt'):
             return True
         return False
+
+    def remove_read_typedecl_in_parentblock(self, node):
+        node.kgen_isvalid= False
 
     def create_subr_read_typedecl_in_parentblock(self, node):
         stmt = node.kgen_stmt
@@ -40,18 +46,20 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
-            if entity_name not in argintype and any( attr.startswith('intent') for attr in stmt.attrspec ):
+            if (entity_name,DRIVER_READ_IN_ARGS) not in argintype and any( attr.startswith('intent') for attr in stmt.attrspec ):
                 var = stmt.get_variable(entity_name)
 
                 argintype.append((entity_name, DRIVER_READ_IN_ARGS))
 
-                getinfo('kernel_driver_callsite_args').append(entity_name)
+                if not entity_name in getinfo('kernel_driver_callsite_args'):
+                    getinfo('kernel_driver_callsite_args').append(entity_name)
 
                 # add typedecl in driver
                 attrs={'type_spec':stmt.__class__.__name__.upper(), 'selector':stmt.selector, 'entity_decls': [entity_name]}
                 attrspec = []
-                if var.is_array(): attrspec.append('DIMENSION(%s)'%','.join(':'*var.rank))
-                if var.is_allocatable(): attrspec.append('ALLOCATABLE')
+                if var.is_array():
+                    attrspec.append('DIMENSION(%s)'%','.join(':'*var.rank))
+                    attrspec.append('ALLOCATABLE')
                     # deallocate
                 if var.is_pointer(): attrspec.append('POINTER')
                 attrs['attrspec'] = attrspec 
@@ -60,18 +68,69 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 if hasattr(stmt, 'unknowns'):
                     for uname, req in stmt.unknowns.iteritems():
                         if req.res_stmts[-1].__class__==statements.Use:
-                            attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[uname.firstpartname()]}
-                            namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                            checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.name==req.res_stmts[-1].name and \
+                                ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                            if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
+                                attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[uname.firstpartname()]}
+                                namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
                         else:
-                            attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[uname.firstpartname()]}
-                            namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-            elif entity_name not in localintype:
+                            if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
+                                checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
+                                    ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                                if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
+                                    attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[uname.firstpartname()]}
+                                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+            elif (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype and (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
             entity_name = uname.firstpartname()
-            if entity_name not in localouttype:
+            if (entity_name,KERNEL_PBLOCK_READ_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_OUT_LOCALS))
         vartypes = { 'argintype': argintype, 'localintype': localintype, 'localouttype': localouttype }
+
+        def get_attrs(attrspec, allowed_attrs):
+            attrspec = []
+            for attr in stmt.attrspec:
+                if any( attr.startswith(allowed_attr) for allowed_attr in allowed_attrs):
+                    attrspec.append(attr)
+            return attrspec
+
+        def get_decls(names, decls, prefix=''):
+            import re
+            entity_decls = []
+            for decl in decls:
+                ename = re.split('\(|\*|=', decl)[0].strip()
+                if ename in names:
+                    entity_decls.append(prefix+decl)
+            return entity_decls
+
+        if len(argintype)>0:
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+            attrspec.append('INTENT(IN)')
+
+            argin_names = [ argin_name for argin_name, pname in argintype]
+            entity_decls = get_decls(argin_names, stmt.entity_decls)
+            
+            attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, 'selector':stmt.selector, 'entity_decls': entity_decls}
+            part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+
+        if len(localintype)>0:
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+
+            localin_names = [ localin_name for localin_name, pname in localintype]
+            entity_decls = get_decls(localin_names, stmt.entity_decls)
+
+            attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, 'selector':stmt.selector, 'entity_decls': entity_decls}
+            part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+
+        if len(localouttype)>0:
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+
+            localout_names = [ localout_name for localout_name, pname in localouttype]
+            entity_decls = get_decls(localout_names, stmt.entity_decls, prefix='ref_')
+
+            attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, 'selector':stmt.selector, 'entity_decls': entity_decls}
+            part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
         # for kernel
         for vartypename, vartype in vartypes.iteritems():
@@ -87,7 +146,8 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     else: # intrinsic type
                         if var.is_explicit_shape_array():
                             if vartypename=='argintype':
-                                self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, force_allocate=True)
+                                #self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, force_allocate=True)
+                                self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                             else:    
                                 self.create_read_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
                         else: # implicit array
@@ -117,13 +177,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
-            if entity_name not in argintype and any( attr.startswith('intent') for attr in stmt.attrspec ):
+            if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype and any( attr.startswith('intent') for attr in stmt.attrspec ):
                 argintype.append((entity_name, STATE_PBLOCK_WRITE_IN_ARGS))
-            elif entity_name not in localintype:
+            elif (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype and (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
             entity_name = uname.firstpartname()
-            if entity_name not in localouttype:
+            if (entity_name,STATE_PBLOCK_WRITE_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_OUT_LOCALS))
         vartypes = { 'argintype': argintype, 'localintype': localintype, 'localouttype': localouttype }
 

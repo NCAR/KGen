@@ -429,8 +429,7 @@ def check_node(node, checkfunc):
         import pdb; pdb.set_trace()
         raise ProgramException('Not Gen_Statement type')
 
-    if callable(checkfunc) and checkfunc(node): return True
-    return False
+    return callable(checkfunc) and checkfunc(node)
 
 def namedpart_create_subpart(pnode, name, rawname, index=None):
     assert pnode
