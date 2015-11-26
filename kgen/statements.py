@@ -262,6 +262,11 @@ class Goto(Statement):
         return self.get_indent_tab(isfix=isfix) + 'GO TO %s' % (self.label)
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self):
+        return 'GO TO %s' % (self.label)
+    # end of KGEN addition
+
 class ComputedGoto(Statement):
     """
     GO TO ( <label-list> ) [ , ] <scalar-int-expr>
@@ -327,6 +332,11 @@ class Continue(Statement):
         return self.get_indent_tab(deindent=True) + 'CONTINUE'
 
     def analyze(self): return
+
+    # start of KGEN addition
+    def tokgen(self):
+        return 'CONTINUE'
+    # end of KGEN addition
 
 class Return(Statement):
     """
@@ -475,6 +485,14 @@ class Read0(Read):
             return s + ' ' + ', '.join(self.items)
         return s
 
+    # start of KGEN addition
+    def tokgen(self):
+        s = 'READ (%s)' % (', '.join(self.specs))
+        if hasattr(self, 'items') and self.items:
+            return s + ' ' + ', '.join(self.items)
+        return s
+    # end of KGEN addition
+
 class Read1(Read):
 
     def process_item(self):
@@ -488,6 +506,11 @@ class Read1(Read):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'READ ' \
                + ', '.join([self.format]+self.items)
+
+    # start of KGEN addition
+    def tokgen(self):
+        return 'READ ' + ', '.join([self.format]+self.items)
+    # end of KGEN addition
 
 class Write(Statement):
     """
@@ -1856,6 +1879,13 @@ class Namelist(Statement):
     # start of KGEN
     def analyze(self):
         pass
+
+    def tokgen(self):
+        l = []
+        for name,s in self.items:
+            l.append('%s %s' % (name,s))
+        return 'NAMELIST ' + ', '.join(l)
+
     # end of KGEN
 
 class Common(Statement):

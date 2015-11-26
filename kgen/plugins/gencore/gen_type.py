@@ -55,18 +55,18 @@ class Gen_Type(Kgen_Plugin):
             for uname, req in reqlist:
                 if isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_readname(req.res_stmts[0])
-                    checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and (not n.kgen_stmt.isonly or \
-                        subrname in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
-                    if subrname not in self.kernel_created_use_items and not part_has_node(parent, USE_PART, checks):
+                    checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.isonly and \
+                        subrname in n.kgen_stmt.items
+                    if (id(parent),subrname) not in self.kernel_created_use_items and not part_has_node(parent, USE_PART, checks):
                         attrs = {'name':node.kgen_stmt.name, 'isonly': True, 'items':[subrname]}
                         part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)
-                        self.kernel_created_use_items.append(subrname)
+                        self.kernel_created_use_items.append((id(parent),subrname))
 
                     checks = lambda n: isinstance(n.kgen_stmt, statements.Public) and n.kgen_stmt.items and subrname in n.kgen_stmt.items
-                    if subrname not in self.kernel_created_public_items and not part_has_node(parent, DECL_PART, checks):
+                    if (id(parent),subrname) not in self.kernel_created_public_items and not part_has_node(parent, DECL_PART, checks):
                         attrs = {'items':[subrname]}
                         part_append_genknode(parent, DECL_PART, statements.Public, attrs=attrs)
-                        self.kernel_created_public_items.append(subrname)
+                        self.kernel_created_public_items.append((id(parent),subrname))
 
     def add_writenames_in_use_public(self, node):
         parent = node.kgen_parent
@@ -75,19 +75,19 @@ class Gen_Type(Kgen_Plugin):
             for uname, req in reqlist:
                 if isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_writename(req.res_stmts[0])
-                    checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and (not n.kgen_stmt.isonly or \
-                        subrname in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
-                    if subrname not in self.state_created_use_items and not part_has_node(parent, USE_PART, checks):
+                    checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.isonly and \
+                        subrname in n.kgen_stmt.items
+                    if (id(parent),subrname) not in self.state_created_use_items and not part_has_node(parent, USE_PART, checks):
                         attrs = {'name':node.kgen_stmt.name, 'isonly': True, 'items':[subrname]}
                         part_append_gensnode(parent, USE_PART, statements.Use, attrs=attrs)
-                        self.state_created_use_items.append(subrname)
+                        self.state_created_use_items.append((id(parent),subrname))
                         parent.kgen_stmt.top.used4genstate = True
 
                     checks = lambda n: isinstance(n.kgen_stmt, statements.Public) and n.kgen_stmt.items and subrname in n.kgen_stmt.items
-                    if subrname not in self.state_created_public_items and not part_has_node(parent, DECL_PART, checks):
+                    if (id(parent),subrname) not in self.state_created_public_items and not part_has_node(parent, DECL_PART, checks):
                         attrs = {'items':[subrname]}
                         part_append_gensnode(parent, DECL_PART, statements.Public, attrs=attrs)
-                        self.state_created_public_items.append(subrname)
+                        self.state_created_public_items.append((id(parent),subrname))
                         parent.kgen_stmt.top.used4genstate = True
 
     def create_read_intrinsic(self, subrobj, entity_name, stmt, var):

@@ -6,7 +6,8 @@ import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import DRIVER_USE_PART, DRIVER_READ_IN_ARGS, DRIVER_CALLSITE_PART, DRIVER_DECL_PART, \
-    DRIVER_EXEC_PART, DRIVER_CONTAINS_PART, DRIVER_SUBP_PART, DRIVER_ALLOC_PART, DRIVER_DEALLOC_PART
+    DRIVER_EXEC_PART, DRIVER_CONTAINS_PART, DRIVER_SUBP_PART, DRIVER_ALLOC_PART, DRIVER_DEALLOC_PART, \
+    shared_objects
 
 class Gen_K_Driver(Kgen_Plugin):
     def __init__(self):
@@ -33,6 +34,8 @@ class Gen_K_Driver(Kgen_Plugin):
 
     #  process after node creation
     def create_kernel_driver_parts(self, node):
+
+        shared_objects['driver_object'] = node
 
         namedpart_link_part(node, DRIVER_USE_PART, USE_PART)
         namedpart_link_part(node, DRIVER_DECL_PART, DECL_PART)
@@ -92,16 +95,20 @@ class Gen_K_Driver(Kgen_Plugin):
         doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
         part_append_comment(doobj, EXEC_PART, '')
 
-        attrs = {'variable': 'kgen_counter', 'sign': '=', 'expr': 'kgen_counter_at(mod(kgen_repeat_counter, %d)+1)'%getinfo('invocation_size')}
+        if getinfo('is_mpi_app'):
+            attrs = {'variable': 'kgen_mpi_rank', 'sign': '=', 'expr': 'kgen_mpi_rank_at(kgen_repeat_counter/%d + 1)'%getinfo('invocation_size')}
+            part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'items': ['kgen_mpi_rank'], 'specs': ['kgen_mpi_rank_conv', '*']}
+            part_append_genknode(doobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'variable': 'kgen_counter', 'sign': '=', 'expr': 'kgen_counter_at(mod(kgen_repeat_counter, %d) + 1)'%getinfo('invocation_size')}
         part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'items': ['kgen_counter'], 'specs': ['kgen_counter_conv', '*']}
         part_append_genknode(doobj, EXEC_PART, statements.Write, attrs=attrs)
 
         if getinfo('is_mpi_app'):
-            attrs = {'variable': 'kgen_mpi_rank', 'sign': '=', 'expr': 'kgen_mpi_rank_at(mod(kgen_repeat_counter, %d)+1)'%getinfo('mpi_rank_size')}
-            part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
             attrs = {'variable': 'kgen_filepath', 'sign': '=', 'expr': '"%s." // TRIM(ADJUSTL(kgen_counter_conv)) // "." // TRIM(ADJUSTL(kgen_mpi_rank_conv))'% \
                 getinfo('kernel_name')}
             part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -133,6 +140,13 @@ class Gen_K_Driver(Kgen_Plugin):
         namedpart_create_subpart(doobj, DRIVER_READ_IN_ARGS, EXEC_PART)
         namedpart_create_subpart(doobj, DRIVER_CALLSITE_PART, EXEC_PART)
         namedpart_create_subpart(doobj, DRIVER_DEALLOC_PART, EXEC_PART)
+
+
+        namedpart_append_comment(node.kgen_kernel_id, DRIVER_READ_IN_ARGS, '')
+        namedpart_append_comment(node.kgen_kernel_id, DRIVER_READ_IN_ARGS, 'driver read in arguments')
+
+        namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, '')
+        namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, 'callsite part')
 
         attrs = {'specs': ['UNIT=kgen_unit']}
         part_append_genknode(doobj, EXEC_PART, statements.Close, attrs=attrs)

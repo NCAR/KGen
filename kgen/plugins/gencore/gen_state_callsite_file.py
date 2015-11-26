@@ -114,7 +114,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['rank', 'counter']}
             part_append_gensnode(mpisubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'items': ['"KGEN writes input state variables at count = "', 'counter']}
+            attrs = {'items': ['"KGEN writes input state variables at count = "', 'counter', '" on mpirank = "', 'rank']}
             part_append_gensnode(mpisubr, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_topblock_parts(self, node):
@@ -195,11 +195,11 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'variable': 'kgen_cur_rank', 'sign': '=', 'expr': 'kgen_cur_rank + 1'}
             part_append_gensnode(dorank, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'items': ['kgen_mpi_rank'], 'specs': ['kgen_mpi_rank_conv', '*']}
-            part_append_gensnode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
-
             attrs = {'expr': 'ANY(kgen_counter == kgen_counter_at)'}
             ifcnt = part_append_gensnode(ifrank, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'items': ['kgen_mpi_rank'], 'specs': ['kgen_mpi_rank_conv', '*']}
+            part_append_gensnode(ifcnt, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'items': ['kgen_counter'], 'specs': ['kgen_counter_conv', '*']}
             part_append_gensnode(ifcnt, EXEC_PART, statements.Write, attrs=attrs)
@@ -293,8 +293,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'specs': [ 'kgen_unit' ]}
         part_append_gensnode(ifcnt, EXEC_PART, statements.Endfile, attrs=attrs)
 
-        attrs = {'designator': 'sleep', 'items': ['1']}
-        part_append_gensnode(ifcnt, EXEC_PART, statements.Call, attrs=attrs)
+        #attrs = {'designator': 'sleep', 'items': ['1']}
+        #part_append_gensnode(ifcnt, EXEC_PART, statements.Call, attrs=attrs)
 
         attrs = {'specs': [ 'kgen_unit' ]}
         part_append_gensnode(ifcnt, EXEC_PART, statements.Close, attrs=attrs)
@@ -307,13 +307,13 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'expr': 'kgen_counter > maxval(kgen_counter_at)'}
             ifmax = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'designator': 'sleep', 'items': ['1']}
-            part_append_gensnode(ifmax, EXEC_PART, statements.Call, attrs=attrs)
+            #attrs = {'designator': 'sleep', 'items': ['1']}
+            #part_append_gensnode(ifmax, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'items': ['"All state data is collected.  Stopping program..."']}
             part_append_gensnode(ifmax, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'designator': 'mpi_abort', 'items': [Config.mpi['comm'], '1', 'kgen_ierr']}
+            attrs = {'designator': 'mpi_abort', 'items': [getinfo('mpi_comm'), '0', 'kgen_ierr']}
             part_append_gensnode(ifmax, EXEC_PART, statements.Call, attrs=attrs)
 
             part_append_gensnode(ifmax, EXEC_PART, statements.Else)
@@ -326,8 +326,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'expr': 'kgen_counter > maxval(kgen_counter_at)'}
             ifmax = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'designator': 'sleep', 'items': ['1']}
-            part_append_gensnode(ifmax, EXEC_PART, statements.Call, attrs=attrs)
+            #attrs = {'designator': 'sleep', 'items': ['1']}
+            #part_append_gensnode(ifmax, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'items': ['"All state data is collected.  Stopping program..."']}
             part_append_gensnode(ifmax, EXEC_PART, statements.Write, attrs=attrs)
@@ -342,6 +342,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         attrs = {'variable': 'kgen_counter', 'sign': '=', 'expr': 'kgen_counter + 1'}
         namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Assignment, attrs=attrs)
+
+        attrs = {'designator': 'mpi_barrier', 'items': [getinfo('mpi_comm'), 'kgen_ierr']}
+        namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Call, attrs=attrs)
 
         namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'END MASTER', style='openmp')
 

@@ -409,7 +409,7 @@ def get_rawname(name, is_partname):
 
 def get_part(node, name, is_partname=False):
     partname = get_partname(name, is_partname)
-    return getattr(node, partname)
+    return getattr(node, partname, [])
 
 def get_part_index(node):
     pnode = node.kgen_parent
@@ -690,7 +690,8 @@ class Gen_Statement(object):
                     lines_str = '\n'.join(lines)
 
                 if self.kgen_use_tokgen:
-                    if isinstance(self.kgen_stmt, block_statements.BeginStatement):
+                    if isinstance(self.kgen_stmt, block_statements.BeginStatement) and \
+                        not self.kgen_stmt.__class__ in [ block_statements.If ]:
                         self.kgen_indent = cur_indent
                         self.kgen_gen_attrs['indent'] = cur_indent + TAB
                     elif isinstance(self.kgen_stmt, base_classes.EndStatement):
@@ -700,7 +701,8 @@ class Gen_Statement(object):
                 else:
                     if lines_str:
                         cur_indent = get_indent(lines_str)
-                        if isinstance(self.kgen_stmt, base_classes.BeginStatement):
+                        if isinstance(self.kgen_stmt, base_classes.BeginStatement) and \
+                             not self.kgen_stmt.__class__ in [ block_statements.If ]:
                             self.kgen_indent = cur_indent
                             self.kgen_gen_attrs['indent'] = cur_indent + TAB
                         else:
@@ -838,7 +840,8 @@ class Gen_BeginStatement(object):
             l = super(GenS_BeginStatement, self).tostring()
         if l is not None: lines.append(l)
 
-        lines.extend(self.tostring_parts())
+        if not self.kgen_stmt.__class__ in [ block_statements.If ]:
+            lines.extend(self.tostring_parts())
 
         if self.kgen_end_obj:
             l = self.kgen_end_obj.tostring()

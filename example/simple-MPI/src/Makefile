@@ -5,7 +5,7 @@ FC := mpiifort
 FC_FLAGS := -DROW=${ROW} -DCOL=${COLUMN}
 
 run: build
-	mpirun ./demo.exe
+	mpirun -n 4 ./demo.exe
 
 build: demo.exe
 

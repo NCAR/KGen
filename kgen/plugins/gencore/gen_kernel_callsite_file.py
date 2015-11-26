@@ -28,6 +28,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('topblock_stmt'), None, self.create_topblock_parts)
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
+            getinfo('callsite_stmt'), None, self.process_ifstmt)
+
 
     def create_parentblock_parts(self, node):
 
@@ -88,11 +91,15 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, 'local input variables')
 
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_EXTERNS, EXEC_PART, index=index+3)
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_EXTERNS, EXEC_PART, index=index+2)
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, 'extern output variables')
 
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_LOCALS, EXEC_PART, index=index+4)
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_LOCALS, EXEC_PART, index=index+3)
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, 'local output variables')
+
+    def process_ifstmt(self, node):
+        if node.kgen_stmt.__class__ in [ block_statements.If ]:
+            node.kgen_forced_line = node.kgen_stmt.content[0].tokgen()
 

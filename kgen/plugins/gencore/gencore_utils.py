@@ -1,5 +1,8 @@
 # gen_core_utils.py
 
+shared_objects = {}
+shared_objects['driver_object'] = None
+
 state_gencore_parts = {}
 state_gencore_contains = []
 
