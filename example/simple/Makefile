@@ -8,7 +8,7 @@ FC := ifort
 FC_FLAGS := -O3
 
 test:
-	python ${KGEN} \
+	${KGEN} \
 		-D ROW=4,COLUMN=4 \
 		-I ${SRC_DIR} \
 		--verify verboselevel=0 \
