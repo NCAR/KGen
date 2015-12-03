@@ -74,6 +74,7 @@ def generate_kernel_makefile():
 
         write(f, 'FC := %s'%Config.kernel_compile['FC'])
         write(f, 'FC_FLAGS := %s'%Config.kernel_compile['FC_FLAGS'])
+	write(f, 'verboselevel = %d'%Config.verify['verboselevel'])
         write(f, '')
         write(f, 'ALL_OBJS := %s' % ' '.join(all_objs))
         write(f, '')

@@ -3,12 +3,11 @@ MODULE update_mod
     PUBLIC update
 CONTAINS
     SUBROUTINE update()
-        !This is a comment
-        INTEGER  :: i, j
-        INTEGER, dimension(ROW, COLUMN) :: output
+        INTEGER :: i, j
+        real, dimension(ROW, COLUMN) :: out2, out3, output
         DO i=1, COLUMN
             DO j=1, ROW
-                CALL calc(i, j, output)                 !Calling kernel
+                CALL calc(i, j, output, out2, out3)                 !Calling kernel
             END DO
         END DO
         print *, 'SUM(output) = ', SUM(output)

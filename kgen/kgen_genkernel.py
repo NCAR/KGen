@@ -182,7 +182,8 @@ def process_kernel_callsite_stmt(f, stmt, depth):
     from Fortran2003 import Name, Call_Stmt, Part_Ref, Assignment_Stmt
 
     write(f, 'tolerance = %s'%Config.verify['tolerance'], d=depth)
-    write(f, 'CALL kgen_init_check(check_status, tolerance)', d=depth)
+    #write(f, 'verbosity = %d'%Config.verify['verboselevel'], d=depth)
+    write(f, 'CALL kgen_init_check(check_status, tolerance, verbosity)', d=depth)
 
     write_kernel_read_inputs(f, depth)
     write_kernel_read_outputs(f, depth)
@@ -523,6 +524,7 @@ def generate_kernel_module_callsite():
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
                     write(f, 'INTEGER, PARAMETER :: maxiter=%d'%Config.timing['repeat'], depth)
+                    write(f, 'INTEGER, PARAMETER :: verbosity=%d'%Config.verify['verboselevel'], depth)
                     write(f, 'TYPE(check_t):: check_status', d=depth)
                     write(f, 'REAL(KIND=kgen_dp) :: tolerance', d=depth)
 
@@ -541,6 +543,7 @@ def generate_kernel_module_callsite():
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
                     write(f, 'INTEGER, PARAMETER :: maxiter=%d'%Config.timing['repeat'], depth)
+                    write(f, 'INTEGER, PARAMETER :: verbosity=%d'%Config.verify['verboselevel'], depth)
                     write(f, 'TYPE(check_t):: check_status', d=depth)
                     write(f, 'REAL(KIND=kgen_dp) :: tolerance', d=depth)
 
@@ -560,6 +563,7 @@ def generate_kernel_module_callsite():
                     #write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rdtsc', depth)
                     write(f, 'INTEGER*8 :: kgen_intvar, start_clock, stop_clock, rate_clock', depth)
                     write(f, 'INTEGER, PARAMETER :: maxiter=%d'%Config.timing['repeat'], depth)
+                    write(f, 'INTEGER, PARAMETER :: verbosity=%d'%Config.verify['verboselevel'], depth)
                     write(f, 'TYPE(check_t):: check_status', d=depth)
                     write(f, 'REAL(KIND=kgen_dp) :: tolerance', d=depth)
 
