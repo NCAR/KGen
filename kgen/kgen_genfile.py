@@ -29,7 +29,7 @@ class KERNEL_SELECTION(object):
 KERNEL_ID_0 = 0
 
 event_register = OrderedDict()
-named_parts = {}
+named_parts = OrderedDict()
 
 
 PART_PREFIX = '_kgen_part_'
@@ -283,6 +283,7 @@ def getinfo(name):
     elif name=='mpi_rank_size': return Config.mpi['size']
     elif name=='mpi_ranks': return Config.mpi['ranks']
     elif name=='mpi_comm': return Config.mpi['comm']
+    elif name=='mpi_use': return Config.mpi['use_stmts']
     elif name=='invocation_size': return Config.invocation['size']
     elif name=='invocation_numbers': return Config.invocation['numbers']
     elif name=='print_var_names': return Config.debug['printvar']
@@ -435,7 +436,7 @@ def namedpart_create_subpart(pnode, name, rawname, index=None):
     assert pnode
 
     kernel_id = pnode.kgen_kernel_id
-    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = {} 
+    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = OrderedDict()
     
     named_part = []
     named_parts[kernel_id][name] = (pnode, rawname, named_part)
@@ -446,7 +447,7 @@ def namedpart_link_part(pnode, name, rawname):
     assert pnode
 
     kernel_id = pnode.kgen_kernel_id
-    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = {} 
+    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = OrderedDict()
    
     part = get_part(pnode, rawname) 
     named_parts[kernel_id][name] = (pnode, rawname, part)
@@ -664,6 +665,9 @@ class Gen_Statement(object):
     def statement_finalize(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.FINISH_PROCESS, self, plugins=plugins)
 
+    def statement_flatten(self):
+        pass
+
     def tostring(self):
 
         if isinstance(self.kgen_stmt, statements.Comment):
@@ -767,6 +771,9 @@ class GenK_Statement(Gen_Statement):
     def finalize(self, plugins):
         self.statement_finalize(plugins)
 
+    def flatten(self):
+        return self.statement_flatten()
+
 class GenS_Statement(Gen_Statement):
     kgen_file_type = FILE_TYPE.STATE
     def __init__(self, parent, stmt, match_class, kernel_id, attrs=None):
@@ -782,6 +789,9 @@ class GenS_Statement(Gen_Statement):
 
     def finalize(self, plugins):
         self.statement_finalize(plugins)
+
+    def flatten(self):
+        return self.statement_flatten()
 
 ########### BeginStatement ############
 class Gen_BeginStatement(object):
@@ -865,7 +875,7 @@ class Gen_BeginStatement(object):
     def beginstatement_created(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.NODE_CREATED, self, plugins=plugins)
 
-        temp_parts = {}
+        temp_parts = OrderedDict()
         for name in self.kgen_part_order:
             part = getattr(self, PART_PREFIX + name)
             temp_parts[name] = part[:]
@@ -881,7 +891,7 @@ class Gen_BeginStatement(object):
     def beginstatement_process(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.BEGIN_PROCESS, self, plugins=plugins)
 
-        temp_parts = {}
+        temp_parts = OrderedDict()
         for name in self.kgen_part_order:
             part = getattr(self, get_partname(name, False))
             temp_parts[name] = part[:]
@@ -897,7 +907,7 @@ class Gen_BeginStatement(object):
     def beginstatement_finalize(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.FINISH_PROCESS, self, plugins=plugins)
 
-        temp_parts = {}
+        temp_parts = OrderedDict()
         for name in self.kgen_part_order:
             part = getattr(self, get_partname(name, False))
             temp_parts[name] = part[:]
@@ -909,6 +919,21 @@ class Gen_BeginStatement(object):
                         sub_node.finalize(plugins)
                 else:
                     node.finalize(plugins)
+
+    def beginstatement_flatten(self):
+        #import pdb; pdb.set_trace()
+        for name in self.kgen_part_order:
+            part = getattr(self, get_partname(name, False))
+            flatten_part = []
+            for node in part:
+                if isinstance(node, list):
+                    for sub_node in node:
+                        sub_node.flatten()
+                        flatten_part.append(sub_node)
+                else:
+                    node.flatten()
+                    flatten_part.append(node)
+            setattr(self, get_partname(name, False), flatten_part)
 
     def insert_in_order(self, item, insert_order):
 
@@ -949,6 +974,9 @@ class GenK_BeginStatement(GenK_Statement, Gen_BeginStatement):
     def finalize(self, plugins):
         self.beginstatement_finalize(plugins)
 
+    def flatten(self):
+        self.beginstatement_flatten()
+
     def tostring(self):
         return self.beginstatement_tostring()
 
@@ -967,6 +995,9 @@ class GenS_BeginStatement(GenS_Statement, Gen_BeginStatement):
 
     def finalize(self, plugins):
         self.beginstatement_finalize(plugins)
+
+    def flatten(self):
+        self.beginstatement_flatten()
 
     def tostring(self):
         return self.beginstatement_tostring()
@@ -1033,6 +1064,12 @@ def generate_srcfiles():
             kfile.finalize([plugin_dir])
             sfile.finalize([plugin_dir])
         driver.finalize([plugin_dir])
+
+        for kfile, sfile, filepath in genfiles:
+            kfile.flatten()
+            sfile.flatten()
+        driver.flatten()
+        named_part = OrderedDict()
 
     # generate source files from each node of the tree
     for kfile, sfile, filepath in genfiles:

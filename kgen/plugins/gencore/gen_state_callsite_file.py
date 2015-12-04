@@ -127,6 +127,12 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
     def create_callsite_parts(self, node):
         if getinfo('is_mpi_app'):
+            mpi_use_stmts = getinfo('mpi_use')
+            if mpi_use_stmts and len(mpi_use_stmts)>0:
+                for mod_name, use_names in mpi_use_stmts:
+                    attrs = {'name':mod_name, 'isonly': True, 'items':use_names}
+                    namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_USE_PART, statements.Use, attrs=attrs)
+
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpi_rank', 'kgen_mpi_size', 'kgen_cur_rank']}
             namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
         
@@ -155,6 +161,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
         namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_true']}
+        namedpart_append_genknode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, '')
 

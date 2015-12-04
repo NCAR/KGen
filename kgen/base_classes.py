@@ -821,12 +821,13 @@ class Statement(object):
 
     # save names that this self resolved
     def add_geninfo(self, uname, request):
+        from ordereddict import OrderedDict
 
         if uname is None or request is None: return
 
         # Statement
         if not hasattr(self, 'geninfo'):
-            self.geninfo = {}
+            self.geninfo = OrderedDict()
         if not self.geninfo.has_key(request.gentype):
             self.geninfo[request.gentype] = []
         if (uname, request) not in self.geninfo[request.gentype]:
@@ -835,19 +836,19 @@ class Statement(object):
         # EndStatement
         if isinstance(self, BeginStatement) and isinstance(self.content[-1], EndStatement):
             if not hasattr(self.content[-1], 'geninfo'):
-                self.content[-1].geninfo = {}
+                self.content[-1].geninfo = OrderedDict()
             if not self.content[-1].geninfo.has_key(request.gentype):
                 self.content[-1].geninfo[request.gentype] = []
 
         # Ancestors
         for anc in self.ancestors(include_beginsource=True):
             if not hasattr(anc, 'geninfo'):
-                anc.geninfo = {}
+                anc.geninfo = OrderedDict()
             if not anc.geninfo.has_key(request.gentype):
                 anc.geninfo[request.gentype] = []
             if isinstance(anc, BeginStatement) and isinstance(anc.content[-1], EndStatement):
                 if not hasattr(anc.content[-1], 'geninfo'):
-                    anc.content[-1].geninfo = {}
+                    anc.content[-1].geninfo = OrderedDict()
                 if not anc.content[-1].geninfo.has_key(request.gentype):
                     anc.content[-1].geninfo[request.gentype] = []
 

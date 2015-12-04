@@ -6,6 +6,7 @@ from typedecl_statements import TypeDeclarationStatement
 from block_statements import Type, TypeDecl, Function, Subroutine, Interface
 from statements import External, Common
 from kgen_extra import Intrinsic_Procedures
+from ordereddict import OrderedDict
 
 res_default = [ TypeDeclarationStatement ]
 res_external = [ External ]
@@ -55,7 +56,7 @@ def f2003_search_unknowns(stmt, node, resolvers=None, gentype=None):
 
     # save in unknowns dict in stmt
     if not hasattr(stmt, 'unknowns'):
-        stmt.unknowns = {}
+        stmt.unknowns = OrderedDict()
 
     clsname = node.__class__.__name__
 
@@ -151,7 +152,7 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
                 name = node.string.lower()
                 namepath = pack_innamepath(stmt, name) 
                 if match_namepath(pattern, namepath):
-                    if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = {}
+                    if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = OrderedDict()
                     if stmt.exclude_names.has_key(name):
                         stmt.exclude_names[name].extend(actions)
                     else:

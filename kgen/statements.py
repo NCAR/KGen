@@ -2168,6 +2168,20 @@ class Forall(Statement):
                (s, str(self.content[0]).lstrip())
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self):
+        l = []
+        for index,s1,s2,s3 in self.specs:
+            s = '%s = %s : %s' % (index,s1,s2)
+            if s3!='1':
+                s += ' : %s' % (s3)
+            l.append(s)
+        s = ', '.join(l)
+        if hasattr(self, 'mask') and self.mask:
+            s += ', ' + self.mask
+        return 'FORALL (%s) %s' %(s, str(self.content[0]).lstrip())
+    # end of KGEN addition
+
 ForallStmt = Forall
 
 class SpecificBinding(Statement):
@@ -2605,9 +2619,9 @@ class ElseWhere(Statement):
     # start of KGEN addition
     def tokgen(self):
         s = 'ELSEWHERE' # KGEN addition
-        if self.expr is not None:
+        if hasattr(self, 'expr') and self.expr is not None:
             s += ' ( %s )' % (self.expr)
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             s += ' ' + self.name
         return s
     # end of KGEN addition

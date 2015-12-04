@@ -7,6 +7,7 @@ import sys
 from copy import deepcopy
 from Fortran2003 import Name, Data_Ref
 from ConfigParser import RawConfigParser
+from ordereddict import OrderedDict
 
 #############################################################################
 ## COMMON
@@ -150,7 +151,7 @@ def match_namepath(pattern, namepath, internal=True):
 def singleton(cls):
     """ singleton generator """
 
-    instances = {}
+    instances = OrderedDict()
     def get_instance():
         if cls not in instances:
             instances[cls] = cls()
@@ -411,7 +412,7 @@ def process_include_option(include_option, incattrs):
                 incattrs[lsection][option] = Inc.get(section, option).strip()
         elif lsection=='import':
             for option in Inc.options(section):
-                subflags = {}
+                subflags = OrderedDict()
                 for subf in Inc.get(section, option).split(','):
                     subflags[subf.strip()] = None
                 incattrs[lsection][option] = subflags
@@ -421,9 +422,9 @@ def process_include_option(include_option, incattrs):
         elif os.path.isfile(section):
             abspath = os.path.abspath(section)
             if not incattrs['file'].has_key(abspath):
-                incattrs['file'][abspath] = {}
+                incattrs['file'][abspath] = OrderedDict()
                 incattrs['file'][abspath]['path'] = ['.']
-                incattrs['file'][abspath]['macro'] = {}
+                incattrs['file'][abspath]['macro'] = OrderedDict()
             for option in Inc.options(section):
                 if option=='include':
                     pathlist = Inc.get(section, option).split(':')
@@ -445,7 +446,7 @@ def process_exclude_option(exclude_option, excattrs):
             print 'ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead'
             sys.exit(-1)
 
-        excattrs[lsection] = {}
+        excattrs[lsection] = OrderedDict()
         for option in Exc.options(section):
             loption = option.lower().strip()
             excattrs[lsection][loption] = Exc.get(section, option).strip().split('=')
@@ -458,53 +459,53 @@ class Config(object):
         import optparse
 
         # setup config parameters
-        self._attrs = {}
+        self._attrs = OrderedDict()
 
         # KGEN operation mode
         self._attrs['check_mode'] = False
 
         # kgen parameters
-        self._attrs['kgen'] = {}
+        self._attrs['kgen'] = OrderedDict()
         self._attrs['kgen']['version'] = [ 0, 5, '3' ]
 
         # Fortran parameters
-        self._attrs['fort'] = {}
+        self._attrs['fort'] = OrderedDict()
         self._attrs['fort']['maxlinelen'] = 134
 
         # logging parameters
-        self._attrs['logging'] = {}
-        self._attrs['logging']['select'] = {}
+        self._attrs['logging'] = OrderedDict()
+        self._attrs['logging']['select'] = OrderedDict()
 
         # callsite parameters
-        self._attrs['callsite'] = {}
+        self._attrs['callsite'] = OrderedDict()
         self._attrs['callsite']['filepath'] = ''
         self._attrs['callsite']['subpname'] = ''
         self._attrs['callsite']['lineafter'] = -1
 
         # external tool parameters
-        self._attrs['bin'] = {}
+        self._attrs['bin'] = OrderedDict()
         self._attrs['bin']['pp'] = 'cpp'
         self._attrs['bin']['cpp_flags'] = '-w -traditional'
         self._attrs['bin']['fpp_flags'] = '-w'
 
         # test parameters
-        self._attrs['test'] = {}
+        self._attrs['test'] = OrderedDict()
         self._attrs['test']['suite'] = ''
 
         # search parameters
-        self._attrs['search'] = {}
+        self._attrs['search'] = OrderedDict()
         self._attrs['search']['skip_intrinsic'] = True
         self._attrs['search']['except'] = []
         self._attrs['search']['promote_exception'] = False
 
         # path parameters
-        self._attrs['path'] = {}
+        self._attrs['path'] = OrderedDict()
         self._attrs['path']['outdir'] = '.'
         self._attrs['path']['state'] = 'state'
         self._attrs['path']['kernel'] = 'kernel'
 
         # mpi parameters
-        self._attrs['mpi'] = {}
+        self._attrs['mpi'] = OrderedDict()
         self._attrs['mpi']['enabled'] = False
         self._attrs['mpi']['ranks'] = [ '0' ]
         self._attrs['mpi']['size'] = len(self._attrs['mpi']['ranks'])
@@ -513,65 +514,65 @@ class Config(object):
         self._attrs['mpi']['use_stmts'] = []
 
         # invocation parameters
-        self._attrs['invocation'] = {}
+        self._attrs['invocation'] = OrderedDict()
         self._attrs['invocation']['numbers'] = [ '1' ]
         self._attrs['invocation']['size'] = len(self._attrs['invocation']['numbers'])
 
         # timing parameters
-        self._attrs['timing'] = {}
+        self._attrs['timing'] = OrderedDict()
         self._attrs['timing']['repeat'] = 10
 
         # source file parameters
-        self._attrs['source'] = {}
+        self._attrs['source'] = OrderedDict()
         self._attrs['source']['isfree'] = None
         self._attrs['source']['isstrict'] = None
-        self._attrs['source']['alias'] = {}
-        self._attrs['source']['file'] = {}
+        self._attrs['source']['alias'] = OrderedDict()
+        self._attrs['source']['file'] = OrderedDict()
 
         # verification parameters
-        self._attrs['verify'] = {}
+        self._attrs['verify'] = OrderedDict()
         self._attrs['verify']['tolerance'] = '1.E-14'
         self._attrs['verify']['verboselevel'] = 1
 
         # include parameters
-        self._attrs['include'] = {}
-        self._attrs['include']['macro'] = {}
+        self._attrs['include'] = OrderedDict()
+        self._attrs['include']['macro'] = OrderedDict()
         self._attrs['include']['path'] = ['.']
-        self._attrs['include']['type'] = {}
-        self._attrs['include']['import'] = {}
-        self._attrs['include']['file'] = {}
+        self._attrs['include']['type'] = OrderedDict()
+        self._attrs['include']['import'] = OrderedDict()
+        self._attrs['include']['file'] = OrderedDict()
 
         # exclude parameters
-        self._attrs['exclude'] = {}
+        self._attrs['exclude'] = OrderedDict()
 
         # make kernel parameters
-        self._attrs['kernel_compile'] = {}
+        self._attrs['kernel_compile'] = OrderedDict()
         self._attrs['kernel_compile']['FC'] = 'ifort'
         self._attrs['kernel_compile']['FC_FLAGS'] = ''
 
-        self._attrs['kernel_link'] = {}
+        self._attrs['kernel_link'] = OrderedDict()
         self._attrs['kernel_link']['include'] = []
         self._attrs['kernel_link']['pre_cmds'] = []
         self._attrs['kernel_link']['lib'] = []
         self._attrs['kernel_link']['obj'] = []
 
         # make state parameters
-        self._attrs['state_build'] = {}
+        self._attrs['state_build'] = OrderedDict()
         self._attrs['state_build']['cmds'] = ''
-        self._attrs['state_run'] = {}
+        self._attrs['state_run'] = OrderedDict()
         self._attrs['state_run']['cmds'] = ''
-        self._attrs['state_switch'] = {}
+        self._attrs['state_switch'] = OrderedDict()
         self._attrs['state_switch']['type'] = 'replace'
         self._attrs['state_switch']['cmds'] = ''
 
         # kernel correctness check parameters
-        self._attrs['check'] = {}
+        self._attrs['check'] = OrderedDict()
         #self._attrs['check']['pert_invar'] = ['*']
         self._attrs['check']['pert_invar'] = []
         self._attrs['check']['pert_lim'] = '1.0E-15'
 
         # debugging parameters
-        self._attrs['debug'] = {}
+        self._attrs['debug'] = OrderedDict()
         self._attrs['debug']['printvar'] = []
 
         # parsing arguments
@@ -642,7 +643,7 @@ class Config(object):
     def process_directives(self, filename):
 
         # collect directives
-        directs = {}
+        directs = OrderedDict()
         with open(filename, 'rb') as f:
             continued = False
             buf = ''
@@ -762,7 +763,7 @@ class Config(object):
         files = None
         if opts.source:
             for line in opts.source:
-                flags = {}
+                flags = OrderedDict()
                 for subflag in line.lower().split(','):
                     if subflag.find('=')>0:
                         key, value = subflag.split('=')
@@ -791,7 +792,7 @@ class Config(object):
                     else: raise UserException('strict subflag of source flag should be either yes or no.')
 
                 if flags.has_key('file'):
-                    subflags = {}
+                    subflags = OrderedDict()
                     if isfree: subflags['isfree'] = isfree
                     if isstrict: subflags['isstrict'] = isstrict
                     for file in flags['file']:
@@ -815,7 +816,7 @@ class Config(object):
                         newpath.add(p1+path[len(p2):])
             self._attrs['include']['path'] = list(newpath)
 
-        newfile = {} 
+        newfile =  OrderedDict()
         for path, value in self._attrs['include']['file'].iteritems():
             newfile[path] = value
             for p1, p2 in self._attrs['source']['alias'].iteritems():
@@ -866,8 +867,7 @@ class Config(object):
                         self._attrs['mpi'][key] = value
                     elif key=='use':
                         mod_name, identifier = value.split(':')
-                        self._attrs['mpi']['use_stmts'].append('USE %s, only : %s'% \
-                            (mod_name, identifier))
+                        self._attrs['mpi']['use_stmts'].append((mod_name, [identifier]))
                     elif key=='ranks':
                         self._attrs['mpi'][key] = value.split(':')
                         self._attrs['mpi']['size'] = len(self._attrs['mpi'][key])

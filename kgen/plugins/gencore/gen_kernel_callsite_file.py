@@ -49,6 +49,10 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'REAL', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['total_time'], \
             'selector': (None, 'kgen_dp')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_true']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
         part_append_comment(node, DECL_PART, '')
 
 #        # ensure contains

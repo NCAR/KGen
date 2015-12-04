@@ -14,6 +14,7 @@ from kgen_state import State
 from kgen_utils import Config, Logger, ProgramException, KGName
 from kgen_extra import kgen_file_header, kgen_subprograms, kgen_print_counter, kgen_verify_intrinsic_checkpart, \
     kgen_verify_numeric_array, kgen_verify_nonreal_array, kgen_utils_file_head, kgen_utils_file_checksubr
+from ordereddict import OrderedDict
 
 logger = logging.getLogger('kgen') # KGEN addition
 
@@ -1057,9 +1058,9 @@ def write_kernel_subroutines_type_verify_var(f, depth, dtypelist):
     global verify_subrnames
     verify_subrnames = []
 
-    tempblock = {}
+    tempblock = OrderedDict()
     tempblock['names'] = []
-    tempblock['typedecl_stmt'] = {}
+    tempblock['typedecl_stmt'] = OrderedDict()
 
     for dtype in dtypelist:
         write(f, 'RECURSIVE SUBROUTINE kgen_verify_%s(varname, check_status, var, ref_var)'%dtype.name, d=depth)
@@ -1676,7 +1677,7 @@ class GenVerification(GenBase):
     def write(cls, f, depth, srcblock=State.parentblock['output']):
         import re
 
-        tempblock = {}
+        tempblock = OrderedDict()
         tempblock['names'] = []
         tempblock['typedecl_stmt'] = {}
 

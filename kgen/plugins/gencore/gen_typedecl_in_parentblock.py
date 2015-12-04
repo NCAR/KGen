@@ -72,14 +72,24 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                             checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.name==req.res_stmts[-1].name and \
                                 ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                             if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
-                                attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[uname.firstpartname()]}
+                                item_name = uname.firstpartname()
+                                for new_name, old_name in req.res_stmts[-1].renames:
+                                    if new_name==item_name:
+                                        item_name = '%s => %s'%(new_name, old_name) 
+                                        break
+                                attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
                                 namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
                         else:
                             if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
                                 checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
                                     ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                                 if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
-                                    attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[uname.firstpartname()]}
+                                    item_name = uname.firstpartname()
+                                    for new_name, old_name in req.res_stmts[-1].renames:
+                                        if new_name==item_name:
+                                            item_name = '%s => %s'%(new_name, old_name) 
+                                            break
+                                    attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
                                     namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
             elif (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype and (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
