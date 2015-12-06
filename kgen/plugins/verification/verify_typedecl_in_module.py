@@ -103,10 +103,15 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
             var = stmt.get_variable(entity_name)
             subrname = get_typedecl_verifyname(stmt, entity_name)
 
-            attrs = {'designator': subrname, 'items': ['"%s"'%entity_name, entity_name, 'ref_%s'%entity_name]}
+            attrs = {'designator': subrname, 'items': ['"%s"'%entity_name, 'check_status', entity_name, 'ref_%s'%entity_name]}
             part_append_genknode(self.verify_externs_subrs[node.kgen_parent], EXEC_PART, statements.Call, attrs=attrs)
 
             if subrname not in self.verify_created_subrs:
-                create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
-                self.verify_created_subrs.append(subrname)
+                if stmt.is_derived():
+                    if var.is_pointer() or var.is_array():
+                        create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
+                        self.verify_created_subrs.append(subrname)
+                else:
+                    create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
+                    self.verify_created_subrs.append(subrname)
 

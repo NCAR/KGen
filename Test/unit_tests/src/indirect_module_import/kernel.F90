@@ -22,7 +22,7 @@ module kernel
                         atype%c(i,j) = atype%a(i,j) + atype%b(i,j)
                     end do
                 end do
-
+                save_value = atype%c(1,1)
         end subroutine add
 
 end module kernel

@@ -4,7 +4,7 @@ import statements
 import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
-from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains
+from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils
 
 class Verify_Type(Kgen_Plugin):
     def __init__(self):
@@ -12,7 +12,6 @@ class Verify_Type(Kgen_Plugin):
 
         self.kernel_created_use_items = []
         self.kernel_created_public_items = []
-        self.kernel_created_use_kgenutils = []
 
     # registration
     def register(self, msg):
@@ -152,10 +151,10 @@ class Verify_Type(Kgen_Plugin):
                 kernel_verify_contains.append(parent)
 
             checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Use) and n.name=='kgen_utils_mod'
-            if not parent in self.kernel_created_use_kgenutils and not part_has_node(parent, USE_PART, checks):
+            if not parent in kernel_verify_kgenutils and not part_has_node(parent, USE_PART, checks):
                 attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items': ['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
                 part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)
-                self.kernel_created_use_kgenutils.append(parent)
+                kernel_verify_kgenutils.append(parent)
 
             part_append_comment(parent, SUBP_PART, 'verify state subroutine for %s'%subrname)
             attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['varname', 'check_status', 'var', 'ref_var']}

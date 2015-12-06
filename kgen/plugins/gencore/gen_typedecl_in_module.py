@@ -267,9 +267,36 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 self.state_callsite_call_stmts.append(self.state_externs_subrs[node][1])
 
     def create_subr_read_typedecl_in_module(self, node):
+
         stmt = node.kgen_stmt
         entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
         out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+
+        def get_attrs(attrspec, allowed_attrs):
+            attrspec = []
+            for attr in stmt.attrspec:
+                if any( attr.startswith(allowed_attr) for allowed_attr in allowed_attrs):
+                    attrspec.append(attr)
+            return attrspec
+
+        def get_decls(names, decls, prefix=''):
+            import re
+            entity_decls = []
+            for decl in decls:
+                ename = re.split('\(|\*|=', decl)[0].strip()
+                if ename in names:
+                    entity_decls.append(prefix+decl)
+            return entity_decls
+
+        if len(out_entity_names)>0:
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+
+            entity_decls = get_decls(out_entity_names, stmt.entity_decls, prefix='ref_')
+
+            attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
+                'selector':stmt.selector, 'entity_decls': entity_decls}
+            part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if entity_name in self.kernel_extern_reads: continue
             self.kernel_extern_reads.append(entity_name)

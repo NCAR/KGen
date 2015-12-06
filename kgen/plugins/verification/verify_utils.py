@@ -2,7 +2,7 @@
 
 shared_objects = {}
 
-kernel_verify_parts = {}
+kernel_verify_kgenutils = []
 kernel_verify_contains = []
 
 VERIFY_PBLOCK_USE_PART = 'VPBUP'
