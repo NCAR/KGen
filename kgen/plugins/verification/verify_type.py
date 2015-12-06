@@ -4,7 +4,6 @@ import statements
 import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
-#
 from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains
 
 class Verify_Type(Kgen_Plugin):
@@ -13,6 +12,7 @@ class Verify_Type(Kgen_Plugin):
 
         self.kernel_created_use_items = []
         self.kernel_created_public_items = []
+        self.kernel_created_use_kgenutils = []
 
     # registration
     def register(self, msg):
@@ -112,6 +112,30 @@ class Verify_Type(Kgen_Plugin):
     def create_dtype_verify_subr(self, node):
         assert node.kgen_stmt, 'None kgen statement'
 
+        def print_numarr_detail(parent, entity_name):
+            attrs = {'items': ['count( var%%%s /= ref_var%%%s)'%(entity_name, entity_name), \
+                '" of "', 'size( var%%%s )'%entity_name, '" elements are different."']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"Average - kernel "', 'sum(var%%%s)/real(size(var%%%s))'%(entity_name, entity_name)]}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"Average - reference "', 'sum(ref_var%%%s)/real(size(ref_var%%%s))'%(entity_name, entity_name)]}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"RMS of difference is "', 'rmsdiff_%s'%entity_name]}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"Normalized RMS of difference is "', 'nrmsdiff_%s'%entity_name]}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+        def print_num_detail(parent, entity_name):
+            attrs = {'items': ['"Difference is "', 'diff_%s'%entity_name]}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+        def print_dummy_detail(parent, entity_name):
+            attrs = {'items': ['"NOT IMPLEMENTED"']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
         subrname = get_dtype_verifyname(node.kgen_stmt)
         if subrname is None: return
@@ -126,6 +150,12 @@ class Verify_Type(Kgen_Plugin):
                 part_append_genknode(parent, CONTAINS_PART, statements.Contains)
                 part_append_comment(parent, CONTAINS_PART, '')
                 kernel_verify_contains.append(parent)
+
+            checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Use) and n.name=='kgen_utils_mod'
+            if not parent in self.kernel_created_use_kgenutils and not part_has_node(parent, USE_PART, checks):
+                attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items': ['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+                part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)
+                self.kernel_created_use_kgenutils.append(parent)
 
             part_append_comment(parent, SUBP_PART, 'verify state subroutine for %s'%subrname)
             attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['varname', 'check_status', 'var', 'ref_var']}
@@ -145,7 +175,7 @@ class Verify_Type(Kgen_Plugin):
             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
 
             # dtype_check_status
-            attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['dtype_check_status']}
+            attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['dtype_check_status', 'comp_check_status']}
             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
 
             # check result
@@ -157,10 +187,12 @@ class Verify_Type(Kgen_Plugin):
             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
             part_append_comment(subrobj, DECL_PART, '')
 
+            part_append_comment(subrobj, EXEC_PART, '')
             attrs = {'variable': 'check_status%numTotal', 'sign': '=', 'expr': 'check_status%numTotal + 1'}
             part_append_genknode(subrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+            part_append_comment(subrobj, EXEC_PART, '')
 
-            attrs = {'designator': kgen_init_check, 'items': ['dtype_check_status']}
+            attrs = {'designator': 'kgen_init_check', 'items': ['dtype_check_status']}
             part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 
             comp_part = get_part(node, TYPE_COMP_PART) 
@@ -176,178 +208,255 @@ class Verify_Type(Kgen_Plugin):
 
                     if var.is_array():
                         dim_shape = ','.join(':'*var.rank)
-                        get_size = ','.join(['SIZE(var,dim=%d)'%(dim+1) for dim in range(var.rank)])
+                        get_size = ','.join(['SIZE(var%%%s,dim=%d)'%(entity_name, dim+1) for dim in range(var.rank)])
 
                         if stmt.is_derived():
+
+                            attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status']}
+                            part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 
                             pobj = subrobj
                             doobjs = []
                             for d in range(var.rank):
-                                attrs = {'loopcontrol': ' idx%(d)d=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1}}
+                                attrs = {'loopcontrol': ' idx%(d)d=LBOUND(var%%%(e)s,%(d)d), UBOUND(var%%%(e)s,%(d)d)'%{'e':entity_name, 'd':d+1}}
                                 doobj = part_append_genknode(pobj, EXEC_PART, block_statements.Do, attrs=attrs)
                                 pobj = doobj 
 
                             # call verify subr
                             indexes = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
-                            attrs = {'designator': callname, 'items': ['"%s"'%var.name, 'dtype_dtype_check_status', 'var(%s)'%indexes, 'ref_var(%s)'%indexes]}
+                            attrs = {'designator': callname, 'items': ['trim(adjustl(varname))//"%%%s"'%var.name, 'comp_check_status', \
+                                'var%%%s(%s)'%(entity_name, indexes), 'ref_var%%%s(%s)'%(entity_name, indexes)]}
                             part_append_genknode(doobjs[-1], EXEC_PART, statements.Call, attrs=attrs)
 
-                            attrs = {'expr': 'dtype_dtype_check_status%numTotal == dtype_dtype_check_status%numIdentical'}
-                            iftrueobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                            attrs = {'expr': 'comp_check_status%numTotal == comp_check_status%numIdentical'}
+                            ifidobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
-                            part_append_genknode(iftrueobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-                            attrs = {'expr': 'dtype_dtype_check_status%numOutTol > 0'}
-                            part_append_genknode(iftrueobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
-
-                            attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
-                            part_append_genknode(iftrueobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-                            attrs = {'expr': 'dtype_dtype_check_status%numInTol > 0'}
-                            part_append_genknode(iftrueobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
-
-                            attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
-                            part_append_genknode(iftrueobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-                        else: # intrinsic type
-                
-                            if stmt.name=='logical':
-                                attrs = {'expr': 'ALL(var .EQV. ref_var)'}
-                            else:
-                                attrs = {'expr': 'ALL(var == ref_var)'}
-                            ifcmpobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                             attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                            attrs = {'expr': 'comp_check_status%numOutTol > 0'}
+                            part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+                            attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                            attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                            attrs = {'expr': 'comp_dtype_check_status%numInTol > 0'}
+                            part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+                            attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                            attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                        else: # intrinsic type
+
+                            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['n_%s'%entity_name]}
+                            part_append_genknode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                            if stmt.name=='logical':
+                                attrs = {'expr': 'ALL(var%%%s .EQV. ref_var%%%s)'%(entity_name, entity_name)}
+                            else:
+                                attrs = {'expr': 'ALL(var%%%s == ref_var%%%s)'%(entity_name, entity_name)}
+
+                            ifidobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                            attrs = {'items': ['trim(adjustl(varname))','" is IDENTICAL."']}
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Write, attrs=attrs)
+                            attrs = {'items': ['trim(adjustl(varname))','"%%%s is IDENTICAL."'%entity_name]}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
 
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Else)
+                            attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Else)
 
                             if stmt.is_numeric():
 
-                                attrs = {'items': ['temp(%s)'%get_size]}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Allocate, attrs=attrs)
+                                # typececls
+                                attrs = {'type_spec': stmt.name, 'selector':stmt.selector, 'entity_decls': \
+                                    ['nrmsdiff_%s'%entity_name, 'rmsdiff_%s'%entity_name ]}
+                                part_append_genknode(subrobj, DECL_PART, stmt.__class__, attrs=attrs)
 
-                                attrs = {'items': ['temp2(%s)'%get_size]}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Allocate, attrs=attrs)
+                                attrs = {'type_spec': stmt.name, 'attrspec': ['ALLOCATABLE'], 'selector':stmt.selector, 'entity_decls': \
+                                    ['buf1_%s(%s)'%(entity_name, dim_shape),'buf2_%s(%s)'%(entity_name, dim_shape)]}
+                                part_append_genknode(subrobj, DECL_PART, stmt.__class__, attrs=attrs)
 
-                                attrs = {'variable': 'n', 'sign': '=', 'expr': 'COUNT(var /= ref_var)'}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                attrs = {'items': ['buf1_%s(%s)'%(entity_name, get_size)]}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Allocate, attrs=attrs)
 
-                                attrs = {'expr': 'ABS(ref_var) > dtype_check_status%minvalue'}
-                                whereobj = part_append_genknode(ifcmpobj, EXEC_PART, block_statements.Where, attrs=attrs)
+                                attrs = {'items': ['buf2_%s(%s)'%(entity_name, get_size)]}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Allocate, attrs=attrs)
 
-                                attrs = {'variable': 'temp', 'sign': '=', 'expr': '((var-ref_var)/ref_var)**2'}
+                                attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= ref_var%%%s)'%(entity_name, entity_name)}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                attrs = {'expr': 'ABS(ref_var%%%s) > dtype_check_status%%minvalue'%entity_name}
+                                whereobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.Where, attrs=attrs)
+
+                                attrs = {'variable': 'buf1_%s'%entity_name, 'sign': '=', \
+                                    'expr': '((var%%%(e)s-ref_var%%%(e)s)/ref_var%%%(e)s)**2'%{'e':entity_name}}
                                 part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'variable': 'temp2', 'sign': '=', 'expr': '(var-ref_var)**2'}
+                                attrs = {'variable': 'buf2_%s'%entity_name, 'sign': '=', 'expr': '(var%%%s-ref_var%%%s)**2'%(entity_name, entity_name)}
                                 part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                                 part_append_genknode(whereobj, EXEC_PART, statements.ElseWhere)
 
-                                attrs = {'variable': 'temp', 'sign': '=', 'expr': '(var-ref_var)**2'}
+                                attrs = {'variable': 'buf1_%s'%entity_name, 'sign': '=', 'expr': '(var%%%s-ref_var%%%s)**2'%(entity_name, entity_name)}
                                 part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'variable': 'temp2', 'sign': '=', 'expr': 'temp'}
+                                attrs = {'variable': 'buf2_%s'%entity_name, 'sign': '=', 'expr': 'buf1_%s'%entity_name}
                                 part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'variable': 'nrmsdiff', 'sign': '=', 'expr': 'SQRT(SUM(temp)/REAL(n))'}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                attrs = {'variable': 'nrmsdiff_%s'%entity_name, 'sign': '=', 'expr': 'SQRT(SUM(buf1_%s)/REAL(n_%s))'%(entity_name, entity_name)}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'variable': 'rmsdiff', 'sign': '=', 'expr': 'SQRT(SUM(temp2)/REAL(n))'}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                attrs = {'variable': 'rmsdiff_%s'%entity_name, 'sign': '=', 'expr': 'SQRT(SUM(buf2_%s)/REAL(n_%s))'%(entity_name, entity_name)}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'nrmsdiff > dtype_check_status%tolerance'}
-                                ifvobj = part_append_genknode(ifcmpobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
-                                part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                attrs = {'expr': 'nrmsdiff_%s > dtype_check_status%%tolerance'%entity_name}
+                                ifvobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."']}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL out of tolerance."'%entity_name]}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
 
-                                part_append_genknode(ifvobj, EXEC_PART, statements.Else)
-
-                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                part_append_genknode(ifvobj, EXEC_PART, statements.Else)
 
                                 attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL within tolerance."']}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL within tolerance."'%entity_name]}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
-                            else: # not numerical
-                                attrs = {'variable': 'n', 'sign': '=', 'expr': 'COUNT(var /= ref_var)'}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
+                                part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                            else: # not numerical
+                                attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= ref_var%%%s)'%(entity_name, entity_name)}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."']}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Write, attrs=attrs)
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL out of tolerance."'%entity_name]}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
 
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
                     else: # scalar
                         if not stmt.is_derived():
-                            if stmt.name=='logical':
-                                attrs = {'expr': 'var .EQV. ref_var'}
-                            else:
-                                attrs = {'expr': 'var == ref_var'}
-                            ifcmpobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                            # diff
+                            attrs = {'type_spec': stmt.name, 'selector':stmt.selector, 'entity_decls': ['diff_%s'%entity_name]}
+                            part_append_genknode(subrobj, DECL_PART, stmt.__class__, attrs=attrs)
 
-                            attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                            if stmt.name=='logical':
+                                attrs = {'expr': 'var%%%s .EQV. ref_var%%%s'%(entity_name, entity_name)}
+                            else:
+                                attrs = {'expr': 'var%%%s == ref_var%%%s'%(entity_name, entity_name)}
+                            ifidobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                            attrs = {'items': ['trim(adjustl(varname))','" is IDENTICAL."']}
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Write, attrs=attrs)
+                            attrs = {'items': ['trim(adjustl(varname))','"%%%s is IDENTICAL."'%entity_name]}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
 
-                            part_append_genknode(ifcmpobj, EXEC_PART, statements.Else)
+                            attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                            part_append_genknode(ifidobj, EXEC_PART, statements.Else)
 
                             if stmt.is_numeric():
 
-                                attrs = {'variable': 'diff', 'sign': '=', 'expr': 'ABS(var - ref_var)'}
-                                part_append_genknode(ifcmpobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                attrs = {'variable': 'diff_%s'%entity_name, 'sign': '=', 'expr': 'ABS(var%%%s - ref_var%%%s)'%(entity_name, entity_name)}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'diff <= dtype_check_status%tolerance'}
-                                ifvobj = part_append_genknode(ifcmpobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
-                                part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                                attrs = {'expr': 'diff_%s <= dtype_check_status%%tolerance'%entity_name}
+                                ifvobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL within tolerance."']}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL within tolerance."'%entity_name]}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
 
-                                part_append_genknode(ifvobj, EXEC_PART, statements.Else)
-
-                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                part_append_genknode(ifvobj, EXEC_PART, statements.Else)
 
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."']}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL out of tolerance."'%entity_name]}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
-                            else: # not numeric
 
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                            else: # not numeric
+
+                                attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL."'%entity_name]}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
+
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                    print_detail = print_dummy_detail
+                    if var.is_array(): # array
+                        if stmt.is_derived():
+                            pass
+                        else:
+                            if stmt.is_numeric():
+                                print_detail = print_numarr_detail
+                            else:
+                                pass
+                    else:
+                        if stmt.is_derived():
+                            pass
+                        else:
+                            if stmt.is_numeric():
+                                print_detail = print_num_detail
+                            else:
+                                pass
+
+                    attrs = {'expr': 'check_result == CHECK_IDENTICAL'}
+                    ifchkobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                    attrs = {'expr': 'check_status%verboseLevel > 2'}
+                    iflevel3obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                    print_detail(iflevel3obj, entity_name)
+
+                    attrs = {'expr': 'check_result == CHECK_OUT_TOL'}
+                    part_append_genknode(ifchkobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    iflevel0obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                    print_detail(iflevel0obj, entity_name)
+
+                    attrs = {'expr': 'check_result == CHECK_IN_TOL'}
+                    part_append_genknode(ifchkobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
+                    iflevel1obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                    print_detail(iflevel1obj, entity_name)
 
                 part_append_comment(subrobj, EXEC_PART, '')
 
@@ -355,108 +464,4 @@ class Verify_Type(Kgen_Plugin):
             if parent.kgen_match_class in [ block_statements.Program, block_statements.Module ]:
                 attrs = {'items': [subrname]}
                 part_append_genknode(parent, DECL_PART, statements.Public, attrs=attrs)
-
-#
-#    def gen_verify_subrs_print(self, subrobj, topobj, var):
-#
-#        def print_numarr_detail(parent):
-#            obj = parent.create_write()
-#            obj.set_attr('item_list', ['count( var /= ref_var)', '" of "', 'size( var )', '" elements are different."'])
-#
-#            obj = parent.create_write()
-#            obj.set_attr('item_list', ['"Average - kernel "', 'sum(var)/real(size(var))'])
-#
-#            obj = parent.create_write()
-#            obj.set_attr('item_list', ['"Average - reference "', 'sum(ref_var)/real(size(ref_var))'])
-#
-#            obj = parent.create_write()
-#            obj.set_attr('item_list', ['"RMS of difference is "', 'rmsdiff'])
-#
-#            obj = parent.create_write()
-#            obj.set_attr('item_list', ['"Normalized RMS of difference is "', 'nrmsdiff'])
-#
-#        def print_num_detail(parent):
-#            obj = parent.create_write()
-#            obj.set_attr('item_list', ['"Difference is "', 'diff'])
-#
-#        def print_dummy_detail(parent):
-#            obj = parent.create_write()
-#            obj.set_attr('item_list', ['"NOT IMPLEMENTED"'])
-#
-#        print_detail = print_dummy_detail
-#        if var.is_array(): # array
-#            if self.stmt.is_derived():
-#                pass
-#            else:
-#                if self.stmt.is_numeric():
-#                    print_detail = print_numarr_detail
-#                else:
-#                    pass
-#        else:
-#            if self.stmt.is_derived():
-#                pass
-#            else:
-#                if self.stmt.is_numeric():
-#                    print_detail = print_num_detail
-#                else:
-#                    pass
-#
-#
-#        ifvobj = topobj.create_ifthen()
-#        ifvobj.set_attr('expr', 'check_status%verboseLevel > 2')
-#
-#        incobj = ifvobj.create_assignstmt()
-#        incobj.set_attr('lhs', 'is_print')
-#        incobj.set_attr('rhs', '.TRUE.')
-#
-#        ifelse1obj = ifvobj.create_elseif()
-#        ifelse1obj.set_attr('expr', 'check_status%verboseLevel == 2')
-#
-#        ifot2obj = ifvobj.create_ifthen()
-#        ifot2obj.set_attr('expr', 'check_result /= CHECK_IDENTICAL')
-#
-#        incobj = ifot2obj.create_assignstmt()
-#        incobj.set_attr('lhs', 'is_print')
-#        incobj.set_attr('rhs', '.TRUE.')
-#
-#        endifot2obj = ifot2obj.create_endobj()
-#        endifot2obj.set_attr('blockname', 'IF')
-#
-#        ifelse1obj = ifvobj.create_elseif()
-#        ifelse1obj.set_attr('expr', 'check_status%verboseLevel == 1')
-#
-#        ifot3obj = ifvobj.create_ifthen()
-#        ifot3obj.set_attr('expr', 'check_result == CHECK_OUT_TOL')
-#
-#        incobj = ifot3obj.create_assignstmt()
-#        incobj.set_attr('lhs', 'is_print')
-#        incobj.set_attr('rhs', '.TRUE.')
-#
-#        endifot3obj = ifot3obj.create_endobj()
-#        endifot3obj.set_attr('blockname', 'IF')
-#
-#        ifelse1obj = ifvobj.create_elseif()
-#        ifelse1obj.set_attr('expr', 'check_status%verboseLevel < 1')
-#
-#        incobj = ifvobj.create_assignstmt()
-#        incobj.set_attr('lhs', 'is_print')
-#        incobj.set_attr('rhs', '.FALSE.')
-#
-#        endifvobj = ifvobj.create_endobj()
-#        endifvobj.set_attr('blockname', 'IF')
-#
-#        topobj.add_line(topobj.insert_in_exe_part)
-#
-#        ifprintobj = topobj.create_ifthen()
-#        ifprintobj.set_attr('expr', 'is_print')
-#
-#        print_detail(ifprintobj)
-#
-#        endifprintobj = ifprintobj.create_endobj()
-#        endifprintobj.set_attr('blockname', 'IF')
-
-
-#
-#                #### exec. part - print ####
-#                self.gen_verify_subrs_print(subrobj, topobj, var)
 

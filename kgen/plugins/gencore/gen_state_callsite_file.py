@@ -330,6 +330,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'items': ['"kgen_counter = "', 'kgen_counter', '" at rank "', 'kgen_mpi_rank']}
             part_append_gensnode(ifmax, EXEC_PART, statements.Write, attrs=attrs)
 
+            attrs = {'designator': 'mpi_barrier', 'items': [getinfo('mpi_comm'), 'kgen_ierr']}
+            namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Call, attrs=attrs)
+
         else:
 
             attrs = {'expr': 'kgen_counter > maxval(kgen_counter_at)'}
@@ -351,9 +354,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         attrs = {'variable': 'kgen_counter', 'sign': '=', 'expr': 'kgen_counter + 1'}
         namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Assignment, attrs=attrs)
-
-        attrs = {'designator': 'mpi_barrier', 'items': [getinfo('mpi_comm'), 'kgen_ierr']}
-        namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Call, attrs=attrs)
 
         namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'END MASTER', style='openmp')
 

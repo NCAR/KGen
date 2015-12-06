@@ -100,13 +100,21 @@ def get_dtype_readname(typestmt):
     subpname = get_dtype_subpname(typestmt)
     if subpname: return '%s_%s'%(rprefix, subpname)
 
-def get_module_writename(modstmt):
+def get_module_in_writename(modstmt):
     if modstmt is None: return
-    return '%s_externs_%s'%(wprefix, modstmt.name)
+    return '%s_externs_in_%s'%(wprefix, modstmt.name)
 
-def get_module_readname(modstmt):
+def get_module_out_writename(modstmt):
     if modstmt is None: return
-    return '%s_externs_%s'%(rprefix, modstmt.name)
+    return '%s_externs_out_%s'%(wprefix, modstmt.name)
+
+def get_module_in_readname(modstmt):
+    if modstmt is None: return
+    return '%s_externs_in_%s'%(rprefix, modstmt.name)
+
+def get_module_out_readname(modstmt):
+    if modstmt is None: return
+    return '%s_externs_out_%s'%(rprefix, modstmt.name)
 
 def get_typedecl_writename(typestmt, entity_name):
     if typestmt is None: return
