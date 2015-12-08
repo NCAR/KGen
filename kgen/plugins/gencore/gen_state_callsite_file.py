@@ -41,7 +41,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         namedpart_link_part(node, STATE_PBLOCK_SUBP_PART, SUBP_PART)
 
         # ensure contains
-        checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
+        checks = lambda n: n.kgen_match_class==statements.Contains
         if not node in state_gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
             part_append_comment(node, CONTAINS_PART, '')
             part_append_gensnode(node, CONTAINS_PART, statements.Contains)
@@ -162,7 +162,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
         namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_true']}
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         namedpart_append_genknode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, '')

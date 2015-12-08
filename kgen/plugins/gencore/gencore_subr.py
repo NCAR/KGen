@@ -10,7 +10,7 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
     checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
     if not part_has_node(parent, SUBP_PART, checks):
 
-        checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Contains)
+        checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
         if not parent in kernel_gencore_contains and not part_has_node(parent, CONTAINS_PART, checks):
             part_append_comment(parent, CONTAINS_PART, '')
             part_append_genknode(parent, CONTAINS_PART, statements.Contains)
@@ -39,8 +39,8 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
         attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(IN)', 'OPTIONAL'], 'selector':('*', None), 'entity_decls': ['printvar']}
         part_append_genknode(subrobj, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
-        # is_true
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_true']}
+        # kgen_istrue
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         part_append_genknode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
         # array index A
@@ -53,11 +53,11 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
 
         part_append_comment(subrobj, DECL_PART, '')
 
-        attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+        attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
         part_append_genknode(subrobj, EXEC_PART, statements.Read, attrs=attrs)
         part_append_comment(subrobj, EXEC_PART, '')
 
-        attrs = {'expr': 'is_true'}
+        attrs = {'expr': 'kgen_istrue'}
         iftrueobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         if var.is_array():
@@ -74,16 +74,20 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
 
             ifalloc = None
             if var.is_allocatable() or allocate:
-                attrs = {'expr': '.NOT. ALLOCATED( var )'}
-                ifalloc = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-            elif var.is_pointer():
-                attrs = {'expr': '.NOT. ASSOCIATED( var )'}
+                attrs = {'expr': 'ALLOCATED( var )'}
                 ifalloc = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            if ifalloc:
-                attrs = {'items': ['var(%s)'%', '.join(bound_args)]}
-                part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
-            elif allocate:
+                attrs = {'items': ['var']}
+                part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
+
+            elif var.is_pointer():
+                attrs = {'expr': 'ASSOCIATED( var )'}
+                ifalloc = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'items': ['var']}
+                part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
+
+            if ifalloc or allocate:
                 attrs = {'items': ['var(%s)'%', '.join(bound_args)]}
                 part_append_genknode(iftrueobj, EXEC_PART, statements.Allocate, attrs=attrs)
 
@@ -96,7 +100,6 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 for d in range(var.rank):
                     attrs = {'loopcontrol': 'idx%(d)d=kgen_bound(1,%(d)d), kgen_bound(2,%(d)d)'%{'d':d+1}}
                     doobj = part_append_genknode(prevobj, EXEC_PART, block_statements.Do, attrs=attrs)
-
                     doobjs.append(doobj)
                     prevobj = doobj
 
@@ -130,13 +133,13 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 part_append_genknode(iftrueobj, EXEC_PART, statements.Read, attrs=attrs)
 
                 if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **"'%(ename_prefix, entity_name), 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
                     part_append_genknode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
                 else:
                     attrs = {'expr': 'PRESENT( printvar )'}
                     ifpvarobj = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s%s **"'%(ename_prefix, entity_name), 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
 
 
@@ -169,20 +172,20 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 part_append_genknode(iftrueobj, EXEC_PART, statements.Read, attrs=attrs)
 
                 if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **"'%(ename_prefix, entity_name), 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
                     part_append_genknode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
                 else:
                     attrs = {'expr': 'PRESENT( printvar )'}
                     ifpvarobj = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s%s **"'%(ename_prefix, entity_name), 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
 
 def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
     checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
     if not part_has_node(parent, SUBP_PART, checks):
 
-        checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
+        checks = lambda n: n.kgen_match_class==statements.Contains
         if not parent in state_gencore_contains and not part_has_node(parent, CONTAINS_PART, checks):
             part_append_comment(parent, CONTAINS_PART, '')
             part_append_gensnode(parent, CONTAINS_PART, statements.Contains)
@@ -213,8 +216,8 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
         attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(IN)', 'OPTIONAL'], 'selector':('*', None), 'entity_decls': ['printvar']}
         part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
-        # is_true
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_true']}
+        # kgen_istrue
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
         # array index A
@@ -233,31 +236,31 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
             attrs = {'expr': 'UBOUND(var, 1)<LBOUND(var, 1)'}
             ifbndobj = part_append_gensnode(ifobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifbndobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'expr': 'UBOUND(var, 1)==0 .AND. LBOUND(var, 1)==0'}
             part_append_gensnode(ifbndobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
 
-            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifbndobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
             part_append_gensnode(ifbndobj, EXEC_PART, block_statements.Else, attrs=attrs)
 
-            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
             part_append_gensnode(ifbndobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
         part_append_gensnode(ifobj, EXEC_PART, block_statements.Else, attrs=attrs)
 
-        attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
         part_append_gensnode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
         part_append_comment(subrobj, EXEC_PART, '')
 
-        attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+        attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
         part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
         part_append_comment(subrobj, EXEC_PART, '')
 
-        attrs = {'expr': 'is_true'}
+        attrs = {'expr': 'kgen_istrue'}
         iftrueobj = part_append_gensnode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         if var.is_array():
@@ -310,13 +313,13 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, 'var']}
                     part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
                 else:
                     attrs = {'expr': 'PRESENT( printvar )'}
                     ifpvarobj = part_append_gensnode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **"'%entity_name, 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **" // NEW_LINE("A")'%entity_name, 'var']}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
 
 
@@ -349,12 +352,12 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, 'var']}
                     part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
                 else:
                     attrs = {'expr': 'PRESENT( printvar )'}
                     ifpvarobj = part_append_gensnode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **"'%entity_name, 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **" // NEW_LINE("A")'%entity_name, 'var']}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
 

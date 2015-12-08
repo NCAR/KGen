@@ -75,11 +75,17 @@ class StatementWithNamelist(Statement):
 
     # start of KGEN addition
     def tokgen(self):
+        if hasattr(self, 'new_items'):
+            items = self.new_items
+            del self.new_items
+        else:
+            items = self.items
+    
         if hasattr(self,'stmtname'):
             clsname = self.stmtname.upper()
         else:
             clsname = self.__class__.__name__.upper()
-        s = ', '.join(self.items)
+        s = ', '.join(items)
         if s:
             s = ' ' + s
         return clsname + s
@@ -1494,7 +1500,11 @@ class Parameter(Statement):
                             self.resolve(request)
 
     def tokgen(self):
-        return 'PARAMETER (%s)' % (', '.join(self.items))
+        if hasattr(self, 'new_items'):
+            return 'PARAMETER (%s)' % (', '.join(self.new_items))
+            del self.new_items
+        else:
+            return 'PARAMETER (%s)' % (', '.join(self.items))
     # end of KGEN addition
 
 class Equivalence(Statement):

@@ -27,8 +27,8 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
             typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.create_subr_read_typedecl_in_parentblock) 
 
-        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
-            typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.remove_read_typedecl_in_parentblock) 
+        #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
+        #    typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.remove_read_typedecl_in_parentblock) 
 
     def typedecl_has_state_parentblock(self, node):
         if hasattr(node.kgen_stmt, 'geninfo') and KGGenType.has_state(node.kgen_stmt.geninfo) \
@@ -69,8 +69,8 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 if hasattr(stmt, 'unknowns'):
                     for uname, req in stmt.unknowns.iteritems():
                         if req.res_stmts[-1].__class__==statements.Use:
-                            checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.name==req.res_stmts[-1].name and \
-                                ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                            checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==req.res_stmts[-1].name \
+                                and ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                             if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
                                 item_name = uname.firstpartname()
                                 for new_name, old_name in req.res_stmts[-1].renames:
@@ -81,7 +81,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
                         else:
                             if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
-                                checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
+                                checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
                                     ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                                 if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
                                     item_name = uname.firstpartname()
@@ -126,7 +126,15 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             
             attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
                 'selector':stmt.selector, 'entity_decls': entity_decls}
-            part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+            if stmt.is_derived():
+                node.type_spec = 'TYPE'
+            else:
+                node.type_spec = stmt.__class__.__name__.upper()
+            node.attrspec = attrspec
+            node.selector = stmt.selector
+            node.entity_decls = entity_decls
+            node.kgen_use_tokgen = True
+            #part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
         if len(localintype)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
@@ -136,13 +144,21 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
                 'selector':stmt.selector, 'entity_decls': entity_decls}
-            part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+            if stmt.is_derived():
+                node.type_spec = 'TYPE'
+            else:
+                node.type_spec = stmt.__class__.__name__.upper()
+            node.attrspec = attrspec
+            node.selector = stmt.selector
+            node.entity_decls = entity_decls
+            node.kgen_use_tokgen = True
+            #part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
         if len(localouttype)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
 
             localout_names = [ localout_name for localout_name, pname in localouttype]
-            entity_decls = get_decls(localout_names, stmt.entity_decls, prefix='ref_')
+            entity_decls = get_decls(localout_names, stmt.entity_decls, prefix='kgenref_')
 
             attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
                 'selector':stmt.selector, 'entity_decls': entity_decls}
@@ -151,7 +167,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         # for kernel - local variables
         for vartypename, vartype in localvartypes.iteritems():
             for entity_name, partid in vartype:
-                if vartypename=='localouttype': ename_prefix = 'ref_'
+                if vartypename=='localouttype': ename_prefix = 'kgenref_'
                 else: ename_prefix = ''
                 var = stmt.get_variable(entity_name)
                 subrname = get_typedecl_readname(stmt, entity_name)
@@ -268,10 +284,10 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
     def create_read_intrinsic(self, kernel_id, partid, entity_name, stmt, var, ename_prefix=''):
         pobj = None
         if var.is_pointer():
-            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
             part_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
 
-            attrs = {'expr': 'is_true'}
+            attrs = {'expr': 'kgen_istrue'}
             iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
             pobj = iftrueobj
@@ -280,13 +296,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
             part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **"'%(ename_prefix,entity_name), ename_prefix+entity_name]}
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix,entity_name), ename_prefix+entity_name]}
                 part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **"'%(ename_prefix, entity_name),ename_prefix+entity_name]}
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name),ename_prefix+entity_name]}
                 namedpart_append_genknode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
@@ -295,18 +311,18 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             attrs = {'expr': 'ASSOCIATED(%s)'%entity_name}
             ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
             part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
             part_append_gensnode(ifptrobj, EXEC_PART, statements.Else)
 
-            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
             part_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 
-            attrs = {'expr': 'is_true'}
+            attrs = {'expr': 'kgen_istrue'}
             iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
             pobj = iftrueobj
@@ -315,22 +331,22 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, entity_name]}
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
                 part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, entity_name]}
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
                 namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_read_call(self, kernel_id, partid, callname, entity_name, stmt, var, ename_prefix=''):
         pobj = None
         if var.is_pointer():
-            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
 
-            attrs = {'expr': 'is_true'}
+            attrs = {'expr': 'kgen_istrue'}
             iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
             pobj = iftrueobj
@@ -357,18 +373,18 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             attrs = {'expr': 'ASSOCIATED(%s)'%entity_name}
             ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.TRUE.'}
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
             part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
             part_append_gensnode(ifptrobj, EXEC_PART, statements.Else)
 
-            attrs = {'variable': 'is_true', 'sign': '=', 'expr': '.FALSE.'}
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
+            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 
-            attrs = {'expr': 'is_true'}
+            attrs = {'expr': 'kgen_istrue'}
             iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
             pobj = iftrueobj

@@ -131,6 +131,9 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_genknode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
         part_append_comment(doobj, EXEC_PART, '')
 
+        attrs = {'items': ['""']}
+        part_append_genknode(doobj, EXEC_PART, statements.Write, attrs=attrs)
+
         attrs = {'items': ['"** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' **"']}
         part_append_genknode(doobj, EXEC_PART, statements.Write, attrs=attrs)
         part_append_comment(doobj, EXEC_PART, '')

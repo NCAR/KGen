@@ -226,7 +226,8 @@ class PluginMsg(object):
             nextlist = nextdict[target]
         else: nextlist = nextdict[target]
 
-        nextlist.append((matchfunc, callbackfunc))
+        if (matchfunc, callbackfunc) not in nextlist:
+            nextlist.append((matchfunc, callbackfunc))
 
 def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None):
     # event debugging
@@ -257,11 +258,13 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
                                     if node.kgen_stmt:
                                         if isinstance(node.kgen_stmt, target):
                                             for matchfunc, cbfunc in funclist:
-                                                if matchfunc is None or matchfunc(node): cbfunc(node)
+                                                if matchfunc is None or matchfunc(node):
+                                                    cbfunc(node)
                                     elif node.kgen_match_class:
                                         if node.kgen_match_class is target:
                                             for matchfunc, cbfunc in funclist:
-                                                if matchfunc is None or matchfunc(node): cbfunc(node)
+                                                if matchfunc is None or matchfunc(node):
+                                                    cbfunc(node)
                                     else: raise ProgramException('Incorrect node type: %s'%node)
                                 else:
                                     if isinstance(target, Gen_Statement) and node is target:

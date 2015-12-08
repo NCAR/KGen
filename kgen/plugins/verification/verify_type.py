@@ -44,7 +44,7 @@ class Verify_Type(Kgen_Plugin):
             for uname, req in reqlist:
                 if isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_verifyname(req.res_stmts[0])
-                    checks = lambda n: isinstance(n.kgen_stmt, statements.Use) and n.kgen_stmt.isonly and \
+                    checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
                         subrname in n.kgen_stmt.items
                     if (id(parent),subrname) not in self.kernel_created_use_items and not part_has_node(parent, USE_PART, checks):
                         attrs = {'name':node.kgen_stmt.name, 'isonly': True, 'items':[subrname]}
@@ -57,69 +57,19 @@ class Verify_Type(Kgen_Plugin):
                         part_append_genknode(parent, DECL_PART, statements.Public, attrs=attrs)
                         self.kernel_created_public_items.append((id(parent),subrname))
 
-    def create_verify_intrinsic(self, subrobj, entity_name, stmt, var):
-        pobj = subrobj
-        if var.is_pointer():
-            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
-            part_append_genknode(subrobj, EXEC_PART, statements.Read, attrs=attrs)
-
-            attrs = {'expr': 'is_true'}
-            iftrueobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-            pobj = iftrueobj
-
-        attrs = {'items': ['var%%%s'%entity_name], 'specs': ['UNIT = kgen_unit']}
-        part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
-
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'var%%%s'%entity_name]}
-            part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
-        else:
-            attrs = {'expr': 'PRESENT( printvar )'}
-            ifobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-            attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'var%%%s'%entity_name]}
-            part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
-
-    def create_verify_call(self, subrobj, callname, entity_name, stmt, var):
-        pobj = subrobj
-        if var.is_pointer():
-            attrs = {'items': ['is_true'], 'specs': ['UNIT = kgen_unit']}
-            part_append_genknode(subrobj, EXEC_PART, statements.Read, attrs=attrs)
-
-            attrs = {'expr': 'is_true'}
-            iftrueobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-            pobj = iftrueobj
-
-        attrs = {'expr': 'PRESENT( printvar )'}
-        ifobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit', 'printvar // "%%%s"'%entity_name]}
-        part_append_genknode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
-
-        part_append_genknode(ifobj, EXEC_PART, statements.Else)
-
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit', '"%%%s"'%entity_name]}
-            part_append_genknode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
-        else:
-            attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit']}
-            part_append_genknode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
-
     # process function
     def create_dtype_verify_subr(self, node):
         assert node.kgen_stmt, 'None kgen statement'
 
         def print_numarr_detail(parent, entity_name):
-            attrs = {'items': ['count( var%%%s /= ref_var%%%s)'%(entity_name, entity_name), \
+            attrs = {'items': ['count( var%%%s /= kgenref_var%%%s)'%(entity_name, entity_name), \
                 '" of "', 'size( var%%%s )'%entity_name, '" elements are different."']}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'items': ['"Average - kernel "', 'sum(var%%%s)/real(size(var%%%s))'%(entity_name, entity_name)]}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'items': ['"Average - reference "', 'sum(ref_var%%%s)/real(size(ref_var%%%s))'%(entity_name, entity_name)]}
+            attrs = {'items': ['"Average - reference "', 'sum(kgenref_var%%%s)/real(size(kgenref_var%%%s))'%(entity_name, entity_name)]}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'items': ['"RMS of difference is "', 'rmsdiff_%s'%entity_name]}
@@ -143,21 +93,21 @@ class Verify_Type(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if  not part_has_node(parent, SUBP_PART, checks):
 
-            checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Contains)
+            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
             if not parent in kernel_verify_contains and not part_has_node(parent, CONTAINS_PART, checks):
                 part_append_comment(parent, CONTAINS_PART, '')
                 part_append_genknode(parent, CONTAINS_PART, statements.Contains)
                 part_append_comment(parent, CONTAINS_PART, '')
                 kernel_verify_contains.append(parent)
 
-            checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Use) and n.name=='kgen_utils_mod'
+            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Use and n.name=='kgen_utils_mod'
             if not parent in kernel_verify_kgenutils and not part_has_node(parent, USE_PART, checks):
                 attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items': ['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
                 part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)
                 kernel_verify_kgenutils.append(parent)
 
             part_append_comment(parent, SUBP_PART, 'verify state subroutine for %s'%subrname)
-            attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['varname', 'check_status', 'var', 'ref_var']}
+            attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['varname', 'check_status', 'var', 'kgenref_var']}
             subrobj = part_append_genknode(parent, SUBP_PART, block_statements.Subroutine, attrs=attrs)
             part_append_comment(parent, SUBP_PART, '')
 
@@ -170,7 +120,7 @@ class Verify_Type(Kgen_Plugin):
             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
 
             # variable
-            attrs = {'type_spec': 'TYPE', 'attrspec': ['INTENT(IN)'], 'selector':(None, node.name), 'entity_decls': ['var', 'ref_var']}
+            attrs = {'type_spec': 'TYPE', 'attrspec': ['INTENT(IN)'], 'selector':(None, node.name), 'entity_decls': ['var', 'kgenref_var']}
             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
 
             # dtype_check_status
@@ -205,30 +155,52 @@ class Verify_Type(Kgen_Plugin):
                     var = stmt.get_variable(entity_name)
                     callname = get_typedecl_verifyname(stmt, entity_name)
 
+                    ifallocobj = None
+                    ifassocobj = None
+                    if var.is_allocatable():
+                        attrs = {'expr': 'ALLOCATED(var%%%s)'%entity_name}
+                        ifallocobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                        if var.is_pointer():
+                            attrs = {'expr': 'ASSOCIATED(var%%%s)'%entity_name}
+                            ifassocobj = part_append_genknode(ifallocobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                    elif var.is_pointer():
+                        attrs = {'expr': 'ASSOCIATED(var%%%s)'%entity_name}
+                        ifassocobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                    if ifassocobj: topobj = ifassocobj
+                    elif ifallocobj: topobj = ifallocobj
+                    else: topobj = subrobj
+
                     if var.is_array():
                         dim_shape = ','.join(':'*var.rank)
                         get_size = ','.join(['SIZE(var%%%s,dim=%d)'%(entity_name, dim+1) for dim in range(var.rank)])
 
                         if stmt.is_derived():
 
-                            attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status']}
-                            part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
+                            for uname, req in stmt.unknowns.iteritems():
+                                if uname.firstpartname()==stmt.name:
+                                    callname = get_dtype_verifyname(req.res_stmts[0])
+                                    break
 
-                            pobj = subrobj
+                            attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status']}
+                            part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
+
+                            pobj = topobj
                             doobjs = []
                             for d in range(var.rank):
                                 attrs = {'loopcontrol': ' idx%(d)d=LBOUND(var%%%(e)s,%(d)d), UBOUND(var%%%(e)s,%(d)d)'%{'e':entity_name, 'd':d+1}}
                                 doobj = part_append_genknode(pobj, EXEC_PART, block_statements.Do, attrs=attrs)
+                                doobjs.append(doobj)
                                 pobj = doobj 
 
                             # call verify subr
                             indexes = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
                             attrs = {'designator': callname, 'items': ['trim(adjustl(varname))//"%%%s"'%var.name, 'comp_check_status', \
-                                'var%%%s(%s)'%(entity_name, indexes), 'ref_var%%%s(%s)'%(entity_name, indexes)]}
+                                'var%%%s(%s)'%(entity_name, indexes), 'kgenref_var%%%s(%s)'%(entity_name, indexes)]}
                             part_append_genknode(doobjs[-1], EXEC_PART, statements.Call, attrs=attrs)
 
                             attrs = {'expr': 'comp_check_status%numTotal == comp_check_status%numIdentical'}
-                            ifidobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                            ifidobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
                             part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -245,7 +217,7 @@ class Verify_Type(Kgen_Plugin):
                             attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                             part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                            attrs = {'expr': 'comp_dtype_check_status%numInTol > 0'}
+                            attrs = {'expr': 'comp_check_status%numInTol > 0'}
                             part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
 
                             attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
@@ -259,11 +231,11 @@ class Verify_Type(Kgen_Plugin):
                             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
                             if stmt.name=='logical':
-                                attrs = {'expr': 'ALL(var%%%s .EQV. ref_var%%%s)'%(entity_name, entity_name)}
+                                attrs = {'expr': 'ALL(var%%%s .EQV. kgenref_var%%%s)'%(entity_name, entity_name)}
                             else:
-                                attrs = {'expr': 'ALL(var%%%s == ref_var%%%s)'%(entity_name, entity_name)}
+                                attrs = {'expr': 'ALL(var%%%s == kgenref_var%%%s)'%(entity_name, entity_name)}
 
-                            ifidobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                            ifidobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
                             part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -293,22 +265,22 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'items': ['buf2_%s(%s)'%(entity_name, get_size)]}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Allocate, attrs=attrs)
 
-                                attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= ref_var%%%s)'%(entity_name, entity_name)}
+                                attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= kgenref_var%%%s)'%(entity_name, entity_name)}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'ABS(ref_var%%%s) > dtype_check_status%%minvalue'%entity_name}
+                                attrs = {'expr': 'ABS(kgenref_var%%%s) > dtype_check_status%%minvalue'%entity_name}
                                 whereobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.Where, attrs=attrs)
 
                                 attrs = {'variable': 'buf1_%s'%entity_name, 'sign': '=', \
-                                    'expr': '((var%%%(e)s-ref_var%%%(e)s)/ref_var%%%(e)s)**2'%{'e':entity_name}}
+                                    'expr': '((var%%%(e)s-kgenref_var%%%(e)s)/kgenref_var%%%(e)s)**2'%{'e':entity_name}}
                                 part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'variable': 'buf2_%s'%entity_name, 'sign': '=', 'expr': '(var%%%s-ref_var%%%s)**2'%(entity_name, entity_name)}
+                                attrs = {'variable': 'buf2_%s'%entity_name, 'sign': '=', 'expr': '(var%%%s-kgenref_var%%%s)**2'%(entity_name, entity_name)}
                                 part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                                 part_append_genknode(whereobj, EXEC_PART, statements.ElseWhere)
 
-                                attrs = {'variable': 'buf1_%s'%entity_name, 'sign': '=', 'expr': '(var%%%s-ref_var%%%s)**2'%(entity_name, entity_name)}
+                                attrs = {'variable': 'buf1_%s'%entity_name, 'sign': '=', 'expr': '(var%%%s-kgenref_var%%%s)**2'%(entity_name, entity_name)}
                                 part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                                 attrs = {'variable': 'buf2_%s'%entity_name, 'sign': '=', 'expr': 'buf1_%s'%entity_name}
@@ -343,7 +315,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
                             else: # not numerical
-                                attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= ref_var%%%s)'%(entity_name, entity_name)}
+                                attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= kgenref_var%%%s)'%(entity_name, entity_name)}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
@@ -361,10 +333,10 @@ class Verify_Type(Kgen_Plugin):
                             part_append_genknode(subrobj, DECL_PART, stmt.__class__, attrs=attrs)
 
                             if stmt.name=='logical':
-                                attrs = {'expr': 'var%%%s .EQV. ref_var%%%s'%(entity_name, entity_name)}
+                                attrs = {'expr': 'var%%%s .EQV. kgenref_var%%%s'%(entity_name, entity_name)}
                             else:
-                                attrs = {'expr': 'var%%%s == ref_var%%%s'%(entity_name, entity_name)}
-                            ifidobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                                attrs = {'expr': 'var%%%s == kgenref_var%%%s'%(entity_name, entity_name)}
+                            ifidobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
                             part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -379,7 +351,7 @@ class Verify_Type(Kgen_Plugin):
 
                             if stmt.is_numeric():
 
-                                attrs = {'variable': 'diff_%s'%entity_name, 'sign': '=', 'expr': 'ABS(var%%%s - ref_var%%%s)'%(entity_name, entity_name)}
+                                attrs = {'variable': 'diff_%s'%entity_name, 'sign': '=', 'expr': 'ABS(var%%%s - kgenref_var%%%s)'%(entity_name, entity_name)}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                                 attrs = {'expr': 'diff_%s <= dtype_check_status%%tolerance'%entity_name}
@@ -434,7 +406,7 @@ class Verify_Type(Kgen_Plugin):
                                 pass
 
                     attrs = {'expr': 'check_result == CHECK_IDENTICAL'}
-                    ifchkobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                    ifchkobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%verboseLevel > 2'}
                     iflevel3obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
@@ -457,7 +429,7 @@ class Verify_Type(Kgen_Plugin):
 
                     print_detail(iflevel1obj, entity_name)
 
-                part_append_comment(subrobj, EXEC_PART, '')
+                part_append_comment(topobj, EXEC_PART, '')
 
             # create public stmt
             if parent.kgen_match_class in [ block_statements.Program, block_statements.Module ]:

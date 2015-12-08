@@ -14,14 +14,10 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
         self.frame_msg = None
 
         self.verify_externs_subrs = {}
-
         self.verify_callsite_use_stmts = []
-
         self.verify_callsite_call_stmts = []
-
-        self.verify_created_subrs = []
-
         self.verify_extern = []
+        self.verify_module_subrnames = []
 
     # registration
     def register(self, msg):
@@ -51,7 +47,7 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if not part_has_node(node, SUBP_PART, checks):
 
-            checks = lambda n: n.kgen_isvalid and isinstance(n.kgen_stmt, statements.Contains)
+            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
             if not node in kernel_verify_contains and not part_has_node(node, CONTAINS_PART, checks):
                 part_append_comment(node, CONTAINS_PART, '')
                 part_append_genknode(node, CONTAINS_PART, statements.Contains)
@@ -103,15 +99,21 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
             var = stmt.get_variable(entity_name)
             subrname = get_typedecl_verifyname(stmt, entity_name)
 
-            attrs = {'designator': subrname, 'items': ['"%s"'%entity_name, 'check_status', entity_name, 'ref_%s'%entity_name]}
-            part_append_genknode(self.verify_externs_subrs[node.kgen_parent], EXEC_PART, statements.Call, attrs=attrs)
+            if subrname not in self.verify_module_subrnames:
+                self.verify_module_subrnames.append(subrname)
 
-            if subrname not in self.verify_created_subrs:
                 if stmt.is_derived():
                     if var.is_pointer() or var.is_array():
                         create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
-                        self.verify_created_subrs.append(subrname)
+                    else:
+                        for uname, req in stmt.unknowns.iteritems():
+                            if uname.firstpartname()==stmt.name:
+                                subrname = get_dtype_verifyname(req.res_stmts[0])
+                                break
                 else:
                     create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
-                    self.verify_created_subrs.append(subrname)
+
+            attrs = {'designator': subrname, 'items': ['"%s"'%entity_name, 'check_status', entity_name, 'kgenref_%s'%entity_name]}
+            part_append_genknode(self.verify_externs_subrs[node.kgen_parent], EXEC_PART, statements.Call, attrs=attrs)
+
 

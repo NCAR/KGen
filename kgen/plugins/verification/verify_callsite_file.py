@@ -1,6 +1,7 @@
 # gen_read_callsite_file.py
 
 import statements
+import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 from verify_utils import VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_DECL_PART, VERIFY_PBLOCK_EXEC_PART, \
@@ -39,8 +40,8 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, 'local verify variables')
 
-        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check']}
-        part_append_gensnode(node, USE_PART, statements.Use, attrs=attrs)
+        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['check_status']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Type, attrs=attrs)
@@ -48,3 +49,19 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'designator': 'kgen_init_check', 'items': ['check_status']}
         namedpart_append_genknode(node.kgen_kernel_id, VERIFY_PBLOCK_INIT, statements.Call, attrs=attrs)
 
+        attrs = {'items': ['""']}
+        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"Number of verified variables: "','check_status%numTotal']}
+        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'expr': 'check_status%numOutTol > 0'}
+        ifobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['"Verification FAILED"']}
+        part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+        
+        part_append_genknode(ifobj, EXEC_PART, statements.Else, attrs=attrs)
+
+        attrs = {'items': ['"Verification PASSED"']}
+        part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
