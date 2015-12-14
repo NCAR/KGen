@@ -77,11 +77,11 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'REAL', 'entity_decls': ['total_time'], 'selector': (None, 'kgen_dp')}
+        attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_total_time'], 'selector': (None, 'kgen_dp')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
         part_append_comment(node, DECL_PART, '')
 
-        attrs = {'variable': 'total_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
+        attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
         part_append_comment(node, EXEC_PART, '')
        
@@ -121,7 +121,8 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_comment(doobj, EXEC_PART, '')
 
         attrs = {'specs': ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="OLD"', 'ACCESS="STREAM"', \
-            'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"']}
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr']}
+            #'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"']}
         part_append_genknode(doobj, EXEC_PART, statements.Open, attrs=attrs)
 
         attrs = {'expr': 'kgen_ierr /= 0'}
@@ -166,7 +167,7 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['"%s summary: Total number of verification cases: %d"'%(getinfo('parentblock_stmt').name, repeat_count)]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Total time of all calls (usec): ", total_time'%getinfo('parentblock_stmt').name]}
+        attrs = {'items': ['"%s summary: Total time of all calls (usec): ", kgen_total_time'%getinfo('parentblock_stmt').name]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"******************************************************************************"']}

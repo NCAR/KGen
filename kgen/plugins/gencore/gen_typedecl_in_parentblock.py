@@ -296,13 +296,19 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
             part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix,entity_name), ename_prefix+entity_name]}
+                if stmt.is_numeric() and var.is_array():
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **"'%(ename_prefix,entity_name), 'SUM(%s)'%(ename_prefix+entity_name)]}
+                else:
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix,entity_name), ename_prefix+entity_name]}
                 part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name),ename_prefix+entity_name]}
+                if stmt.is_numeric() and var.is_array():
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **"'%(ename_prefix, entity_name), 'SUM(%s)'%(ename_prefix+entity_name)]}
+                else:
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name),ename_prefix+entity_name]}
                 namedpart_append_genknode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
@@ -331,13 +337,19 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
+                if stmt.is_numeric() and is_array():
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'SUM(%s)'%entity_name]}
+                else:
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
                 part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
+                if stmt.is_numeric() and var.is_array():
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'SUM(%s)'%entity_name]}
+                else:
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
                 namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_read_call(self, kernel_id, partid, callname, entity_name, stmt, var, ename_prefix=''):

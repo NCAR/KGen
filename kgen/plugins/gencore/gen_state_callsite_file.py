@@ -167,7 +167,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, '')
 
-        part, index = get_part_index(node)
+        index, partname, part = get_part_index(node)
 
         namedpart_create_subpart(node.kgen_parent, BEFORE_CALLSITE, EXEC_PART, index=index)
 
@@ -233,7 +233,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         part_append_gensnode(ifcnt, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'specs': ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="REPLACE"', 'ACCESS="STREAM"', \
-            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"']}
+            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr']}
+            #'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"']}
         part_append_gensnode(ifcnt, EXEC_PART, statements.Open, attrs=attrs)
 
 
@@ -250,6 +251,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         else:
             attrs = {'designator': 'kgen_print_counter', 'items': ['kgen_counter']}
             part_append_gensnode(ifcnt, EXEC_PART, statements.Call, attrs=attrs)
+
+        # debug
+#        attrs = {'variable': 'kgen_region_started', 'sign': '=', 'expr': '.TRUE.'}
+#        part_append_gensnode(ifcnt, EXEC_PART, statements.Assignment, attrs=attrs)
 
         namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_IN_ARGS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_ARGS, '')
@@ -290,6 +295,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         else:
             attrs = {'expr': 'ANY(kgen_counter == kgen_counter_at)'}
             ifcnt = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
+
+        # debug
+#        attrs = {'variable': 'kgen_region_started', 'sign': '=', 'expr': '.FALSE.'}
+#        part_append_gensnode(ifcnt, EXEC_PART, statements.Assignment, attrs=attrs)
 
         namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_OUT_EXTERNS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, '')

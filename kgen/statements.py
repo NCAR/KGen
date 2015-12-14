@@ -824,7 +824,7 @@ class Access(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        if uname.firstpartname() in self.items:
+        if not self.items or uname.firstpartname() in self.items:
             self.add_geninfo(uname, request)
     # end of KGEN addition
 
@@ -1054,21 +1054,31 @@ class Save(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        if not self.items:
+        if hasattr(self, 'new_items'):
+            items = self.new_items
+            del self.new_items
+        else:
+            items = self.items
+
+        if not items:
             return 'SAVE'
-        return 'SAVE %s' % (', '.join(self.items))
+        return 'SAVE %s' % (', '.join(items))
 
     def resolve_uname(self, uname, request):
         from kgen_utils import KGName
-        for item in self.items:
-            if item.startswith('/') and item.endswith('/'):
-                if uname.firstpartname()==item[1:-1].strip():
-                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
-                    self.add_geninfo(newname, request)
+        if hasattr(self, 'items'):
+            if self.items:
+                for item in self.items:
+                    if item.startswith('/') and item.endswith('/'):
+                        if uname.firstpartname()==item[1:-1].strip():
+                            newname = KGName(pack_innamepath(self, uname.firstpartname()))
+                            self.add_geninfo(newname, request)
+                    else:
+                        if uname.firstpartname()==item:
+                            newname = KGName(pack_innamepath(self, uname.firstpartname()))
+                            self.add_geninfo(newname, request)
             else:
-                if uname.firstpartname()==item:
-                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
-                    self.add_geninfo(newname, request)
+                self.add_geninfo(uname, request)
     # end of KGEN addition
 
 class Data(Statement):
@@ -1538,21 +1548,35 @@ class Equivalence(Statement):
     # start of KGEN addition
     def resolve_uname(self, uname, request):
         def get_equivname(node, bag, depth):
-            from Fortran2003 import Equivalence_Set, Name
+            from Fortran2003 import Equivalence_Object_List, Equivalence_Set, Name
             if isinstance(node, Name) and node.string==uname.firstpartname():
                 if isinstance(node.parent, Equivalence_Set):
                     bag['equiv_names'].append(node.parent.items[1])
                 elif hasattr(node.parent, 'parent') and isinstance(node.parent.parent, Equivalence_Set):
                     bag['equiv_names'].append(node.parent.parent.items[1])
+                elif isinstance(node.parent, Equivalence_Object_List):
+                    bag['equiv_names'].append(node.parent.parent.items[0])
+                elif hasattr(node.parent, 'parent') and isinstance(node.parent.parent, Equivalence_Object_List):
+                    bag['equiv_names'].append(node.parent.parent.parent.items[0])
+
                 return True
                  
         names = {'search_name': uname.firstpartname(), 'equiv_names': []}
         traverse(self.f2003, get_equivname, names)
         if len(names['equiv_names'])>0:
-            raise ProgramException('Equivalent names are not correctly resolved.')
+            self.add_geninfo(uname, request)
+            #raise ProgramException('Equivalent names are not correctly resolved.')
 
     def tokgen(self):
-        return 'EQUIVALENCE %s' % (', '.join(self.items))
+        if hasattr(self, 'new_items'):
+            items = self.new_items
+            del self.new_items
+        else:
+            items = self.items
+
+        if items:
+            return 'EQUIVALENCE %s' % (', '.join(self.items))
+        else: return ''
     # end of KGEN addition
 
 class Dimension(Statement):

@@ -421,12 +421,12 @@ def get_part_index(node):
         part = get_part(pnode, name)
         for i, partnode in enumerate(part):
             if partnode==node:
-                return part, i
+                return i, name, part
             elif isinstance(partnode, list):
                 for j, subpartnode in enumerate(partnode):
                     if subpartnode==node:
-                        return part, i
-    return None, -1
+                        return i, name, part
+    return -1, None, None
 
 def check_node(node, checkfunc):
     if not isinstance(node, Gen_Statement):
@@ -570,10 +570,10 @@ def part_insert_gennode(genfunc, pnode, name, clsobj, index, attrs=None, is_part
     return node
 
 def part_insert_genknode(pnode, name, clsobj, index, attrs=None, is_partname=None):
-    return part_append_gennode(genkobj, pnode, name, clsobj, index, attrs=attrs, is_partname=is_partname)
+    return part_insert_gennode(genkobj, pnode, name, clsobj, index, attrs=attrs, is_partname=is_partname)
 
 def part_insert_gensnode(pnode, name, clsobj, index, attrs=None, is_partname=None):
-    return part_append_gennode(gensobj, pnode, name, clsobj, index, attrs=attrs, is_partname=is_partname)
+    return part_insert_gennode(gensobj, pnode, name, clsobj, index, attrs=attrs, is_partname=is_partname)
 
 def part_remove_node(pnode, name, node):
     part = get_part(pnode, name, is_partname=is_partname)
@@ -645,7 +645,7 @@ def discard_items_in_part(node, name, is_partname=False):
 
 ########### Statement ############
 class Gen_Statement(object):
-    kgen_gen_attrs = {'indent': ''}
+    kgen_gen_attrs = {'indent': '', 'span': None}
 
     def __init__(self, parent, stmt, match_class, kernel_id, attrs=None):
         self.kgen_isvalid = True
@@ -691,10 +691,14 @@ class Gen_Statement(object):
                 if hasattr(self, 'kgen_forced_line') and self.kgen_forced_line:
                     lines_str = self.kgen_forced_line
                 elif hasattr(self.kgen_stmt.item, 'span'):
-                    start = self.kgen_stmt.item.span[0]-1
-                    end = self.kgen_stmt.item.span[1]
-                    lines = self.kgen_stmt.top.prep[start:end]
-                    lines_str = '\n'.join(lines)
+                    if not self.kgen_stmt.item.span is self.kgen_gen_attrs['span']:
+                        start = self.kgen_stmt.item.span[0]-1
+                        end = self.kgen_stmt.item.span[1]
+                        lines = self.kgen_stmt.top.prep[start:end]
+                        lines_str = '\n'.join(lines)
+                        self.kgen_gen_attrs['span'] = self.kgen_stmt.item.span
+                    else:
+                        return
 
                 if self.kgen_use_tokgen:
                     if isinstance(self.kgen_stmt, block_statements.BeginStatement) and \

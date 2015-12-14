@@ -46,7 +46,7 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'REAL', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['total_time'], \
+        attrs = {'type_spec': 'REAL', 'attrspec': ['INTENT(INOUT)'], 'entity_decls': ['kgen_total_time'], \
             'selector': (None, 'kgen_dp')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
@@ -70,6 +70,13 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         node.kgen_end_obj.tosubr = True
         node.kgen_end_obj.kgen_use_tokgen = True
 
+        # debug
+#        attrs = {'variable': 'kgen_region_started', 'sign': '=', 'expr': '.TRUE.'}
+#        part_insert_gensnode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=0)
+#
+#        attrs = {'variable': 'kgen_region_started', 'sign': '=', 'expr': '.FALSE.'}
+#        part_append_gensnode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
     def create_topblock_parts(self, node):
 
         namedpart_link_part(node, KERNEL_TBLOCK_USE_PART, USE_PART)
@@ -85,7 +92,7 @@ class Gen_K_Callsite_File(Kgen_Plugin):
             part_append_genknode(node, DECL_PART, statements.Public, attrs=attrs)
 
     def create_callsite_parts(self, node):
-        part, index = get_part_index(node)
+        index, partname, part = get_part_index(node)
 
         namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_IN_EXTERNS, EXEC_PART, index=index)
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_EXTERNS, '')

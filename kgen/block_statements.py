@@ -502,7 +502,8 @@ class EndBlockData(EndStatement):
     END [ BLOCK DATA [ <block-data-name> ] ]
     """
     match = re.compile(r'end(\s*block\s*data\s*\w*|)\Z', re.I).match
-    blocktype = 'blockdata'
+    #blocktype = 'blockdata' # KGEN deletion
+    blocktype = 'block data' # KGEN addition
 
 class BlockData(BeginStatement, HasImplicitStmt, HasUseStmt,
                 #HasVariables, AccessSpecs): # KGEN deletion
@@ -521,6 +522,13 @@ class BlockData(BeginStatement, HasImplicitStmt, HasUseStmt,
 
     def get_classes(self):
         return specification_part
+
+    # start of KGEN addition
+    def tostr(self):
+        if hasattr(self, 'name') and self.name:
+            return 'BLOCK DATA %s'%self.name
+        return 'BLOCK DATA'
+    # end of KGEN addition
 
 # Interface
 

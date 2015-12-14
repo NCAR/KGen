@@ -105,13 +105,19 @@ class Gen_Type(Kgen_Plugin):
         part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
+            if stmt.is_numeric() and var.is_array():
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'SUM(var%%%s)'%entity_name]}
+            else:
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
             part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             attrs = {'expr': 'PRESENT( printvar )'}
             ifobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
+            if stmt.is_numeric() and var.is_array():
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'SUM(var%%%s)'%entity_name]}
+            else:
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
             part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
@@ -140,13 +146,19 @@ class Gen_Type(Kgen_Plugin):
         part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
+            if stmt.is_numeric() and var.is_array():
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'SUM(var%%%s)'%entity_name]}
+            else:
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             attrs = {'expr': 'PRESENT( printvar )'}
             ifobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
+            if stmt.is_numeric() and var.is_array():
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **"'%entity_name, 'SUM(var%%%s)'%entity_name]}
+            else:
+                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
             part_append_gensnode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_read_call(self, subrobj, callname, entity_name, stmt, var):

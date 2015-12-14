@@ -98,10 +98,6 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_print = .FALSE.']}
         part_append_genknode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        # index
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['idx(10)']}
-        part_append_genknode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
-
         part_append_comment(subrobj, DECL_PART, '')
 
         part_append_comment(subrobj, EXEC_PART, '')
@@ -127,6 +123,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
 
 
         if var.is_array():
+
+            # index
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': [ 'idx%d'%(d+1) for d in range(var.rank)]}
+            part_append_genknode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
             dim_shape = ','.join(':'*var.rank)
             get_size = ','.join(['SIZE(var,dim=%d)'%(dim+1) for dim in range(var.rank)])
 
@@ -144,13 +145,13 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                 pobj = topobj
                 doobjs = []
                 for d in range(var.rank):
-                    attrs = {'loopcontrol': ' idx(%(d)d)=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1}}
+                    attrs = {'loopcontrol': ' idx%(d)d=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1}}
                     doobj = part_append_genknode(pobj, EXEC_PART, block_statements.Do, attrs=attrs)
                     doobjs.append(doobj)
                     pobj = doobj 
 
                 # call verify subr
-                indexes = ','.join([ 'idx(%d)'%(r+1) for r in range(var.rank)])
+                indexes = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
                 attrs = {'designator': callname, 'items': ['trim(adjustl(varname))', 'comp_check_status', \
                     'var(%s)'%indexes, 'kgenref_var(%s)'%indexes]}
                 part_append_genknode(doobjs[-1], EXEC_PART, statements.Call, attrs=attrs)

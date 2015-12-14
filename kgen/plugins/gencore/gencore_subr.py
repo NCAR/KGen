@@ -133,13 +133,19 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 part_append_genknode(iftrueobj, EXEC_PART, statements.Read, attrs=attrs)
 
                 if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
+                    if stmt.is_numeric():
+                        attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **"'%(ename_prefix, entity_name), 'SUM(var)']}
+                    else:
+                        attrs = {'items': ['"** KGEN DEBUG: " // "%s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
                     part_append_genknode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
                 else:
                     attrs = {'expr': 'PRESENT( printvar )'}
                     ifpvarobj = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
+                    if stmt.is_numeric():
+                        attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s%s **"'%(ename_prefix, entity_name), 'SUM(var)']}
+                    else:
+                        attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s%s **" // NEW_LINE("A")'%(ename_prefix, entity_name), 'var']}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
 
 
@@ -313,13 +319,19 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, 'var']}
+                    if stmt.is_numeric():
+                        attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'SUM(var)']}
+                    else:
+                        attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, 'var']}
                     part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
                 else:
                     attrs = {'expr': 'PRESENT( printvar )'}
                     ifpvarobj = part_append_gensnode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **" // NEW_LINE("A")'%entity_name, 'var']}
+                    if stmt.is_numeric():
+                        attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **"'%entity_name, 'SUM(var)']}
+                    else:
+                        attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **" // NEW_LINE("A")'%entity_name, 'var']}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
 
 
@@ -352,12 +364,12 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'var']}
                     part_append_gensnode(iftrueobj, EXEC_PART, statements.Write, attrs=attrs)
                 else:
                     attrs = {'expr': 'PRESENT( printvar )'}
                     ifpvarobj = part_append_gensnode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **" // NEW_LINE("A")'%entity_name, 'var']}
+                    attrs = {'items': ['"** KGEN DEBUG: " // printvar // " %s **"'%entity_name, 'var']}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
 

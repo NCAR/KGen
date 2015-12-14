@@ -299,8 +299,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
-            if entity_name in self.kernel_extern_reads: continue
-            self.kernel_extern_reads.append(entity_name)
+            if node.kgen_parent.name+entity_name in self.kernel_extern_reads: continue
+            self.kernel_extern_reads.append(node.kgen_parent.name+entity_name)
 
             var = stmt.get_variable(entity_name)
             subrname = get_typedecl_readname(stmt, entity_name)
@@ -349,8 +349,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
         out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
-            if entity_name in self.state_extern_writes: continue
-            self.state_extern_writes.append(entity_name)
+            if node.kgen_parent.name+entity_name in self.state_extern_writes: continue
+            self.state_extern_writes.append(node.kgen_parent.name+entity_name)
 
             var = stmt.get_variable(entity_name)
             subrname = get_typedecl_writename(stmt, entity_name)
@@ -408,7 +408,10 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%prefix+entity_name, prefix+entity_name]}
+            if stmt.is_numeric() and var.is_array():
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%prefix+entity_name, 'SUM(%s)'%(prefix+entity_name)]}
+            else:
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%prefix+entity_name, prefix+entity_name]}
             part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
@@ -437,7 +440,10 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
+            if stmt.is_numeric() and var.is_array():
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'SUM(%s)'%entity_name]}
+            else:
+                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_read_call(self, subrobj, callname, entity_name, stmt, var, prefix=''):
