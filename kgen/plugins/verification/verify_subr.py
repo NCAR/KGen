@@ -84,8 +84,8 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                 var_class = typedecl_statements.Type
             else: pass
         else:
-            if stmt.is_derived():
-                raise Exception('Non array of derived type should not be processed here.')
+            if stmt.is_derived() and not var.is_pointer():
+                raise Exception('Non array or not pointer of derived type should not be processed here.')
             else: pass
         attrs = {'type_spec': type_spec, 'attrspec': attrspec, 'selector':selector, 'entity_decls': ['var', 'kgenref_var']}
         part_append_genknode(subrobj, DECL_PART, var_class, attrs=attrs)

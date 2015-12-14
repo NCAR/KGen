@@ -144,7 +144,8 @@ class Verify_Type(Kgen_Plugin):
             attrs = {'designator': 'kgen_init_check', 'items': ['dtype_check_status']}
             part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 
-            comp_part = get_part(node, TYPE_COMP_PART) 
+            #comp_part = get_part(node, TYPE_COMP_PART) 
+            comp_part = get_part(node, TYPE_PART) 
             for item in comp_part:
                 if not hasattr(item, 'kgen_stmt'): continue
                 if not isinstance(item.kgen_stmt, typedecl_statements.TypeDeclarationStatement): continue

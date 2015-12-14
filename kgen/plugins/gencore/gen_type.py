@@ -264,7 +264,8 @@ class Gen_Type(Kgen_Plugin):
             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
             part_append_comment(subrobj, DECL_PART, '')
 
-            comp_part = get_part(node, TYPE_COMP_PART) 
+            #comp_part = get_part(node, TYPE_COMP_PART) 
+            comp_part = get_part(node, TYPE_PART) 
             for item in comp_part:
                 if not hasattr(item, 'kgen_stmt'): continue
                 if not isinstance(item.kgen_stmt, typedecl_statements.TypeDeclarationStatement): continue
@@ -291,8 +292,10 @@ class Gen_Type(Kgen_Plugin):
                                     res = req.res_stmts[0]
                                     callname = get_dtype_readname(res)
                                     break
-                            if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
-                            self.create_read_call(subrobj, callname, entity_name, stmt, var)
+                            if callname is None:
+                                print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            else:
+                                self.create_read_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
                             self.create_read_intrinsic(subrobj, entity_name, stmt, var)
 
@@ -345,7 +348,8 @@ class Gen_Type(Kgen_Plugin):
             part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
             part_append_comment(subrobj, DECL_PART, '')
 
-            comp_part = get_part(node, TYPE_COMP_PART) 
+            #comp_part = get_part(node, TYPE_COMP_PART) 
+            comp_part = get_part(node, TYPE_PART) 
             for item in comp_part:
                 if not hasattr(item, 'kgen_stmt'): continue
                 if not isinstance(item.kgen_stmt, typedecl_statements.TypeDeclarationStatement): continue
@@ -372,8 +376,10 @@ class Gen_Type(Kgen_Plugin):
                                     res = req.res_stmts[0]
                                     callname = get_dtype_writename(res)
                                     break
-                            if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
-                            self.create_write_call(subrobj, callname, entity_name, stmt, var)
+                            if callname is None:
+                                print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            else:
+                                self.create_write_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
                             self.create_write_intrinsic(subrobj, entity_name, stmt, var)
 
