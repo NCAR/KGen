@@ -25,7 +25,7 @@ class Simple_Timing(Kgen_Plugin):
             'entity_decls': ['kgen_intvar', 'kgen_start_clock', 'kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
-        attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['kgen_maxiter = 100']}
+        attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['kgen_maxiter = 10']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
         attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': ['kgen_elapsed_time']}
@@ -47,7 +47,7 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'variable': 'kgen_elapsed_time', 'sign': '=', 'expr': '1.0e6*(kgen_stop_clock - kgen_start_clock)/REAL(kgen_rate_clock*kgen_maxiter)'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'items': ['"micro_mg_tend2_0 : Time per call (usec): "', 'kgen_elapsed_time']}
+        attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_elapsed_time']}
         part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_elapsed_time'}

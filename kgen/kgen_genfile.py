@@ -42,10 +42,12 @@ DECL_PART = 'decl'
 CONTAINS_PART = 'contains'
 SUBP_PART = 'subp'
 EXEC_PART = 'exec'
-TYPE_PD_PART = 'type_pd'
-TYPE_POS_PART = 'type_pos'
-TYPE_COMP_PART = 'type_comp'
-TYPE_BP_PART = 'type_bp'
+TYPE_PART = 'type'
+#TYPE_PD_PART = 'type_pd'
+#TYPE_POS_PART = 'type_pos'
+#TYPE_COMP_PART = 'type_comp'
+#TYPE_BP_PART_CONTAINS = 'type_bp_contains'
+#TYPE_BP_PART = 'type_bp'
 INTF_SPEC_PART = 'intf_spec'
 
 match_classes = {
@@ -54,7 +56,8 @@ match_classes = {
     block_statements.Module: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART, CONTAINS_PART, SUBP_PART ],
     block_statements.Subroutine: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART, EXEC_PART, CONTAINS_PART, SUBP_PART ],
     block_statements.Function: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART, EXEC_PART, CONTAINS_PART, SUBP_PART ],
-    block_statements.Type: [ TYPE_PD_PART, TYPE_POS_PART, TYPE_COMP_PART, TYPE_BP_PART ],
+    #block_statements.Type: [ TYPE_PD_PART, TYPE_POS_PART, TYPE_COMP_PART, TYPE_BP_PART_CONTAINS, TYPE_BP_PART ],
+    block_statements.Type: [ TYPE_PART ],
     block_statements.BlockData: [ USE_PART, IMPORT_PART, IMPLICIT_PART, DECL_PART ],
     block_statements.Interface: [ INTF_SPEC_PART ]
 }
@@ -70,10 +73,12 @@ part_classes = {
     CONTAINS_PART: [ statements.Contains ],
     SUBP_PART: block_statements.internal_subprogram,
     EXEC_PART: block_statements.execution_part,
-    TYPE_PD_PART: [ typedecl_statements.Integer ],
-    TYPE_POS_PART: block_statements.private_or_sequence,
-    TYPE_COMP_PART: block_statements.component_part,
-    TYPE_BP_PART: block_statements.type_bound_procedure_part,
+    TYPE_PART: block_statements.private_or_sequence + block_statements.component_part + block_statements.type_bound_procedure_part,
+#    TYPE_PD_PART: [ typedecl_statements.Integer ],
+#    TYPE_POS_PART: block_statements.private_or_sequence,
+#    TYPE_COMP_PART: block_statements.component_part,
+#    TYPE_BP_PART_CONTAINS: [ statements.Contains ],
+#    TYPE_BP_PART: block_statements.type_bound_procedure_part,
     INTF_SPEC_PART: block_statements.internal_subprogram + [ statements.ModuleProcedure ]
 }
 
@@ -354,10 +359,11 @@ def set_plugin_env(mod):
     mod.CONTAINS_PART = CONTAINS_PART
     mod.SUBP_PART = SUBP_PART
     mod.EXEC_PART = EXEC_PART
-    mod.TYPE_PD_PART = TYPE_PD_PART
-    mod.TYPE_POS_PART = TYPE_POS_PART
-    mod.TYPE_COMP_PART = TYPE_COMP_PART
-    mod.TYPE_BP_PART = TYPE_BP_PART
+    mod.TYPE_PART = TYPE_PART
+#    mod.TYPE_PD_PART = TYPE_PD_PART
+#    mod.TYPE_POS_PART = TYPE_POS_PART
+#    mod.TYPE_COMP_PART = TYPE_COMP_PART
+#    mod.TYPE_BP_PART = TYPE_BP_PART
     mod.INTF_SPEC_PART = INTF_SPEC_PART
 
 def init_plugins():
@@ -830,14 +836,12 @@ class Gen_BeginStatement(object):
             insert_order = self.kgen_part_order[:]
             for node in stmt.content[:-1]:
                 item = genobj(self, node, self.kgen_kernel_id)
-
-                if node.__class__ is typedecl_statements.Integer and insert_order[0]==TYPE_PD_PART:
-                    if any(attr in ['kind', 'len'] for attr in node.attrspec) and all(decl.find('=')>0 for decl in node.entity_decls):
-                        insert_order = self.insert_in_order(item, insert_order)
-                    else:
-                        insert_order = self.insert_in_order(item, insert_order[1:])
-                else:
-                    insert_order = self.insert_in_order(item, insert_order)
+#                if node.__class__ is typedecl_statements.Integer and insert_order[0]==TYPE_PD_PART and \
+#                    not (any(attr in ['kind', 'len'] for attr in node.attrspec) and all(decl.find('=')>0 for decl in node.entity_decls)):
+#                    insert_order = self.insert_in_order(item, insert_order[1:])
+#                else:
+#                    insert_order = self.insert_in_order(item, insert_order)
+                insert_order = self.insert_in_order(item, insert_order)
 
             if isinstance(stmt.content[-1], base_classes.EndStatement):
                 self.kgen_end_obj = genobj(self, stmt.content[-1], self.kgen_kernel_id)
