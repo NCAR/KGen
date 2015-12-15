@@ -299,7 +299,9 @@ def getinfo(name):
     elif name=='callsite_stmt': return State.callsite['stmt']
     elif name=='parentblock_stmt': return State.parentblock['stmt']
     elif name=='topblock_stmt': return State.topblock['stmt']
+    elif name=='verbose_level': return Config.verify['verboselevel']
     else: raise ProgramException('No information for %s'%name)
+
 
 def set_plugin_env(mod):
 

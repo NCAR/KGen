@@ -78,6 +78,8 @@ class Verify_Type(Kgen_Plugin):
             attrs = {'items': ['"Normalized RMS of difference is "', 'nrmsdiff_%s'%entity_name]}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
+            part_append_comment(parent, EXEC_PART, '')
+
         def print_num_detail(parent, entity_name):
             attrs = {'items': ['"Difference is "', 'diff_%s'%entity_name]}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)

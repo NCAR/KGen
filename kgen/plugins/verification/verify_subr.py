@@ -23,6 +23,8 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         attrs = {'items': ['"Normalized RMS of difference is "', 'nrmsdiff']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
+        part_append_comment(parent, EXEC_PART, '')
+
     def print_num_detail(parent):
         attrs = {'items': ['"Difference is "', 'diff']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
@@ -139,7 +141,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                         callname = get_dtype_verifyname(req.res_stmts[0])
                         break
 
-                attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status']}
+                attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'verboseLevel=%s'%getinfo('verbose_level')]}
                 part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 pobj = topobj

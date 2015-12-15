@@ -600,6 +600,7 @@ class Config(object):
         parser.add_option("--check", dest="check", action='append', type='string', help="Kernel correctness check information")
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
+        parser.add_option("--verbose", dest="verbose_level", action='store', type='int', help='Set the verbose level for verification output')
 
         opts, args = parser.parse_args()
         if len(args)<1:
@@ -976,6 +977,10 @@ class Config(object):
                 for param in param_split[:-1]:
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
+
+        # parsing logging options
+        if opts.verbose_level:
+            self._attrs['verify']['verboselevel'] = str(opts.verbose_level)
 
     def __getattr__(self, name):
         return self._attrs[name]

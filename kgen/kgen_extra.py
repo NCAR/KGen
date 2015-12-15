@@ -311,27 +311,33 @@ subroutine kgen_perturb_real8_dim3(var, pertlim)
     deallocate(rndm_seed)
 end subroutine
 
-subroutine kgen_init_check(check, tolerance, minvalue)
+subroutine kgen_init_check(check, verboseLevel, tolerance, minValue)
   type(check_t), intent(inout) :: check
+  integer, intent(in), optional :: verboseLevel
   real(kind=kgen_dp), intent(in), optional :: tolerance
-  real(kind=kgen_dp), intent(in), optional :: minvalue
+  real(kind=kgen_dp), intent(in), optional :: minValue
 
   check%Passed   = .TRUE.
   check%numOutTol = 0
   check%numInTol = 0
   check%numTotal = 0
   check%numIdentical = 0
-  check%VerboseLevel = 1
+
+  if(present(verboseLevel)) then
+     check%verboseLevel = verboseLevel
+  else
+      check%verboseLevel = 1
+  end if
   if(present(tolerance)) then
      check%tolerance = tolerance
   else
       check%tolerance = 1.0D-15
-  endif
+  end if
   if(present(minvalue)) then
      check%minvalue = minvalue
   else
       check%minvalue = 1.0D-15
-  endif
+  end if
 end subroutine kgen_init_check
 
 subroutine kgen_print_check(kname, check)
