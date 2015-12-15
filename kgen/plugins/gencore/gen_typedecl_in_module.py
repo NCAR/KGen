@@ -76,13 +76,14 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         process_spec_stmts(node.kgen_stmt)
 
     def process_use_in_module(self, node):
+        if not node.kgen_isvalid: return
         if not node.kgen_stmt: return
         if not hasattr(node.kgen_stmt, 'geninfo'): return
       
         new_items = []
         unames = list(set([ uname.firstpartname() for uname, req in KGGenType.get_state(node.kgen_stmt.geninfo) ]))
         for item in node.kgen_stmt.items:
-            if any(item.startswith(uname) for uname in unames):
+            if item.split('=>')[0].strip() in unames:
                 new_items.append(item)
         node.items = new_items
         node.nature = node.kgen_stmt.nature

@@ -25,12 +25,24 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
+            getinfo('parentblock_stmt'), None, self.set_args)
+
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('topblock_stmt'), None, self.create_topblock_parts)
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
             getinfo('callsite_stmt'), None, self.process_ifstmt)
 
+
+    def set_args(self, node):
+
+        node.new_args = getinfo('kernel_driver_callsite_args')
+        node.tosubr = True
+        node.kgen_use_tokgen = True
+
+        node.kgen_end_obj.tosubr = True
+        node.kgen_end_obj.kgen_use_tokgen = True
 
     def create_parentblock_parts(self, node):
 
@@ -62,13 +74,6 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 #            part_append_genknode(node, CONTAINS_PART, statements.Contains)
 #            part_append_comment(node, CONTAINS_PART, '')
 #            kernel_gencore_contains.append(node)
-
-        node.new_args = getinfo('kernel_driver_callsite_args')
-        node.tosubr = True
-        node.kgen_use_tokgen = True
-
-        node.kgen_end_obj.tosubr = True
-        node.kgen_end_obj.kgen_use_tokgen = True
 
         # debug
 #        attrs = {'variable': 'kgen_region_started', 'sign': '=', 'expr': '.TRUE.'}

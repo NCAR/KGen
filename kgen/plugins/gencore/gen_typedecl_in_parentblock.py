@@ -17,6 +17,12 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         self.kernel_created_subrs = []
         self.driver_created_subrs = []
 
+    def check_intent(self, entity_name, stmt):
+        if any( attr.startswith('intent') for attr in stmt.attrspec ) or \
+            hasattr(stmt.parent, 'args') and entity_name in stmt.parent.args:
+            return True
+        return False
+
     # registration
     def register(self, msg):
         self.frame_msg = msg
@@ -47,7 +53,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
-            if (entity_name,DRIVER_READ_IN_ARGS) not in argintype and any( attr.startswith('intent') for attr in stmt.attrspec ):
+            if (entity_name,DRIVER_READ_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
                 var = stmt.get_variable(entity_name)
 
                 argintype.append((entity_name, DRIVER_READ_IN_ARGS))
@@ -68,6 +74,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
                 if hasattr(stmt, 'unknowns'):
                     for uname, req in stmt.unknowns.iteritems():
+
                         if req.res_stmts[-1].__class__==statements.Use:
                             checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==req.res_stmts[-1].name \
                                 and ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
@@ -79,6 +86,12 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                         break
                                 attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
                                 namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+
+                                if stmt.is_derived() and stmt.name==uname.firstpartname():
+                                    readname = get_dtype_readname(req.res_stmts[0])
+                                    attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[readname]}
+                                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+
                         else:
                             if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
                                 checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
@@ -91,6 +104,12 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                             break
                                     attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
                                     namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+
+                                    if stmt.is_derived() and stmt.name==uname.firstpartname():
+                                        readname = get_dtype_readname(req.res_stmts[-1])
+                                        attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[readname]}
+                                        namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+
             elif (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype and (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
@@ -230,7 +249,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
-            if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype and any( attr.startswith('intent') for attr in stmt.attrspec ):
+            if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
                 argintype.append((entity_name, STATE_PBLOCK_WRITE_IN_ARGS))
             elif (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype and (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))

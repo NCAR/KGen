@@ -156,9 +156,9 @@ class SrcFile(object):
 
         insert_lines = []
         for i, line in enumerate(lines):
-            match = re.match(r'\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
-            if not match:
-                match = re.match(r'\s*#include\s*("[^"]+"|\<[^\']+\>)\s*\Z', line, re.I)
+            match = re.match(r'^\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
+            #if not match:
+            #    match = re.match(r'\s*#include\s*("[^"]+"|\<[^\']+\>)\s*\Z', line, re.I)
             if match:
                 if Config.include['file'].has_key(self.abspath):
                     include_dirs = Config.include['file'][self.abspath]['path']+Config.include['path']
@@ -166,15 +166,16 @@ class SrcFile(object):
                     include_dirs = Config.include['path']
                 filename = match.group(1)[1:-1].strip()
                 path = filename
-                for incl_dir in include_dirs:
+                for incl_dir in include_dirs+[os.path.dirname(self.abspath)]:
                     path = os.path.join(incl_dir, filename)
                     if os.path.exists(path):
                         break
                 if os.path.isfile(path):
                     with open(path, 'r') as f:
-                        insert_lines.extend(self.handle_include(f.readlines()))
+                        included_lines = f.read()
+                        insert_lines.extend(self.handle_include(included_lines.split('\n')))
                 else:
-                    raise UserException('Can not find %s in include paths.'%filename)
+                    raise UserException('Can not find %s in include paths of %s.'%(filename, self.abspath))
             else:
                 insert_lines.append(line)
 
@@ -204,16 +205,11 @@ class SrcFile(object):
             if Config.source['isstrict']: isstrict = Config.source['isstrict']
             if Config.source['isfree']: isfree = Config.source['isfree']
 
-        # handle include
-        with open(self.abspath, 'r') as f:
-            org_lines = f.readlines()
-            new_lines = self.handle_include(org_lines)
-
         # prepare include paths and macro definitions
         path_src = []
         macros_src = ''
         if Config.include['file'].has_key(self.abspath):
-            path_src = Config.include['file'][self.abspath]['path']
+            path_src = Config.include['file'][self.abspath]['path']+[os.path.dirname(self.abspath)]
             macros_src = ' '.join([ '-D%s=%s'%(k,v) for k, v in Config.include['file'][self.abspath]['macro'].iteritems() ])
         includes = '-I'+' -I'.join(Config.include['path']+path_src)
         macros = ' '.join([ '-D%s=%s'%(k,v) for k, v in Config.include['macro'].iteritems() ]) + ' ' + macros_src
@@ -228,19 +224,25 @@ class SrcFile(object):
         elif pp.endswith('cpp'):
             flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
-        output = exec_cmd('%s %s %s %s' % (pp, flags, includes, macros), input=''.join(new_lines))
-        # convert the preprocessed for fparser
-        prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
+
+        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_dmpar.F':
+        #    import pdb ; pdb.set_trace()
+
+        new_lines = []
+        with open(self.abspath, 'r') as f:
+            output = exec_cmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
+            prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
+            new_lines = self.handle_include(prep)
 
         # add include paths
         if Config.include['file'].has_key(self.abspath) and Config.include['file'][self.abspath].has_key('path'):
-            include_dirs = Config.include['file'][self.abspath]['path']
+            include_dirs = Config.include['file'][self.abspath]['path'] + [os.path.dirname(self.abspath)]
         else: include_dirs = None
 
         # fparse
-        self.tree = parse('\n'.join(prep), ignore_comments=False, analyze=True, isfree=isfree, \
+        self.tree = parse('\n'.join(new_lines), ignore_comments=False, analyze=True, isfree=isfree, \
             isstrict=isstrict, include_dirs=include_dirs, source_only=None )
-        self.tree.prep = prep
+        self.tree.prep = new_lines
         self.tree.used4genstate = False
 
         # parse f2003

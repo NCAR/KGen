@@ -141,11 +141,18 @@ def process_spec_stmts(stmt):
         if not node.kgen_isvalid: continue
         if not hasattr(spec_stmt, 'geninfo') or len(spec_stmt.geninfo)==0: continue
 
+        def is_uname(item, unames):
+            import re
+            iname = re.split('\(|\*|=', item)[0].strip()
+            if iname in unames: return True
+            else: return False
+
+
         if hasattr(spec_stmt, 'items'):
             new_items = []
             unames = list(set([ uname.firstpartname() for uname, req in KGGenType.get_state(spec_stmt.geninfo) ]))
             for item in spec_stmt.items:
-                if any(item.startswith(uname) for uname in unames):
+                if is_uname(item, unames):
                     new_items.append(item)
             node.new_items = new_items
             node.kgen_use_tokgen = True

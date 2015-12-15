@@ -1004,6 +1004,17 @@ class BeginStatement(Statement):
         return
 
     # start of KGEN
+    def check_access(self, req):
+
+        ancs = req.originator.ancestors()
+        if self in ancs: return True
+
+        if not hasattr(self, 'check_private'): return False
+
+        uname = req.uname.firstpartname()
+        if self.check_private(uname): return False
+        else: return True
+
     def resolve(self, request):
         from kgen_state import ResState
         from kgen_search import f2003_search_unknowns
@@ -1162,7 +1173,7 @@ class BeginStatement(Statement):
                     for mod_name, use_stmts in self.use_stmts.iteritems():
                         for use_stmt in use_stmts:
                             if use_stmt.isonly:
-                                if uname in use_stmt.norenames:
+                                if uname in use_stmt.norenames and self.check_access(request):
                                     Logger.info('%s is found in norenames'%uname, name=request.uname, stmt=self)
                                     use_stmt.resolve(request)
                                     if request.state == ResState.RESOLVED:
@@ -1175,7 +1186,7 @@ class BeginStatement(Statement):
                                 rename = [r for r in use_stmt.renames if r[0]==uname]
                                 if len(rename)>1:
                                     raise ProgramException('More than one result: %s'%str(rename))
-                                elif len(rename)==1:
+                                elif len(rename)==1 and self.check_access(request):
                                     newname = KGName(pack_exnamepath(request.originator, rename[0][1]), node=use_stmt.f2003, stmt=use_stmt)
                                     request.push_uname(newname)
                                     use_stmt.resolve(request)
@@ -1195,7 +1206,7 @@ class BeginStatement(Statement):
                         for mod_name, use_stmts in self.use_stmts.iteritems():
                             for use_stmt in use_stmts:
                                 if not use_stmt.isonly:
-                                    if uname in use_stmt.norenames:
+                                    if uname in use_stmt.norenames and self.check_access(request):
                                         use_stmt.resolve(request)
                                         if request.state == ResState.RESOLVED:
                                             request.res_stmts.append(use_stmt)
@@ -1206,7 +1217,7 @@ class BeginStatement(Statement):
                                     rename = [r for r in use_stmt.renames if r[0]==uname]
                                     if len(rename)>1:
                                         raise ProgramException('More than one result: %s'%str(rename))
-                                    elif len(rename)==1:
+                                    elif len(rename)==1 and self.check_access(request):
                                         newname = KGName(pack_exnamepath(request.originator, rename[0][1]), node=use_stmt.f2003, stmt=use_stmt)
                                         request.push_uname(newname)
                                         use_stmt.resolve(request)
@@ -1254,7 +1265,7 @@ class BeginStatement(Statement):
                         for mod_name, use_stmts in self.use_stmts.iteritems():
                             for use_stmt in use_stmts:
                                 if not use_stmt.isonly:
-                                    if len(use_stmt.norenames)==0 and len(use_stmt.renames)==0:
+                                    if len(use_stmt.norenames)==0 and len(use_stmt.renames)==0 and self.check_access(request):
                                         use_stmt.resolve(request)
                                         if request.state == ResState.RESOLVED:
                                             request.res_stmts.append(use_stmt)

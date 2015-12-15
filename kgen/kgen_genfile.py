@@ -836,15 +836,11 @@ class Gen_BeginStatement(object):
             insert_order = self.kgen_part_order[:]
             for node in stmt.content[:-1]:
                 item = genobj(self, node, self.kgen_kernel_id)
-#                if node.__class__ is typedecl_statements.Integer and insert_order[0]==TYPE_PD_PART and \
-#                    not (any(attr in ['kind', 'len'] for attr in node.attrspec) and all(decl.find('=')>0 for decl in node.entity_decls)):
-#                    insert_order = self.insert_in_order(item, insert_order[1:])
-#                else:
-#                    insert_order = self.insert_in_order(item, insert_order)
                 insert_order = self.insert_in_order(item, insert_order)
 
             if isinstance(stmt.content[-1], base_classes.EndStatement):
                 self.kgen_end_obj = genobj(self, stmt.content[-1], self.kgen_kernel_id)
+                self.kgen_end_obj.kgen_isvalid = self.kgen_isvalid
                 if hasattr(self.kgen_end_obj.kgen_stmt, 'blocktype'):
                     self.kgen_end_obj.blocktype = self.kgen_end_obj.kgen_stmt.blocktype
             else:
@@ -865,7 +861,12 @@ class Gen_BeginStatement(object):
             lines.extend(self.tostring_parts())
 
         if self.kgen_end_obj:
-            l = self.kgen_end_obj.tostring()
+            if not self.kgen_isvalid and self.kgen_end_obj.kgen_isvalid: import pdb ;pdb.set_trace()
+            if self.kgen_end_obj.kgen_file_type==FILE_TYPE.KERNEL:
+                l = super(GenK_Statement, self.kgen_end_obj).tostring()
+            else:
+                l = super(GenS_Statement, self.kgen_end_obj).tostring()
+            #l = self.kgen_end_obj.tostring()
             if l is not None: lines.append(l)
 
         return '\n'.join(lines)

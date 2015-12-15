@@ -92,12 +92,37 @@ class Gen_Type(Kgen_Plugin):
 
     def create_read_intrinsic(self, subrobj, entity_name, stmt, var):
         pobj = subrobj
+        is_alloc = False
         if var.is_pointer():
             attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
             part_append_genknode(subrobj, EXEC_PART, statements.Read, attrs=attrs)
 
             attrs = {'expr': 'kgen_istrue'}
             iftrueobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            if var.is_array():
+                if var.is_explicit_shape_array():
+                    #import pdb; pdb.set_trace()
+                    alloc_attrs = {'items': ['var%%%s'%entity_name]}
+                    is_alloc = True
+            elif stmt.is_derived():
+                #import pdb; pdb.set_trace()
+                alloc_attrs = {'items': ['var%%%s'%entity_name]}
+                is_alloc = True
+            else:
+                #import pdb; pdb.set_trace()
+                alloc_attrs = {'items': ['var%%%s'%entity_name]}
+                is_alloc = True
+
+
+            if is_alloc:
+                attrs = {'expr': 'ASSOCIATED( var%%%s )'%entity_name}
+                ifalloc = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'items': ['var%%%s'%entity_name]}
+                part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
+
+                part_append_genknode(iftrueobj, EXEC_PART, statements.Allocate, attrs=alloc_attrs)
 
             pobj = iftrueobj
 
@@ -119,6 +144,10 @@ class Gen_Type(Kgen_Plugin):
             else:
                 attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
             part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        if is_alloc:
+            attrs = {'items': ['var%%%s'%entity_name]}
+            part_append_genknode(pobj, EXEC_PART, statements.Deallocate, attrs=attrs)
 
     def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
         pobj = subrobj
@@ -163,12 +192,37 @@ class Gen_Type(Kgen_Plugin):
 
     def create_read_call(self, subrobj, callname, entity_name, stmt, var):
         pobj = subrobj
+        is_alloc = False
         if var.is_pointer():
             attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
             part_append_genknode(subrobj, EXEC_PART, statements.Read, attrs=attrs)
 
             attrs = {'expr': 'kgen_istrue'}
             iftrueobj = part_append_genknode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            if var.is_array():
+                if var.is_explicit_shape_array():
+                    #import pdb; pdb.set_trace()
+                    alloc_attrs = {'items': ['var%%%s'%entity_name]}
+                    is_alloc = True
+            elif stmt.is_derived():
+                #import pdb; pdb.set_trace()
+                alloc_attrs = {'items': ['var%%%s'%entity_name]}
+                is_alloc = True
+            else:
+                #import pdb; pdb.set_trace()
+                alloc_attrs = {'items': ['var%%%s'%entity_name]}
+                is_alloc = True
+
+
+            if is_alloc:
+                attrs = {'expr': 'ASSOCIATED( var%%%s )'%entity_name}
+                ifalloc = part_append_genknode(iftrueobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'items': ['var%%%s'%entity_name]}
+                part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
+
+                part_append_genknode(iftrueobj, EXEC_PART, statements.Allocate, attrs=alloc_attrs)
 
             pobj = iftrueobj
 

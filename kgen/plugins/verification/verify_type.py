@@ -177,11 +177,16 @@ class Verify_Type(Kgen_Plugin):
                         get_size = ','.join(['SIZE(var%%%s,dim=%d)'%(entity_name, dim+1) for dim in range(var.rank)])
 
                         if stmt.is_derived():
+                            indexes = [ 'idx%d'%(r+1) for r in range(var.rank)]
+                            ename_indexes = [ '%s_%s'%(idx,entity_name) for idx in indexes ]
 
                             for uname, req in stmt.unknowns.iteritems():
                                 if uname.firstpartname()==stmt.name:
                                     callname = get_dtype_verifyname(req.res_stmts[0])
                                     break
+
+                            attrs = {'type_spec': 'INTEGER', 'entity_decls': ename_indexes}
+                            part_append_genknode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
                             attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status']}
                             part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
@@ -189,15 +194,14 @@ class Verify_Type(Kgen_Plugin):
                             pobj = topobj
                             doobjs = []
                             for d in range(var.rank):
-                                attrs = {'loopcontrol': ' idx%(d)d=LBOUND(var%%%(e)s,%(d)d), UBOUND(var%%%(e)s,%(d)d)'%{'e':entity_name, 'd':d+1}}
+                                attrs = {'loopcontrol': ' idx%(d)d_%(e)s = LBOUND(var%%%(e)s,%(d)d), UBOUND(var%%%(e)s,%(d)d)'%{'e':entity_name, 'd':d+1}}
                                 doobj = part_append_genknode(pobj, EXEC_PART, block_statements.Do, attrs=attrs)
                                 doobjs.append(doobj)
                                 pobj = doobj 
 
                             # call verify subr
-                            indexes = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
                             attrs = {'designator': callname, 'items': ['trim(adjustl(varname))//"%%%s"'%var.name, 'comp_check_status', \
-                                'var%%%s(%s)'%(entity_name, indexes), 'kgenref_var%%%s(%s)'%(entity_name, indexes)]}
+                                'var%%%s(%s)'%(entity_name, ','.join(ename_indexes)), 'kgenref_var%%%s(%s)'%(entity_name, ','.join(ename_indexes))]}
                             part_append_genknode(doobjs[-1], EXEC_PART, statements.Call, attrs=attrs)
 
                             attrs = {'expr': 'comp_check_status%numTotal == comp_check_status%numIdentical'}
