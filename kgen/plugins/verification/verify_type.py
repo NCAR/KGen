@@ -52,7 +52,8 @@ class Verify_Type(Kgen_Plugin):
                         self.kernel_created_use_items.append((id(parent),subrname))
 
                     checks = lambda n: isinstance(n.kgen_stmt, statements.Public) and n.kgen_stmt.items and subrname in n.kgen_stmt.items
-                    if (id(parent),subrname) not in self.kernel_created_public_items and not part_has_node(parent, DECL_PART, checks):
+                    if (id(parent),subrname) not in self.kernel_created_public_items and isinstance(parent.kgen_stmt, block_statements.Module) and \
+                        not part_has_node(parent, DECL_PART, checks):
                         attrs = {'items':[subrname]}
                         part_append_genknode(parent, DECL_PART, statements.Public, attrs=attrs)
                         self.kernel_created_public_items.append((id(parent),subrname))

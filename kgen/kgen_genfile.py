@@ -300,6 +300,7 @@ def getinfo(name):
     elif name=='parentblock_stmt': return State.parentblock['stmt']
     elif name=='topblock_stmt': return State.topblock['stmt']
     elif name=='verbose_level': return Config.verify['verboselevel']
+    elif name=='repeat_count': return Config.timing['repeat']
     else: raise ProgramException('No information for %s'%name)
 
 

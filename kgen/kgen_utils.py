@@ -520,7 +520,7 @@ class Config(object):
 
         # timing parameters
         self._attrs['timing'] = OrderedDict()
-        self._attrs['timing']['repeat'] = 10
+        self._attrs['timing']['repeat'] = '10'
 
         # source file parameters
         self._attrs['source'] = OrderedDict()
@@ -928,7 +928,7 @@ class Config(object):
                 key, value = time.split('=')
                 if key in [ 'repeat' ] :
                     try:
-                        self._attrs['timing'][key] = int(value)
+                        self._attrs['timing'][key] = value
                     except:
                         raise UserException('repeat sub-flag should be integer value: %s'%value)
                 else:

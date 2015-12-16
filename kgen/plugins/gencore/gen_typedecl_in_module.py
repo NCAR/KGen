@@ -78,7 +78,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
     def process_use_in_module(self, node):
         if not node.kgen_isvalid: return
         if not node.kgen_stmt: return
-        if not hasattr(node.kgen_stmt, 'geninfo'): return
+        if not hasattr(node.kgen_stmt, 'geninfo'):
+            node.kgen_isvalid = False
+            return
       
         new_items = []
         unames = list(set([ uname.firstpartname() for uname, req in KGGenType.get_state(node.kgen_stmt.geninfo) ]))
