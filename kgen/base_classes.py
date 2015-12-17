@@ -910,21 +910,6 @@ class Statement(object):
                     for unk, req in typedecl_stmt.unknowns.iteritems():
                         if req.state != ResState.RESOLVED:
                             typedecl_stmt.resolve(req) 
-
-            elif isinstance(self, SubProgramStatement) and self.is_recursive():
-                    Logger.info('The request is being resolved by a subprogram', name=request.uname, stmt=self)
-                    request.res_stmts.append(self)
-                    request.state = ResState.RESOLVED
-                    self.add_geninfo(request.uname)
-                    self.check_spec_stmts(request.uname, self)
-                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
-                    for _stmt, _depth in walk(self, -1):
-                        if not hasattr(_stmt, 'unknowns'):
-                            f2003_search_unknowns(_stmt, _stmt.f2003)
-                        if hasattr(_stmt, 'unknowns'):
-                            for unk, req in _stmt.unknowns.iteritems():
-                                if req.state != ResState.RESOLVED:
-                                    _stmt.resolve(req) 
             else:
                 Logger.info('%s can be resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
                 raise Exception('This request should have been resolved by the stmt shown below.\n%s'%self.tokgen())
@@ -1038,6 +1023,7 @@ class BeginStatement(Statement):
         from typedecl_statements import TypeDeclarationStatement
         from statements import External, Use, SpecificBinding
         from api import walk
+        from block_statements import SubProgramStatement
 
         if request is None: return
 
@@ -1062,14 +1048,36 @@ class BeginStatement(Statement):
                     subp = self.a.module_interface[request.uname.firstpartname()]
 
                 if subp and any( isinstance(subp, resolver) for resolver in request.resolvers ):
-                    # skip recursive call - NEED TO CHECK
                     Logger.info('The request is being resolved by a subprogram or interface', name=request.uname, stmt=self)
+                    request.res_stmts.append(subp)
+                    request.state = ResState.RESOLVED
+                    subp.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
+
                     if subp not in request.originator.ancestors():
-                        request.res_stmts.append(subp)
-                        request.state = ResState.RESOLVED
-                        subp.add_geninfo(request.uname, request)
-                        self.check_spec_stmts(request.uname, request)
-                        Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
+                        for _stmt, _depth in walk(subp, -1):
+                            if not hasattr(_stmt, 'unknowns'):
+                                f2003_search_unknowns(_stmt, _stmt.f2003)
+                            if hasattr(_stmt, 'unknowns'):
+                                for unk, req in _stmt.unknowns.iteritems():
+                                    if req.state != ResState.RESOLVED:
+                                        _stmt.resolve(req) 
+
+            if request.state != ResState.RESOLVED:
+                subp = None
+                if isinstance(self, SubProgramStatement) and request.uname.firstpartname()==self.name:
+                    subp = self
+
+                if subp and any( isinstance(subp, resolver) for resolver in request.resolvers ):
+                    Logger.info('The request is being resolved by a subprogram or interface', name=request.uname, stmt=self)
+                    request.res_stmts.append(subp)
+                    request.state = ResState.RESOLVED
+                    subp.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
+
+                    if subp not in request.originator.ancestors():
                         for _stmt, _depth in walk(subp, -1):
                             if not hasattr(_stmt, 'unknowns'):
                                 f2003_search_unknowns(_stmt, _stmt.f2003)
