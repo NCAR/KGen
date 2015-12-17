@@ -50,15 +50,15 @@ kgen_verify_intrinsic_checkpart = \
 """check_status%%numTotal = check_status%%numTotal + 1
 IF ( var %s ref_var ) THEN
     check_status%%numIdentical = check_status%%numIdentical + 1
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is IDENTICAL( ", var, " )."
     endif
 ELSE
-    if(check_status%%verboseLevel > 0) then
+    if(check_status%%VerboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
-        if(check_status%%verboseLevel > 2) then
+        if(check_status%%VerboseLevel == 3) then
             WRITE(*,*) "KERNEL: ", var
             WRITE(*,*) "REF.  : ", ref_var
         end if
@@ -71,13 +71,13 @@ kgen_verify_numeric_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
         !WRITE(*,*) "REF.  : ", ref_var
         IF ( ALL( var == 0 ) ) THEN
-            if(check_status%%verboseLevel > 2) then
+            if(check_status%%VerboseLevel == 3) then
                 WRITE(*,*) "All values are zero."
             end if
         END IF
@@ -97,18 +97,6 @@ ELSE
     nrmsdiff = sqrt(sum(temp)/real(n))
     rmsdiff = sqrt(sum(temp2)/real(n))
 
-    if(check_status%%verboseLevel > 0) then
-        WRITE(*,*)
-        WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
-        WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
-        if(check_status%%verboseLevel > 1) then
-            WRITE(*,*) "Average - kernel ", sum(var)/real(size(var))
-            WRITE(*,*) "Average - reference ", sum(ref_var)/real(size(ref_var))
-        endif
-        WRITE(*,*) "RMS of difference is ",rmsdiff
-        WRITE(*,*) "Normalized RMS of difference is ",nrmsdiff
-    end if
-
     if (nrmsdiff > check_status%%tolerance) then
         check_status%%numOutTol = check_status%%numOutTol+1
     else
@@ -123,19 +111,17 @@ kgen_verify_nonreal_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
         !WRITE(*,*) "REF.  : ", ref_var
         IF ( ALL( var == 0 ) ) THEN
-            if(check_status%%verboseLevel > 2) then
                 WRITE(*,*) "All values are zero."
-            end if
         END IF
     end if
 ELSE
-    if(check_status%%verboseLevel > 0) then
+    if(check_status%%VerboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
         WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
@@ -344,8 +330,8 @@ subroutine kgen_print_check(kname, check)
    character(len=*) :: kname
    type(check_t), intent(in) ::  check
 
-   write (*,*)
    write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+   !write (*,*) TRIM(kname),':',check%numFatal,'fatal errors,',check%numWarning,'warnings detected, and',check%numIdentical,'identical out of',check%numTotal,'variables checked'
    write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
    write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
    write (*,*) TRIM(kname),': Number of variables within tolerance(not identical): ',check%numInTol
