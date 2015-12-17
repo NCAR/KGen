@@ -40,10 +40,31 @@ def get_module_verifyname(modstmt):
     if modstmt is None: return
     return '%s_externs_%s'%(vprefix, modstmt.name)
 
+
+
 def get_typedecl_subpname(stmt, entity_name):
     import typedecl_statements
-    if not hasattr(get_typedecl_subpname, 'kgen_subpname_index'):
-        get_typedecl_subpname.kgen_subpname_index = 0
+
+    assert isinstance(stmt, typedecl_statements.TypeDeclarationStatement), 'None type of typedecl stmt'
+    assert entity_name, 'No entity name is provided.'
+
+    var = stmt.get_variable(entity_name)
+    if var is None: return 'Unknown_name'
+
+    prefix = [ get_parentname(stmt), stmt.name ] + list(stmt.selector)
+    l = []
+    if var.is_array(): l.append('dim%d'%var.rank)
+    if var.is_pointer(): l.append('ptr')
+
+    subpname = '_'.join(prefix+l)
+    if len(subpname)<MAXLEN_SUBPNAME:
+        return '_'.join(prefix+l)
+
+
+def get_typedecl_subpname(stmt, entity_name):
+    import typedecl_statements
+    if not hasattr(get_typedecl_subpname, 'kgen_subpname_cache'):
+        get_typedecl_subpname.kgen_subpname_cache = {}
 
     assert isinstance(stmt, typedecl_statements.TypeDeclarationStatement), 'None type of typedecl stmt'
     assert entity_name, 'No entity name is provided.'
@@ -60,8 +81,12 @@ def get_typedecl_subpname(stmt, entity_name):
     if len(subpname)<MAXLEN_SUBPNAME:
         return '_'.join(prefix+l)
     else:
-        get_typedecl_subpname.kgen_subpname_index += 1
-        return 'kgen_subpname_%d'%get_typedecl_subpname.kgen_subpname_index
+        if subpname in get_typedecl_subpname.kgen_subpname_cache:
+            return 'kgen_subpname_%d'%get_typedecl_subpname.kgen_subpname_cache[subpname]
+        else:
+            subpindex = len(get_typedecl_subpname.kgen_subpname_cache)
+            get_typedecl_subpname.kgen_subpname_cache[subpname] = subpindex
+            return 'kgen_subpname_%d'%subpindex
 
 def get_dtype_verifyname(typestmt):
     if typestmt is None: return

@@ -1075,6 +1075,7 @@ def generate_srcfiles():
             if kfile is None or sfile is None:
                 raise ProgramException('Kernel source file is not generated for %s.'%filepath)
             genfiles.append((kfile, sfile, filepath))
+            State.used_srcfiles[filepath] = (srcobj, mods_used, units_used)
 
     # process each nodes in the tree
     for plugin_dir in event_register.keys():

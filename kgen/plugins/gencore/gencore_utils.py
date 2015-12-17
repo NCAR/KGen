@@ -77,8 +77,8 @@ def get_dtype_subpname(typestmt):
 
 def get_typedecl_subpname(stmt, entity_name):
     import typedecl_statements
-    if not hasattr(get_typedecl_subpname, 'kgen_subpname_index'):
-        get_typedecl_subpname.kgen_subpname_index = 0
+    if not hasattr(get_typedecl_subpname, 'kgen_subpname_cache'):
+        get_typedecl_subpname.kgen_subpname_cache = {}
 
     assert isinstance(stmt, typedecl_statements.TypeDeclarationStatement), 'None type of typedecl stmt'
     assert entity_name, 'No entity name is provided.'
@@ -95,8 +95,12 @@ def get_typedecl_subpname(stmt, entity_name):
     if len(subpname)<MAXLEN_SUBPNAME:
         return '_'.join(prefix+l)
     else:
-        get_typedecl_subpname.kgen_subpname_index += 1
-        return 'kgen_subpname_%d'%get_typedecl_subpname.kgen_subpname_index
+        if subpname in get_typedecl_subpname.kgen_subpname_cache:
+            return 'kgen_subpname_%d'%get_typedecl_subpname.kgen_subpname_cache[subpname]
+        else:
+            subpindex = len(get_typedecl_subpname.kgen_subpname_cache)
+            get_typedecl_subpname.kgen_subpname_cache[subpname] = subpindex
+            return 'kgen_subpname_%d'%subpindex
 
 def get_dtype_writename(typestmt):
     if typestmt is None: return

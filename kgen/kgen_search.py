@@ -195,6 +195,26 @@ def defer_items(stmt, node, gentype=None):
 ###############################################################################
 
 def search_Type_Declaration_Stmt(stmt, node, gentype=None):  
+    from kgen_utils import pack_innamepath, match_namepath
+
+    # collect excluded names
+    if Config.exclude.has_key('namepath'):
+        for pattern, actions in Config.exclude['namepath'].iteritems():
+            decls = []
+            if isinstance(node.items[2], Fortran2003.Entity_Decl):
+                decls.append(node.items[2].items[0].string.lower())
+            elif isinstance(node.items[2], Fortran2003.Entity_Decl_List):
+                for item in node.items[2].items:
+                    decls.append(item.items[0].string.lower())
+            for decl in decls:
+                namepath = pack_innamepath(stmt, decl) 
+                if match_namepath(pattern, namepath):
+                    if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = OrderedDict()
+                    if stmt.exclude_names.has_key(decl):
+                        stmt.exclude_names[decl].extend(actions)
+                    else:
+                        stmt.exclude_names[decl] = actions
+
     defer_items(stmt, node)
 
 def search_Intrinsic_Type_Spec(stmt, node, gentype=None): 

@@ -331,8 +331,8 @@ def collect_kernel_info():
             module = State.kernel['stmt'].module
             if module.a.module_provides.has_key(kname):
                 State.kernel['stmt'] = module.a.module_provides[kname]
-            elif module.a.module_interface.has_key(kname):
-                State.kernel['stmt'] = module.a.module_interface[kname]
+#            elif module.a.module_interface.has_key(kname):
+#                State.kernel['stmt'] = module.a.module_interface[kname]
             else:
                 raise ProgramException('Can not find %s in module %s at %s'%(kname, module.name, module.reader.id))
         else: raise ProgramException('Unknown res_stmt: %s'%State.kernel['stmt'].__class__)

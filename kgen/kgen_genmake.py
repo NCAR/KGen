@@ -35,7 +35,7 @@ def generate_kernel_makefile():
 
     #basenames
     callsite_base = os.path.basename(callsite_file)
-    dep_base_srcfiles = [ os.path.basename(path) for path in State.srcfiles.keys() ]
+    dep_base_srcfiles = [ os.path.basename(filepath) for filepath, srclist in State.used_srcfiles.iteritems() ]
     dep_bases = dep_base_srcfiles + [ kernel_driver_file ]
 
     # all object files
@@ -49,7 +49,7 @@ def generate_kernel_makefile():
     depends[kernel_driver_file] = ' '.join(all_objs_srcfiles + [obj(kgen_utils_file) ])
 
     # dependency for other files
-    for abspath, (srcfile, mods_used, units_used) in State.srcfiles.iteritems():
+    for abspath, (srcfile, mods_used, units_used) in State.used_srcfiles.iteritems():
         dep = [ obj(kgen_utils_file) ] 
         for mod in mods_used:
             if mod.reader.id!=abspath and \
@@ -126,7 +126,7 @@ def generate_kernel_makefile():
 
 def generate_state_makefile():
 
-    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.srcfiles.iteritems() if srcfile.tree.used4genstate ] 
+    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.used_srcfiles.iteritems() if srcfile.tree.used4genstate ] 
     if not State.topblock['path'] in org_files:
         org_files.append(State.topblock['path'])
 

@@ -328,7 +328,17 @@ class Gen_Type(Kgen_Plugin):
 
                 stmt = item.kgen_stmt
                 entity_names = [ get_entity_name(decl) for decl in stmt.entity_decls ]
+
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
+
+                    if hasattr(item.kgen_stmt, 'exclude_names'):
+                        skip_verify = False
+                        for exclude_name, actions in item.kgen_stmt.exclude_names.iteritems():
+                            if exclude_name==entity_name and 'remove_state' in actions:
+                                skip_verify = True
+                                break
+                        if skip_verify: continue
+
                     var = stmt.get_variable(entity_name)
                     callname = get_typedecl_readname(stmt, entity_name)
 
@@ -385,8 +395,6 @@ class Gen_Type(Kgen_Plugin):
             subrobj = part_append_gensnode(parent, SUBP_PART, block_statements.Subroutine, attrs=attrs)
             part_append_comment(parent, SUBP_PART, '')
 
-            node.kgen_stmt.top.used4genstate = True
-
             # variable
             attrs = {'type_spec': 'TYPE', 'attrspec': ['INTENT(IN)'], 'selector':(None, node.name), 'entity_decls': ['var']}
             part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
@@ -412,7 +420,19 @@ class Gen_Type(Kgen_Plugin):
 
                 stmt = item.kgen_stmt
                 entity_names = [ get_entity_name(decl) for decl in stmt.entity_decls ]
+
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
+
+                    if hasattr(item.kgen_stmt, 'exclude_names'):
+                        skip_verify = False
+                        for exclude_name, actions in item.kgen_stmt.exclude_names.iteritems():
+                            if exclude_name==entity_name and 'remove_state' in actions:
+                                skip_verify = True
+                                break
+                        if skip_verify: continue
+
+                    node.kgen_stmt.top.used4genstate = True
+
                     var = stmt.get_variable(entity_name)
                     callname = get_typedecl_writename(stmt, entity_name)
 

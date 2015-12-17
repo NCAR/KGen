@@ -1044,8 +1044,11 @@ class BeginStatement(Statement):
                     subp = self.a.internal_subprogram[request.uname.firstpartname()]
                 elif hasattr(self.a, 'module_subprogram') and request.uname.firstpartname() in self.a.module_subprogram.keys():
                     subp = self.a.module_subprogram[request.uname.firstpartname()]
-                elif hasattr(self.a, 'module_interface') and request.uname.firstpartname() in self.a.module_interface.keys():
-                    subp = self.a.module_interface[request.uname.firstpartname()]
+                elif hasattr(self.a, 'module_interface'):
+                    for if_stmt in self.a.module_interface:
+                        if request.uname.firstpartname()==if_stmt.name:
+                            subp = if_stmt
+                            break
 
                 if subp and any( isinstance(subp, resolver) for resolver in request.resolvers ):
                     Logger.info('The request is being resolved by a subprogram or interface', name=request.uname, stmt=self)
@@ -1089,7 +1092,7 @@ class BeginStatement(Statement):
             # check if subprogram stmt in Interface block can resolve
             if request.state != ResState.RESOLVED and isinstance(request.originator, SpecificBinding) and \
                 hasattr(self.a, 'module_interface') and Interface in request.resolvers:
-                for if_name, if_obj in self.a.module_interface.iteritems():
+                for if_obj in self.a.module_interface:
                     if if_obj.isabstract:
                         for item in if_obj.content:
                             if item.__class__ in [ Function, Subroutine ] and request.uname.firstpartname()==item.name:
@@ -1100,7 +1103,6 @@ class BeginStatement(Statement):
                                 item.add_geninfo(request.uname, request)
                                 self.check_spec_stmts(request.uname, request)
                                 Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=item)
-
                                 for _stmt, _depth in walk(item, -1):
                                     if not hasattr(_stmt, 'unknowns'):
                                         f2003_search_unknowns(_stmt, _stmt.f2003)

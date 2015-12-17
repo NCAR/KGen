@@ -155,7 +155,16 @@ class Verify_Type(Kgen_Plugin):
 
                 stmt = item.kgen_stmt
                 entity_names = [ get_entity_name(decl) for decl in stmt.entity_decls ]
+                topobj = subrobj
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
+                    if hasattr(item.kgen_stmt, 'exclude_names'):
+                        skip_verify = False
+                        for exclude_name, actions in item.kgen_stmt.exclude_names.iteritems():
+                            if exclude_name==entity_name and 'remove_state' in actions:
+                                skip_verify = True 
+                                break
+                        if skip_verify: continue
+
                     var = stmt.get_variable(entity_name)
                     callname = get_typedecl_verifyname(stmt, entity_name)
 
@@ -173,7 +182,6 @@ class Verify_Type(Kgen_Plugin):
 
                     if ifassocobj: topobj = ifassocobj
                     elif ifallocobj: topobj = ifallocobj
-                    else: topobj = subrobj
 
                     if var.is_array():
                         dim_shape = ','.join(':'*var.rank)

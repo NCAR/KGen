@@ -150,6 +150,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         self.kernel_externs_subrs[node] = ( in_subrobj, out_subrobj )
 
         if in_subrobj or out_subrobj:
+
             # register event per typedecl 
             self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
                 typedecl_statements.TypeDeclarationStatement, self.is_extern_in_kernel_module, self.create_subr_read_typedecl_in_module) 
@@ -159,7 +160,6 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 block_statements.Module, self.has_externs_in_module, self.create_kernel_stmts_in_callsite) 
 
     def create_state_module_parts(self, node):
-        node.kgen_stmt.top.used4genstate = True
 
         in_subrname = get_module_in_writename(node.kgen_stmt)
         in_subrobj = None
@@ -217,6 +217,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         self.state_externs_subrs[node] = (in_subrobj, out_subrobj)
 
         if in_subrobj or out_subrobj:
+
+            node.kgen_stmt.top.used4genstate = True
+
             # register event per typedecl 
             self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
                 typedecl_statements.TypeDeclarationStatement, self.is_extern_in_state_module, self.create_subr_write_typedecl_in_module) 
@@ -303,6 +306,15 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.kernel_extern_reads: continue
+
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             self.kernel_extern_reads.append(node.kgen_parent.name+entity_name)
 
             var = stmt.get_variable(entity_name)
@@ -353,6 +365,14 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.state_extern_writes: continue
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             self.state_extern_writes.append(node.kgen_parent.name+entity_name)
 
             var = stmt.get_variable(entity_name)

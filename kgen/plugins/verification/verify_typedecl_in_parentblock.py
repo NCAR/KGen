@@ -34,6 +34,15 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
         entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if entity_name in self.verify_locals: continue
+
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             self.verify_locals.append(entity_name)
 
             var = stmt.get_variable(entity_name)

@@ -53,6 +53,15 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
+
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             if (entity_name,DRIVER_READ_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
                 var = stmt.get_variable(entity_name)
 
@@ -114,6 +123,14 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
             entity_name = uname.firstpartname()
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             if (entity_name,KERNEL_PBLOCK_READ_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_OUT_LOCALS))
             if (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype:
@@ -249,12 +266,28 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
                 argintype.append((entity_name, STATE_PBLOCK_WRITE_IN_ARGS))
             elif (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype and (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
             entity_name = uname.firstpartname()
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             if (entity_name,STATE_PBLOCK_WRITE_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_OUT_LOCALS))
             if (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype:

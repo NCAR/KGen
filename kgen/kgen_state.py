@@ -90,8 +90,11 @@ class State(object):
         # modules
         self._attrs['modules'] = OrderedDict()
 
-        # module files
+        # src files
         self._attrs['srcfiles'] = OrderedDict()
+
+        # used src files
+        self._attrs['used_srcfiles'] = OrderedDict()
 
         # imported files
         self._attrs['imported'] = OrderedDict()

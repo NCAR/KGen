@@ -309,7 +309,8 @@ class Module(BeginStatement, HasAttributes,
                         module_provides = {}, # all symbols that are public and so
                                               # can be imported via USE statement
                                               # by other blocks
-                        module_interface = {}
+                        #module_interface = {} # KGEN deletion
+                        module_interface = [] # KGEN addition
                         )
 
     known_attributes = ['PUBLIC', 'PRIVATE']
@@ -367,7 +368,8 @@ class Module(BeginStatement, HasAttributes,
         s +=  HasAttributes.topyf(self, tab=tab+'  ')
         s +=  HasTypeDecls.topyf(self, tab=tab+'  ')
         s +=  HasVariables.topyf(self, tab=tab+'  ')
-        for name, stmt in self.a.module_interface.items():
+        #for name, stmt in self.a.module_interface.items(): # KGEN deletion
+        for stmt in self.a.module_interface: # KGEN addition
             s += stmt.topyf(tab=tab+'    ')
         s +=  tab + '  CONTAINS\n'
         for name, stmt in self.a.module_subprogram.items():
@@ -642,14 +644,17 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
 
         if isinstance(self.parent, Module):#XXX
             parent_interface = self.parent.get_interface()
-            if self.name in parent_interface:
-                p = parent_interface[self.name]
-                last = p.content.pop()
-                assert isinstance(last,EndInterface),`last.__class__`
-                p.content += self.content
-                p.update_attributes(self.a.attributes)
-            else:
-                parent_interface[self.name] = self
+            # start of KGEN deletion
+#            if self.name in parent_interface:
+#                p = parent_interface[self.name]
+#                last = p.content.pop()
+#                assert isinstance(last,EndInterface),`last.__class__`
+#                p.content += self.content
+#                p.update_attributes(self.a.attributes)
+#            else:
+#                parent_interface[self.name] = self
+            parent_interface.append(self)
+            # end of KGEN deletion
             return
 
     def topyf(self, tab=''):

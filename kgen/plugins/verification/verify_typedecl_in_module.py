@@ -6,7 +6,7 @@ import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
 from verify_utils import get_module_verifyname, kernel_verify_contains, VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_EXTERNS, \
-    get_typedecl_verifyname
+    get_typedecl_verifyname, get_dtype_verifyname
 from verify_subr import create_verify_subr
 
 class Verify_Typedecl_In_Module(Kgen_Plugin):
@@ -94,6 +94,15 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
         entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if entity_name in self.verify_extern: continue
+
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: continue
+
             self.verify_extern.append(entity_name)
 
             var = stmt.get_variable(entity_name)
