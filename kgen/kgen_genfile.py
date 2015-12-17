@@ -9,7 +9,7 @@ import base_classes
 import statements
 import block_statements
 import typedecl_statements
-from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath, pack_exnamepath
+from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath, pack_exnamepath, get_exclude_actions
 from kgen_state import State
 from ordereddict import OrderedDict
 
@@ -322,6 +322,7 @@ def set_plugin_env(mod):
     mod.get_partname = get_partname
     mod.get_rawname = get_rawname
     mod.check_node = check_node
+    mod.get_exclude_actions = get_exclude_actions
 
     mod.get_namedpart = get_namedpart
     mod.namedpart_gennode = namedpart_gennode
@@ -334,6 +335,7 @@ def set_plugin_env(mod):
     mod.namedpart_append_genknode = namedpart_append_genknode
     mod.namedpart_append_gensnode = namedpart_append_gensnode
     mod.namedpart_append_comment = namedpart_append_comment
+    mod.namedpart_insert_comment = namedpart_insert_comment
     mod.namedpart_insert_node = namedpart_insert_node
     mod.namedpart_insert_genknode = namedpart_insert_genknode
     mod.namedpart_insert_gensnode = namedpart_insert_gensnode
@@ -347,6 +349,7 @@ def set_plugin_env(mod):
     mod.part_append_genknode = part_append_genknode
     mod.part_append_gensnode = part_append_gensnode
     mod.part_append_comment = part_append_comment
+    mod.part_insert_comment = part_insert_comment
     mod.part_insert_node = part_insert_node
     mod.part_insert_genknode = part_insert_genknode
     mod.part_insert_gensnode = part_insert_gensnode
@@ -499,10 +502,10 @@ def namedpart_append_gensnode(kernel_id, name, clsobj, attrs=None):
     return namedpart_append_gennode(gensobj, kernel_id, name, clsobj, attrs=attrs)
 
 def namedpart_append_comment(kernel_id, name, comment_string, style=None):
-    pnode, rawname, named_part = get_namedpart(kernel_id, name)
-    comment = gensobj(pnode, statements.Comment, kernel_id, attrs={'comment': comment_string, 'style':style})
-    named_part.append(comment)
-    return comment
+    return namedpart_append_gensnode(kernel_id, name, statements.Comment, attrs={'comment': comment_string, 'style':style})
+
+def namedpart_insert_comment(kernel_id, name, index, comment_string, style=None):
+    return namedpart_insert_gensnode(kernel_id, name, statements.Comment, attrs={'comment': comment_string, 'style':style})
 
 def namedpart_insert_node(kernel_id, name, index, node):
     pnode, rawname, named_part = get_namedpart(kernel_id, name)
@@ -516,10 +519,10 @@ def namedpart_insert_gennode(genfunc, kernel_id, name, clsobj, index, attrs=None
     return node
 
 def namedpart_insert_genknode(kernel_id, name, clsobj, index, attrs=None):
-    return namedpart_insert_node(genkobj, kernel_id, name, clsobj, index, attrs=attrs)
+    return namedpart_insert_gennode(genkobj, kernel_id, name, clsobj, index, attrs=attrs)
 
 def namedpart_insert_gensnode(kernel_id, name, clsobj, index, attrs=None):
-    return namedpart_insert_node(gensobj, kernel_id, name, clsobj, index, attrs=None)
+    return namedpart_insert_gennode(gensobj, kernel_id, name, clsobj, index, attrs=None)
 
 def namedpart_remove_node(kernel_id, name, node):
     pnode, rawname, named_part = get_namedpart(kernel_id, name)
@@ -560,11 +563,19 @@ def part_append_genknode(pnode, name, clsobj, attrs=None, is_partname=None):
 def part_append_gensnode(pnode, name, clsobj, attrs=None, is_partname=None):
     return part_append_gennode(gensobj, pnode, name, clsobj, attrs=attrs, is_partname=is_partname)
 
+#def part_append_comment(pnode, name, comment_string, is_partname=None, style=None):
+#    part = get_part(pnode, name, is_partname=is_partname)
+#    comment = gensobj(pnode, statements.Comment, pnode.kgen_kernel_id, attrs={'comment': comment_string, 'style':style})
+#    part.append(comment)
+#    return comment
+
 def part_append_comment(pnode, name, comment_string, is_partname=None, style=None):
-    part = get_part(pnode, name, is_partname=is_partname)
     comment = gensobj(pnode, statements.Comment, pnode.kgen_kernel_id, attrs={'comment': comment_string, 'style':style})
-    part.append(comment)
-    return comment
+    return part_append_node(pnode, name, comment, is_partname=is_partname)
+
+def part_insert_comment(pnode, name, index, comment_string, is_partname=None, style=None):
+    comment = gensobj(pnode, statements.Comment, pnode.kgen_kernel_id, attrs={'comment': comment_string, 'style':style})
+    return part_insert_node(pnode, name, index, comment, is_partname=is_partname)
 
 def part_insert_node(pnode, name, index, node, is_partname=None):
     part = get_part(pnode, name, is_partname=is_partname)
@@ -837,6 +848,8 @@ class Gen_BeginStatement(object):
 
         if stmt:
             insert_order = self.kgen_part_order[:]
+            #if isinstance(stmt, block_statements.Interface) and stmt.content[0].name=='mpas_decomp_function':
+            #    import pdb; pdb.set_trace()
             for node in stmt.content[:-1]:
                 item = genobj(self, node, self.kgen_kernel_id)
                 insert_order = self.insert_in_order(item, insert_order)

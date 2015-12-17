@@ -412,10 +412,11 @@ def process_include_option(include_option, incattrs):
                 incattrs[lsection][option] = Inc.get(section, option).strip()
         elif lsection=='import':
             for option in Inc.options(section):
-                subflags = OrderedDict()
-                for subf in Inc.get(section, option).split(','):
-                    subflags[subf.strip()] = None
-                incattrs[lsection][option] = subflags
+                incattrs[lsection][option] = Inc.get(section, option).strip()
+#                subflags = OrderedDict()
+#                for subf in Inc.get(section, option).split(','):
+#                    subflags[subf.strip()] = None
+#                incattrs[lsection][option] = subflags
         elif lsection=='include':
             for option in Inc.options(section):
                 incattrs['path'].append(option.strip())
@@ -450,6 +451,19 @@ def process_exclude_option(exclude_option, excattrs):
         for option in Exc.options(section):
             loption = option.lower().strip()
             excattrs[lsection][loption] = Exc.get(section, option).strip().split('=')
+
+def get_exclude_actions( section_name, *args ):
+    if section_name=='namepath':
+        if len(args)<1: return []
+
+        if section_name in Config.exclude:
+            options = Config.exclude[section_name]
+            for pattern, actions in options.iteritems():
+                if match_namepath(pattern, args[0]):
+                    return actions
+        return []
+    else:
+        UserException('Not supported section name in exclusion input file: %s'%section)
 
 @singleton
 class Config(object):
@@ -550,11 +564,11 @@ class Config(object):
         self._attrs['kernel_compile']['FC'] = 'ifort'
         self._attrs['kernel_compile']['FC_FLAGS'] = ''
 
-        self._attrs['kernel_link'] = OrderedDict()
-        self._attrs['kernel_link']['include'] = []
-        self._attrs['kernel_link']['pre_cmds'] = []
-        self._attrs['kernel_link']['lib'] = []
-        self._attrs['kernel_link']['obj'] = []
+#        self._attrs['kernel_link'] = OrderedDict()
+#        self._attrs['kernel_link']['include'] = []
+#        self._attrs['kernel_link']['pre_cmds'] = []
+#        self._attrs['kernel_link']['lib'] = []
+#        self._attrs['kernel_link']['obj'] = []
 
         # make state parameters
         self._attrs['state_build'] = OrderedDict()
@@ -593,7 +607,7 @@ class Config(object):
         parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
-        parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
+#        parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
         parser.add_option("--state-switch", dest="state_switch", action='append', type='string', help="Specifying how to switch orignal sources with instrumented ones.")
         parser.add_option("--state-build", dest="state_build", action='append', type='string', help="Build information to generate makefile")
         parser.add_option("--state-run", dest="state_run", action='append', type='string', help="Run information to generate makefile")
@@ -887,14 +901,14 @@ class Config(object):
                     else:
                         raise UserException('Unknown kernel compile option: %s' % comp)
 
-        if opts.kernel_link:
-            for line in opts.kernel_link:
-                for link in line.split(','):
-                    key, value = link.split('=')
-                    if key in [ 'include', 'lib', 'pre_cmds' ] :
-                        self._attrs['kernel_link'][key].append(value)
-                    else:
-                        raise UserException('Unknown kernel link option: %s' % comp)
+#        if opts.kernel_link:
+#            for line in opts.kernel_link:
+#                for link in line.split(','):
+#                    key, value = link.split('=')
+#                    if key in [ 'include', 'lib', 'pre_cmds' ] :
+#                        self._attrs['kernel_link'][key].append(value)
+#                    else:
+#                        raise UserException('Unknown kernel link option: %s' % comp)
 
         if opts.state_build:
             for line in opts.state_build:

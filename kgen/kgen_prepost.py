@@ -3,6 +3,7 @@
 import sys
 import os.path
 from kgen_utils import Logger, Config, traverse, UserException
+from kgen_state import State
 from readfortran import FortranFileReader
 from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
     NoMatchError, Module_Stmt, Program_Stmt
@@ -188,14 +189,16 @@ def preprocess():
 #                raise UserException('Can not find mpif.h. Please provide a path to the file')
 
         # parse imported source files through include.ini
-        for path, flags in Config.include['import'].iteritems(): 
-            if flags.has_key('source') and flags['source'] is None:
-                flags['source'] = SrcFile(path)
+        for path, import_type in Config.include['import'].iteritems(): 
+            if 'source'==import_type:
+                State.imported['source'].append(SrcFile(path))
 
 def postprocess():
     # TODO: display summary for kernel generation
     from kgen_utils import exec_cmd
 
     # copy object files into kernel folder 
-    for obj in Config.kernel_link['obj']:
-        exec_cmd('cp -f %s %s'%(obj, Config.path['kernel']))
+    if Config.include.has_key('import'):
+        for path, import_type in Config.include['import'].iteritems():
+            if 'object'==import_type:
+                exec_cmd('cp -f %s %s'%(path, Config.path['kernel']))

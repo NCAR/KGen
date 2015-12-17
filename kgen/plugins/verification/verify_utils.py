@@ -15,6 +15,7 @@ VERIFY_PBLOCK_EXTERNS = 'VPBE'
 VERIFY_PBLOCK_LOCALS ='VPBL'
 
 vprefix = 'kv'
+MAXLEN_SUBPNAME = 55
 
 def get_ancestor_name(stmt, generation):
     assert stmt and hasattr(stmt, 'parent'), 'Given stmt does not have parent attribute.'
@@ -41,20 +42,26 @@ def get_module_verifyname(modstmt):
 
 def get_typedecl_subpname(stmt, entity_name):
     import typedecl_statements
+    if not hasattr(get_typedecl_subpname, 'kgen_subpname_index'):
+        get_typedecl_subpname.kgen_subpname_index = 0
 
     assert isinstance(stmt, typedecl_statements.TypeDeclarationStatement), 'None type of typedecl stmt'
     assert entity_name, 'No entity name is provided.'
 
-    prefix = [ get_parentname(stmt), stmt.name ] + list(stmt.selector)
-
     var = stmt.get_variable(entity_name)
     if var is None: return 'Unknown_name'
 
+    prefix = [ get_parentname(stmt), stmt.name ] + list(stmt.selector)
     l = []
     if var.is_array(): l.append('dim%d'%var.rank)
     if var.is_pointer(): l.append('ptr')
 
-    return '_'.join(prefix+l)
+    subpname = '_'.join(prefix+l)
+    if len(subpname)<MAXLEN_SUBPNAME:
+        return '_'.join(prefix+l)
+    else:
+        get_typedecl_subpname.kgen_subpname_index += 1
+        return 'kgen_subpname_%d'%get_typedecl_subpname.kgen_subpname_index
 
 def get_dtype_verifyname(typestmt):
     if typestmt is None: return

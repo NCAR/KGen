@@ -6,7 +6,7 @@ from ordereddict import OrderedDict
 class Kgen_Plugin(object):
     version = 0.1
     #priority = [ 'gencore', 'verification', 'debug' ]
-    priority = [ 'gencore', 'verification', 'simple_timing' ]
+    priority = [ 'gencore', 'verification', 'simple_timing', 'perturb' ]
     plugin_common = OrderedDict()
 
     def register(self, msg):

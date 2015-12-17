@@ -70,14 +70,23 @@ def generate_kernel_makefile():
             depends[basename] = ' '.join(dep)
 
     # prerun commands
-    pre_cmds = ''
-    if Config.kernel_link['pre_cmds']:
-        pre_cmds = ';'.join(Config.kernel_link['pre_cmds'])
+    #pre_cmds = ''
+    #if Config.kernel_link['pre_cmds']:
+    #    pre_cmds = ';'.join(Config.kernel_link['pre_cmds'])
 
-    # link flags
-    inc = [ '-L'+p for p in Config.kernel_link['include'] ]
-    lib = [ '-l'+l for l in Config.kernel_link['lib'] ]
-    link_flags = '%s %s'%(' '.join(inc), ' '.join(lib))
+    # link flags and objects
+    link_flags = ''
+    objects = ''
+    if Config.include.has_key('import'):
+        for path, import_type in Config.include['import'].iteritems():
+            if import_type.startswith('library'):
+                inc = '-L'+path
+                pos1 = import_type.find('(')
+                pos2 = import_type.find(')')
+                lib = '-l'+import_type[(pos1+1):pos2].strip()
+                link_flags += ' %s %s'%(inc, lib)
+            elif import_type=='object':
+                objects += ' %s'%os.path.basename(path)
 
     with open('%s/Makefile'%(Config.path['kernel']), 'wb') as f:
         write(f, '# Makefile for KGEN-generated kernel')
@@ -86,7 +95,7 @@ def generate_kernel_makefile():
         write(f, 'FC := %s'%Config.kernel_compile['FC'])
         write(f, 'FC_FLAGS := %s'%Config.kernel_compile['FC_FLAGS'])
         write(f, '')
-        write(f, 'ALL_OBJS := %s' % ' '.join(all_objs))
+        write(f, 'ALL_OBJS := %s'%' '.join(all_objs))
         write(f, '')
 
         write(f, 'run: build')
@@ -94,10 +103,11 @@ def generate_kernel_makefile():
         write(f, '')
 
         write(f, 'build: ${ALL_OBJS}')
-        if pre_cmds:
-            write(f, 'bash -i -c "%s; ${FC} ${FC_FLAGS} %s -o kernel.exe $^"'%(pre_cmds, link_flags), t=True)
-        else:
-            write(f, '${FC} ${FC_FLAGS} %s -o kernel.exe $^'%link_flags, t=True)
+        #if pre_cmds:
+        #    write(f, 'bash -i -c "%s; ${FC} ${FC_FLAGS} %s -o kernel.exe $^"'%(pre_cmds, link_flags), t=True)
+        #else:
+        #    write(f, '${FC} ${FC_FLAGS} %s -o kernel.exe $^'%link_flags, t=True)
+        write(f, '${FC} ${FC_FLAGS} %s %s -o kernel.exe $^'%(link_flags, objects), t=True)
         write(f, '')
 
         for dep_base in dep_bases:

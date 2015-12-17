@@ -152,7 +152,7 @@ INTEGER, PARAMETER :: CHECK_IN_TOL = 2
 INTEGER, PARAMETER :: CHECK_OUT_TOL = 3
 
 ! PERTURB: add following interface
-interface kgen_perturb
+interface kgen_perturb_real
     module procedure kgen_perturb_real4_dim1
     module procedure kgen_perturb_real4_dim2
     module procedure kgen_perturb_real4_dim3
@@ -172,7 +172,7 @@ type check_t
     real(kind=kgen_dp) :: minvalue
 end type check_t
 
-public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb
+public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb_real
 public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
 public kgen_get_newunit, kgen_error_stop
 """

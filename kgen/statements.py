@@ -1286,7 +1286,7 @@ class Use(Statement):
 
     def resolve(self, request):
         from kgen_state import ResState, SrcFile, State
-        from kgen_utils import match_namepath
+        from kgen_utils import match_namepath, get_exclude_actions
 
         src = None
         if self.module is None:
@@ -1297,12 +1297,8 @@ class Use(Statement):
                     self.module = self.intrinsic_module(self.name)
                 else:
                     # skip if excluded
-                    for section, options in Config.exclude.iteritems():
-                        if section in [ 'namepath' ]:
-                            for pattern, actions in options.iteritems():
-                                if match_namepath(pattern, self.name):
-                                    if 'skip_module' in actions:
-                                        return
+                    if 'skip_module' in get_exclude_actions('namepath', self.name):
+                        return
 
                     fn = self.reader.find_module_source_file(self.name)
                     if fn:

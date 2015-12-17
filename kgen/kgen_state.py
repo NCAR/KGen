@@ -93,6 +93,11 @@ class State(object):
         # module files
         self._attrs['srcfiles'] = OrderedDict()
 
+        # imported files
+        self._attrs['imported'] = OrderedDict()
+        self._attrs['imported']['source'] = []
+
+
         # kernel_driver attributes
         self._attrs['kernel_driver'] = OrderedDict()
         self._attrs['kernel_driver'] = OrderedDict()
@@ -225,9 +230,6 @@ class SrcFile(object):
             flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
 
-        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_dmpar.F':
-        #    import pdb ; pdb.set_trace()
-
         new_lines = []
         with open(self.abspath, 'r') as f:
             output = exec_cmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
@@ -239,11 +241,20 @@ class SrcFile(object):
             include_dirs = Config.include['file'][self.abspath]['path'] + [os.path.dirname(self.abspath)]
         else: include_dirs = None
 
+        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_derived_types.F':
+        #    print '\n'.join(new_lines)
+        #    sys.exit()
+        #    import pdb ; pdb.set_trace()
+
         # fparse
         self.tree = parse('\n'.join(new_lines), ignore_comments=False, analyze=True, isfree=isfree, \
             isstrict=isstrict, include_dirs=include_dirs, source_only=None )
         self.tree.prep = new_lines
         self.tree.used4genstate = False
+
+        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_derived_types.F':
+        #    print self.tree
+        #    sys.exit()
 
         # parse f2003
         lineno = 0
