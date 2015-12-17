@@ -74,7 +74,7 @@ gendata: extract
         fi;
 
 extract: copy
-	@python ${KGEN_ROOT}/kgen.py \
+	@${KGEN_ROOT}/bin/kgen \
 	    -D ROW=4,COLUMN=4 \
 	    -I ${TMP_DIR} \
 	    --state-build cmds="cd ${TMP_DIR}; make clean; make build" \

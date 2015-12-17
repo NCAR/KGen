@@ -1,5 +1,5 @@
-KGEN_HOME := ../../kgen
-KGEN := ${KGEN_HOME}/kgen.py
+KGEN_HOME := ../..
+KGEN := ${KGEN_HOME}/bin/kgen
 
 SRC_DIR := ${PWD}/src
 SRC := ${SRC_DIR}/update_mod.F90
@@ -8,7 +8,7 @@ FC := ifort
 FC_FLAGS := -O3
 
 test:
-	python ${KGEN} \
+	${KGEN} \
 		-D ROW=4,COLUMN=4 \
 		-I ${SRC_DIR} \
 		--timing repeat=1000 \
