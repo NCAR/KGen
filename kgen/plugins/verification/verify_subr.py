@@ -7,7 +7,7 @@ from verify_utils import kernel_verify_contains, kernel_verify_kgenutils, get_dt
 
 def create_verify_subr(subrname, entity_name, parent, var, stmt):
 
-    def print_numarr_detail(parent):
+    def print_numarr_detail(parent, is_identical=False):
         attrs = {'items': ['count( var /= kgenref_var)', '" of "', 'size( var )', '" elements are different."']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
@@ -17,19 +17,30 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         attrs = {'items': ['"Average - reference "', 'sum(kgenref_var)/real(size(kgenref_var))']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"RMS of difference is "', 'rmsdiff']}
-        part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+        if is_identical:
+            attrs = {'items': ['"RMS of difference is "', '0']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"Normalized RMS of difference is "', 'nrmsdiff']}
-        part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'items': ['"Normalized RMS of difference is "', '0']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+        else:
+            attrs = {'items': ['"RMS of difference is "', 'rmsdiff']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"Normalized RMS of difference is "', 'nrmsdiff']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
         part_append_comment(parent, EXEC_PART, '')
 
-    def print_num_detail(parent):
-        attrs = {'items': ['"Difference is "', 'diff']}
+    def print_num_detail(parent, is_identical=False):
+        if is_identical:
+            attrs = {'items': ['"Difference is "', '0']}
+        else:
+            attrs = {'items': ['"Difference is "', 'diff']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
-    def print_dummy_detail(parent):
+    def print_dummy_detail(parent, is_identical=False):
         attrs = {'items': ['"NOT IMPLEMENTED"']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
@@ -368,7 +379,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         attrs = {'expr': 'check_status%verboseLevel > 2'}
         iflevel3obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        print_detail(iflevel3obj)
+        print_detail(iflevel3obj, is_identical=True)
 
         attrs = {'expr': 'check_result == CHECK_OUT_TOL'}
         part_append_genknode(ifchkobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)

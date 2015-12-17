@@ -183,7 +183,6 @@ def collect_args_from_subpstmt(stmt, param):
         sys.exit(-1)
 
     for i, arg in enumerate(stmt.args):
-        print 'DD: ', arg
         kgname = KGName(arg)
         param['names'].append(kgname)
         var = stmt.a.variables[kgname.firstpartname()]
