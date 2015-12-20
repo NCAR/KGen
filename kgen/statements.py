@@ -182,6 +182,11 @@ class Assign(Statement):
                % (self.items[0], self.items[1])
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self):
+        return 'ASSIGN %s TO %s' % (self.items[0], self.items[1])
+    # end of KGEN addition
+
 class Call(Statement):
     """Call statement class
     CALL <procedure-designator> [ ( [ <actual-arg-spec-list> ] ) ]
@@ -295,6 +300,11 @@ class ComputedGoto(Statement):
                % (', '.join(self.items), self.expr)
     def analyze(self): return
 
+    # start of KGEN addition
+    def tofortran(self):
+        return  'GO TO (%s) %s' % (', '.join(self.items), self.expr)
+    # end of KGEN addition
+
 class AssignedGoto(Statement):
     """
     GO TO <int-variable-name> [ ( <label> [ , <label> ]... ) ]
@@ -321,6 +331,13 @@ class AssignedGoto(Statement):
                    % (self.varname, ', '.join(self.items))
         return tab + 'GO TO %s' % (self.varname)
     def analyze(self): return
+
+    # start of KGEN addition
+    def tofortran(self, isfix=None):
+        if hasattr(self, 'items') and self.items:
+            return 'GO TO %s (%s)' % (self.varname, ', '.join(self.items))
+        return 'GO TO %s' % (self.varname)
+    # end of KGEN addition
 
 class Continue(Statement):
     """
@@ -611,6 +628,11 @@ class Wait(Statement):
         return tab + 'WAIT (%s)' % (', '.join(self.specs))
     def analyze(self): return
 
+    # start of KGEN addition
+    def tofortran(self):
+        return 'WAIT (%s)' % (', '.join(self.specs))
+    # end of KGEN addition
+
 class Contains(Statement):
     """
     CONTAINS
@@ -882,7 +904,7 @@ class Cycle(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        if self.name:
+        if hasattr(self, 'name') and self.name:
             return 'CYCLE ' + self.name
         return 'CYCLE'
     # end of KGEN addition
@@ -1616,6 +1638,9 @@ class Dimension(Statement):
     def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
+
+    def tokgen(self):
+        return 'DIMENSION %s' % (', '.join(self.items))
     # end of KGEN addition
 
 class Target(Statement):
@@ -1667,6 +1692,9 @@ class Target(Statement):
     def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
+
+    def tokgen(self):
+        return 'TARGET %s' % (', '.join(self.items))
     # end of KGEN addition
 
 
@@ -1713,6 +1741,9 @@ class Pointer(Statement):
     def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
+
+    def tokgen(self):
+        return 'POINTER %s' % (', '.join(self.items))
     # end of KGEN addition
 
 class Protected(StatementWithNamelist):
@@ -1793,6 +1824,11 @@ class ArithmeticIf(Statement):
                % (self.expr,', '.join(self.labels))
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self):
+        return 'IF (%s) %s' % (self.expr,', '.join(self.labels))
+    # end of KGEN addition
+
 class Intrinsic(StatementWithNamelist):
     """
     INTRINSIC [ :: ] <intrinsic-procedure-name-list>
@@ -1854,6 +1890,8 @@ class Sequence(Statement):
     def analyze(self):
         self.parent.update_attributes('SEQUENCE')
         return
+
+    def tokgen(self): return 'SEQUENCE'
 
 class External(StatementWithNamelist):
     """
@@ -2075,6 +2113,10 @@ class Intent(Statement):
     def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
+
+    def tokgen(self):
+        return 'INTENT (%s) %s' % (', '.join(self.specs), ', '.join(self.items))
+
     # end of KGEN addition
 
 
@@ -2121,6 +2163,19 @@ class Entry(Statement):
         if self.bind:
             s += ' BIND (%s)' % (', '.join(self.bind))
         return s
+
+    # start of KGEN addition
+    def tofortran(self, isfix=None):
+        s = 'ENTRY '+self.name
+        if hasattr(self, 'items') and self.items:
+            s += ' (%s)' % (', '.join(self.items))
+        if hasattr(self, 'result') and self.result:
+            s += ' RESULT (%s)' % (self.result)
+        if hasattr(self, 'bind') and self.bind:
+            s += ' BIND (%s)' % (', '.join(self.bind))
+        return s
+    # end of KGEN addition
+
 
 class Import(StatementWithNamelist):
     """
@@ -2324,6 +2379,14 @@ class GenericBinding(Statement):
         s += ' :: ' + self.spec + ' => ' + ', '.join(self.items)
         return tab + s
 
+    # start of KGEN addition
+    def tokgen(self):
+        s = 'GENERIC'
+        if self.aspec:
+            s += ', '+self.aspec
+        s += ' :: ' + self.spec + ' => ' + ', '.join(self.items)
+        return s
+    # end of KGEN addition
 
 class FinalBinding(StatementWithNamelist):
     """
@@ -2375,6 +2438,9 @@ class Allocatable(Statement):
     def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
+
+    def tokgen(self):
+        return 'ALLOCATABLE ' + ', '.join(self.items)
     # end of KGEN addition
 
 class Asynchronous(StatementWithNamelist):
@@ -2431,6 +2497,9 @@ class Bind(Statement):
     def resolve_uname(self, uname, request):
         Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
+
+    def tokgen(self):
+        return 'BIND (%s) %s' % (', '.join(self.specs), ', '.join(self.items))
     # end of KGEN addition
 
 # IF construct statements
@@ -2680,6 +2749,11 @@ class Enumerator(Statement):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'ENUMERATOR ' + ', '.join(self.items)
 
+    # start of KGEN addition
+    def tofortran(self):
+        return 'ENUMERATOR ' + ', '.join(self.items)
+    # end of KGEN addition
+
 # F2PY specific statements
 
 class FortranName(Statement):
@@ -2693,6 +2767,11 @@ class FortranName(Statement):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'FORTRANNAME ' + self.value
 
+    # start of KGEN addition
+    def tokgen(self):
+        return 'FORTRANNAME ' + self.value
+    # end of KGEN addition
+
 class Threadsafe(Statement):
     """
     THREADSAFE
@@ -2702,6 +2781,11 @@ class Threadsafe(Statement):
         return
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'THREADSAFE'
+
+    # start of KGEN addition
+    def tofortran(self, isfix=None):
+        return 'THREADSAFE'
+    # end of KGEN addition
 
 class Depend(Statement):
     """
@@ -2723,6 +2807,11 @@ class Depend(Statement):
         return self.get_indent_tab(isfix=isfix) + 'DEPEND ( %s ) %s' \
                % (', '.join(self.depends), ', '.join(self.items))
 
+    # start of KGEN addition
+    def tokgen(self):
+        return 'DEPEND ( %s ) %s' % (', '.join(self.depends), ', '.join(self.items))
+    # end of KGEN addition
+
 class Check(Statement):
     """
     CHECK ( <c-int-scalar-expr> ) [ :: ] <name>
@@ -2743,6 +2832,11 @@ class Check(Statement):
         return self.get_indent_tab(isfix=isfix) + 'CHECK ( %s ) %s' \
                % (self.expr, self.value)
 
+    # start of KGEN addition
+    def tokgen(self):
+        return 'CHECK ( %s ) %s' % (self.expr, self.value)
+    # end of KGEN addition
+
 class CallStatement(Statement):
     """
     CALLSTATEMENT <c-expr>
@@ -2753,6 +2847,11 @@ class CallStatement(Statement):
         return
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'CALLSTATEMENT ' + self.expr
+
+    # start of KGEN addition
+    def tofortran(self, isfix=None):
+        return 'CALLSTATEMENT ' + self.expr
+    # end of KGEN addition
 
 class CallProtoArgument(Statement):
     """
@@ -2765,6 +2864,10 @@ class CallProtoArgument(Statement):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'CALLPROTOARGUMENT ' + self.specs
 
+    # start of KGEN addition
+    def tofortran(self, isfix=None):
+        return 'CALLPROTOARGUMENT ' + self.specs
+    # end of KGEN addition
 # Non-standard statements
 
 class Pause(Statement):
@@ -2780,6 +2883,13 @@ class Pause(Statement):
             return self.get_indent_tab(isfix=isfix) + 'PAUSE ' + self.value
         return self.get_indent_tab(isfix=isfix) + 'PAUSE'
     def analyze(self): return
+
+    # start of KGEN addition
+    def tofortran(self):
+        if hasattr(self, 'value') and self.value:
+            return 'PAUSE ' + self.value
+        return 'PAUSE'
+    # end of KGEN addition
 
 class Comment(Statement):
     """
