@@ -131,20 +131,20 @@ def generate_state_makefile():
         org_files.append(State.topblock['path'])
 
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
-        write(f, 'run: build')
         if Config.state_run['cmds']>0:
+            write(f, 'run: build')
             write(f, Config.state_run['cmds'], t=True)
         else:
             write(f, 'echo "No information is provided to run. Please specify run commands using \'state-run\' command line option"; exit -1', t=True)
         write(f, '')
 
-        write(f, 'build: %s'%Config.state_switch['type'])
         if Config.state_build['cmds']>0:
+            write(f, 'build: %s'%Config.state_switch['type'])
             write(f, Config.state_build['cmds'], t=True)
+            for org_file in org_files:
+                write(f, 'mv -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
         else:
             write(f, 'echo "No information is provided to build. Please specify build commands using \'state-build\' command line option"; exit -1', t=True)
-        for org_file in org_files:
-            write(f, 'mv -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
         write(f, '')
 
         write(f, '%s: save'%Config.state_switch['type'])

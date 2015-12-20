@@ -582,6 +582,11 @@ class Flush(Statement):
         return tab + 'FLUSH (%s)' % (', '.join(self.specs))
     def analyze(self): return
 
+    # start of KGEN addition
+    def tokgen(self):
+        return 'FLUSH (%s)' % (', '.join(self.specs))
+
+    # end of KGEN addition
 class Wait(Statement):
     """
     WAIT ( <wait-spec-list> )

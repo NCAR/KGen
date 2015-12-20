@@ -167,9 +167,8 @@ def exec_cmd(cmd, show_error_msg=True, input=None):
 
     ret_code = proc.wait()
     if ret_code != 0 and show_error_msg:
-        cmd_out, cmd_err = proc.communicate()
         print '>> %s' % cmd
-        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(cmd_out)+'\n ERROR: '+str(cmd_err)+'\n'
+        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n'
 
     return out
 
@@ -480,7 +479,7 @@ class Config(object):
 
         # kgen parameters
         self._attrs['kgen'] = OrderedDict()
-        self._attrs['kgen']['version'] = [ 0, 5, '3' ]
+        self._attrs['kgen']['version'] = [ 0, 6, '0' ]
 
         # Fortran parameters
         self._attrs['fort'] = OrderedDict()

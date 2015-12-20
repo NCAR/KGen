@@ -284,6 +284,7 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
 
 def getinfo(name):
     if name=='kernel_name': return Config.callsite['subpname'].firstpartname()
+    elif name=='kgen_version': return '%d.%d.%s'%tuple(Config.kgen['version'])
     elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
     elif name=='kernel_driver_name': return State.kernel_driver['name']
     elif name=='kernel_driver_callsite_args': return State.kernel_driver['callsite_args']
@@ -877,7 +878,6 @@ class Gen_BeginStatement(object):
             lines.extend(self.tostring_parts())
 
         if self.kgen_end_obj:
-            if not self.kgen_isvalid and self.kgen_end_obj.kgen_isvalid: import pdb ;pdb.set_trace()
             if self.kgen_end_obj.kgen_file_type==FILE_TYPE.KERNEL:
                 l = super(GenK_Statement, self.kgen_end_obj).tostring()
             else:
@@ -1070,6 +1070,7 @@ def generate_srcfiles():
     genfiles = []
     for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
         if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
+
             kfile = genkobj(None, srcobj.tree, KERNEL_ID_0)
             sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
             if kfile is None or sfile is None:
@@ -1103,18 +1104,21 @@ def generate_srcfiles():
     # generate source files from each node of the tree
     for kfile, sfile, filepath in genfiles:
         filename = os.path.basename(filepath)
+        Gen_Statement.kgen_gen_attrs = {'indent': '', 'span': None}
         klines = kfile.tostring()
         if klines is not None:
             with open('%s/%s'%(Config.path['kernel'], filename), 'wb') as fd:
                 fd.write(klines)
 
         if sfile.kgen_stmt.used4genstate:
+            Gen_Statement.kgen_gen_attrs = {'indent': '', 'span': None}
             slines = sfile.tostring()
             if slines is not None:
                 with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
                     fd.write(slines)
 
     with open('%s/%s.f90'%(Config.path['kernel'], getinfo('kernel_driver_name')), 'wb') as fd:
+        Gen_Statement.kgen_gen_attrs = {'indent': '', 'span': None}
         lines = driver.tostring()
         if lines is not None: fd.write(lines)
 
