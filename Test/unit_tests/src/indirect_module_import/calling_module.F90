@@ -27,7 +27,7 @@ module calling_module
                     end do
                 end do
 
-                call add(atype(1), value + testvalue)
+                call add(atype(1), value + testvalue, kvalue)
 
                 print *, "C =", atype(1)%c
 
@@ -43,14 +43,16 @@ module calling_module
 
         end subroutine
 
-        subroutine add(atype, value)
+        subroutine add(atype, value, kvalue)
             type(typeA), intent(inout) :: atype
             real(real_kind), intent(in) :: value
+            real(real_kind), intent(out) :: kvalue
 
             call add_kernel(atype)
             atype%c = atype%c + value
             save_array(1,1) = atype%a(1,1)
             save_value = save_array(1,1) + value
+            kvalue = save_value
         end subroutine
 
 end module

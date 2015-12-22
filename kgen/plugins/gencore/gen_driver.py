@@ -167,7 +167,7 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['"%s summary: Total number of verification cases: %d"'%(getinfo('kernel_name'), repeat_count)]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Total time of all calls (usec): ", kgen_total_time'%getinfo('kernel_name')]}
+        attrs = {'items': ['"%s summary: Average call time of all calls (usec): ", kgen_total_time / %d'%(getinfo('kernel_name'), repeat_count)]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"******************************************************************************"']}

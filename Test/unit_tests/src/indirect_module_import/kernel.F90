@@ -3,6 +3,7 @@ module kernel
         integer(kind=4), parameter :: np = 2
         real(kind=real_kind), dimension(np, np) :: save_array
         real(kind=real_kind) :: save_value, temp_value
+        real(real_kind) :: kvalue
 
         type typeA
             ! test comment 1

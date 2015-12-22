@@ -16,6 +16,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         self.state_created_subrs = []
         self.kernel_created_subrs = []
         self.driver_created_subrs = []
+        self.driver_created_uses = []
 
     def check_intent(self, entity_name, stmt):
         if any( attr.startswith('intent') for attr in stmt.attrspec ) or \
@@ -93,13 +94,17 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                     if new_name==item_name:
                                         item_name = '%s => %s'%(new_name, old_name) 
                                         break
-                                attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
-                                namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                if not (req.res_stmts[-1].name, item_name) in self.driver_created_uses:
+                                    attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
+                                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                    self.driver_created_uses.append((req.res_stmts[-1].name, item_name))
 
                                 if stmt.is_derived() and stmt.name==uname.firstpartname():
                                     readname = get_dtype_readname(req.res_stmts[0])
-                                    attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[readname]}
-                                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                    if not (req.res_stmts[-1].name, readname) in self.driver_created_uses:
+                                        attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[readname]}
+                                        namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                        self.driver_created_uses.append((req.res_stmts[-1].name, readname))
 
                         else:
                             if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
@@ -111,13 +116,17 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                         if new_name==item_name:
                                             item_name = '%s => %s'%(new_name, old_name) 
                                             break
-                                    attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
-                                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                    if not (get_topname(req.res_stmts[-1]), item_name) in self.driver_created_uses:
+                                        attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
+                                        namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                        self.driver_created_uses.append((get_topname(req.res_stmts[-1]), item_name))
 
                                     if stmt.is_derived() and stmt.name==uname.firstpartname():
                                         readname = get_dtype_readname(req.res_stmts[-1])
-                                        attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[readname]}
-                                        namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                        if not (get_topname(req.res_stmts[-1]), readname) in self.driver_created_uses:
+                                            attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[readname]}
+                                            namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                            self.driver_created_uses.append((get_topname(req.res_stmts[-1]), readname))
 
             elif (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype and (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
