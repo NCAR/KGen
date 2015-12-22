@@ -48,11 +48,17 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             statements.Use, None, self.process_use_in_module) 
 
     def has_externs_in_module(self, node):
-        checks = lambda n: hasattr(n.kgen_stmt, 'geninfo') and len(n.kgen_stmt.geninfo)>0 \
-            and isinstance(n.kgen_stmt, typedecl_statements.TypeDeclarationStatement) \
-            and "parameter" not in n.kgen_stmt.attrspec
-        if part_has_node(node, DECL_PART, checks):
-            return True
+#        import pdb; pdb.set_trace()
+#        checks = lambda n: hasattr(n.kgen_stmt, 'geninfo') and len(n.kgen_stmt.geninfo)>0 \
+#            and isinstance(n.kgen_stmt, typedecl_statements.TypeDeclarationStatement) \
+#            and "parameter" not in n.kgen_stmt.attrspec
+#        if part_has_node(node, DECL_PART, checks):
+#            return True
+#        return False
+        for stmt in node.kgen_stmt.content:
+            if isinstance(stmt, typedecl_statements.TypeDeclarationStatement) and \
+                "parameter" not in stmt.attrspec and  hasattr(stmt, 'geninfo') and len(stmt.geninfo)>0 :
+                return True
         return False
 
     def has_specstmts_in_module(self, node):

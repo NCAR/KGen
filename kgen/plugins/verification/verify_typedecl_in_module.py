@@ -34,11 +34,16 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
         return False
 
     def has_out_externs_in_module(self, node):
-        checks = lambda n: hasattr(n.kgen_stmt, 'geninfo') and len(n.kgen_stmt.geninfo)>0 \
-            and isinstance(n.kgen_stmt, typedecl_statements.TypeDeclarationStatement) \
-            and KGGenType.has_state_out(n.kgen_stmt.geninfo)
-        if part_has_node(node, DECL_PART, checks):
-            return True
+#        checks = lambda n: hasattr(n.kgen_stmt, 'geninfo') and len(n.kgen_stmt.geninfo)>0 \
+#            and isinstance(n.kgen_stmt, typedecl_statements.TypeDeclarationStatement) \
+#            and KGGenType.has_state_out(n.kgen_stmt.geninfo)
+#        if part_has_node(node, DECL_PART, checks):
+#            return True
+#        return False
+        for stmt in node.kgen_stmt.content:
+            if isinstance(stmt, typedecl_statements.TypeDeclarationStatement) and \
+                hasattr(stmt, 'geninfo') and len(stmt.geninfo)>0 and KGGenType.has_state_out(stmt.geninfo) :
+                return True
         return False
 
     def create_verify_module_parts(self, node):

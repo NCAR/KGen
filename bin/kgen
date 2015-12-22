@@ -36,8 +36,8 @@ kgenpath = os.path.dirname(os.path.realpath(__file__))+'/../kgen'
 sys.path.append(kgenpath)
 
 from kgen_utils import Logger, UserException, ProgramException
-from kgen_analyze import locate_callsite, collect_kernel_info
-from kgen_geninfo import mark_generation_info
+from kgen_analyze import analyze #locate_callsite, collect_kernel_info
+#from kgen_geninfo import mark_generation_info
 #from kgen_genkernel import generate_kernel
 #from kgen_genstate import generate_state
 from kgen_genfile import generate_srcfiles
@@ -49,14 +49,17 @@ def main():
     preprocess()
     Logger.info('Pre-processing is done', stdout=True)
 
-    locate_callsite()
-    Logger.info('Call-site location is found', stdout=True)
+    analyze()
+    Logger.info('Program is analyzed', stdout=True)
 
-    collect_kernel_info()
-    Logger.info('Kernel information is collected', stdout=True)
+#    locate_callsite()
+#    Logger.info('Call-site location is found', stdout=True)
 
-    mark_generation_info()
-    Logger.info('Kernel generation information is marked')
+#    collect_kernel_info()
+#    Logger.info('Kernel information is collected', stdout=True)
+
+#    mark_generation_info()
+#    Logger.info('Kernel generation information is marked')
 
     generate_srcfiles()
     Logger.info('Source files are generated', stdout=True)

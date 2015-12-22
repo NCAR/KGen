@@ -480,10 +480,10 @@ class Config(object):
         # kgen parameters
         self._attrs['kgen'] = OrderedDict()
         self._attrs['kgen']['version'] = [ 0, 6, '0' ]
-
-        # Fortran parameters
-        self._attrs['fort'] = OrderedDict()
-        self._attrs['fort']['maxlinelen'] = 134
+#
+#        # Fortran parameters
+#        self._attrs['fort'] = OrderedDict()
+#        self._attrs['fort']['maxlinelen'] = 134
 
         # logging parameters
         self._attrs['logging'] = OrderedDict()
@@ -492,18 +492,19 @@ class Config(object):
         # callsite parameters
         self._attrs['callsite'] = OrderedDict()
         self._attrs['callsite']['filepath'] = ''
-        self._attrs['callsite']['subpname'] = ''
-        self._attrs['callsite']['lineafter'] = -1
-
+        self._attrs['callsite']['span'] = (-1, -1)
+        self._attrs['callsite']['namepath'] = ''
+#        self._attrs['callsite']['lineafter'] = -1
+#
         # external tool parameters
         self._attrs['bin'] = OrderedDict()
         self._attrs['bin']['pp'] = 'cpp'
         self._attrs['bin']['cpp_flags'] = '-w -traditional'
         self._attrs['bin']['fpp_flags'] = '-w'
-
-        # test parameters
-        self._attrs['test'] = OrderedDict()
-        self._attrs['test']['suite'] = ''
+#
+#        # test parameters
+#        self._attrs['test'] = OrderedDict()
+#        self._attrs['test']['suite'] = ''
 
         # search parameters
         self._attrs['search'] = OrderedDict()
@@ -563,11 +564,11 @@ class Config(object):
         self._attrs['kernel_compile']['FC'] = 'ifort'
         self._attrs['kernel_compile']['FC_FLAGS'] = ''
 
-#        self._attrs['kernel_link'] = OrderedDict()
-#        self._attrs['kernel_link']['include'] = []
-#        self._attrs['kernel_link']['pre_cmds'] = []
-#        self._attrs['kernel_link']['lib'] = []
-#        self._attrs['kernel_link']['obj'] = []
+##        self._attrs['kernel_link'] = OrderedDict()
+##        self._attrs['kernel_link']['include'] = []
+##        self._attrs['kernel_link']['pre_cmds'] = []
+##        self._attrs['kernel_link']['lib'] = []
+##        self._attrs['kernel_link']['obj'] = []
 
         # make state parameters
         self._attrs['state_build'] = OrderedDict()
@@ -642,67 +643,15 @@ class Config(object):
         # set callsite filepath
         self.callsite['filepath'] = callsite[0]
 
-        # read directives from source file
-        self.process_directives(callsite[0])
-
-        # set subpname if exists in command line argument
+        # set namepath if exists in command line argument
         if len(callsite)==2:
-            self.callsite['subpname'] = KGName(callsite[1])
+            self.callsite['namepath'] = callsite[1]
         elif len(callsite)>2:
             print 'ERROR: Unrecognized call-site information(Syntax -> filepath[:subprogramname]): %s'%str(callsite)
             sys.exit(-1)
 
         # read options from command line. overwrite settings from directives
         self.process_commandline(opts)
-
-    def process_directives(self, filename):
-
-        # collect directives
-        directs = OrderedDict()
-        with open(filename, 'rb') as f:
-            continued = False
-            buf = ''
-            lineno_start = -1
-            for i, line in enumerate(f.readlines()):
-                if len(line)==0: continue
-
-                if continued:
-                    match_kgenc = re.match(r'^[c!*]\$kgen&\s+(.+)$', line.strip(), re.IGNORECASE)
-                    if match_kgenc:
-                        line = match_kgenc.group(1).rstrip()
-                        if line[-1]=='&':
-                            buf += line[:-1]
-                        else:
-                            buf += line
-                            match_direct = re.match(r'^(\w[\w\d]*)\s+(.+)$', buf.strip(), re.IGNORECASE)
-                            if match_direct:
-                                directs[(lineno_start, i)] = (match_direct.group(1), match_direct.group(2))
-
-                            lineno_start = -1
-                            continued = False
-                            buf = ''
-                    else:
-                        print 'ERROR: KGEN directive syntax error: %s'%line
-                        sys.exit(-1)
-                else:
-                    match_kgen = re.match(r'^[c!*]\$kgen\s+(.+)$', line.strip(), re.IGNORECASE)
-                    if match_kgen:
-                        if match_kgen.group(1)[-1]=='&':
-                            buf = match_kgen.group(1)[:-1]         
-                            lineno_start = i
-                            continued = True
-                        else:
-                            match_direct = re.match(r'^(\w[\w\d]*)\s+(.+)$', match_kgen.group(1), re.IGNORECASE)
-                            if match_direct:
-                                directs[(i, i)] = (match_direct.group(1), match_direct.group(2))
-
-        # populate configuration from directives
-        for span, (direct, clause) in directs.iteritems():
-            if direct.lower()=='callsite':
-                self.callsite['subpname'] = KGName(clause)
-                self.callsite['lineafter'] = span[1]
-            else:
-                print 'WARNING: Not supported KGEN directive: %s'%direct
 
     def _process_analysis_flags(self, opts):
 

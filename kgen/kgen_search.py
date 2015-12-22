@@ -4,9 +4,10 @@ from kgen_utils import Config, Logger, show_tree, KGGenType
 import Fortran2003
 from typedecl_statements import TypeDeclarationStatement
 from block_statements import Type, TypeDecl, Function, Subroutine, Interface
-from statements import External, Common
+from statements import External, Common, SpecificBinding
 from kgen_extra import Intrinsic_Procedures
 from ordereddict import OrderedDict
+
 
 res_default = [ TypeDeclarationStatement ]
 res_external = [ External ]
@@ -19,7 +20,9 @@ res_subroutine = [ Subroutine, Interface ] + res_external
 res_function = [ Function, Interface ] + res_external
 res_subprogram = [ Subroutine, Function, Interface ] + res_external
 res_common = [ Common ]
-res_anything = res_typespec + res_subprogram
+res_ptr_object = [ SpecificBinding, TypeDeclarationStatement ]
+res_target = res_subprogram + res_typedecl
+res_anything = res_typespec + res_subprogram + [ SpecificBinding, Common, Type, TypeDecl ]
 
 ###############################################################################
 ################################### COMMON ####################################
@@ -532,9 +535,8 @@ def search_Exit_Stmt(stmt, node, gentype=None):
     pass
 
 def search_Pointer_Assignment_Stmt(stmt, node, gentype=None):
-    get_name_or_defer(stmt, node.items[0], res_value)
-    get_name_or_defer(stmt, node.items[1], res_value)
-    get_name_or_defer(stmt, node.items[2], res_value)
+    get_name_or_defer(stmt, node.items[0], res_ptr_object) # data pointer obj or procedure pointer obj
+    get_name_or_defer(stmt, node.items[2], res_target) # data target or procedure target
 
 def search_Proc_Component_Ref(stmt, node, gentype=None):
     get_name_or_defer(stmt, node.items[0], res_value, gentype=gentype)

@@ -23,7 +23,6 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
             typedecl_statements.TypeDeclarationStatement, self.is_out_locals_in_parentblock, self.create_subr_verify_typedecl_in_parentblock) 
 
     def is_out_locals_in_parentblock(self, node):
-
         if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0 and \
             KGGenType.has_state_out(node.kgen_stmt.geninfo) and node.kgen_parent.kgen_stmt==getinfo('parentblock_stmt'):
             return True
@@ -61,7 +60,6 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
                                 break
                 else:
                     create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
-                
 
             attrs = {'designator': subrname, 'items': ['"%s"'%entity_name, 'check_status', entity_name, 'kgenref_%s'%entity_name]}
             namedpart_append_genknode(node.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, statements.Call, attrs=attrs)

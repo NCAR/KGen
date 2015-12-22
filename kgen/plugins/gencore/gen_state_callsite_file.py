@@ -23,7 +23,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         # register initial events
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-            getinfo('callsite_stmt'), None, self.create_callsite_parts)
+            getinfo('callsite_stmts')[0], None, self.create_callsite_parts1)
+
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
+            getinfo('callsite_stmts')[-1], None, self.create_callsite_parts2)
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
@@ -125,7 +128,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         namedpart_link_part(node, STATE_TBLOCK_CONTAINS_PART, CONTAINS_PART)
         namedpart_link_part(node, STATE_TBLOCK_SUBP_PART, SUBP_PART)
 
-    def create_callsite_parts(self, node):
+    def create_callsite_parts1(self, node):
         if getinfo('is_mpi_app'):
             mpi_use_stmts = getinfo('mpi_use')
             if mpi_use_stmts and len(mpi_use_stmts)>0:
@@ -271,7 +274,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END MASTER', style='openmp')
         namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, '')
 
-        namedpart_create_subpart(node.kgen_parent, AFTER_CALLSITE, EXEC_PART, index=index+2)
+
+    def create_callsite_parts2(self, node):
+        index, partname, part = get_part_index(node)
+        namedpart_create_subpart(node.kgen_parent, AFTER_CALLSITE, EXEC_PART, index=index+1)
 
         namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, '')
         namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'MASTER', style='openmp')

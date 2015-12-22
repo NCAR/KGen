@@ -20,7 +20,7 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         # register initial events
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
-            getinfo('callsite_stmt'), None, self.create_callsite_parts)
+            getinfo('callsite_stmts')[0], None, self.create_callsite_parts)
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
@@ -31,8 +31,8 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('topblock_stmt'), None, self.create_topblock_parts)
 
-        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
-            getinfo('callsite_stmt'), None, self.process_ifstmt)
+#        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
+#            getinfo('callsite_stmt'), None, self.process_ifstmt)
 
 
     def set_args(self, node):
@@ -115,7 +115,7 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, 'local output variables')
 
-    def process_ifstmt(self, node):
-        if node.kgen_stmt.__class__ in [ block_statements.If ]:
-            node.kgen_forced_line = node.kgen_stmt.content[0].tokgen()
+#    def process_ifstmt(self, node):
+#        if node.kgen_stmt.__class__ in [ block_statements.If ]:
+#            node.kgen_forced_line = node.kgen_stmt.content[0].tokgen()
 

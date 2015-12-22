@@ -31,7 +31,7 @@ def generate_kernel_makefile():
     # source files
     kgen_utils_file = 'kgen_utils.f90'
     kernel_driver_file = 'kernel_driver.f90'
-    callsite_file = State.topblock['path']
+    callsite_file = State.topblock['stmt'].reader.id
 
     #basenames
     callsite_base = os.path.basename(callsite_file)
@@ -127,7 +127,7 @@ def generate_kernel_makefile():
 def generate_state_makefile():
 
     org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.used_srcfiles.iteritems() if srcfile.tree.used4genstate ] 
-    if not State.topblock['path'] in org_files:
+    if not State.topblock['stmt'].reader.id in org_files:
         org_files.append(State.topblock['path'])
 
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:

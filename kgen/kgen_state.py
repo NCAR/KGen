@@ -27,66 +27,67 @@ class State(object):
 
         # callsite attributes
         self._attrs['callsite'] = OrderedDict()
-        self._attrs['callsite']['stmt'] = None
-        self._attrs['callsite']['expr'] = None
-        self._attrs['callsite']['actual_arg'] = OrderedDict()
-        self._attrs['callsite']['actual_arg']['names'] = None # ActualArgList object
-        self._attrs['callsite']['actual_arg']['in_names'] = []
-        self._attrs['callsite']['actual_arg']['out_names'] = []
-        self._attrs['callsite']['actual_arg']['inout_names'] = []
-        self._attrs['callsite']['actual_arg']['typedecl_stmt'] = OrderedDict()
+        self._attrs['callsite']['stmts'] = []
+#        self._attrs['callsite']['expr'] = None
+#        self._attrs['callsite']['actual_arg'] = OrderedDict()
+#        self._attrs['callsite']['actual_arg']['names'] = None # ActualArgList object
+#        self._attrs['callsite']['actual_arg']['in_names'] = []
+#        self._attrs['callsite']['actual_arg']['out_names'] = []
+#        self._attrs['callsite']['actual_arg']['inout_names'] = []
+#        self._attrs['callsite']['actual_arg']['typedecl_stmt'] = OrderedDict()
 
         # parent subprogram of callsite stmt attributes
         self._attrs['parentblock'] = OrderedDict()
         self._attrs['parentblock']['stmt'] = None
-        self._attrs['parentblock']['expr'] = None
-        self._attrs['parentblock']['dummy_arg'] = OrderedDict()
-        self._attrs['parentblock']['dummy_arg']['names'] = []
-        self._attrs['parentblock']['dummy_arg']['in_names'] = []
-        self._attrs['parentblock']['dummy_arg']['out_names'] = []
-        self._attrs['parentblock']['dummy_arg']['inout_names'] = []
-        self._attrs['parentblock']['dummy_arg']['typedecl_stmt'] = OrderedDict()
-        self._attrs['parentblock']['input'] =  OrderedDict()# variables for callsite actual args and kernel externs
-        self._attrs['parentblock']['input']['names'] = []
-        self._attrs['parentblock']['input']['typedecl_stmt'] = OrderedDict()
-        self._attrs['parentblock']['output'] = OrderedDict() # variables for callsite outputs
-        self._attrs['parentblock']['output']['names'] = []
-        self._attrs['parentblock']['output']['typedecl_stmt'] = OrderedDict()
-        self._attrs['parentblock']['output']['tkdpat'] = []
-        self._attrs['parentblock']['inout'] = OrderedDict()
-        self._attrs['parentblock']['inout']['tkdpat'] = []
-        self._attrs['parentblock']['writesubr'] = OrderedDict()
-        self._attrs['parentblock']['writesubr']['tkdpat'] = []
-        self._attrs['parentblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
-        self._attrs['parentblock']['dtype'] = [] # derived types
+#        self._attrs['parentblock']['expr'] = None
+#        self._attrs['parentblock']['dummy_arg'] = OrderedDict()
+#        self._attrs['parentblock']['dummy_arg']['names'] = []
+#        self._attrs['parentblock']['dummy_arg']['in_names'] = []
+#        self._attrs['parentblock']['dummy_arg']['out_names'] = []
+#        self._attrs['parentblock']['dummy_arg']['inout_names'] = []
+#        self._attrs['parentblock']['dummy_arg']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['parentblock']['input'] =  OrderedDict()# variables for callsite actual args and kernel externs
+#        self._attrs['parentblock']['input']['names'] = []
+#        self._attrs['parentblock']['input']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['parentblock']['output'] = OrderedDict() # variables for callsite outputs
+#        self._attrs['parentblock']['output']['names'] = []
+#        self._attrs['parentblock']['output']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['parentblock']['output']['tkdpat'] = []
+#        self._attrs['parentblock']['inout'] = OrderedDict()
+#        self._attrs['parentblock']['inout']['tkdpat'] = []
+#        self._attrs['parentblock']['writesubr'] = OrderedDict()
+#        self._attrs['parentblock']['writesubr']['tkdpat'] = []
+#        self._attrs['parentblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
+#        self._attrs['parentblock']['dtype'] = [] # derived types
 
         # callsite topblock attributes
         self._attrs['topblock'] = OrderedDict()
-        self._attrs['topblock']['file'] = None # SrcFile object
-        self._attrs['topblock']['path'] = '' # absolute path
+#        self._attrs['topblock']['file'] = None # SrcFile object
+#        self._attrs['topblock']['path'] = '' # absolute path
         self._attrs['topblock']['stmt'] = None
-        self._attrs['topblock']['expr'] = None
-        self._attrs['topblock']['extern'] = OrderedDict()
-        self._attrs['topblock']['extern']['names'] = []
-        self._attrs['topblock']['extern']['typedecl_stmt'] = OrderedDict()
-        self._attrs['topblock']['extern']['tkdpat'] = []
-        #self._attrs['topblock']['mod_depends'] = [] # dependency for compile
-        self._attrs['topblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
-        self._attrs['topblock']['dtype'] = [] # derived types
+#        self._attrs['topblock']['expr'] = None
+#        self._attrs['topblock']['extern'] = OrderedDict()
+#        self._attrs['topblock']['extern']['names'] = []
+#        self._attrs['topblock']['extern']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['topblock']['extern']['tkdpat'] = []
+#        #self._attrs['topblock']['mod_depends'] = [] # dependency for compile
+#        self._attrs['topblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
+#        self._attrs['topblock']['dtype'] = [] # derived types
 
         # kernel attributes
         self._attrs['kernel'] = OrderedDict()
-        self._attrs['kernel']['stmt'] = None
-        self._attrs['kernel']['expr'] = None
-        self._attrs['kernel']['parent'] = None
-        self._attrs['kernel']['top'] = None
-        self._attrs['kernel']['dummy_arg'] = OrderedDict()
-        self._attrs['kernel']['dummy_arg']['names'] = []
-        self._attrs['kernel']['dummy_arg']['in_names'] = []
-        self._attrs['kernel']['dummy_arg']['out_names'] = []
-        self._attrs['kernel']['dummy_arg']['inout_names'] = []
-        self._attrs['kernel']['dummy_arg']['typedecl_stmt'] = OrderedDict()
-
+        self._attrs['kernel']['name'] = None
+#        self._attrs['kernel']['stmt'] = None
+#        self._attrs['kernel']['expr'] = None
+#        self._attrs['kernel']['parent'] = None
+#        self._attrs['kernel']['top'] = None
+#        self._attrs['kernel']['dummy_arg'] = OrderedDict()
+#        self._attrs['kernel']['dummy_arg']['names'] = []
+#        self._attrs['kernel']['dummy_arg']['in_names'] = []
+#        self._attrs['kernel']['dummy_arg']['out_names'] = []
+#        self._attrs['kernel']['dummy_arg']['inout_names'] = []
+#        self._attrs['kernel']['dummy_arg']['typedecl_stmt'] = OrderedDict()
+#
         # modules
         self._attrs['modules'] = OrderedDict()
 
@@ -103,24 +104,23 @@ class State(object):
 
         # kernel_driver attributes
         self._attrs['kernel_driver'] = OrderedDict()
-        self._attrs['kernel_driver'] = OrderedDict()
-        self._attrs['kernel_driver']['input'] = OrderedDict()
-        self._attrs['kernel_driver']['input']['names'] = []
-        self._attrs['kernel_driver']['input']['typedecl_stmt'] = OrderedDict()
-        self._attrs['kernel_driver']['input']['tkdpat'] = []
-        self._attrs['kernel_driver']['mod_rw_var_depends'] = []
-        # new kernel_driver attributes
+#        self._attrs['kernel_driver']['input'] = OrderedDict()
+#        self._attrs['kernel_driver']['input']['names'] = []
+#        self._attrs['kernel_driver']['input']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['kernel_driver']['input']['tkdpat'] = []
+#        self._attrs['kernel_driver']['mod_rw_var_depends'] = []
+#        # new kernel_driver attributes
         self._attrs['kernel_driver']['name'] = 'kernel_driver'
-        self._attrs['kernel_driver']['program'] = None
+#        self._attrs['kernel_driver']['program'] = None
         self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_total_time']
 
         # program units
         self._attrs['program_units'] = OrderedDict()
-
-        # new attribute holder for multiple kernels
-        self._attrs['kernels'] = OrderedDict()
-        self._attrs['kernels'][0] = OrderedDict()
-        self._attrs['kernels'][0]['name'] = 'dummy_name_test'
+#
+#        # new attribute holder for multiple kernels
+#        self._attrs['kernels'] = OrderedDict()
+#        self._attrs['kernels'][0] = OrderedDict()
+#        self._attrs['kernels'][0]['name'] = 'dummy_name_test'
 
     def __getattr__(self, name):
         return self._attrs[name]
@@ -272,17 +272,17 @@ class SrcFile(object):
         for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
             if not State.modules.has_key(mod_name):
                 State.modules[mod_name] = OrderedDict()
-                State.modules[mod_name]['num'] = State.mod_num
-                State.mod_num += 1
+                #State.modules[mod_name]['num'] = State.mod_num
+                #State.mod_num += 1
                 State.modules[mod_name]['stmt'] = mod_stmt
                 State.modules[mod_name]['file'] = self
                 State.modules[mod_name]['path'] = self.abspath
-                State.modules[mod_name]['extern'] = OrderedDict()
-                State.modules[mod_name]['extern']['names'] = []
-                State.modules[mod_name]['extern']['typedecl_stmt'] = OrderedDict()
-                State.modules[mod_name]['extern']['tkdpat'] = []
-                State.modules[mod_name]['mod_rw_var_depends'] = []
-                State.modules[mod_name]['dtype'] = []
+                #State.modules[mod_name]['extern'] = OrderedDict()
+                #State.modules[mod_name]['extern']['names'] = []
+                #State.modules[mod_name]['extern']['typedecl_stmt'] = OrderedDict()
+                #State.modules[mod_name]['extern']['tkdpat'] = []
+                #State.modules[mod_name]['mod_rw_var_depends'] = []
+                #State.modules[mod_name]['dtype'] = []
         
         # collect program unit information
         for item in self.tree.content:

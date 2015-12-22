@@ -283,7 +283,7 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
 
 
 def getinfo(name):
-    if name=='kernel_name': return Config.callsite['subpname'].firstpartname()
+    if name=='kernel_name': return State.kernel['name']
     elif name=='kgen_version': return '%d.%d.%s'%tuple(Config.kgen['version'])
     elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
     elif name=='kernel_driver_name': return State.kernel_driver['name']
@@ -297,7 +297,7 @@ def getinfo(name):
     elif name=='invocation_numbers': return Config.invocation['numbers']
     elif name=='print_var_names': return Config.debug['printvar']
     elif name=='callsite_file_path': return Config.callsite['filepath']
-    elif name=='callsite_stmt': return State.callsite['stmt']
+    elif name=='callsite_stmts': return State.callsite['stmts']
     elif name=='parentblock_stmt': return State.parentblock['stmt']
     elif name=='topblock_stmt': return State.topblock['stmt']
     elif name=='verbose_level': return Config.verify['verboselevel']
