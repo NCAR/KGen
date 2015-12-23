@@ -1,5 +1,34 @@
 # gen_core_utils.py
 
+# NOTES for supporting linked list
+# STATE part
+# A) save address of all saved derived type variables
+# B) when a a pointer derived type is being saved, first check if the address of the target
+#    variable is in the address list
+#    a) if exits, do not save and leave a mark
+#    b) if not exists, save and put the address of the saved variable in the address list
+#
+# KERNEL part
+# A) when a pointer derived type is being read, first check if a mark exists,
+#   a) If not exists, read and save the address of the derived type variable in dtype list with a mark
+#   b) If exists, do not read and associate to a derived type variable in the dtype list according to the mark
+#
+# Mark
+# A) derived type id
+# B) IO id
+#
+# Address list
+# A) an array of integers representing addresss
+# B) generate in (named?) data block using common block
+# C) external functions for using the address list
+#
+# Dtype list
+# A) Two separate one dimensional singly linked list: one for dervied type id and the other for IO id
+# B) May use hash integer for derived type id
+# C) IO id will be saved in each kw_ kr_ subroutine with SAVE attribute
+# D) generate in (named?) data block
+# E) Use module for dtype list and manipulate functions. Use Interface for assigning pointer
+
 import statements
 import block_statements
 

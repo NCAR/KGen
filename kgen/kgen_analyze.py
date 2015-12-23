@@ -202,39 +202,42 @@ def locate_callsite(cs_tree):
             line = stmt.item.comment.strip()
             match = re.match(r'^[c!*]\$kgen\s+(.+)$', line, re.IGNORECASE)
             if match:
-                directs.append( (match.group(1).strip(), stmt))
-        elif Config.callsite['namepath'] and stmt.__class__ in executable_construct:
-            names = []
-            traverse(stmt.f2003, get_names, names)
-            for name in names:
-                if match_namepath(Config.callsite['namepath'], pack_exnamepath(stmt, name), internal=False):
-                    directs.append( ('callsite %s'%name, stmt))
-                    break
+                dsplit = match.group(1).split(' ', 1)
+                dname = dsplit[0].strip()
+                if len(dsplit)>1: clause = dsplit[1].strip()
+                else: clause = None
 
-    for direct, stmt in directs:
-        match = re.match(r'^(\w[\w\d]*)\s+(.+)$', direct, re.IGNORECASE)
-        if match:
-            dname = match.group(1).lower()
-            clause = match.group(2)
-            if dname.startswith('begin_'):
-                pass
-                # TODO: block kernel extraction
-            else:
-                if dname=='callsite':
-                    if isinstance(stmt, Comment):
-                        next_fort_stmt = get_next_non_comment(stmt)
-                        if next_fort_stmt:
-                            State.kernel['name'] = clause
-                            State.callsite['stmts'].append(get_next_non_comment(stmt))
-                            break
+                if dname.startswith('begin_'):
+                    sname = dname[6:]
+                    directs.append(sname)
+                    State.kernel['name'] = clause
+                elif dname.startswith('end_'):
+                    ename = dname[4:]
+                    if directs[-1]==ename:
+                        directs.pop()
+                        if ename=='callsite':
+                            pass
                         else:
-                            raise UserException('WARNING: callsite is not found')
+                            raise UserException('WARNING: Not supported KGEN directive: %s'%ename)
                     else:
+                        raise UserException('Directive name mismatch: %s, %s'%(dname_stack[-1], ename))
+                elif dname=='callsite':
+                    next_fort_stmt = get_next_non_comment(stmt)
+                    if next_fort_stmt:
                         State.kernel['name'] = clause
+                        State.callsite['stmts'].append(next_fort_stmt)
+                    else:
+                        raise UserException('WARNING: callsite is not found')
+        else:
+            if Config.callsite['namepath'] and stmt.__class__ in executable_construct:
+                names = []
+                traverse(stmt.f2003, get_names, names)
+                for name in names:
+                    if match_namepath(Config.callsite['namepath'], pack_exnamepath(stmt, name), internal=False):
+                        State.kernel['name'] = name
                         State.callsite['stmts'].append(stmt)
                         break
-                else:
-                    raise UserException('WARNING: Not supported KGEN directive: %s'%direct)
-
+            elif len(directs)>0 and directs[-1]=='callsite':
+                State.callsite['stmts'].append(stmt)
 
     if len(State.callsite['stmts'])==0: raise UserException('Can not find callsite')

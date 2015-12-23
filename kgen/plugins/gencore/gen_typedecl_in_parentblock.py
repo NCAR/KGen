@@ -232,15 +232,20 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 self.kernel_created_subrs.append(subrname)
                 else: # scalar
                     if stmt.is_derived():
-                        subrname = None
-                        # TODO : add use and public statement??? in bridge modules?
-                        for uname, req in stmt.unknowns.iteritems():
-                            if uname.firstpartname()==stmt.name:
-                                res = req.res_stmts[0]
-                                subrname = get_dtype_readname(res)
-                                break
-                        if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
-                        self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
+                        if var.is_allocatable() or var.is_pointer():
+                            self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
+                            if subrname not in self.kernel_created_subrs:
+                                create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix)
+                                self.kernel_created_subrs.append(subrname)
+                        else:
+                            subrname = None
+                            for uname, req in stmt.unknowns.iteritems():
+                                if uname.firstpartname()==stmt.name:
+                                    res = req.res_stmts[0]
+                                    subrname = get_dtype_readname(res)
+                                    break
+                            if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                            self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                     else: # intrinsic type
                         self.create_read_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var, ename_prefix=ename_prefix)
 
@@ -255,15 +260,20 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     self.driver_created_subrs.append(subrname)
             else: # scalar
                 if stmt.is_derived():
-                    subrname = None
-                    # TODO : add use and public statement??? in bridge modules?
-                    for uname, req in stmt.unknowns.iteritems():
-                        if uname.firstpartname()==stmt.name:
-                            res = req.res_stmts[0]
-                            subrname = get_dtype_readname(res)
-                            break
-                    if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
-                    self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+                    if var.is_allocatable() or var.is_pointer():
+                        self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
+                        if subrname not in self.kernel_created_subrs:
+                            create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix)
+                            self.kernel_created_subrs.append(subrname)
+                    else:
+                        subrname = None
+                        for uname, req in stmt.unknowns.iteritems():
+                            if uname.firstpartname()==stmt.name:
+                                res = req.res_stmts[0]
+                                subrname = get_dtype_readname(res)
+                                break
+                        if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                        self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                 else: # intrinsic type
                     self.create_read_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
 
