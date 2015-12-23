@@ -330,28 +330,48 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 self.state_created_subrs.append(subrname)
                 else: # scalar
                     if stmt.is_derived():
-                        subrname = None
-                        # TODO : add use and public statement??? in bridge modules?
-                        for uname, req in stmt.unknowns.iteritems():
-                            if uname.firstpartname()==stmt.name:
-                                res = req.res_stmts[0]
-                                subrname = get_dtype_writename(res)
-                                break
-                        if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
-                        self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+                        if var.is_allocatable() or var.is_pointer():
+                            self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+                            if subrname not in self.state_created_subrs:
+                                create_write_subr(subrname, entity_name, node.kgen_parent, var, stmt)
+                                self.state_created_subrs.append(subrname)
+                        else:
+                            subrname = None
+                            for uname, req in stmt.unknowns.iteritems():
+                                if uname.firstpartname()==stmt.name:
+                                    res = req.res_stmts[0]
+                                    subrname = get_dtype_writename(res)
+                                    break
+                            if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                            self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                     else: # intrinsic type
                         self.create_write_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
 
     def create_read_intrinsic(self, kernel_id, partid, entity_name, stmt, var, ename_prefix=''):
         pobj = None
-        if var.is_pointer():
+
+        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
             attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-            part_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
+            namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
 
             attrs = {'expr': 'kgen_istrue'}
             iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
             pobj = iftrueobj
+
+        if var.is_allocatable():
+            attrs = {'expr': 'ALLOCATED( %s )'%(ename_prefix+entity_name)}
+            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
+            part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
+
+        if var.is_pointer():
+            attrs = {'expr': 'ASSOCIATED( %s )'%(ename_prefix+entity_name)}
+            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
+            part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
 
         if pobj:
             attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
@@ -374,20 +394,58 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
     def create_write_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
         pobj = None
-        if var.is_pointer():
-            attrs = {'expr': 'ASSOCIATED(%s)'%entity_name}
-            ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        # if isarray
+        if var.is_array() and not var.is_explicit_shape_array():
+            attrs = {'expr': 'SIZE(%s)==1'%entity_name}
+            ifsizeobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'expr': 'UBOUND(%s, 1)<LBOUND(%s, 1)'%(entity_name, entity_name)}
+            ifarrobj = part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'expr': 'UBOUND(%s, 1)==0 .AND. LBOUND(%s, 1)==0'%(entity_name, entity_name)}
+            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.Else, attrs=attrs)
 
             attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
-            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            part_append_gensnode(ifptrobj, EXEC_PART, statements.Else)
+            part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.Else, attrs=attrs)
+
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+            part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
+        else:
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+            namedpart_append_gensnode(kernel_id, partid, statements.Assignment, attrs=attrs)
+
+        # if allocatable
+        if var.is_allocatable():
+            attrs = {'expr': '.NOT. ALLOCATED(%s)'%entity_name}
+            ifallocobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+            part_append_gensnode(ifallocobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        # if pointer
+        if var.is_pointer():
+            attrs = {'expr': '.NOT. ASSOCIATED(%s)'%entity_name}
+            ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
 
             attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+
+        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
+
             attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-            part_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
+            namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 
             attrs = {'expr': 'kgen_istrue'}
             iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
@@ -414,66 +472,18 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_read_call(self, kernel_id, partid, callname, entity_name, stmt, var, ename_prefix=''):
-        pobj = None
-        if var.is_pointer():
-            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-            namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
-
-            attrs = {'expr': 'kgen_istrue'}
-            iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            pobj = iftrueobj
-
-        if pobj:
-            if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit', '"%s%s"'%(ename_prefix, entity_name)]}
-                part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
-            else:
-                attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit']}
-                part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
+        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+            attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit', '"%s%s"'%(ename_prefix, entity_name)]}
+            namedpart_append_genknode(kernel_id, partid, statements.Call, attrs=attrs)
         else:
-            if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit', '"%s%s"'%(ename_prefix, entity_name)]}
-                namedpart_append_genknode(kernel_id, partid, statements.Call, attrs=attrs)
-            else:
-                attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit']}
-                namedpart_append_genknode(kernel_id, partid, statements.Call, attrs=attrs)
+            attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit']}
+            namedpart_append_genknode(kernel_id, partid, statements.Call, attrs=attrs)
 
 
     def create_write_call(self, kernel_id, partid, callname, entity_name, stmt, var):
-        pobj = None
-        if var.is_pointer():
-            attrs = {'expr': 'ASSOCIATED(%s)'%entity_name}
-            ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
-            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            part_append_gensnode(ifptrobj, EXEC_PART, statements.Else)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-            namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
-
-            attrs = {'expr': 'kgen_istrue'}
-            iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            pobj = iftrueobj
-
-        if pobj:
-            if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%entity_name]}
-                part_append_gensnode(pobj, EXEC_PART, statements.Call, attrs=attrs)
-            else:
-                attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit']}
-                part_append_gensnode(pobj, EXEC_PART, statements.Call, attrs=attrs)
+        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+            attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%entity_name]}
+            namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)
         else:
-            if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%entity_name]}
-                namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)
-            else:
-                attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit']}
-                namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)
-
+            attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit']}
+            namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)

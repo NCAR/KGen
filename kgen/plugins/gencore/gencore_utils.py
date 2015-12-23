@@ -1,5 +1,8 @@
 # gen_core_utils.py
 
+import statements
+import block_statements
+
 shared_objects = {}
 shared_objects['driver_object'] = None
 
@@ -171,3 +174,95 @@ def process_spec_stmts(stmt):
         else:
             pass
             # maybe specific handling per classes
+
+def gen_write_istrue(pobj, var, ename):
+
+    # if isarray
+
+    if var.is_array() and not var.is_explicit_shape_array():
+        attrs = {'expr': 'SIZE(%s)==1'%ename}
+        ifsizeobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'expr': 'UBOUND(%s, 1)<LBOUND(%s, 1)'%(ename, ename)}
+        ifarrobj = part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'expr': 'UBOUND(%s, 1)==0 .AND. LBOUND(%s, 1)==0'%(ename, ename)}
+        part_append_gensnode(ifarrobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        part_append_gensnode(ifarrobj, EXEC_PART, block_statements.Else, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.Else, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
+    else:
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_gensnode(pobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+    # if allocatable
+    if var.is_allocatable():
+        attrs = {'expr': '.NOT. ALLOCATED(%s)'%ename}
+        ifallocobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifallocobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+    # if pointer
+    if var.is_pointer():
+        attrs = {'expr': '.NOT. ASSOCIATED(%s)'%ename}
+        ifptrobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+
+    if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
+
+        attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
+        part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'expr': 'kgen_istrue'}
+        iftrueobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        return iftrueobj
+    else:
+        return pobj
+
+
+def gen_read_istrue(subrobj, var, ename, allocate=False):
+
+    pobj = subrobj
+ 
+    if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
+        attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
+        part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
+
+        attrs = {'expr': 'kgen_istrue'}
+        iftrueobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        pobj = iftrueobj
+
+    if var.is_allocatable() or allocate:
+        attrs = {'expr': 'ALLOCATED( %s )'%ename}
+        ifalloc = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['%s'%ename]}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
+
+    if var.is_pointer():
+        attrs = {'expr': 'ASSOCIATED( %s )'%ename}
+        ifalloc = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['%s'%ename]}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
+
+    return pobj
