@@ -48,17 +48,13 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             statements.Use, None, self.process_use_in_module) 
 
     def has_externs_in_module(self, node):
-#        import pdb; pdb.set_trace()
-#        checks = lambda n: hasattr(n.kgen_stmt, 'geninfo') and len(n.kgen_stmt.geninfo)>0 \
-#            and isinstance(n.kgen_stmt, typedecl_statements.TypeDeclarationStatement) \
-#            and "parameter" not in n.kgen_stmt.attrspec
-#        if part_has_node(node, DECL_PART, checks):
-#            return True
-#        return False
         for stmt in node.kgen_stmt.content:
             if isinstance(stmt, typedecl_statements.TypeDeclarationStatement) and \
                 "parameter" not in stmt.attrspec and  hasattr(stmt, 'geninfo') and len(stmt.geninfo)>0 :
-                return True
+                for entity_name in [ get_entity_name(decl) for decl in stmt.entity_decls ]:
+                    var = stmt.get_variable(entity_name)
+                    if not var.is_parameter():
+                        return True
         return False
 
     def has_specstmts_in_module(self, node):
@@ -69,13 +65,19 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
     def is_extern_in_kernel_module(self, node):
         if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0 and \
             isinstance(node.kgen_parent.kgen_stmt, block_statements.Module) and 'parameter' not in node.kgen_stmt.attrspec:
-            return True
+            for entity_name in [ get_entity_name(decl) for decl in node.kgen_stmt.entity_decls ]:
+                var = node.kgen_stmt.get_variable(entity_name)
+                if not var.is_parameter():
+                    return True
         return False
 
     def is_extern_in_state_module(self, node):
         if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0 and \
             isinstance(node.kgen_parent.kgen_stmt, block_statements.Module) and 'parameter' not in node.kgen_stmt.attrspec:
-            return True
+            for entity_name in [ get_entity_name(decl) for decl in node.kgen_stmt.entity_decls ]:
+                var = node.kgen_stmt.get_variable(entity_name)
+                if not var.is_parameter():
+                    return True
         return False
 
     def process_specstmts_in_module(self, node):
@@ -301,8 +303,11 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         parent = node.kgen_parent
         stmt = node.kgen_stmt
-        entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
-        out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+        raw_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
+        entity_names = [ e for e in raw_entity_names if not stmt.get_variable(e).is_parameter() ]
+        
+        raw_out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+        out_entity_names = [ e for e in raw_out_entity_names if not stmt.get_variable(e).is_parameter() ]
 
         def get_attrs(attrspec, allowed_attrs):
             attrspec = []
@@ -395,8 +400,15 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
     def create_subr_write_typedecl_in_module(self, node):
         parent = node.kgen_parent
         stmt = node.kgen_stmt
-        entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
-        out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+
+        raw_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
+        entity_names = [ e for e in raw_entity_names if not stmt.get_variable(e).is_parameter() ]
+        
+        raw_out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+        out_entity_names = [ e for e in raw_out_entity_names if not stmt.get_variable(e).is_parameter() ]
+
+        #entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
+        #out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.state_extern_writes: continue
             if hasattr(stmt, 'exclude_names'):
@@ -502,13 +514,10 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
     def create_write_call(self, subrobj, callname, entity_name, stmt, var):
 
-        #pobj = gen_write_istrue(subrobj, var, entity_name)
-        pobj = subrobj
-
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%entity_name]}
-            part_append_gensnode(pobj, EXEC_PART, statements.Call, attrs=attrs)
+            part_append_gensnode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
         else:
             attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit']}
-            part_append_gensnode(pobj, EXEC_PART, statements.Call, attrs=attrs)
+            part_append_gensnode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 

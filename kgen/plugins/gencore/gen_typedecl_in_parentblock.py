@@ -7,7 +7,7 @@ from kgen_plugin import Kgen_Plugin
 from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS, \
     DRIVER_READ_IN_ARGS, KERNEL_PBLOCK_READ_IN_LOCALS, KERNEL_PBLOCK_READ_OUT_LOCALS, \
     DRIVER_DECL_PART, DRIVER_USE_PART, get_typedecl_writename, get_dtype_writename, state_gencore_contains, \
-    get_topname, get_typedecl_readname, get_dtype_readname, shared_objects
+    get_topname, get_typedecl_readname, get_dtype_readname, shared_objects, process_spec_stmts
 from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
@@ -34,13 +34,25 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
             typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.create_subr_read_typedecl_in_parentblock) 
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
+            getinfo('parentblock_stmt'), None, self.process_specstmts_in_upperblocks) 
+
         #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
         #    typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.remove_read_typedecl_in_parentblock) 
+
+    def process_specstmts_in_upperblocks(self, node):
+        process_spec_stmts(node.kgen_stmt)
+
+        if hasattr(node, 'kgen_parent') and not node.kgen_parent.kgen_stmt.__class__ in [ block_statements.Module, block_statements.Program ]:
+            process_specstmts_in_upperblocks(node.kgen_parent)
 
     def typedecl_has_state_parentblock(self, node):
         if hasattr(node.kgen_stmt, 'geninfo') and KGGenType.has_state(node.kgen_stmt.geninfo) \
             and "parameter" not in node.kgen_stmt.attrspec and node.kgen_parent.kgen_stmt==getinfo('parentblock_stmt'):
-            return True
+            for entity_name in [ get_entity_name(decl) for decl in node.kgen_stmt.entity_decls ]:
+                var = node.kgen_stmt.get_variable(entity_name)
+                if not var.is_parameter():
+                    return True
         return False
 
     def remove_read_typedecl_in_parentblock(self, node):
@@ -54,6 +66,9 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
+            var = stmt.get_variable(entity_name)
+
+            if var.is_parameter(): continue
 
             if hasattr(stmt, 'exclude_names'):
                 skip_verify = False
@@ -64,7 +79,6 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 if skip_verify: continue
 
             if (entity_name,DRIVER_READ_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
-                var = stmt.get_variable(entity_name)
 
                 argintype.append((entity_name, DRIVER_READ_IN_ARGS))
 
@@ -132,6 +146,10 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
             entity_name = uname.firstpartname()
+            var = stmt.get_variable(entity_name)
+
+            if var.is_parameter(): continue
+
             if hasattr(stmt, 'exclude_names'):
                 skip_verify = False
                 for exclude_name, actions in stmt.exclude_names.iteritems():
@@ -285,6 +303,10 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         localouttype = []
         for uname, req in KGGenType.get_state_in(stmt.geninfo):
             entity_name = uname.firstpartname()
+            var = stmt.get_variable(entity_name)
+
+            if var.is_parameter(): continue
+
             if hasattr(stmt, 'exclude_names'):
                 skip_verify = False
                 for exclude_name, actions in stmt.exclude_names.iteritems():
@@ -299,6 +321,10 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
             entity_name = uname.firstpartname()
+            var = stmt.get_variable(entity_name)
+
+            if var.is_parameter(): continue
+
             if hasattr(stmt, 'exclude_names'):
                 skip_verify = False
                 for exclude_name, actions in stmt.exclude_names.iteritems():

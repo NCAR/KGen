@@ -330,8 +330,14 @@ def search_Allocate_Stmt(stmt, node, gentype=None):
 
 def search_Allocation(stmt, node, gentype=None): 
     get_name_or_defer(stmt, node.items[0], res_typedecl)
-    if len(node.items)>1:
-        defer_items(stmt, node.items[1:])
+    get_name_or_defer(stmt, node.items[1], res_value)
+    #if len(node.items)>1:
+    #    defer_items(stmt, node.items[1:])
+
+def search_Allocate_Shape_Spec(stmt, node, gentype=None): 
+    if node.items:
+        for item in node.items:
+            get_name_or_defer(stmt, item, res_value)
 
 def search_Use_Stmt(stmt, node, gentype=None): 
     pass

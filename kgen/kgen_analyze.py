@@ -236,7 +236,7 @@ def locate_callsite(cs_tree):
                     if match_namepath(Config.callsite['namepath'], pack_exnamepath(stmt, name), internal=False):
                         State.kernel['name'] = name
                         State.callsite['stmts'].append(stmt)
-                        break
+                        return
             elif len(directs)>0 and directs[-1]=='callsite':
                 State.callsite['stmts'].append(stmt)
 

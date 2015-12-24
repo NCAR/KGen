@@ -5955,7 +5955,8 @@ items : (Format_Item, Format_Item)
             return Format_Item(string[:-1].rstrip()), Control_Edit_Desc(string[-1])
         line, repmap = string_replace_map(string)
         i = 0
-        while i<len(line) and line[i].isdigit():
+        #while i<len(line) and line[i].isdigit(): # KGEN deletion
+        while i<len(line) and (line[i].isdigit() or line[i] in '+-'): # KGEN addition
             i += 1
         if i:
             p = line[i].upper()
@@ -5982,6 +5983,7 @@ class Format_Item(Base): # R1003
     @staticmethod
     def match(string):
         i = 0
+        if string[i] in '+-0': return # KGEN addition
         while i < len(string) and string[i].isdigit():
             i += 1
         rpart = None
