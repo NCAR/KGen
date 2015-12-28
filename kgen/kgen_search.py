@@ -120,7 +120,7 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
                 if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
                     not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
                     not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
-                    Logger.info('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
+                    Logger.info('Intrinsic procedure name of "%s" is used for name resolution'% \
                         (node.string.lower()), stdout=True)
                     Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
                     Logger.info('\tin %s'% stmt.reader.id, stdout=True)
