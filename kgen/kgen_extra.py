@@ -50,20 +50,20 @@ kgen_verify_intrinsic_checkpart = \
 """check_status%%numTotal = check_status%%numTotal + 1
 IF ( var %s ref_var ) THEN
     check_status%%numIdentical = check_status%%numIdentical + 1
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is IDENTICAL( ", var, " )."
     endif
 ELSE
-    if(check_status%%verboseLevel > 0) then
+    if(check_status%%VerboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
-        if(check_status%%verboseLevel > 2) then
+        if(check_status%%VerboseLevel == 3) then
             WRITE(*,*) "KERNEL: ", var
             WRITE(*,*) "REF.  : ", ref_var
         end if
     end if
-    check_status%%numFatal = check_status%%numFatal + 1
+    check_status%%numOutTol = check_status%%numOutTol + 1
 END IF"""
 
 kgen_verify_numeric_array = \
@@ -71,13 +71,13 @@ kgen_verify_numeric_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
         !WRITE(*,*) "REF.  : ", ref_var
         IF ( ALL( var == 0 ) ) THEN
-            if(check_status%%verboseLevel > 2) then
+            if(check_status%%VerboseLevel == 3) then
                 WRITE(*,*) "All values are zero."
             end if
         END IF
@@ -97,22 +97,10 @@ ELSE
     nrmsdiff = sqrt(sum(temp)/real(n))
     rmsdiff = sqrt(sum(temp2)/real(n))
 
-    if(check_status%%verboseLevel > 0) then
-        WRITE(*,*)
-        WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
-        WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
-        if(check_status%%verboseLevel > 1) then
-            WRITE(*,*) "Average - kernel ", sum(var)/real(size(var))
-            WRITE(*,*) "Average - reference ", sum(ref_var)/real(size(ref_var))
-        endif
-        WRITE(*,*) "RMS of difference is ",rmsdiff
-        WRITE(*,*) "Normalized RMS of difference is ",nrmsdiff
-    end if
-
     if (nrmsdiff > check_status%%tolerance) then
-        check_status%%numFatal = check_status%%numFatal+1
+        check_status%%numOutTol = check_status%%numOutTol+1
     else
-        check_status%%numWarning = check_status%%numWarning+1
+        check_status%%numInTol = check_status%%numInTol+1
     endif
 
     deallocate(temp,temp2)
@@ -123,33 +111,34 @@ kgen_verify_nonreal_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%verboseLevel > 1) then
+    if(check_status%%VerboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
         !WRITE(*,*) "REF.  : ", ref_var
         IF ( ALL( var == 0 ) ) THEN
-            if(check_status%%verboseLevel > 2) then
                 WRITE(*,*) "All values are zero."
-            end if
         END IF
     end if
 ELSE
-    if(check_status%%verboseLevel > 0) then
+    if(check_status%%VerboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
         WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
     end if
 
-    check_status%%numFatal = check_status%%numFatal+1
+    check_status%%numOutTol = check_status%%numOutTol+1
 END IF"""
 
 kgen_utils_file_head = \
 """
 INTEGER, PARAMETER :: kgen_dp = selected_real_kind(15, 307)
+INTEGER, PARAMETER :: CHECK_IDENTICAL = 1
+INTEGER, PARAMETER :: CHECK_IN_TOL = 2
+INTEGER, PARAMETER :: CHECK_OUT_TOL = 3
 
 ! PERTURB: add following interface
-interface kgen_perturb
+interface kgen_perturb_real
     module procedure kgen_perturb_real4_dim1
     module procedure kgen_perturb_real4_dim2
     module procedure kgen_perturb_real4_dim3
@@ -160,16 +149,18 @@ end interface
 
 type check_t
     logical :: Passed
-    integer :: numFatal
+    integer :: numOutTol
     integer :: numTotal
     integer :: numIdentical
-    integer :: numWarning
+    integer :: numInTol
     integer :: VerboseLevel
     real(kind=kgen_dp) :: tolerance
     real(kind=kgen_dp) :: minvalue
 end type check_t
 
-public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb
+public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb_real
+public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
+public kgen_get_newunit, kgen_error_stop
 """
 
 kgen_utils_file_checksubr = \
@@ -306,46 +297,81 @@ subroutine kgen_perturb_real8_dim3(var, pertlim)
     deallocate(rndm_seed)
 end subroutine
 
-subroutine kgen_init_check(check, tolerance, minvalue)
+subroutine kgen_init_check(check, verboseLevel, tolerance, minValue)
   type(check_t), intent(inout) :: check
+  integer, intent(in), optional :: verboseLevel
   real(kind=kgen_dp), intent(in), optional :: tolerance
-  real(kind=kgen_dp), intent(in), optional :: minvalue
+  real(kind=kgen_dp), intent(in), optional :: minValue
 
   check%Passed   = .TRUE.
-  check%numFatal = 0
-  check%numWarning = 0
+  check%numOutTol = 0
+  check%numInTol = 0
   check%numTotal = 0
   check%numIdentical = 0
-  check%VerboseLevel = 1
+
+  if(present(verboseLevel)) then
+     check%verboseLevel = verboseLevel
+  else
+      check%verboseLevel = 1
+  end if
   if(present(tolerance)) then
      check%tolerance = tolerance
   else
       check%tolerance = 1.0D-15
-  endif
+  end if
   if(present(minvalue)) then
      check%minvalue = minvalue
   else
       check%minvalue = 1.0D-15
-  endif
+  end if
 end subroutine kgen_init_check
 
 subroutine kgen_print_check(kname, check)
    character(len=*) :: kname
    type(check_t), intent(in) ::  check
 
-   write (*,*)
    write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+   !write (*,*) TRIM(kname),':',check%numFatal,'fatal errors,',check%numWarning,'warnings detected, and',check%numIdentical,'identical out of',check%numTotal,'variables checked'
    write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
    write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical
-   write (*,*) TRIM(kname),': Number of warnings detected: ',check%numWarning
-   write (*,*) TRIM(kname),': Number of fatal errors detected: ', check%numFatal
+   write (*,*) TRIM(kname),': Number of variables within tolerance(not identical): ',check%numInTol
+   write (*,*) TRIM(kname),': Number of variables out of tolerance: ', check%numOutTol
 
-   if (check%numFatal> 0) then
+   if (check%numOutTol> 0) then
         write(*,*) TRIM(kname),': Verification FAILED'
    else
         write(*,*) TRIM(kname),': Verification PASSED'
    endif
 end subroutine kgen_print_check
+"""
+
+kgen_get_newunit = \
+"""
+FUNCTION kgen_get_newunit() RESULT(new_unit)
+   INTEGER, PARAMETER :: UNIT_MIN=100, UNIT_MAX=1000000
+   LOGICAL :: is_opened
+   INTEGER :: nunit, new_unit, counter
+
+   new_unit = -1
+   DO counter=UNIT_MIN, UNIT_MAX
+       inquire(UNIT=counter, OPENED=is_opened)
+       IF (.NOT. is_opened) THEN
+           new_unit = counter
+           EXIT
+       END IF
+   END DO
+END FUNCTION
+"""
+
+kgen_error_stop = \
+"""
+SUBROUTINE kgen_error_stop( msg )
+    IMPLICIT NONE
+    CHARACTER(LEN=*), INTENT(IN) :: msg
+
+    WRITE (*,*) msg
+    STOP 1
+END SUBROUTINE
 """
 
 rdtsc = \

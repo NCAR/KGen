@@ -222,6 +222,12 @@ class BeginSource(BeginStatement):
     def tostr(self):
         return self.blocktype.upper() + ' '+ self.name
 
+    # start of KGEN addition
+    def tokgen(self):
+        return
+
+    # end of KGEN addition
+
     def process_item(self):
         self.name = self.reader.name
         self.top = self
@@ -303,7 +309,8 @@ class Module(BeginStatement, HasAttributes,
                         module_provides = {}, # all symbols that are public and so
                                               # can be imported via USE statement
                                               # by other blocks
-                        module_interface = {}
+                        #module_interface = {} # KGEN deletion
+                        module_interface = [] # KGEN addition
                         )
 
     known_attributes = ['PUBLIC', 'PRIVATE']
@@ -361,7 +368,8 @@ class Module(BeginStatement, HasAttributes,
         s +=  HasAttributes.topyf(self, tab=tab+'  ')
         s +=  HasTypeDecls.topyf(self, tab=tab+'  ')
         s +=  HasVariables.topyf(self, tab=tab+'  ')
-        for name, stmt in self.a.module_interface.items():
+        #for name, stmt in self.a.module_interface.items(): # KGEN deletion
+        for stmt in self.a.module_interface: # KGEN addition
             s += stmt.topyf(tab=tab+'    ')
         s +=  tab + '  CONTAINS\n'
         for name, stmt in self.a.module_subprogram.items():
@@ -496,7 +504,8 @@ class EndBlockData(EndStatement):
     END [ BLOCK DATA [ <block-data-name> ] ]
     """
     match = re.compile(r'end(\s*block\s*data\s*\w*|)\Z', re.I).match
-    blocktype = 'blockdata'
+    #blocktype = 'blockdata' # KGEN deletion
+    blocktype = 'block data' # KGEN addition
 
 class BlockData(BeginStatement, HasImplicitStmt, HasUseStmt,
                 #HasVariables, AccessSpecs): # KGEN deletion
@@ -504,6 +513,8 @@ class BlockData(BeginStatement, HasImplicitStmt, HasUseStmt,
     """
     BLOCK DATA [ <block-data-name> ]
     """
+    f2003_class = Fortran2003.Block_Data_Stmt # KGEN addition
+
     end_stmt_cls = EndBlockData
     match = re.compile(r'block\s*data\s*\w*\Z', re.I).match
 
@@ -513,6 +524,13 @@ class BlockData(BeginStatement, HasImplicitStmt, HasUseStmt,
 
     def get_classes(self):
         return specification_part
+
+    # start of KGEN addition
+    def tostr(self):
+        if hasattr(self, 'name') and self.name:
+            return 'BLOCK DATA %s'%self.name
+        return 'BLOCK DATA'
+    # end of KGEN addition
 
 # Interface
 
@@ -566,7 +584,7 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
             Logger.info('The request is being resolved by an interface', name=request.uname, stmt=self)
             request.res_stmt = self
             request.state = ResState.RESOLVED
-            request.res_stmt.add_geninfo(request.uname)
+            request.res_stmt.add_geninfo(request.uname, request)
             #self.check_spec_stmts(request.uname, request.res_stmt)
 
             for _stmt, _depth in walk(request.res_stmt, -1):
@@ -626,14 +644,17 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
 
         if isinstance(self.parent, Module):#XXX
             parent_interface = self.parent.get_interface()
-            if self.name in parent_interface:
-                p = parent_interface[self.name]
-                last = p.content.pop()
-                assert isinstance(last,EndInterface),`last.__class__`
-                p.content += self.content
-                p.update_attributes(self.a.attributes)
-            else:
-                parent_interface[self.name] = self
+            # start of KGEN deletion
+#            if self.name in parent_interface:
+#                p = parent_interface[self.name]
+#                last = p.content.pop()
+#                assert isinstance(last,EndInterface),`last.__class__`
+#                p.content += self.content
+#                p.update_attributes(self.a.attributes)
+#            else:
+#                parent_interface[self.name] = self
+            parent_interface.append(self)
+            # end of KGEN deletion
             return
 
     def topyf(self, tab=''):
@@ -669,21 +690,45 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         return '\n'.join(l)
 
     # start of KGEN
-    def tokgen(self, items=None, to_subr=False):
-
+    def tokgen(self):
         construct_name = self.construct_name
         construct_name = construct_name + ': ' if construct_name else ''
 
-        if not items is None:
-            tmpargs = self.args
-            self.args = items
-            outstr = self.get_indent_tab(isfix=False).lstrip() + construct_name + self.tostr(to_subr=to_subr)
-            self.args = tmpargs
-            return self.item.apply_map(outstr)
-        else:
-            return self.get_indent_tab(isfix=None).lstrip() + construct_name + self.tostr(to_subr=to_subr)
-            #return super(SubProgramStatement, self).tokgen()
-    # end of KGEN
+        tosubr = False
+        if hasattr(self, 'tosurb'):
+            tosubr = True
+            del self.tosurb
+
+        if tosubr: clsname = 'SUBROUTINE'
+        elif isinstance(self, Statement): clsname = self.__class__.__name__.upper()
+        else: clsname = self.kgen_match_class.__name__.upper()
+
+        if hasattr(self, 'new_args'):
+            args = self.new_args
+            del self.new_args
+        elif hasattr(self, 'args'): args = self.args
+        else: args = []
+
+        s = ''
+        if hasattr(self, 'prefix') and self.prefix:
+            s += self.prefix + ' '
+        if not tosubr:
+            if isinstance(self, Statement):
+                if hasattr(self, 'typedecl') and self.typedecl is not None:
+                    assert isinstance(self, Function),`self.__class__.__name__`
+                    if not hasattr(self, 'result_in_typedecl') or not self.result_in_typedecl:
+                        s += self.typedecl.tostr() + ' '
+                elif hasattr(self.parent, 'funcresult_in_stmt') and self.name in self.parent.funcresult_in_stmt.keys():
+                    s += self.parent.funcresult_in_stmt[self.name] + ' '
+        s += clsname
+        suf = ''
+        if not tosubr:
+            if hasattr(self, 'result') and self.result and self.result!=self.name:
+                suf += ' RESULT ( %s )' % (self.result)
+        if hasattr(self, 'bind') and self.bind:
+            suf += ' BIND ( %s )' % (', '.join(self.bind))
+
+        return construct_name + '%s %s(%s)%s' % (s, self.name,', '.join(args),suf) 
 
     def process_item(self):
         clsname = self.__class__.__name__.lower()
@@ -720,21 +765,15 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         self.typedecl = None
         return BeginStatement.process_item(self)
 
-    def tostr(self, to_subr=False):
-        # start of KGEN addition
-        if to_subr:
-            clsname = 'SUBROUTINE'
-        else:
-            clsname = self.__class__.__name__.upper()
-        # end of KGEN addition
-        #clsname = self.__class__.__name__.upper() # KGEN deletion
+    def tostr(self):
+        clsname = self.__class__.__name__.upper()
+
         s = ''
-        if self.prefix:
+        if self.prefix: # KGEN deletion
             s += self.prefix + ' '
-        #if self.typedecl is not None: # KGEN deletion
-        if not to_subr: # KGEN addition
+        if self.typedecl is not None: # KGEN deletion
             # start of KGEN addtion
-            if self.typedecl is not None:
+            if hasattr(self, 'typedecl') and self.typedecl is not None:
                 assert isinstance(self, Function),`self.__class__.__name__`
                 if not hasattr(self, 'result_in_typedecl') or not self.result_in_typedecl:
                     s += self.typedecl.tostr() + ' '
@@ -745,11 +784,12 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
         s += clsname
         suf = ''
         #if self.result and self.result!=self.name: # KGEN deletion
-        if not to_subr and self.result and self.result!=self.name: # KGEN addition
+        if self.result and self.result!=self.name: # KGEN addition
             suf += ' RESULT ( %s )' % (self.result)
         if self.bind:
             suf += ' BIND ( %s )' % (', '.join(self.bind))
-        return '%s %s(%s)%s' % (s, self.name,', '.join(self.args),suf)
+
+        return '%s %s(%s)%s' % (s, self.name,', '.join(self.args),suf) # KGEN deletion
 
     def get_classes(self):
         return f2py_stmt + specification_part + execution_part \
@@ -856,13 +896,15 @@ class EndFunction(EndStatement):
 
     match = re.compile(r'end(\s*function\s*\w*|)\Z', re.I).match
 
-    def tokgen(self, to_subr=False):
-        if to_subr:
-            subp_name = 'SUBROUTINE'
-        else:
-            subp_name = 'FUNCTION'
-        return self.get_indent_tab(isfix=None).lstrip() + 'END %s %s'\
-               % (subp_name,self.name or '')
+    def tokgen(self):
+        tosubr = False
+        if hasattr(self, 'tosubr'):
+            tosubr = True
+            del self.tosubr
+
+        if tosubr: subp_name = 'SUBROUTINE'
+        else: subp_name = 'FUNCTION'
+        return 'END %s %s'%(subp_name,self.name or '')
 
 class Function(SubProgramStatement):
     """
@@ -1140,8 +1182,23 @@ class If(BeginStatement):
         # end of KGEN addtion
         #return 'IF (%s) %s' % (self.expr, str(self.content[0]).lstrip()) # KGEN deletion
 
+
     def tofortran(self,isfix=None):
         return self.get_indent_tab(isfix=isfix) + self.tostr()
+
+    def tokgen(self):
+        if hasattr(self, 'action_stmt'):
+            line = self.action_stmt
+        elif hasattr(self, 'content') and len(self.content)==1:
+            line = line = str(self.content[0]).lstrip()
+        else:
+            raise Exception('Wrong If statement syntac')
+
+        # remove label
+        line = self.remove_label(line)
+        line = self.remove_construct_name(line)
+
+        return 'IF (%s) %s' % (self.expr, line)
 
     def get_classes(self):
         return action_stmt
@@ -1172,9 +1229,17 @@ class Do(BeginStatement):
 
     def tostr(self):
         l = ['DO']
-        for part in [self.endlabel, self.loopcontrol]:
-            if part:
-                l.append(str(part))
+    # start of KGEN addition
+        if hasattr(self, 'endlabel') and self.endlabel:
+            l.append(str(self.endlabel))
+        if hasattr(self, 'loopcontrol') and self.loopcontrol:
+            l.append(str(self.loopcontrol))
+    # end of KGEN addition
+    # start of KGEN deletion
+#        for part in [self.endlabel, self.loopcontrol]:
+#            if part:
+#                l.append(str(part))
+    # end of KGEN deletion
         return ' '.join(l)
 
     def process_item(self):
@@ -1466,13 +1531,16 @@ proc_binding_stmt = [SpecificBinding, GenericBinding, FinalBinding]
 
 type_bound_procedure_part = [Contains, Private] + proc_binding_stmt
 
+kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf, Case, ElseWhere, \
+    Read0, Read1 ]# KGEN addition
+
 #R214
-#action_stmt = [ Allocate, GeneralAssignment, Assign, Backspace, Call, Close, # KGEN deletion
-action_stmt = [ Allocate, PointerAssignment, GeneralAssignment, Assignment, Assign, Backspace, Call, Close, # KGEN addition
+action_stmt = [ Allocate, GeneralAssignment, Assign, Backspace, Call, Close,
     Continue, Cycle, Deallocate, Endfile, Exit, Flush, ForallStmt,
     Goto, If, Inquire, Nullify, Open, Print, Read, Return, Rewind,
     Stop, Wait, WhereStmt, Write, ArithmeticIf, ComputedGoto,
-    AssignedGoto, Pause ]
+    AssignedGoto, Pause ] + kgen_added_action_stmt # KGEN addition
+#    AssignedGoto, Pause ] # KGEN deletion
 # GeneralAssignment = Assignment + PointerAssignment
 # EndFunction, EndProgram, EndSubroutine - part of the corresponding blocks
 

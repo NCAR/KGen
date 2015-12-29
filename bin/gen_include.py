@@ -44,7 +44,7 @@ with open(args[0], 'r') as f:
                 else:
                     Config.add_section(item)
                     # may not need include paths
-                    #Config.set(item,'include',':'.join(inclist))
+                    Config.set(item,'include',':'.join(inclist))
                     for name, value in ppvarlist:
                         Config.set(item, name, value)
 

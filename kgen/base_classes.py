@@ -22,10 +22,33 @@ from utils import split_comma, specs_split_comma, is_int_literal_constant
 from utils import classes
 
 #logger = logging.getLogger('fparser') # KGEN deletion
-logger = logging.getLogger('kgen') # KGEN addition
 
-import Fortran2003 # KGEN addition
-from kgen_utils import KGName, Logger, ProgramException # KGEN addition
+# start of KGEN addition
+logger = logging.getLogger('kgen')
+
+import Fortran2003
+from kgen_utils import KGName, Logger, ProgramException
+
+class ImplicitRule_Resolver(object):
+    def __init__(self, name):
+        self.name = name
+
+    def tokgen():
+        return ''
+
+    # save names that this self resolved
+    def add_geninfo(self, uname, request):
+        from ordereddict import OrderedDict
+
+        if uname is None or request is None: return
+
+        if not hasattr(self, 'geninfo'):
+            self.geninfo = OrderedDict()
+        if not self.geninfo.has_key(request.gentype):
+            self.geninfo[request.gentype] = []
+        if (uname, request) not in self.geninfo[request.gentype]:
+            self.geninfo[request.gentype].append((uname, request))
+# end of KGEN addition
 
 class AttributeHolder(object):
     # copied from symbolic.base module
@@ -655,17 +678,18 @@ class Statement(object):
         return line
 
     def tokgen(self):
-        from statements import Comment, Where
+        raise ProgramException('%s should implement tokgen().'%self.__class__)
+#        from statements import Comment, Where
+#
+#        if isinstance(self, Comment):
+#            return self.tofortran().lstrip()
+#        # Temporary fix
+#        elif isinstance(self, Where):
+#            return self.item.line.lstrip()
+#        else:
+#            return self.item.apply_map(self.tofortran().lstrip())
 
-        if isinstance(self, Comment):
-            return self.tofortran().lstrip()
-        # Temporary fix
-        elif isinstance(self, Where):
-            return self.item.line.lstrip()
-        else:
-            return self.item.apply_map(self.tofortran().lstrip())
-
-    def ancestors(self):
+    def ancestors(self, include_beginsource=False):
         from block_statements import BeginSource, HasUseStmt, Type
 
         anc = []
@@ -675,6 +699,9 @@ class Statement(object):
             if isinstance(parent, HasUseStmt) or parent.__class__ in [Type]:
                 anc.append(parent)
             parent = parent.parent
+
+        if include_beginsource:
+            anc.append(parent)
 
         anc.reverse()
         return anc
@@ -688,20 +715,6 @@ class Statement(object):
             if hasattr(self, 'f2003_class'):
                 if hasattr(self.item, 'line') and self.item.line:
                     line = self.tokgen()
-#                    if isinstance(self, SubProgramStatement):
-#                        #line = self.tostr()
-#                        line = self.tokgen()
-#                    else:
-#                        line = self.tokgen()
-#                        if self.item.label and not isinstance(self, Continue):
-#                        #if self.item.label:
-#                            #line = str(self.item.label) +' ' +self.item.line
-#                            line = self.tokgen()
-#                        else:
-#                            #line = self.item.line
-#                            line = self.tokgen()
-#                            #line = self.item.line
-#                        #line = self.item.line
                     is_escape = False
                     cstr = None
                     epos = len(line)
@@ -751,7 +764,7 @@ class Statement(object):
             else:
                 raise ProgramException('Class %s does not have f2003_class attribute.' % self.__class__)
 
-    def set_parent(self, node, depth, extra):
+    def set_parent(self, node, bag, depth):
 
         if hasattr(node, 'item') and node.item and isinstance(node.item, Fortran2003.Base):
             node.item.parent = node
@@ -763,10 +776,10 @@ class Statement(object):
                         if subitem and not isinstance(subitem, str) and \
                             not isinstance(item, list) and not isinstance(item, tuple):
                             subitem.parent = node
-                            self.set_parent(subitem, depth+1, None)
+                            self.set_parent(subitem, bag, depth+1)
                 elif item and  not isinstance(item, str):
                     item.parent = node
-                    self.set_parent(item, depth+1, None)
+                    self.set_parent(item, bag, depth+1)
 
     def expr_by_name(self, name, node=None):
 
@@ -810,10 +823,11 @@ class Statement(object):
 
     def can_resolve(self, request):
         from typedecl_statements import TypeDeclarationStatement
+        from block_statements import SubProgramStatement
 
         if request is None: return False
 
-        # skip if request is maded by this stmt itself
+        # check if request is maded by this stmt itself
         if self is request.originator:
             if isinstance(self, TypeDeclarationStatement):
                 if request.uname.firstpartname() in [ n.split('=')[0].strip() for n in self.entity_decls ]:
@@ -824,30 +838,57 @@ class Statement(object):
         # check if name is matched and self is in resolver classes
         if hasattr(self, 'name') and self.name and \
             self.name.lower()==request.uname.firstpartname() and \
-            self.__class__ in request.resolvers:
+            any( isinstance(self, resolver) for resolver in request.resolvers ):
+            return True
+
+        # check if name is one of dummy args in Subprogram
+        if isinstance(self, SubProgramStatement) and request.uname.firstpartname() in self.args:
             return True
 
         return False
 
     # save names that this self resolved
-    def add_geninfo(self, geninfo):
-        if geninfo is None: return
+    def add_geninfo(self, uname, request):
+        from ordereddict import OrderedDict
 
+        if uname is None or request is None: return
+
+        # Statement
         if not hasattr(self, 'geninfo'):
-            self.geninfo = {}
+            self.geninfo = OrderedDict()
+        if not self.geninfo.has_key(request.gentype):
+            self.geninfo[request.gentype] = []
+        if (uname, request) not in self.geninfo[request.gentype]:
+            self.geninfo[request.gentype].append((uname, request))
 
-        if not self.geninfo.has_key(geninfo.__class__):
-            self.geninfo[geninfo.__class__] = []
+        # EndStatement
+        if isinstance(self, BeginStatement) and isinstance(self.content[-1], EndStatement):
+            if not hasattr(self.content[-1], 'geninfo'):
+                self.content[-1].geninfo = OrderedDict()
+            if not self.content[-1].geninfo.has_key(request.gentype):
+                self.content[-1].geninfo[request.gentype] = []
 
-        if geninfo not in self.geninfo[geninfo.__class__]:
-            self.geninfo[geninfo.__class__].append(geninfo)
+        # Ancestors
+        for anc in self.ancestors(include_beginsource=True):
+            if not hasattr(anc, 'geninfo'):
+                anc.geninfo = OrderedDict()
+            if not anc.geninfo.has_key(request.gentype):
+                anc.geninfo[request.gentype] = []
+            if isinstance(anc, BeginStatement) and isinstance(anc.content[-1], EndStatement):
+                if not hasattr(anc.content[-1], 'geninfo'):
+                    anc.content[-1].geninfo = OrderedDict()
+                if not anc.content[-1].geninfo.has_key(request.gentype):
+                    anc.content[-1].geninfo[request.gentype] = []
 
-    def check_spec_stmts(self, uname, stmt):
-        if not hasattr(self, 'spec_stmts'):
+
+    def check_spec_stmts(self, uname, request):
+        # the last resolver
+        res_stmt = request.res_stmts[-1]
+        if not hasattr(res_stmt, 'parent') or not hasattr(res_stmt.parent, 'spec_stmts'):
             return
 
-        for spec_stmt in self.spec_stmts:
-            spec_stmt.resolve_uname(uname, stmt)
+        for spec_stmt in res_stmt.parent.spec_stmts:
+            spec_stmt.resolve_uname(uname, request)
 
 
     def get_res_stmts(self, uname):
@@ -870,6 +911,7 @@ class Statement(object):
         from typedecl_statements import TypeDeclarationStatement
         from kgen_search import f2003_search_unknowns
         from api import walk
+        from block_statements import SubProgramStatement
 
         if request is None: return
         Logger.info('%s is being resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
@@ -886,8 +928,8 @@ class Statement(object):
                 Logger.info('The request is being resolved by a variable', name=request.uname, stmt=self)
                 request.res_stmts.append(typedecl_stmt)
                 request.state = ResState.RESOLVED
-                typedecl_stmt.add_geninfo(request.uname)
-                self.check_spec_stmts(request.uname, typedecl_stmt)
+                typedecl_stmt.add_geninfo(request.uname, request)
+                self.check_spec_stmts(request.uname, request)
                 Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=typedecl_stmt)
 
                 if not hasattr(typedecl_stmt, 'unknowns'):
@@ -896,10 +938,18 @@ class Statement(object):
                     for unk, req in typedecl_stmt.unknowns.iteritems():
                         if req.state != ResState.RESOLVED:
                             typedecl_stmt.resolve(req) 
-
+            elif isinstance(self, SubProgramStatement):
+                if not hasattr(self, 'implicit_rule_resolvers'): self.implicit_rule_resolvers = []
+                irres = ImplicitRule_Resolver(request.uname.firstpartname())
+                irres.add_geninfo(request.uname, request)
+                self.implicit_rule_resolvers.append(irres)
+                request.res_stmts.append(irres)
+                request.state = ResState.RESOLVED
+                Logger.info('%s is resolved by Subprogram %s using implicit rules'%(request.uname.firstpartname(), self.name), \
+                    name=request.uname, stmt=self)
             else:
                 Logger.info('%s can be resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
-                raise Exception('This request should have been resolved by this stmt.')
+                raise Exception('This request should have been resolved by the stmt shown below.\n%s'%self.tokgen())
 
         # ask parent for resolution
         if request.state != ResState.RESOLVED:
@@ -921,8 +971,8 @@ class Statement(object):
                             if unit not in request.originator.ancestors():
                                 request.res_stmts.append(unit)
                                 request.state = ResState.RESOLVED
-                                unit.add_geninfo(request.uname)
-                                self.check_spec_stmts(request.uname, unit)
+                                unit.add_geninfo(request.uname, request)
+                                self.check_spec_stmts(request.uname, request)
                                 Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=unit)
                                 for _stmt, _depth in walk(unit, -1):
                                     if not hasattr(_stmt, 'unknowns'):
@@ -932,16 +982,27 @@ class Statement(object):
                                             if req.state != ResState.RESOLVED:
                                                 _stmt.resolve(req) 
 
-                                # if newly found program unit is not in depfiles
-                                if not unit in State.depfiles[self.top.reader.id][2]:
-                                    State.depfiles[self.top.reader.id][2].append(unit)
+                                # if newly found program unit is not in srcfiles
+                                if not unit in State.srcfiles[self.top.reader.id][2]:
+                                    State.srcfiles[self.top.reader.id][2].append(unit)
                     if request.state==ResState.RESOLVED:
                         break
 
                 # tries to apply implicit rules
                 if request.state != ResState.RESOLVED:
-                    Logger.info('Parent could not resolve %s and the request is being resolved using implicit rules'%request.uname.firstpartname(), \
-                        name=request.uname, stmt=self)
+                    mytype = self.get_type(request.uname.firstpartname())
+                    for resolver in request.resolvers:
+                        if isinstance(mytype, resolver):
+                            anc = self.ancestors()
+                            if not hasattr(anc[-1], 'implicit_rule_resolvers'): anc[-1].implicit_rule_resolvers = []
+                            irres = ImplicitRule_Resolver(request.uname.firstpartname())
+                            irres.add_geninfo(request.uname, request)
+                            anc[-1].implicit_rule_resolvers.append(irres)
+                            request.res_stmts.append(irres)
+                            request.state = ResState.RESOLVED
+                            Logger.info('%s is resolved using implicit rules'%request.uname.firstpartname(), name=request.uname, stmt=self)
+                            break
+                    #import pdb; pdb.set_trace()
                     # TODO: check against implicit_rules of parent
                     # TODO: mark implicit resolution in ResState
 
@@ -991,6 +1052,17 @@ class BeginStatement(Statement):
         return
 
     # start of KGEN
+    def check_access(self, req):
+
+        ancs = req.originator.ancestors()
+        if self in ancs: return True
+
+        if not hasattr(self, 'check_private'): return False
+
+        uname = req.uname.firstpartname()
+        if self.check_private(uname): return False
+        else: return True
+
     def resolve(self, request):
         from kgen_state import ResState
         from kgen_search import f2003_search_unknowns
@@ -999,6 +1071,7 @@ class BeginStatement(Statement):
         from typedecl_statements import TypeDeclarationStatement
         from statements import External, Use, SpecificBinding
         from api import walk
+        from block_statements import SubProgramStatement
 
         if request is None: return
 
@@ -1019,18 +1092,43 @@ class BeginStatement(Statement):
                     subp = self.a.internal_subprogram[request.uname.firstpartname()]
                 elif hasattr(self.a, 'module_subprogram') and request.uname.firstpartname() in self.a.module_subprogram.keys():
                     subp = self.a.module_subprogram[request.uname.firstpartname()]
-                elif hasattr(self.a, 'module_interface') and request.uname.firstpartname() in self.a.module_interface.keys():
-                    subp = self.a.module_interface[request.uname.firstpartname()]
+                elif hasattr(self.a, 'module_interface'):
+                    for if_stmt in self.a.module_interface:
+                        if request.uname.firstpartname()==if_stmt.name:
+                            subp = if_stmt
+                            break
 
                 if subp and any( isinstance(subp, resolver) for resolver in request.resolvers ):
-                    # skip recursive call - NEED TO CHECK
                     Logger.info('The request is being resolved by a subprogram or interface', name=request.uname, stmt=self)
+                    request.res_stmts.append(subp)
+                    request.state = ResState.RESOLVED
+                    subp.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
+
                     if subp not in request.originator.ancestors():
-                        request.res_stmts.append(subp)
-                        request.state = ResState.RESOLVED
-                        subp.add_geninfo(request.uname)
-                        self.check_spec_stmts(request.uname, subp)
-                        Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
+                        for _stmt, _depth in walk(subp, -1):
+                            if not hasattr(_stmt, 'unknowns'):
+                                f2003_search_unknowns(_stmt, _stmt.f2003)
+                            if hasattr(_stmt, 'unknowns'):
+                                for unk, req in _stmt.unknowns.iteritems():
+                                    if req.state != ResState.RESOLVED:
+                                        _stmt.resolve(req) 
+
+            if request.state != ResState.RESOLVED:
+                subp = None
+                if isinstance(self, SubProgramStatement) and request.uname.firstpartname()==self.name:
+                    subp = self
+
+                if subp and any( isinstance(subp, resolver) for resolver in request.resolvers ):
+                    Logger.info('The request is being resolved by a subprogram or interface', name=request.uname, stmt=self)
+                    request.res_stmts.append(subp)
+                    request.state = ResState.RESOLVED
+                    subp.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=subp)
+
+                    if subp not in request.originator.ancestors():
                         for _stmt, _depth in walk(subp, -1):
                             if not hasattr(_stmt, 'unknowns'):
                                 f2003_search_unknowns(_stmt, _stmt.f2003)
@@ -1042,7 +1140,7 @@ class BeginStatement(Statement):
             # check if subprogram stmt in Interface block can resolve
             if request.state != ResState.RESOLVED and isinstance(request.originator, SpecificBinding) and \
                 hasattr(self.a, 'module_interface') and Interface in request.resolvers:
-                for if_name, if_obj in self.a.module_interface.iteritems():
+                for if_obj in self.a.module_interface:
                     if if_obj.isabstract:
                         for item in if_obj.content:
                             if item.__class__ in [ Function, Subroutine ] and request.uname.firstpartname()==item.name:
@@ -1050,10 +1148,9 @@ class BeginStatement(Statement):
                                     name=request.uname, stmt=self)
                                 request.res_stmts.append(item)
                                 request.state = ResState.RESOLVED
-                                item.add_geninfo(request.uname)
-                                self.check_spec_stmts(request.uname, item)
+                                item.add_geninfo(request.uname, request)
+                                self.check_spec_stmts(request.uname, request)
                                 Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=item)
-
                                 for _stmt, _depth in walk(item, -1):
                                     if not hasattr(_stmt, 'unknowns'):
                                         f2003_search_unknowns(_stmt, _stmt.f2003)
@@ -1070,8 +1167,8 @@ class BeginStatement(Statement):
                     Logger.info('The request is being resolved by a typedecl', name=request.uname, stmt=self)
                     request.res_stmts.append(type_stmt)
                     request.state = ResState.RESOLVED
-                    type_stmt.add_geninfo(request.uname)
-                    self.check_spec_stmts(request.uname, type_stmt)
+                    type_stmt.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
                     Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=type_stmt)
 
                     for _stmt, _depth in walk(type_stmt, -1):
@@ -1096,8 +1193,8 @@ class BeginStatement(Statement):
                     Logger.info('The request is being resolved by a variable', name=request.uname, stmt=self)
                     request.res_stmts.append(typedecl_stmt)
                     request.state = ResState.RESOLVED
-                    typedecl_stmt.add_geninfo(request.uname)
-                    self.check_spec_stmts(request.uname, typedecl_stmt)
+                    typedecl_stmt.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
                     Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=typedecl_stmt)
 
                     if not hasattr(typedecl_stmt, 'unknowns'):
@@ -1117,8 +1214,8 @@ class BeginStatement(Statement):
                     Logger.info('The request is being resolved by a common stmt', name=request.uname, stmt=self)
                     request.res_stmts.append(common_stmt)
                     request.state = ResState.RESOLVED
-                    common_stmt.add_geninfo(request.uname)
-                    #self.check_spec_stmts(request.uname, request.res_stmt)
+                    common_stmt.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
                     Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=common_stmt)
 
                     if not hasattr(common_stmt, 'unknowns'):
@@ -1134,7 +1231,8 @@ class BeginStatement(Statement):
                 external_stmt = self
                 request.res_stmts.append(external_stmt)
                 request.state = ResState.RESOLVED
-                external_stmt.add_geninfo(request.uname)
+                external_stmt.add_geninfo(request.uname, request)
+                self.check_spec_stmts(request.uname, request)
                 Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=external_stmt)
 
             # check if use stmt can resolve
@@ -1148,28 +1246,28 @@ class BeginStatement(Statement):
                     for mod_name, use_stmts in self.use_stmts.iteritems():
                         for use_stmt in use_stmts:
                             if use_stmt.isonly:
-                                if uname in use_stmt.norenames:
+                                if uname in use_stmt.norenames and self.check_access(request):
                                     Logger.info('%s is found in norenames'%uname, name=request.uname, stmt=self)
                                     use_stmt.resolve(request)
                                     if request.state == ResState.RESOLVED:
                                         Logger.info('%s is resolved in norenames'%uname, name=request.uname, stmt=self)
                                         request.res_stmts.append(use_stmt)
-                                        use_stmt.add_geninfo(request.uname)
-                                        self.check_spec_stmts(request.uname, use_stmt)
+                                        use_stmt.add_geninfo(request.uname, request)
+                                        self.check_spec_stmts(request.uname, request)
                                         break
 
                                 rename = [r for r in use_stmt.renames if r[0]==uname]
                                 if len(rename)>1:
                                     raise ProgramException('More than one result: %s'%str(rename))
-                                elif len(rename)==1:
+                                elif len(rename)==1 and self.check_access(request):
                                     newname = KGName(pack_exnamepath(request.originator, rename[0][1]), node=use_stmt.f2003, stmt=use_stmt)
                                     request.push_uname(newname)
                                     use_stmt.resolve(request)
                                     if request.state == ResState.RESOLVED:
                                         request.pop_uname(reset_uname=True)
                                         request.res_stmts.append(use_stmt)
-                                        use_stmt.add_geninfo(request.uname)
-                                        self.check_spec_stmts(request.uname, use_stmt)
+                                        use_stmt.add_geninfo(request.uname, request)
+                                        self.check_spec_stmts(request.uname, request)
                                         break
                                     else:
                                         request.pop_uname()
@@ -1181,30 +1279,27 @@ class BeginStatement(Statement):
                         for mod_name, use_stmts in self.use_stmts.iteritems():
                             for use_stmt in use_stmts:
                                 if not use_stmt.isonly:
-                                    if uname in use_stmt.norenames:
+                                    if uname in use_stmt.norenames and self.check_access(request):
                                         use_stmt.resolve(request)
                                         if request.state == ResState.RESOLVED:
                                             request.res_stmts.append(use_stmt)
-                                            use_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, use_stmt)
+                                            use_stmt.add_geninfo(request.uname, request)
+                                            self.check_spec_stmts(request.uname, request)
                                             break
 
                                     rename = [r for r in use_stmt.renames if r[0]==uname]
                                     if len(rename)>1:
                                         raise ProgramException('More than one result: %s'%str(rename))
-                                    elif len(rename)==1:
+                                    elif len(rename)==1 and self.check_access(request):
                                         newname = KGName(pack_exnamepath(request.originator, rename[0][1]), node=use_stmt.f2003, stmt=use_stmt)
                                         request.push_uname(newname)
                                         use_stmt.resolve(request)
 
-                                        #request.uname.set_name(rename[0][1])
-                                        #use_stmt.resolve(request)
-                                        #request.uname.reset_name()
                                         if request.state == ResState.RESOLVED:
                                             request.pop_uname(reset_uname=True)
                                             request.res_stmts.append(use_stmt)
-                                            use_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, use_stmt)
+                                            use_stmt.add_geninfo(request.uname, request)
+                                            self.check_spec_stmts(request.uname, request)
                                             break
                                         else:
                                             request.pop_uname()
@@ -1219,8 +1314,8 @@ class BeginStatement(Statement):
 #                                        use_stmt.resolve(request)
 #                                        if request.state == ResState.RESOLVED:
 #                                            request.res_stmt = use_stmt
-#                                            request.res_stmt.add_geninfo(request.uname)
-#                                            self.check_spec_stmts(request.uname, request.res_stmt)
+#                                            request.res_stmt.add_geninfo(request.uname, request)
+#                                            self.check_spec_stmts(request.uname, request)
 #                                            break
 #
 #                                    rename = [r for r in use_stmt.renames if r[0]==uname]
@@ -1232,8 +1327,8 @@ class BeginStatement(Statement):
 #                                        request.uname.reset_name()
 #                                        if request.state == ResState.RESOLVED:
 #                                            request.res_stmt = use_stmt
-#                                            request.res_stmt.add_geninfo(request.uname)
-#                                            self.check_spec_stmts(request.uname, request.res_stmt)
+#                                            request.res_stmt.add_geninfo(request.uname, request)
+#                                            self.check_spec_stmts(request.uname, request)
 #                                            break
 #                            if request.state==ResState.RESOLVED: break
 
@@ -1243,12 +1338,12 @@ class BeginStatement(Statement):
                         for mod_name, use_stmts in self.use_stmts.iteritems():
                             for use_stmt in use_stmts:
                                 if not use_stmt.isonly:
-                                    if len(use_stmt.norenames)==0 and len(use_stmt.renames)==0:
+                                    if len(use_stmt.norenames)==0 and len(use_stmt.renames)==0 and self.check_access(request):
                                         use_stmt.resolve(request)
                                         if request.state == ResState.RESOLVED:
                                             request.res_stmts.append(use_stmt)
-                                            use_stmt.add_geninfo(request.uname)
-                                            self.check_spec_stmts(request.uname, use_stmt)
+                                            use_stmt.add_geninfo(request.uname, request)
+                                            self.check_spec_stmts(request.uname, request)
                                             break
                             if request.state==ResState.RESOLVED: break
 
@@ -1260,8 +1355,8 @@ class BeginStatement(Statement):
                     Logger.info('The request is being resolved by a typedecl', name=request.uname, stmt=self)
                     request.res_stmts.append(type_stmt)
                     request.state = ResState.RESOLVED
-                    type_stmt.add_geninfo(request.uname)
-                    self.check_spec_stmts(request.uname, type_stmt)
+                    type_stmt.add_geninfo(request.uname, request)
+                    self.check_spec_stmts(request.uname, request)
                     Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=type_stmt)
 
                     #if self not in request.originator.ancestors():
@@ -1282,8 +1377,10 @@ class BeginStatement(Statement):
     def tokgen(self):
         construct_name = self.construct_name
         construct_name = construct_name + ': ' if construct_name else ''
-        return self.get_indent_tab(isfix=False).lstrip() + construct_name + self.item.apply_map(self.tostr())
-
+        if hasattr(self, 'item') and hasattr(self.item, 'apply_map'):
+            return construct_name + self.item.apply_map(self.tostr())
+        else:
+            return construct_name + self.tostr()
     # end of KGEN
 
     def tostr(self):
@@ -1516,3 +1613,8 @@ class EndStatement(Statement):
     def tofortran(self, isfix=None):
         return self.get_indent_tab(isfix=isfix) + 'END %s %s'\
                % (self.blocktype.upper(),self.name or '')
+
+    # start of KGEN addition
+    def tokgen(self):
+        return 'END %s %s' % (self.blocktype.upper(),self.name or '')
+    # end of KGEN addition

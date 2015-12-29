@@ -5,5 +5,5 @@
 FC := ifort
 
 TEST_ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))) 2>/dev/null)/..
-KGEN_ROOT := ${TEST_ROOT}/../kgen
+KGEN_ROOT := ${TEST_ROOT}/..
 

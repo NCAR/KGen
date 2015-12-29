@@ -3,6 +3,7 @@
 import sys
 import os.path
 from kgen_utils import Logger, Config, traverse, UserException
+from kgen_state import State
 from readfortran import FortranFileReader
 from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
     NoMatchError, Module_Stmt, Program_Stmt
@@ -11,13 +12,13 @@ exclude_list = [ Module_Stmt, Program_Stmt ]
 not_supported = {}
 not_parsed = {}
 
-def get_MPI_COMM_WORLD(node, depth, extra):
+def get_MPI_COMM_WORLD(node, bag, depth):
     if isinstance(node, Type_Declaration_Stmt):
         if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string=='MPI_COMM_WORLD':
             pass
     elif isinstance(node, Parameter_Stmt):
         if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string=='MPI_COMM_WORLD':
-            extra.append(node.items[1].items[1].items[0])
+            bag.append(node.items[1].items[1].items[0])
 
 def check_mode():
     from kgen_utils import Config, exec_cmd
@@ -99,7 +100,7 @@ def check_mode():
 
                 stmt.parse_f2003()
                 if stmt.f2003.__class__ not in exclude_list:
-                    f2003_search_unknowns(stmt, stmt.f2003) 
+                    f2003_search_unknowns(stmt, stmt.f2003, gentype=KGGenType.KERNEL) 
             except (NoMatchError, AttributeError) as e:
                 if file not in not_parsed:
                     not_parsed[file] = []
@@ -179,7 +180,7 @@ def preprocess():
                 reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
                 spec = Specification_Part(reader)
                 comm = []
-                traverse(spec, get_MPI_COMM_WORLD, comm, attr='content')
+                traverse(spec, get_MPI_COMM_WORLD, comm, subnode='content')
                 if comm:
                     Config.mpi['comm'] = comm[-1]
                 else:
@@ -188,14 +189,16 @@ def preprocess():
                 raise UserException('Can not find mpif.h. Please provide a path to the file')
 
         # parse imported source files through include.ini
-        for path, flags in Config.include['import'].iteritems(): 
-            if flags.has_key('source') and flags['source'] is None:
-                flags['source'] = SrcFile(path)
+        for path, import_type in Config.include['import'].iteritems(): 
+            if 'source'==import_type:
+                State.imported['source'].append(SrcFile(path))
 
 def postprocess():
     # TODO: display summary for kernel generation
     from kgen_utils import exec_cmd
 
     # copy object files into kernel folder 
-    for obj in Config.kernel_link['obj']:
-        exec_cmd('cp -f %s %s'%(obj, Config.path['kernel']))
+    if Config.include.has_key('import'):
+        for path, import_type in Config.include['import'].iteritems():
+            if 'object'==import_type:
+                exec_cmd('cp -f %s %s'%(path, Config.path['kernel']))

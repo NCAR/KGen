@@ -7,6 +7,7 @@ import sys
 from copy import deepcopy
 from Fortran2003 import Name, Data_Ref
 from ConfigParser import RawConfigParser
+from ordereddict import OrderedDict
 
 #############################################################################
 ## COMMON
@@ -150,34 +151,47 @@ def match_namepath(pattern, namepath, internal=True):
 def singleton(cls):
     """ singleton generator """
 
-    instances = {}
+    instances = OrderedDict()
     def get_instance():
         if cls not in instances:
             instances[cls] = cls()
         return instances[cls]
     return get_instance()
 
-def exec_cmd(cmd, show_error_msg=True):
+def exec_cmd(cmd, show_error_msg=True, input=None):
     import subprocess
 
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out = proc.stdout.read()
+    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    out, err = proc.communicate(input=input)
+
     ret_code = proc.wait()
     if ret_code != 0 and show_error_msg:
-        cmd_out, cmd_err = proc.communicate()
         print '>> %s' % cmd
-        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(cmd_out)+'\n ERROR: '+str(cmd_err)+'\n'
+        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n'
+
     return out
 
-def traverse(node, func, extra, attr='items', prerun=True, depth=0):
-    if prerun and func is not None:
-        func(node, depth, extra)
+# traverse f2003 nodes
+# traverse and func will return None if to continue processing
+# traverse and func will return return code if to stop processing
+# The return code will be forwarded to initial caller
+# func will collect anything in bag during processing
+def traverse(node, func, bag, subnode='items', prerun=True, depth=0):
+    ret = None
 
-    if node and hasattr(node, attr) and getattr(node, attr):
-            exec('for child in node.%s: traverse(child, func, extra, attr=attr, prerun=prerun, depth=depth+1)' % attr)
+    if prerun and func is not None:
+        ret = func(node, bag, depth)
+        if ret is not None: return ret
+
+    if node and hasattr(node, subnode) and getattr(node, subnode):
+            exec('for child in node.%s: ret = traverse(child, func, bag, subnode=subnode, prerun=prerun, depth=depth+1)' % subnode)
 
     if not prerun and func is not None:
-        func(node, depth, extra)
+        ret = func(node, bag, depth)
+        if ret is not None: return ret
+
+    return ret
 
 def get_subtree(obj, tree, prefix='top', depth=0):
     tab = '    '
@@ -258,6 +272,88 @@ class KgenConfigParser(RawConfigParser):
             self._read(buf, filename)
 
 #############################################################################
+## RESOLUTION TYPE
+#############################################################################
+
+class KGGenType(object):
+    STATE_IN = 0x2
+    STATE_OUT = 0x3
+
+    @classmethod
+    def is_state_in(cls, value):
+        return cls.STATE_IN == value
+
+    @classmethod
+    def is_state_out(cls, value):
+        return cls.STATE_OUT == value
+
+    @classmethod
+    def is_state(cls, value):
+        return cls.is_state_in(value) or cls.is_state_out(value)
+
+    @classmethod
+    def has_state_in(cls, geninfo):
+        return geninfo.has_key(cls.STATE_IN)
+
+    @classmethod
+    def has_state_out(cls, geninfo):
+        return geninfo.has_key(cls.STATE_OUT)
+
+    @classmethod
+    def has_state(cls, geninfo):
+        return cls.has_state_in(geninfo) or cls.has_state_out(geninfo)
+
+    @classmethod
+    def get_state_in(cls, geninfo):
+        return geninfo.get(cls.STATE_IN, [])
+
+    @classmethod
+    def get_state_out(cls, geninfo):
+        return geninfo.get(cls.STATE_OUT, [])
+
+    @classmethod
+    def get_state(cls, geninfo):
+        state = cls.get_state_in(geninfo)
+        #state = cls.get_state_in_inout(geninfo)
+        for uname, req in cls.get_state_out(geninfo):
+            if all(not uname==u for u, r in state):
+                state.append((uname, req))
+        return state
+
+    @classmethod
+    def get_request_in(cls, uname, geninfo):
+        if cls.has_state_in(geninfo):
+            for sin_uname, req in cls.get_state_in(geninfo):
+                if uname==sin_uname: return req
+
+    @classmethod
+    def get_request_out(cls, uname, geninfo):
+        if cls.has_state_out(geninfo):
+            for sout_uname, req in cls.get_state_out(geninfo):
+                if uname==sout_uname: return req
+
+    @classmethod
+    def get_request(cls, uname, geninfo):
+        if cls.has_state(geninfo):
+            for s_uname, req in cls.get_state(geninfo):
+                if uname==s_uname: return req
+
+    @classmethod
+    def has_uname_in(cls, uname, geninfo):
+        if cls.get_request_in(uname, geninfo): return True
+        else: return False
+
+    @classmethod
+    def has_uname_out(cls, uname, geninfo):
+        if cls.get_request_out(uname, geninfo): return True
+        else: return False
+
+    @classmethod
+    def has_uname(cls, uname, geninfo):
+        if cls.get_request(uname, geninfo): return True
+        else: return False
+
+#############################################################################
 ## EXCEPTION
 #############################################################################
 
@@ -288,19 +384,20 @@ def process_include_option(include_option, incattrs):
                 incattrs[lsection][option] = Inc.get(section, option).strip()
         elif lsection=='import':
             for option in Inc.options(section):
-                subflags = {}
-                for subf in Inc.get(section, option).split(','):
-                    subflags[subf.strip()] = None
-                incattrs[lsection][option] = subflags
+                incattrs[lsection][option] = Inc.get(section, option).strip()
+#                subflags = OrderedDict()
+#                for subf in Inc.get(section, option).split(','):
+#                    subflags[subf.strip()] = None
+#                incattrs[lsection][option] = subflags
         elif lsection=='include':
             for option in Inc.options(section):
                 incattrs['path'].append(option.strip())
         elif os.path.isfile(section):
             abspath = os.path.abspath(section)
             if not incattrs['file'].has_key(abspath):
-                incattrs['file'][abspath] = {}
-                incattrs['file'][abspath]['path'] = []
-                incattrs['file'][abspath]['macro'] = {}
+                incattrs['file'][abspath] = OrderedDict()
+                incattrs['file'][abspath]['path'] = ['.']
+                incattrs['file'][abspath]['macro'] = OrderedDict()
             for option in Inc.options(section):
                 if option=='include':
                     pathlist = Inc.get(section, option).split(':')
@@ -322,10 +419,23 @@ def process_exclude_option(exclude_option, excattrs):
             print 'ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead'
             sys.exit(-1)
 
-        excattrs[lsection] = {}
+        excattrs[lsection] = OrderedDict()
         for option in Exc.options(section):
             loption = option.lower().strip()
             excattrs[lsection][loption] = Exc.get(section, option).strip().split('=')
+
+def get_exclude_actions( section_name, *args ):
+    if section_name=='namepath':
+        if len(args)<1: return []
+
+        if section_name in Config.exclude:
+            options = Config.exclude[section_name]
+            for pattern, actions in options.iteritems():
+                if match_namepath(pattern, args[0]):
+                    return actions
+        return []
+    else:
+        UserException('Not supported section name in exclusion input file: %s'%section)
 
 @singleton
 class Config(object):
@@ -335,53 +445,54 @@ class Config(object):
         import optparse
 
         # setup config parameters
-        self._attrs = {}
+        self._attrs = OrderedDict()
 
         # KGEN operation mode
         self._attrs['check_mode'] = False
 
         # kgen parameters
-        self._attrs['kgen'] = {}
-        self._attrs['kgen']['version'] = [ 0, 5, '3' ]
-
-        # Fortran parameters
-        self._attrs['fort'] = {}
-        self._attrs['fort']['maxlinelen'] = 134
+        self._attrs['kgen'] = OrderedDict()
+        self._attrs['kgen']['version'] = [ 0, 6, '0' ]
+#
+#        # Fortran parameters
+#        self._attrs['fort'] = OrderedDict()
+#        self._attrs['fort']['maxlinelen'] = 134
 
         # logging parameters
-        self._attrs['logging'] = {}
-        self._attrs['logging']['select'] = {}
+        self._attrs['logging'] = OrderedDict()
+        self._attrs['logging']['select'] = OrderedDict()
 
         # callsite parameters
-        self._attrs['callsite'] = {}
-        self._attrs['callsite']['filename'] = ''
-        self._attrs['callsite']['subpname'] = ''
-        self._attrs['callsite']['lineafter'] = -1
-
+        self._attrs['callsite'] = OrderedDict()
+        self._attrs['callsite']['filepath'] = ''
+        self._attrs['callsite']['span'] = (-1, -1)
+        self._attrs['callsite']['namepath'] = ''
+#        self._attrs['callsite']['lineafter'] = -1
+#
         # external tool parameters
-        self._attrs['bin'] = {}
-        self._attrs['bin']['pp'] = 'fpp'
+        self._attrs['bin'] = OrderedDict()
+        self._attrs['bin']['pp'] = 'cpp'
         self._attrs['bin']['cpp_flags'] = '-w -traditional'
         self._attrs['bin']['fpp_flags'] = '-w'
-
-        # test parameters
-        self._attrs['test'] = {}
-        self._attrs['test']['suite'] = ''
+#
+#        # test parameters
+#        self._attrs['test'] = OrderedDict()
+#        self._attrs['test']['suite'] = ''
 
         # search parameters
-        self._attrs['search'] = {}
+        self._attrs['search'] = OrderedDict()
         self._attrs['search']['skip_intrinsic'] = True
         self._attrs['search']['except'] = []
         self._attrs['search']['promote_exception'] = False
 
         # path parameters
-        self._attrs['path'] = {}
+        self._attrs['path'] = OrderedDict()
         self._attrs['path']['outdir'] = '.'
         self._attrs['path']['state'] = 'state'
         self._attrs['path']['kernel'] = 'kernel'
 
         # mpi parameters
-        self._attrs['mpi'] = {}
+        self._attrs['mpi'] = OrderedDict()
         self._attrs['mpi']['enabled'] = False
         self._attrs['mpi']['ranks'] = [ '0' ]
         self._attrs['mpi']['size'] = len(self._attrs['mpi']['ranks'])
@@ -390,70 +501,71 @@ class Config(object):
         self._attrs['mpi']['use_stmts'] = []
 
         # invocation parameters
-        self._attrs['invocation'] = {}
+        self._attrs['invocation'] = OrderedDict()
         self._attrs['invocation']['numbers'] = [ '1' ]
         self._attrs['invocation']['size'] = len(self._attrs['invocation']['numbers'])
 
         # timing parameters
-        self._attrs['timing'] = {}
-        self._attrs['timing']['repeat'] = 10
+        self._attrs['timing'] = OrderedDict()
+        self._attrs['timing']['repeat'] = '10'
 
         # source file parameters
-        self._attrs['source'] = {}
+        self._attrs['source'] = OrderedDict()
         self._attrs['source']['isfree'] = None
         self._attrs['source']['isstrict'] = None
-        self._attrs['source']['alias'] = {}
-        self._attrs['source']['file'] = {}
+        self._attrs['source']['alias'] = OrderedDict()
+        self._attrs['source']['file'] = OrderedDict()
 
         # verification parameters
-        self._attrs['verify'] = {}
+        self._attrs['verify'] = OrderedDict()
         self._attrs['verify']['tolerance'] = '1.E-14'
-        self._attrs['verify']['verboselevel'] = 1
+        self._attrs['verify']['verboselevel'] = '1'
 
         # include parameters
-        self._attrs['include'] = {}
-        self._attrs['include']['macro'] = {}
+        self._attrs['include'] = OrderedDict()
+        self._attrs['include']['macro'] = OrderedDict()
         self._attrs['include']['path'] = ['.']
-        self._attrs['include']['type'] = {}
-        self._attrs['include']['import'] = {}
-        self._attrs['include']['file'] = {}
+        self._attrs['include']['type'] = OrderedDict()
+        self._attrs['include']['import'] = OrderedDict()
+        self._attrs['include']['file'] = OrderedDict()
 
         # exclude parameters
-        self._attrs['exclude'] = {}
+        self._attrs['exclude'] = OrderedDict()
 
         # make kernel parameters
-        self._attrs['kernel_compile'] = {}
+        self._attrs['kernel_compile'] = OrderedDict()
         self._attrs['kernel_compile']['FC'] = 'ifort'
         self._attrs['kernel_compile']['FC_FLAGS'] = ''
 
-        self._attrs['kernel_link'] = {}
-        self._attrs['kernel_link']['include'] = []
-        self._attrs['kernel_link']['pre_cmds'] = []
-        self._attrs['kernel_link']['lib'] = []
-        self._attrs['kernel_link']['obj'] = []
+##        self._attrs['kernel_link'] = OrderedDict()
+##        self._attrs['kernel_link']['include'] = []
+##        self._attrs['kernel_link']['pre_cmds'] = []
+##        self._attrs['kernel_link']['lib'] = []
+##        self._attrs['kernel_link']['obj'] = []
 
         # make state parameters
-        self._attrs['state_build'] = {}
+        self._attrs['state_build'] = OrderedDict()
         self._attrs['state_build']['cmds'] = ''
-        self._attrs['state_run'] = {}
+        self._attrs['state_run'] = OrderedDict()
         self._attrs['state_run']['cmds'] = ''
-        self._attrs['state_switch'] = {}
+        self._attrs['state_switch'] = OrderedDict()
         self._attrs['state_switch']['type'] = 'replace'
         self._attrs['state_switch']['cmds'] = ''
 
         # kernel correctness check parameters
-        self._attrs['check'] = {}
+        self._attrs['check'] = OrderedDict()
         #self._attrs['check']['pert_invar'] = ['*']
         self._attrs['check']['pert_invar'] = []
         self._attrs['check']['pert_lim'] = '1.0E-15'
 
         # debugging parameters
-        self._attrs['debug'] = {}
+        self._attrs['debug'] = OrderedDict()
         self._attrs['debug']['printvar'] = []
 
         # parsing arguments
         usage = "usage: %prog [options] call-site"
-        parser = optparse.OptionParser(usage=usage)
+
+        parser = optparse.OptionParser(usage=usage, version='KGEN version %d.%d.%s'%tuple(self._attrs['kgen']['version']))
         parser.add_option("-s", "--syntax-check", dest="syntax_check", action='store_true', default=False, help="KGEN Syntax Check Mode")
         parser.add_option("-i", "--include-ini", dest="include_ini", action='store', type='string', default=None, help="information used for analysis")
         parser.add_option("-e", "--exclude-ini", dest="exclude_ini", action='store', type='string', default=None, help="information excluded for analysis")
@@ -463,18 +575,20 @@ class Config(object):
         parser.add_option("--invocation", dest="invocation", action='store', type='string', default=None, help="Nth invocation of kernel for data collection")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
+#	parser.add_option("--verify", dest="verify", action='store', type='string', default=None, help="Kernel variables verification information")
         parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
         parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
-        parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
+#        parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
         parser.add_option("--state-switch", dest="state_switch", action='append', type='string', help="Specifying how to switch orignal sources with instrumented ones.")
         parser.add_option("--state-build", dest="state_build", action='append', type='string', help="Build information to generate makefile")
         parser.add_option("--state-run", dest="state_run", action='append', type='string', help="Run information to generate makefile")
         parser.add_option("--check", dest="check", action='append', type='string', help="Kernel correctness check information")
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
+        parser.add_option("--verbose", dest="verbose_level", action='store', type='int', help='Set the verbose level for verification output')
 
         opts, args = parser.parse_args()
         if len(args)<1:
@@ -499,84 +613,32 @@ class Config(object):
             print 'ERROR: %s can not be found.' % callsite[0]
             sys.exit(-1)
 
-        # set callsite filename
-        self.callsite['filename'] = callsite[0]
+        # set callsite filepath
+        self.callsite['filepath'] = callsite[0]
 
-        # read directives from source file
-        self.process_directives(callsite[0])
-
-        # set subpname if exists in command line argument
+        # set namepath if exists in command line argument
         if len(callsite)==2:
-            self.callsite['subpname'] = KGName(callsite[1])
+            self.callsite['namepath'] = callsite[1]
         elif len(callsite)>2:
-            print 'ERROR: Unrecognized call-site information(Syntax -> filename[:subprogramname]): %s'%str(callsite)
+            print 'ERROR: Unrecognized call-site information(Syntax -> filepath[:subprogramname]): %s'%str(callsite)
             sys.exit(-1)
 
         # read options from command line. overwrite settings from directives
         self.process_commandline(opts)
 
-    def process_directives(self, filename):
-
-        # collect directives
-        directs = {}
-        with open(filename, 'rb') as f:
-            continued = False
-            buf = ''
-            lineno_start = -1
-            for i, line in enumerate(f.readlines()):
-                if len(line)==0: continue
-
-                if continued:
-                    match_kgenc = re.match(r'^[c!*]\$kgen&\s+(.+)$', line.strip(), re.IGNORECASE)
-                    if match_kgenc:
-                        line = match_kgenc.group(1).rstrip()
-                        if line[-1]=='&':
-                            buf += line[:-1]
-                        else:
-                            buf += line
-                            match_direct = re.match(r'^(\w[\w\d]*)\s+(.+)$', buf.strip(), re.IGNORECASE)
-                            if match_direct:
-                                directs[(lineno_start, i)] = (match_direct.group(1), match_direct.group(2))
-
-                            lineno_start = -1
-                            continued = False
-                            buf = ''
-                    else:
-                        print 'ERROR: KGEN directive syntax error: %s'%line
-                        sys.exit(-1)
-                else:
-                    match_kgen = re.match(r'^[c!*]\$kgen\s+(.+)$', line.strip(), re.IGNORECASE)
-                    if match_kgen:
-                        if match_kgen.group(1)[-1]=='&':
-                            buf = match_kgen.group(1)[:-1]         
-                            lineno_start = i
-                            continued = True
-                        else:
-                            match_direct = re.match(r'^(\w[\w\d]*)\s+(.+)$', match_kgen.group(1), re.IGNORECASE)
-                            if match_direct:
-                                directs[(i, i)] = (match_direct.group(1), match_direct.group(2))
-
-        # populate configuration from directives
-        for span, (direct, clause) in directs.iteritems():
-            if direct.lower()=='callsite':
-                self.callsite['subpname'] = KGName(clause)
-                self.callsite['lineafter'] = span[1]
-            else:
-                print 'WARNING: Not supported KGEN directive: %s'%direct
-
     def _process_analysis_flags(self, opts):
 
         # check if exists fpp or cpp
         output = ''
-        try: output = exec_cmd('which fpp', show_error_msg=False).strip()
+        try: output = exec_cmd('which cpp', show_error_msg=False).strip()
         except Exception as e: pass
-        if output.endswith('fpp'):
+        if output.endswith('cpp'):
             self.bin['pp'] = output
         else:
             output = ''
-            try: output = exec_cmd('which cpp', show_error_msg=False).strip()
+            try: output = exec_cmd('which fpp', show_error_msg=False).strip()
             except Exception as e: pass
-            if output.endswith('cpp'):
+            if output.endswith('fpp'):
                 self.bin['pp'] = output
             else:
                 print 'ERROR: neither cpp or fpp is found'
@@ -617,7 +679,7 @@ class Config(object):
                     # TODO: support path for each file
                     pass
                 else: raise UserException('Wrong format include: %s'%inc)
- 
+
         if opts.include_ini:
             process_include_option(opts.include_ini, self._attrs['include'])
 
@@ -638,7 +700,7 @@ class Config(object):
         files = None
         if opts.source:
             for line in opts.source:
-                flags = {}
+                flags = OrderedDict()
                 for subflag in line.lower().split(','):
                     if subflag.find('=')>0:
                         key, value = subflag.split('=')
@@ -667,7 +729,7 @@ class Config(object):
                     else: raise UserException('strict subflag of source flag should be either yes or no.')
 
                 if flags.has_key('file'):
-                    subflags = {}
+                    subflags = OrderedDict()
                     if isfree: subflags['isfree'] = isfree
                     if isstrict: subflags['isstrict'] = isstrict
                     for file in flags['file']:
@@ -691,7 +753,7 @@ class Config(object):
                         newpath.add(p1+path[len(p2):])
             self._attrs['include']['path'] = list(newpath)
 
-        newfile = {} 
+        newfile =  OrderedDict()
         for path, value in self._attrs['include']['file'].iteritems():
             newfile[path] = value
             for p1, p2 in self._attrs['source']['alias'].iteritems():
@@ -742,8 +804,7 @@ class Config(object):
                         self._attrs['mpi'][key] = value
                     elif key=='use':
                         mod_name, identifier = value.split(':')
-                        self._attrs['mpi']['use_stmts'].append('USE %s, only : %s'% \
-                            (mod_name, identifier))
+                        self._attrs['mpi']['use_stmts'].append((mod_name, [identifier]))
                     elif key=='ranks':
                         self._attrs['mpi'][key] = value.split(':')
                         self._attrs['mpi']['size'] = len(self._attrs['mpi'][key])
@@ -762,14 +823,14 @@ class Config(object):
                     else:
                         raise UserException('Unknown kernel compile option: %s' % comp)
 
-        if opts.kernel_link:
-            for line in opts.kernel_link:
-                for link in line.split(','):
-                    key, value = link.split('=')
-                    if key in [ 'include', 'lib', 'pre_cmds' ] :
-                        self._attrs['kernel_link'][key].append(value)
-                    else:
-                        raise UserException('Unknown kernel link option: %s' % comp)
+#        if opts.kernel_link:
+#            for line in opts.kernel_link:
+#                for link in line.split(','):
+#                    key, value = link.split('=')
+#                    if key in [ 'include', 'lib', 'pre_cmds' ] :
+#                        self._attrs['kernel_link'][key].append(value)
+#                    else:
+#                        raise UserException('Unknown kernel link option: %s' % comp)
 
         if opts.state_build:
             for line in opts.state_build:
@@ -803,11 +864,25 @@ class Config(object):
                 key, value = time.split('=')
                 if key in [ 'repeat' ] :
                     try:
-                        self._attrs['timing'][key] = int(value)
+                        self._attrs['timing'][key] = value
                     except:
                         raise UserException('repeat sub-flag should be integer value: %s'%value)
                 else:
                     raise UserException('Unknown timing option: %s' % time)
+
+#	# parsing verification parameters
+#	    for verify in opts.verify.split(' '):
+#		key, value = verify.split('=')
+#		if key in [ 'verboselevel'] :
+#		    try:
+#			self._attrs['verify'][key] = int(value)
+#			#if value < 0 || value >3:
+#			 #   raise UserException('verboselevel sub-flag should be integer value: %s'%value)
+#		    except:
+#			raise UserException('verboselevel sub-flag should be integer value: %s'%value)
+#		else:
+#		    raise UserException('Unknown verification option : %s' %verify)
+#		
 
         if opts.outdir:
             self._attrs['path']['outdir'] = opts.outdir
@@ -852,6 +927,10 @@ class Config(object):
                 for param in param_split[:-1]:
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
+
+        # parsing logging options
+        if opts.verbose_level:
+            self._attrs['verify']['verboselevel'] = str(opts.verbose_level)
 
     def __getattr__(self, name):
         return self._attrs[name]
