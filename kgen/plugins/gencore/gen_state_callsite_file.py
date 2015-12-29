@@ -1,5 +1,6 @@
 # gen_write_callsite_file.py
 
+import base_classes
 import statements
 import block_statements
 import typedecl_statements
@@ -20,13 +21,18 @@ class Gen_S_Callsite_File(Kgen_Plugin):
     # registration
     def register(self, msg):
         self.frame_msg = msg
+        callsite_stmts = getinfo('callsite_stmts')
 
         # register initial events
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-            getinfo('callsite_stmts')[0], None, self.create_callsite_parts1)
+            callsite_stmts[0], None, self.create_callsite_parts1)
 
-        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-            getinfo('callsite_stmts')[-1], None, self.create_callsite_parts2)
+        if isinstance(callsite_stmts[-1], base_classes.EndStatement):
+            self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
+                callsite_stmts[-1].parent, None, self.create_callsite_parts2)
+        else:
+            self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
+                callsite_stmts[-1], None, self.create_callsite_parts2)
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
@@ -311,7 +317,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, 'extern output variables')
 
         namedpart_create_subpart(ifcnt, STATE_PBLOCK_WRITE_OUT_LOCALS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_LOCALS, 'local output variables')
 
         attrs = {'specs': [ 'kgen_unit' ]}

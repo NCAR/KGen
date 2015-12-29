@@ -37,11 +37,15 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'loopcontrol': 'kgen_intvar = 1, kgen_maxiter'}
         doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
 
-        for cs_stmt in getinfo('callsite_stmts'):
-            dummy_node = part_append_genknode(doobj, EXEC_PART, statements.Call)
-            dummy_node.kgen_stmt = cs_stmt
-            dummy_node.kgen_forced_line = dummy_node.kgen_stmt.genkpair.tostring()
-
+        callsite_stmts = getinfo('callsite_stmts')
+        start = callsite_stmts[0].item.span[0]-1
+        end = callsite_stmts[-1].item.span[1]
+        lines = callsite_stmts[0].top.prep[start:end]
+        lines_str = '\n'.join(lines)
+        dummy_node = part_append_genknode(doobj, EXEC_PART, statements.Call)
+        dummy_node.kgen_stmt = callsite_stmts[0]
+        dummy_node.kgen_forced_line = lines_str
+        
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 

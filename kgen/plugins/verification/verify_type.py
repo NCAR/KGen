@@ -82,6 +82,23 @@ class Verify_Type(Kgen_Plugin):
             attrs = {'items': ['""']}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
+        def print_dtypearr_detail(parent, entity_name):
+
+            attrs = {'items': [ '"    number of elements         : "', 'comp_check_status%numtotal']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': [ '"    identical                  : "', 'comp_check_status%numidentical']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': [ '"    not identical - out of tol.: "', 'comp_check_status%numouttol']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': [ '"    not identical - within tol.: "', 'comp_check_status%numintol']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['""']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
         def print_num_detail(parent, entity_name):
             attrs = {'items': ['"Difference is "', 'diff_%s'%entity_name]}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
@@ -249,7 +266,7 @@ class Verify_Type(Kgen_Plugin):
                             attrs = {'expr': 'check_status%verboseLevel > 1'}
                             ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                            attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL out of tolerance."'%entity_name]}
+                            attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(out of tolerance)."'%entity_name]}
                             part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                             attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
@@ -264,7 +281,7 @@ class Verify_Type(Kgen_Plugin):
                             attrs = {'expr': 'check_status%verboseLevel > 1'}
                             ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                            attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL within tolerance."'%entity_name]}
+                            attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(within tolerance)."'%entity_name]}
                             part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                             attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
@@ -348,7 +365,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'expr': 'check_status%verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL out of tolerance."'%entity_name]}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(out of tolerance)."'%entity_name]}
                                 part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
@@ -362,7 +379,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'expr': 'check_status%verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL within tolerance."'%entity_name]}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(within tolerance)."'%entity_name]}
                                 part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
@@ -377,7 +394,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'expr': 'check_status%verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL out of tolerance."'%entity_name]}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(out of tolerance)."'%entity_name]}
                                 part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
@@ -422,7 +439,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'expr': 'check_status%verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL within tolerance."'%entity_name]}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(within tolerance)."'%entity_name]}
                                 part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
@@ -436,7 +453,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'expr': 'check_status%verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL out of tolerance."'%entity_name]}
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(out of tolerance)."'%entity_name]}
                                 part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
@@ -458,6 +475,7 @@ class Verify_Type(Kgen_Plugin):
                     print_detail = print_dummy_detail
                     if var.is_array(): # array
                         if stmt.is_derived():
+                            print_detail = print_dtypearr_detail
                             pass
                         else:
                             if stmt.is_numeric():
