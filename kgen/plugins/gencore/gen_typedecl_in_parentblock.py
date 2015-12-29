@@ -37,9 +37,54 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
             getinfo('parentblock_stmt'), None, self.process_specstmts_in_upperblocks) 
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
+            getinfo('parentblock_stmt'), self.has_implicit_rule_resolver, self.create_read_implicit_rule_in_parentblock) 
+
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
+            getinfo('parentblock_stmt'), self.has_implicit_rule_resolver, self.create_write_implicit_rule_in_parentblock) 
+
         #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
         #    typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.remove_read_typedecl_in_parentblock) 
 
+    def has_implicit_rule_resolver(self, node):
+        if hasattr(node.kgen_stmt, 'implicit_rule_resolvers'):
+            return True
+        else: return False
+
+    def create_read_implicit_rule_in_parentblock(self, node):
+        for resolver in node.kgen_stmt.implicit_rule_resolvers:
+            if resolver.name in node.kgen_stmt.args:
+                partid = DRIVER_READ_IN_ARGS
+            else:
+                partid = KERNEL_PBLOCK_READ_IN_LOCALS
+
+            if KGGenType.has_state_out(resolver.geninfo):
+                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                namedpart_append_genknode(node.kgen_kernel_id, partid, statements.Read, attrs=attrs)
+
+                attrs = {'items': ['kgenref_'+resolver.name], 'specs': ['UNIT = kgen_unit']}
+                namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, statements.Read, attrs=attrs)
+            else:
+                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                namedpart_append_genknode(node.kgen_kernel_id, partid, statements.Read, attrs=attrs)
+ 
+    def create_write_implicit_rule_in_parentblock(self, node):
+        for resolver in node.kgen_stmt.implicit_rule_resolvers:
+            if resolver.name in node.kgen_stmt.args:
+                partid = STATE_PBLOCK_WRITE_IN_ARGS
+            else:
+                partid = STATE_PBLOCK_WRITE_IN_LOCALS
+
+            if KGGenType.has_state_out(resolver.geninfo):
+                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                namedpart_append_gensnode(node.kgen_kernel_id, partid, statements.Write, attrs=attrs)
+
+                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_LOCALS, statements.Write, attrs=attrs)
+            else:
+                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                namedpart_append_gensnode(node.kgen_kernel_id, partid, statements.Write, attrs=attrs)
+           
     def process_specstmts_in_upperblocks(self, node):
         process_spec_stmts(node.kgen_stmt)
 
@@ -457,9 +502,6 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
             part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
-        else:
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
-            namedpart_append_gensnode(kernel_id, partid, statements.Assignment, attrs=attrs)
 
         # if allocatable
         if var.is_allocatable():

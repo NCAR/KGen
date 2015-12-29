@@ -22,10 +22,33 @@ from utils import split_comma, specs_split_comma, is_int_literal_constant
 from utils import classes
 
 #logger = logging.getLogger('fparser') # KGEN deletion
-logger = logging.getLogger('kgen') # KGEN addition
 
-import Fortran2003 # KGEN addition
-from kgen_utils import KGName, Logger, ProgramException # KGEN addition
+# start of KGEN addition
+logger = logging.getLogger('kgen')
+
+import Fortran2003
+from kgen_utils import KGName, Logger, ProgramException
+
+class ImplicitRule_Resolver(object):
+    def __init__(self, name):
+        self.name = name
+
+    def tokgen():
+        return ''
+
+    # save names that this self resolved
+    def add_geninfo(self, uname, request):
+        from ordereddict import OrderedDict
+
+        if uname is None or request is None: return
+
+        if not hasattr(self, 'geninfo'):
+            self.geninfo = OrderedDict()
+        if not self.geninfo.has_key(request.gentype):
+            self.geninfo[request.gentype] = []
+        if (uname, request) not in self.geninfo[request.gentype]:
+            self.geninfo[request.gentype].append((uname, request))
+# end of KGEN addition
 
 class AttributeHolder(object):
     # copied from symbolic.base module
@@ -800,10 +823,11 @@ class Statement(object):
 
     def can_resolve(self, request):
         from typedecl_statements import TypeDeclarationStatement
+        from block_statements import SubProgramStatement
 
         if request is None: return False
 
-        # skip if request is maded by this stmt itself
+        # check if request is maded by this stmt itself
         if self is request.originator:
             if isinstance(self, TypeDeclarationStatement):
                 if request.uname.firstpartname() in [ n.split('=')[0].strip() for n in self.entity_decls ]:
@@ -814,7 +838,11 @@ class Statement(object):
         # check if name is matched and self is in resolver classes
         if hasattr(self, 'name') and self.name and \
             self.name.lower()==request.uname.firstpartname() and \
-            self.__class__ in request.resolvers:
+            any( isinstance(self, resolver) for resolver in request.resolvers ):
+            return True
+
+        # check if name is one of dummy args in Subprogram
+        if isinstance(self, SubProgramStatement) and request.uname.firstpartname() in self.args:
             return True
 
         return False
@@ -910,6 +938,15 @@ class Statement(object):
                     for unk, req in typedecl_stmt.unknowns.iteritems():
                         if req.state != ResState.RESOLVED:
                             typedecl_stmt.resolve(req) 
+            elif isinstance(self, SubProgramStatement):
+                if not hasattr(self, 'implicit_rule_resolvers'): self.implicit_rule_resolvers = []
+                irres = ImplicitRule_Resolver(request.uname.firstpartname())
+                irres.add_geninfo(request.uname, request)
+                self.implicit_rule_resolvers.append(irres)
+                request.res_stmts.append(irres)
+                request.state = ResState.RESOLVED
+                Logger.info('%s is resolved by Subprogram %s using implicit rules'%(request.uname.firstpartname(), self.name), \
+                    name=request.uname, stmt=self)
             else:
                 Logger.info('%s can be resolved'%request.uname.firstpartname(), name=request.uname, stmt=self)
                 raise Exception('This request should have been resolved by the stmt shown below.\n%s'%self.tokgen())
@@ -953,8 +990,19 @@ class Statement(object):
 
                 # tries to apply implicit rules
                 if request.state != ResState.RESOLVED:
-                    Logger.info('Parent could not resolve %s and the request is being resolved using implicit rules'%request.uname.firstpartname(), \
-                        name=request.uname, stmt=self)
+                    mytype = self.get_type(request.uname.firstpartname())
+                    for resolver in request.resolvers:
+                        if isinstance(mytype, resolver):
+                            anc = self.ancestors()
+                            if not hasattr(anc[-1], 'implicit_rule_resolvers'): anc[-1].implicit_rule_resolvers = []
+                            irres = ImplicitRule_Resolver(request.uname.firstpartname())
+                            irres.add_geninfo(request.uname, request)
+                            anc[-1].implicit_rule_resolvers.append(irres)
+                            request.res_stmts.append(irres)
+                            request.state = ResState.RESOLVED
+                            Logger.info('%s is resolved using implicit rules'%request.uname.firstpartname(), name=request.uname, stmt=self)
+                            break
+                    #import pdb; pdb.set_trace()
                     # TODO: check against implicit_rules of parent
                     # TODO: mark implicit resolution in ResState
 

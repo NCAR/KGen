@@ -692,6 +692,18 @@ class Gen_Statement(object):
     def statement_flatten(self):
         pass
 
+    def str_unresolved(self, stmt):
+        from kgen_state import ResState
+
+        if not hasattr(self, 'geninfo'): return ''
+
+        l = []
+        for uname, req in self.geninfo:
+            if request.state != ResState.RESOLVED:
+                l.append(uname.firstpartname())
+        if l: return ' !!! UNRESOLVED !!! %s'%', '.join(l)
+        else: return ''
+
     def tostring(self):
 
         if isinstance(self.kgen_stmt, statements.Comment):
@@ -709,6 +721,8 @@ class Gen_Statement(object):
             cur_indent = self.kgen_gen_attrs['indent']
             if self.kgen_stmt:
                 lines_str = None
+                unres_str = self.str_unresolved(self.kgen_stmt)
+
                 if hasattr(self, 'kgen_forced_line') and self.kgen_forced_line:
                     lines_str = self.kgen_forced_line
                 elif hasattr(self.kgen_stmt.item, 'span'):
@@ -729,7 +743,7 @@ class Gen_Statement(object):
                     elif isinstance(self.kgen_stmt, base_classes.EndStatement):
                         self.kgen_gen_attrs['indent'] = self.kgen_parent.kgen_indent
                         cur_indent = self.kgen_parent.kgen_indent
-                    return cur_indent + self.tokgen()
+                    return cur_indent + self.tokgen() + unres_str
                 else:
                     if lines_str:
                         cur_indent = get_indent(lines_str)
@@ -739,7 +753,7 @@ class Gen_Statement(object):
                             self.kgen_gen_attrs['indent'] = cur_indent + TAB
                         else:
                             self.kgen_gen_attrs['indent'] = cur_indent
-                        return lines_str
+                        return lines_str + unres_str
                     elif isinstance(self.kgen_stmt, block_statements.BeginSource):
                         pass
                     else:

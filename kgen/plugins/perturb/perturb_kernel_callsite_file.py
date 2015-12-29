@@ -18,7 +18,7 @@ class Perturb_K_Callsite_File(Kgen_Plugin):
     def create_perturb_stmts(self, node):
 
         attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_perturb_real']}
-        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+        part_append_genknode(node.kgen_parent, USE_PART, statements.Use, attrs=attrs)
 
         index, partname, part = get_part_index(node)
 
