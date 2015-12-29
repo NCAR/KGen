@@ -52,16 +52,45 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'items': ['""']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
+        # verification statistics
+        attrs = {'expr': 'check_status%verboseLevel > 0'}
+        ifstatobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['"Number of verified variables: "','check_status%numTotal']}
+        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"Number of identical variables: "','check_status%numIdentical']}
+        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"Number of non-identical variables within tolerance: "','check_status%numInTol']}
+        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"Number of non-identical variables out of tolerance: "','check_status%numOutTol']}
+        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"Tolerance: "','check_status%tolerance']}
+        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['""']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
+        # verification result
         attrs = {'expr': 'check_status%numOutTol > 0'}
         ifobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['"Verification FAILED"']}
         part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
         
+        attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
         part_append_genknode(ifobj, EXEC_PART, statements.Else, attrs=attrs)
 
         attrs = {'items': ['"Verification PASSED"']}
         part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+        
+        attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'items': ['""']}
+        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)

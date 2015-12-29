@@ -5,6 +5,46 @@ import block_statements
 import typedecl_statements
 from verify_utils import kernel_verify_contains, kernel_verify_kgenutils, get_dtype_verifyname
 
+########################## Verbose level table ####################
+#  Content #  level <1   #    level 1   #  level 2   # level >2   #
+###################################################################
+#  P/F     #    O        #      O       #     O      #    O       #
+###################################################################
+#  Stat    #    X        #      O       #     O      #    O       #
+###################################################################
+#  Ident   #             #              #            #            #
+#  Result  #    X        #      X       #     O      #    O       #
+###################################################################
+#  Diff.   #             #              #            #            #
+#  Result  #    X        #      O       #     O      #    O       #
+###################################################################
+#  Num.    #             #              #            #            #
+#  Outtol. #             #              #            #            #
+#  Diff.   #    X        #      O       #     O      #    O       #
+#  Detail  #             #              #            #            #
+###################################################################
+#  Num.    #             #              #            #            #
+#  Intol.  #             #              #            #            #
+#  Diff.   #    X        #      X       #     O      #    O       #
+#  Detail  #             #              #            #            #
+###################################################################
+#  Num.    #             #              #            #            #
+#  Ident.  #    X        #      X       #     X      #    O       #
+#  Detail  #             #              #            #            #
+###################################################################
+#  Comp.   #             #              #            #            #
+#  Ident.  #    X        #      X       #     X      #    O       #
+#  Result  #             #              #            #            #
+###################################################################
+#  Comp.   #             #              #            #            #
+#  Diff.   #    X        #      X       #     O      #    O       #
+#  Result  #             #              #            #            #
+###################################################################
+#  Comp.   #             #              #            #            #
+#  Diff.   #    X        #      X       #     X      #    O       #
+#  Detail  #             #              #            #            #
+###################################################################
+
 def create_verify_subr(subrname, entity_name, parent, var, stmt):
 
     def print_numarr_detail(parent, is_identical=False):
@@ -31,7 +71,8 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
             attrs = {'items': ['"Normalized RMS of difference is "', 'nrmsdiff']}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
-        part_append_comment(parent, EXEC_PART, '')
+        attrs = {'items': ['""']}
+        part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
     def print_num_detail(parent, is_identical=False):
         if is_identical:
@@ -40,8 +81,14 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
             attrs = {'items': ['"Difference is "', 'diff']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
+        attrs = {'items': ['""']}
+        part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
     def print_dummy_detail(parent, is_identical=False):
         attrs = {'items': ['"NOT IMPLEMENTED"']}
+        part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['""']}
         part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
     def get_attrs(attrspec, allowed_attrs):
@@ -152,7 +199,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                         callname = get_dtype_verifyname(req.res_stmts[0])
                         break
 
-                attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'verboseLevel=%s'%getinfo('verbose_level')]}
+                attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'verboseLevel=check_status%verboseLevel']}
                 part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 pobj = topobj
@@ -175,6 +222,12 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                 attrs = {'variable': 'check_status%numIdentical', 'sign': '=', 'expr': 'check_status%numIdentical + 1'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'items': ['trim(adjustl(varname))','" is IDENTICAL."']}
+                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+
                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
@@ -184,6 +237,12 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                 attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                attrs = {'expr': 'check_status%verboseLevel > 0'}
+                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."']}
+                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+
                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
@@ -192,6 +251,12 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
 
                 attrs = {'variable': 'check_status%numInTol', 'sign': '=', 'expr': 'check_status%numInTol + 1'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                attrs = {'expr': 'check_status%verboseLevel > 0'}
+                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL within tolerance."']}
+                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -210,8 +275,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                 attrs = {'variable': 'check_status%numIdentical', 'sign': '=', 'expr': 'check_status%numIdentical + 1'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                 attrs = {'items': ['trim(adjustl(varname))','" is IDENTICAL."']}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
+                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -266,8 +334,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                     attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."']}
-                    part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -277,8 +348,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numInTol', 'sign': '=', 'expr': 'check_status%numInTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                     attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL within tolerance."']}
-                    part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -289,8 +363,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                     attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."']}
-                    part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -309,8 +386,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                 attrs = {'variable': 'check_status%numIdentical', 'sign': '=', 'expr': 'check_status%numIdentical + 1'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                 attrs = {'items': ['trim(adjustl(varname))','" is IDENTICAL."']}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
+                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -328,8 +408,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numInTol', 'sign': '=', 'expr': 'check_status%numInTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                     attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL within tolerance."']}
-                    part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -339,8 +422,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                     attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL out of tolerance."']}
-                    part_append_genknode(ifvobj, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -349,8 +435,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
                     attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL."']}
-                    part_append_genknode(ifidobj, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
