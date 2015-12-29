@@ -1,5 +1,5 @@
-KGEN_HOME := ../../kgen
-KGEN := ${KGEN_HOME}/kgen.py
+KGEN_HOME := ../..
+KGEN := ${KGEN_HOME}/bin/kgen
 
 SRC_DIR := ${PWD}/src
 SRC := ${SRC_DIR}/update_mod.F90
@@ -11,6 +11,7 @@ MPI_INC := /ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include
 test:
 	${KGEN} \
 		-D ROW=4,COL=4 \
+		-i include.ini \
 		-I ${SRC_DIR}:${MPI_INC} \
 		-e exclude.ini \
 		--mpi ranks=0:1 \

@@ -90,47 +90,49 @@ class TypeDeclarationStatement(Statement):
 
 
     # start of KGEN
-#    def can_resolve(self, request):
-#        if request is None: return False
-#
-#        # skip if request is maded by this stmt itself
-#        #if self is request.originator:
-#        #    return False
-#
-#        # check if name is matched and self is in resolver classes
-#        if self.__class__ in request.resolvers:
-#            return True
-#
-#        return super(TypeDeclarationStatement, self).can_resolve(request)
 
-    def tokgen(self, items=None, addattr=None, delattr=None):
-        if items or addattr or delattr:
-            tmpspec = self.attrspec
-            if  delattr:
-                delattr = [ a.replace(' ', '').lower() for a in delattr ]
-                newspec = []
-                for spec in self.attrspec:
-                    if spec.replace(' ','') not in delattr:
-                        newspec.append(spec)
-                self.attrspec = newspec
-            if  addattr:
-                addattr = [ a.replace(' ', '').lower() for a in addattr ]
-                newattr = []
-                for spec in addattr:
-                    if spec.replace(' ','') not in self.attrspec:
-                        newattr.append(spec)
-                self.attrspec += newattr
+    def tokgen(self):
+        from kgen_utils import traverse
 
-            tmpentity = self.entity_decls
-            if items:
-                self.entity_decls = items
- 
-            outstr = self.tofortran().lstrip()
-            self.attrspec = tmpspec 
-            self.entity_decls = tmpentity 
-            return outstr
-        else:       
-            return super(TypeDeclarationStatement, self).tokgen()
+        def get_edecl(node, bag, depth):
+            from Fortran2003 import Entity_Decl
+            if isinstance(node, Entity_Decl) and node.items[0].string==bag['name']:
+                bag['edecl'] = node.tostr()
+                return True
+
+        decls = self.entity_decls
+        if hasattr(self, 'new_entity_decls'):
+            decls = []
+            for decl in self.new_entity_decls:
+                edecl = {'name': decl, 'edecl': decl}
+                if hasattr(self, 'full_decl') and self.full_decl:
+                    traverse(self.f2003, get_edecl, edecl)
+                decls.append(edecl['edecl'])
+            del new_entity_decls
+
+        attrs = self.attrspec if hasattr(self, 'attrspec') else None
+        if hasattr(self, 'new_attrspec'):
+            attrs = []
+            for attr in self.new_attr_specs:
+                attrs.append(attr)
+            del self.new_attr_specs
+
+        if hasattr(self, 'remove_attr'):
+            newattrs = []
+            for attr in attrs:
+                if any(attr.startswith(rattr) for rattr in self.remove_attr):
+                    pass
+                else:
+                    newattrs.append(attr)
+            attrs = newattrs
+            del self.remove_attr
+
+        s = self.tostr()
+        if attrs:
+            s += ', ' + ', '.join(attrs)
+        if decls:
+            s += ' :: ' + ', '.join(decls)
+        return s
 
     # end of KGEN
 
@@ -315,31 +317,84 @@ class TypeDeclarationStatement(Statement):
                     l, kind = value0, value1
         return l,kind
 
-    def tostr(self):
-        clsname = self.__class__.__name__.upper()
+
+    # start of KGEN addition
+    def _selector_str(self):
         s = ''
         length, kind = self.selector
         if isinstance(self, Character):
             if length and kind:
-                s += '(LEN=%s, KIND=%s)' % (length,kind)
+                s += 'LEN=%s, KIND=%s' % (length,kind)
             elif length:
-                s += '(LEN=%s)' % (length)
+                s += 'LEN=%s' % (length)
             elif kind:
-                s += '(KIND=%s)' % (kind)
+                s += 'KIND=%s' % (kind)
         else:
             if isinstance(self, Type):
-                s += '(%s)' % (kind)
+                s += '%s' % (kind)
             else:
                 if length:
-                    s += '*%s' % (length)
+                    s += 'KIND=%s' % (length)
                 if kind:
-                    # start of KGEN addition
                     if isinstance(self, Class):
-                        s += '(%s)' % (kind)
+                        s += '%s' % (kind)
                     else:
-                        s += '(KIND=%s)' % (kind)
-                    # end of KGEN addition
-                    #s += '(KIND=%s)' % (kind) # KGEN deletion
+                        s += 'KIND=%s' % (kind)
+        return s
+    # end of KGEN addition
+
+    def tostr(self):
+        # start of KGEN addition
+        if hasattr(self, 'type_spec'):
+            clsname = self.type_spec
+
+            s = ''
+            length, kind = self.selector if hasattr(self, 'selector') else (None, None)
+            if self.type_spec.lower()=='character':
+                if length and kind:
+                    s += '(LEN=%s, KIND=%s)' % (length,kind)
+                elif length:
+                    s += '(LEN=%s)' % (length)
+                elif kind:
+                    s += '(KIND=%s)' % (kind)
+            else:
+                if self.type_spec.lower() in ['type', 'class']:
+                    s += '(%s)' % (kind)
+                else:
+                    if length:
+                        s += '*%s' % (length)
+                    if kind:
+                        if self.type_spec.lower()=='class':
+                            s += '(%s)' % (kind)
+                        else:
+                            s += '(KIND=%s)' % (kind)
+        else:
+        # end of KGEN addition
+            clsname = self.__class__.__name__.upper()
+
+            s = ''
+            length, kind = self.selector
+            if isinstance(self, Character):
+                if length and kind:
+                    s += '(LEN=%s, KIND=%s)' % (length,kind)
+                elif length:
+                    s += '(LEN=%s)' % (length)
+                elif kind:
+                    s += '(KIND=%s)' % (kind)
+            else:
+                if isinstance(self, Type):
+                    s += '(%s)' % (kind)
+                else:
+                    if length:
+                        s += '*%s' % (length)
+                    if kind:
+                        # start of KGEN addition
+                        if isinstance(self, Class):
+                            s += '(%s)' % (kind)
+                        else:
+                            s += '(KIND=%s)' % (kind)
+                        # end of KGEN addition
+                        #s += '(KIND=%s)' % (kind) # KGEN deletion
 
         return clsname + s
 
@@ -650,8 +705,24 @@ class Implicit(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, res_stmt):
-        pass
+    def tokgen(self):
+        if not hasattr(self, 'items') or not self.items:
+            return 'IMPLICIT NONE'
+        l = []
+        for stmt,specs in self.items:
+            l1 = []
+            for s,e in specs:
+                if s==e:
+                    l1.append(s)
+                else:
+                    l1.append(s + '-' + e)
+            l.append('%s ( %s )' % (stmt.tostr(), ', '.join(l1)))
+        return 'IMPLICIT ' + ', '.join(l)
+
+    def resolve_uname(self, uname, request):
+        self.add_geninfo(uname, request)
+        if self.items:
+            raise ProgramException('Custom Implicit Rule is not supported yet.')
     # end of KGEN addition
 
 intrinsic_type_spec = [ \

@@ -29,23 +29,27 @@ def generate_kernel_makefile():
     #NOTE: for gfortran, use -ffixed-line-length-none and -ffree-line-length-none
 
     # source files
-    kernel_driver_file = 'kernel_driver.f90'
     kgen_utils_file = 'kgen_utils.f90'
-    callsite_file = State.topblock['path']
+    kernel_driver_file = 'kernel_driver.f90'
+    callsite_file = State.topblock['stmt'].reader.id
 
     #basenames
-    callsite_base = os.path.basename(State.topblock['path'])
-    dep_bases = [ os.path.basename(path) for path in State.depfiles.keys() ]
+    callsite_base = os.path.basename(callsite_file)
+    dep_base_srcfiles = [ os.path.basename(filepath) for filepath, srclist in State.used_srcfiles.iteritems() ]
+    dep_bases = dep_base_srcfiles + [ kernel_driver_file ]
 
     # all object files
-    all_objs = [ obj(kernel_driver_file), obj(callsite_base), obj(kgen_utils_file) ] + \
-        [ obj(dep_base) for dep_base in dep_bases ]
+    all_objs_srcfiles = [ obj(dep_base_srcfile) for dep_base_srcfile in dep_base_srcfiles ]
+    all_objs = all_objs_srcfiles + [ obj(kernel_driver_file), obj(kgen_utils_file) ]
 
     # dependency
-    kernel_driver_depends = [ obj(callsite_base), obj(kgen_utils_file) ] + [ obj(dep_base) for dep_base in dep_bases ]
-
     depends = {}
-    for abspath, (srcfile, mods_used, units_used) in State.depfiles.iteritems():
+
+    # dependency for kernel_driver.f90
+    depends[kernel_driver_file] = ' '.join(all_objs_srcfiles + [obj(kgen_utils_file) ])
+
+    # dependency for other files
+    for abspath, (srcfile, mods_used, units_used) in State.used_srcfiles.iteritems():
         dep = [ obj(kgen_utils_file) ] 
         for mod in mods_used:
             if mod.reader.id!=abspath and \
@@ -56,17 +60,33 @@ def generate_kernel_makefile():
                 not obj(os.path.basename(unit.item.reader.id)) in dep:
                 dep.append(obj(os.path.basename(unit.item.reader.id)))
 
-        depends[os.path.basename(abspath)] = ' '.join(dep)
+        basename = os.path.basename(abspath)
+        if basename==callsite_base:
+            dobjs = all_objs[:]
+            dobjs.remove(obj(callsite_base))
+            dobjs.remove(obj(kernel_driver_file))
+            depends[basename] = ' '.join(dobjs)
+        else:
+            depends[basename] = ' '.join(dep)
 
     # prerun commands
-    pre_cmds = ''
-    if Config.kernel_link['pre_cmds']:
-        pre_cmds = ';'.join(Config.kernel_link['pre_cmds'])
+    #pre_cmds = ''
+    #if Config.kernel_link['pre_cmds']:
+    #    pre_cmds = ';'.join(Config.kernel_link['pre_cmds'])
 
-    # link flags
-    inc = [ '-L'+p for p in Config.kernel_link['include'] ]
-    lib = [ '-l'+l for l in Config.kernel_link['lib'] ]
-    link_flags = '%s %s'%(' '.join(inc), ' '.join(lib))
+    # link flags and objects
+    link_flags = ''
+    objects = ''
+    if Config.include.has_key('import'):
+        for path, import_type in Config.include['import'].iteritems():
+            if import_type.startswith('library'):
+                inc = '-L'+path
+                pos1 = import_type.find('(')
+                pos2 = import_type.find(')')
+                lib = '-l'+import_type[(pos1+1):pos2].strip()
+                link_flags += ' %s %s'%(inc, lib)
+            elif import_type=='object':
+                objects += ' %s'%os.path.basename(path)
 
     with open('%s/Makefile'%(Config.path['kernel']), 'wb') as f:
         write(f, '# Makefile for KGEN-generated kernel')
@@ -74,9 +94,9 @@ def generate_kernel_makefile():
 
         write(f, 'FC := %s'%Config.kernel_compile['FC'])
         write(f, 'FC_FLAGS := %s'%Config.kernel_compile['FC_FLAGS'])
-	write(f, 'verboselevel = %d'%Config.verify['verboselevel'])
+#	write(f, 'verboselevel = %d'%Config.verify['verboselevel'])
         write(f, '')
-        write(f, 'ALL_OBJS := %s' % ' '.join(all_objs))
+        write(f, 'ALL_OBJS := %s'%' '.join(all_objs))
         write(f, '')
 
         write(f, 'run: build')
@@ -84,14 +104,11 @@ def generate_kernel_makefile():
         write(f, '')
 
         write(f, 'build: ${ALL_OBJS}')
-        if pre_cmds:
-            write(f, 'bash -i -c "%s; ${FC} ${FC_FLAGS} %s -o kernel.exe $^"'%(pre_cmds, link_flags), t=True)
-        else:
-            write(f, '${FC} ${FC_FLAGS} %s -o kernel.exe $^'%link_flags, t=True)
-        write(f, '')
-
-        write(f, '%s: kernel_driver.f90 %s' % (obj(kernel_driver_file), ' '.join(kernel_driver_depends)))
-        write(f, '${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
+        #if pre_cmds:
+        #    write(f, 'bash -i -c "%s; ${FC} ${FC_FLAGS} %s -o kernel.exe $^"'%(pre_cmds, link_flags), t=True)
+        #else:
+        #    write(f, '${FC} ${FC_FLAGS} %s -o kernel.exe $^'%link_flags, t=True)
+        write(f, '${FC} ${FC_FLAGS} %s %s -o kernel.exe $^'%(link_flags, objects), t=True)
         write(f, '')
 
         for dep_base in dep_bases:
@@ -109,22 +126,25 @@ def generate_kernel_makefile():
 
 def generate_state_makefile():
 
-    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.depfiles.iteritems() if srcfile.used4genstate ] + [ State.topblock['path'] ]
+    org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.used_srcfiles.iteritems() if srcfile.tree.used4genstate ] 
+    if not State.topblock['stmt'].reader.id in org_files:
+        org_files.append(State.topblock['path'])
+
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
-        write(f, 'run: build')
         if Config.state_run['cmds']>0:
+            write(f, 'run: build')
             write(f, Config.state_run['cmds'], t=True)
         else:
             write(f, 'echo "No information is provided to run. Please specify run commands using \'state-run\' command line option"; exit -1', t=True)
         write(f, '')
 
-        write(f, 'build: %s'%Config.state_switch['type'])
         if Config.state_build['cmds']>0:
+            write(f, 'build: %s'%Config.state_switch['type'])
             write(f, Config.state_build['cmds'], t=True)
+            for org_file in org_files:
+                write(f, 'mv -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
         else:
             write(f, 'echo "No information is provided to build. Please specify build commands using \'state-build\' command line option"; exit -1', t=True)
-        for org_file in org_files:
-            write(f, 'mv -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
         write(f, '')
 
         write(f, '%s: save'%Config.state_switch['type'])

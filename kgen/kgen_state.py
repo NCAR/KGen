@@ -1,8 +1,9 @@
 # kgen_state.py
 # data structure
 
-from kgen_utils import Logger, Config, singleton
+from kgen_utils import Logger, Config, singleton, UserException
 from api import parse, walk
+from ordereddict import OrderedDict
 
 @singleton
 class State(object):
@@ -19,89 +20,107 @@ class State(object):
     def __init__(self):
 
         # attributes holder
-        self._attrs = {}
+        self._attrs = OrderedDict()
 
         # KGEN state
         self._attrs['state'] = self.CREATED
 
         # callsite attributes
-        self._attrs['callsite'] = {}
-        self._attrs['callsite']['stmt'] = None
-        self._attrs['callsite']['expr'] = None
-        self._attrs['callsite']['actual_arg'] = {}
-        self._attrs['callsite']['actual_arg']['names'] = None # ActualArgList object
-        self._attrs['callsite']['actual_arg']['in_names'] = []
-        self._attrs['callsite']['actual_arg']['out_names'] = []
-        self._attrs['callsite']['actual_arg']['inout_names'] = []
-        self._attrs['callsite']['actual_arg']['typedecl_stmt'] = {}
+        self._attrs['callsite'] = OrderedDict()
+        self._attrs['callsite']['stmts'] = []
+#        self._attrs['callsite']['expr'] = None
+#        self._attrs['callsite']['actual_arg'] = OrderedDict()
+#        self._attrs['callsite']['actual_arg']['names'] = None # ActualArgList object
+#        self._attrs['callsite']['actual_arg']['in_names'] = []
+#        self._attrs['callsite']['actual_arg']['out_names'] = []
+#        self._attrs['callsite']['actual_arg']['inout_names'] = []
+#        self._attrs['callsite']['actual_arg']['typedecl_stmt'] = OrderedDict()
 
         # parent subprogram of callsite stmt attributes
-        self._attrs['parentblock'] = {}
+        self._attrs['parentblock'] = OrderedDict()
         self._attrs['parentblock']['stmt'] = None
-        self._attrs['parentblock']['expr'] = None
-        self._attrs['parentblock']['dummy_arg'] = {}
-        self._attrs['parentblock']['dummy_arg']['names'] = []
-        self._attrs['parentblock']['dummy_arg']['in_names'] = []
-        self._attrs['parentblock']['dummy_arg']['out_names'] = []
-        self._attrs['parentblock']['dummy_arg']['inout_names'] = []
-        self._attrs['parentblock']['dummy_arg']['typedecl_stmt'] = {}
-        self._attrs['parentblock']['input'] = {} # variables for callsite actual args and kernel externs
-        self._attrs['parentblock']['input']['names'] = []
-        self._attrs['parentblock']['input']['typedecl_stmt'] = {}
-        self._attrs['parentblock']['output'] = {} # variables for callsite outputs
-        self._attrs['parentblock']['output']['names'] = []
-        self._attrs['parentblock']['output']['typedecl_stmt'] = {}
-        self._attrs['parentblock']['output']['tkdpat'] = []
-        self._attrs['parentblock']['inout'] = {}
-        self._attrs['parentblock']['inout']['tkdpat'] = []
-        self._attrs['parentblock']['writesubr'] = {}
-        self._attrs['parentblock']['writesubr']['tkdpat'] = []
-        self._attrs['parentblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
-        self._attrs['parentblock']['dtype'] = [] # derived types
+#        self._attrs['parentblock']['expr'] = None
+#        self._attrs['parentblock']['dummy_arg'] = OrderedDict()
+#        self._attrs['parentblock']['dummy_arg']['names'] = []
+#        self._attrs['parentblock']['dummy_arg']['in_names'] = []
+#        self._attrs['parentblock']['dummy_arg']['out_names'] = []
+#        self._attrs['parentblock']['dummy_arg']['inout_names'] = []
+#        self._attrs['parentblock']['dummy_arg']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['parentblock']['input'] =  OrderedDict()# variables for callsite actual args and kernel externs
+#        self._attrs['parentblock']['input']['names'] = []
+#        self._attrs['parentblock']['input']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['parentblock']['output'] = OrderedDict() # variables for callsite outputs
+#        self._attrs['parentblock']['output']['names'] = []
+#        self._attrs['parentblock']['output']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['parentblock']['output']['tkdpat'] = []
+#        self._attrs['parentblock']['inout'] = OrderedDict()
+#        self._attrs['parentblock']['inout']['tkdpat'] = []
+#        self._attrs['parentblock']['writesubr'] = OrderedDict()
+#        self._attrs['parentblock']['writesubr']['tkdpat'] = []
+#        self._attrs['parentblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
+#        self._attrs['parentblock']['dtype'] = [] # derived types
 
         # callsite topblock attributes
-        self._attrs['topblock'] = {}
-        self._attrs['topblock']['file'] = None # SrcFile object
-        self._attrs['topblock']['path'] = '' # absolute path
+        self._attrs['topblock'] = OrderedDict()
+#        self._attrs['topblock']['file'] = None # SrcFile object
+#        self._attrs['topblock']['path'] = '' # absolute path
         self._attrs['topblock']['stmt'] = None
-        self._attrs['topblock']['expr'] = None
-        self._attrs['topblock']['extern'] = {}
-        self._attrs['topblock']['extern']['names'] = []
-        self._attrs['topblock']['extern']['typedecl_stmt'] = {}
-        self._attrs['topblock']['extern']['tkdpat'] = []
-        #self._attrs['topblock']['mod_depends'] = [] # dependency for compile
-        self._attrs['topblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
-        self._attrs['topblock']['dtype'] = [] # derived types
+#        self._attrs['topblock']['expr'] = None
+#        self._attrs['topblock']['extern'] = OrderedDict()
+#        self._attrs['topblock']['extern']['names'] = []
+#        self._attrs['topblock']['extern']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['topblock']['extern']['tkdpat'] = []
+#        #self._attrs['topblock']['mod_depends'] = [] # dependency for compile
+#        self._attrs['topblock']['mod_rw_var_depends'] = [] # dependency for call kgen_write_var
+#        self._attrs['topblock']['dtype'] = [] # derived types
 
         # kernel attributes
-        self._attrs['kernel'] = {}
-        self._attrs['kernel']['stmt'] = None
-        self._attrs['kernel']['expr'] = None
-        self._attrs['kernel']['parent'] = None
-        self._attrs['kernel']['top'] = None
-        self._attrs['kernel']['dummy_arg'] = {}
-        self._attrs['kernel']['dummy_arg']['names'] = []
-        self._attrs['kernel']['dummy_arg']['in_names'] = []
-        self._attrs['kernel']['dummy_arg']['out_names'] = []
-        self._attrs['kernel']['dummy_arg']['inout_names'] = []
-        self._attrs['kernel']['dummy_arg']['typedecl_stmt'] = {}
-
+        self._attrs['kernel'] = OrderedDict()
+        self._attrs['kernel']['name'] = None
+#        self._attrs['kernel']['stmt'] = None
+#        self._attrs['kernel']['expr'] = None
+#        self._attrs['kernel']['parent'] = None
+#        self._attrs['kernel']['top'] = None
+#        self._attrs['kernel']['dummy_arg'] = OrderedDict()
+#        self._attrs['kernel']['dummy_arg']['names'] = []
+#        self._attrs['kernel']['dummy_arg']['in_names'] = []
+#        self._attrs['kernel']['dummy_arg']['out_names'] = []
+#        self._attrs['kernel']['dummy_arg']['inout_names'] = []
+#        self._attrs['kernel']['dummy_arg']['typedecl_stmt'] = OrderedDict()
+#
         # modules
-        self._attrs['modules'] = {}
+        self._attrs['modules'] = OrderedDict()
 
-        # module files
-        self._attrs['depfiles'] = {}
+        # src files
+        self._attrs['srcfiles'] = OrderedDict()
+
+        # used src files
+        self._attrs['used_srcfiles'] = OrderedDict()
+
+        # imported files
+        self._attrs['imported'] = OrderedDict()
+        self._attrs['imported']['source'] = []
+
 
         # kernel_driver attributes
-        self._attrs['kernel_driver'] = {}
-        self._attrs['kernel_driver']['input'] = {}
-        self._attrs['kernel_driver']['input']['names'] = []
-        self._attrs['kernel_driver']['input']['typedecl_stmt'] = {}
-        self._attrs['kernel_driver']['input']['tkdpat'] = []
-        self._attrs['kernel_driver']['mod_rw_var_depends'] = []
+        self._attrs['kernel_driver'] = OrderedDict()
+#        self._attrs['kernel_driver']['input'] = OrderedDict()
+#        self._attrs['kernel_driver']['input']['names'] = []
+#        self._attrs['kernel_driver']['input']['typedecl_stmt'] = OrderedDict()
+#        self._attrs['kernel_driver']['input']['tkdpat'] = []
+#        self._attrs['kernel_driver']['mod_rw_var_depends'] = []
+#        # new kernel_driver attributes
+        self._attrs['kernel_driver']['name'] = 'kernel_driver'
+#        self._attrs['kernel_driver']['program'] = None
+        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_total_time']
 
         # program units
-        self._attrs['program_units'] = {}
+        self._attrs['program_units'] = OrderedDict()
+#
+#        # new attribute holder for multiple kernels
+#        self._attrs['kernels'] = OrderedDict()
+#        self._attrs['kernels'][0] = OrderedDict()
+#        self._attrs['kernels'][0]['name'] = 'dummy_name_test'
 
     def __getattr__(self, name):
         return self._attrs[name]
@@ -109,8 +128,9 @@ class State(object):
 class ResState(object):
     ( NOT_STARTED, RESOLVED ) = range(2)
 
-    def __init__(self, uname, org, resolvers):
+    def __init__(self, gentype, uname, org, resolvers):
         self.state = self.NOT_STARTED
+        self.gentype = gentype
         self.uname = uname
         self.originator = org
         self.resolvers = resolvers
@@ -128,17 +148,47 @@ class ResState(object):
         self.uname = self.unamelist[-1]
         if len(self.res_stmts)>0 and reset_uname:
             newlist = []
-            for resuname in self.res_stmts[-1].geninfo.values()[0]:
+            for (resuname, req) in self.res_stmts[-1].geninfo.values()[0]:
                 if resuname==newname:
-                    newlist.append(self.uname)
+                    newlist.append((self.uname, req))
                 else:
-                    newlist.append(resuname)
+                    newlist.append((resuname, req))
                     pass
             self.res_stmts[-1].geninfo.values()[0] = newlist
-            #import pdb; pdb.set_trace()
             
 
 class SrcFile(object):
+    def handle_include(self, lines):
+        import re
+        import os
+
+        insert_lines = []
+        for i, line in enumerate(lines):
+            match = re.match(r'^\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
+            #if not match:
+            #    match = re.match(r'\s*#include\s*("[^"]+"|\<[^\']+\>)\s*\Z', line, re.I)
+            if match:
+                if Config.include['file'].has_key(self.abspath):
+                    include_dirs = Config.include['file'][self.abspath]['path']+Config.include['path']
+                else:
+                    include_dirs = Config.include['path']
+                filename = match.group(1)[1:-1].strip()
+                path = filename
+                for incl_dir in include_dirs+[os.path.dirname(self.abspath)]:
+                    path = os.path.join(incl_dir, filename)
+                    if os.path.exists(path):
+                        break
+                if os.path.isfile(path):
+                    with open(path, 'r') as f:
+                        included_lines = f.read()
+                        insert_lines.extend(self.handle_include(included_lines.split('\n')))
+                else:
+                    raise UserException('Can not find %s in include paths of %s.'%(filename, self.abspath))
+            else:
+                insert_lines.append(line)
+
+        return insert_lines
+
     def __init__(self, srcpath):
         import os.path
         from kgen_utils import exec_cmd
@@ -146,11 +196,9 @@ class SrcFile(object):
         from block_statements import Module, Program
 
         # set default values
-        self.prep = None
         self.tree = None
         self.srcpath = srcpath
         self.abspath = os.path.abspath(self.srcpath)
-        self.used4genstate = False
 
         
         # set source file format
@@ -169,30 +217,47 @@ class SrcFile(object):
         path_src = []
         macros_src = ''
         if Config.include['file'].has_key(self.abspath):
-            path_src = Config.include['file'][self.abspath]['path']
+            path_src = Config.include['file'][self.abspath]['path']+[os.path.dirname(self.abspath)]
             macros_src = ' '.join([ '-D%s=%s'%(k,v) for k, v in Config.include['file'][self.abspath]['macro'].iteritems() ])
         includes = '-I'+' -I'.join(Config.include['path']+path_src)
         macros = ' '.join([ '-D%s=%s'%(k,v) for k, v in Config.include['macro'].iteritems() ]) + ' ' + macros_src
 
         # execute preprocessing
         Logger.info('Reading %s'%self.srcpath, stdout=True)
-        prep = Config.bin['pp']
-        if prep.endswith('fpp'):
+        pp = Config.bin['pp']
+        if pp.endswith('fpp'):
             if isfree: srcfmt = ' -free'
             else: srcfmt = ' -fixed'
             flags = Config.bin['fpp_flags'] + srcfmt
-        elif prep.endswith('cpp'):
+        elif pp.endswith('cpp'):
             flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
-        output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, self.abspath))
 
-        # convert the preprocessed for fparser
-        self.prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
+        new_lines = []
+        with open(self.abspath, 'r') as f:
+            output = exec_cmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
+            prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
+            new_lines = self.handle_include(prep)
+
+        # add include paths
+        if Config.include['file'].has_key(self.abspath) and Config.include['file'][self.abspath].has_key('path'):
+            include_dirs = Config.include['file'][self.abspath]['path'] + [os.path.dirname(self.abspath)]
+        else: include_dirs = None
+
+        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_derived_types.F':
+        #    print '\n'.join(new_lines)
+        #    sys.exit()
+        #    import pdb ; pdb.set_trace()
 
         # fparse
-        self.tree = parse('\n'.join(self.prep), ignore_comments=False, analyze=True, isfree=isfree, \
-            isstrict=isstrict, include_dirs=None, source_only=None )
-        self.tree.srcfile = self
+        self.tree = parse('\n'.join(new_lines), ignore_comments=False, analyze=True, isfree=isfree, \
+            isstrict=isstrict, include_dirs=include_dirs, source_only=None )
+        self.tree.prep = new_lines
+        self.tree.used4genstate = False
+
+        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_derived_types.F':
+        #    print self.tree
+        #    sys.exit()
 
         # parse f2003
         lineno = 0
@@ -206,18 +271,18 @@ class SrcFile(object):
         # collect module information
         for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
             if not State.modules.has_key(mod_name):
-                State.modules[mod_name] = {}
-                State.modules[mod_name]['num'] = State.mod_num
-                State.mod_num += 1
+                State.modules[mod_name] = OrderedDict()
+                #State.modules[mod_name]['num'] = State.mod_num
+                #State.mod_num += 1
                 State.modules[mod_name]['stmt'] = mod_stmt
                 State.modules[mod_name]['file'] = self
                 State.modules[mod_name]['path'] = self.abspath
-                State.modules[mod_name]['extern'] = {}
-                State.modules[mod_name]['extern']['names'] = []
-                State.modules[mod_name]['extern']['typedecl_stmt'] = {}
-                State.modules[mod_name]['extern']['tkdpat'] = []
-                State.modules[mod_name]['mod_rw_var_depends'] = []
-                State.modules[mod_name]['dtype'] = []
+                #State.modules[mod_name]['extern'] = OrderedDict()
+                #State.modules[mod_name]['extern']['names'] = []
+                #State.modules[mod_name]['extern']['typedecl_stmt'] = OrderedDict()
+                #State.modules[mod_name]['extern']['tkdpat'] = []
+                #State.modules[mod_name]['mod_rw_var_depends'] = []
+                #State.modules[mod_name]['dtype'] = []
         
         # collect program unit information
         for item in self.tree.content:
@@ -227,7 +292,7 @@ class SrcFile(object):
                 State.program_units[item.reader.id].append(item)
 
         # create a tuple for file dependency
-        State.depfiles[self.abspath] = ( self, [], [] )
+        State.srcfiles[self.abspath] = ( self, [], [] )
 
     def stmt_by_name(self, name, cls=None, lineafter=-1):
         from statements import Comment

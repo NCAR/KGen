@@ -1,5 +1,5 @@
-KGEN_HOME := ../../kgen
-KGEN := ${KGEN_HOME}/kgen.py
+KGEN_HOME := ../..
+KGEN := ${KGEN_HOME}/bin/kgen
 
 SRC_DIR := ${PWD}/src
 SRC := ${SRC_DIR}/update_mod.F90
