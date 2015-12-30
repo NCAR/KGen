@@ -21,13 +21,6 @@ Changes from KGEN ver. 0.5.3
 * "object" action in inclusion INI file is added to import external object files to kernel
 * --verbose KGEN flag is added. 
 
-* "--skip-intrinsic" and "--noskip-intrinsic" flags are discarded. Instead, please use "--intrinsic skip" and "--intrinsic noskip" each
-* The syntax of numbers in "--invocation" flag changed. Please use colon instead of comma as a delimiter of numbers
-* "--source" flag is added to inform KGEN with the Fortran source format.
-* "common" section is renamed to "namepath" in exclusion INI file for "-e" flag
-* The syntax of "namepath" is changed. Please see the section 2.3.1 of user's guide for details
-* Several actions are added in "namepath" section of exclusion INI file for "-e" flag. Please see the section 2.3.3 of user's guide for details
-
 [Major Improvements]
 
 * Support for extracting a region of codes as a kernel.
@@ -62,7 +55,7 @@ Obtaining the Source Code
 
 The latest KGEN can be obtained from the Git repository.
 
-    git clone https://github.com/NCAR-CISL-ASAP/KGen.git
+    git clone https://github.com/NCAR/KGen.git
 
 
 Building & Installation
@@ -75,10 +68,10 @@ Instructions & Use
 ------------------
 
 1. Download from KGen Github repository.
-	>> git clone https://github.com/NCAR-CISL-ASAP/KGen.git
+	>> git clone https://github.com/NCAR/KGen.git
 
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
-	>> evince KGEN_Users_Guide_V0.0.0.pdf 
+	>> evince KGEN_Users_Guide_V0.6.0.pdf 
 
 3. Try "simple" in "example/simple" directory
 	>> cd example/simple;	# move to an example directory
