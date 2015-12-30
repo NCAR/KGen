@@ -4,15 +4,22 @@ KGEN: Fortran Kernel Generator
 A package for extracting a part of Fortran source codes out of a large Fortran application.
 
 :AUTHORS: Youngsung Kim, John Dennis, Raghu R. Kumar and Amogh Simha
-:VERSION: 0.5.3
+:VERSION: 0.6.0
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
 
-Changes from KGEN ver. 0.5.0
+Changes from KGEN ver. 0.5.3
 ----------------------------
 
 [User Interface]
+
+* To invoke KGEN, user can use "kgen" command without having "python" in command line. The script is located in "bin" sub-directory
+* "begin_callsite" and "end_callsite" KGEN directives are added to support a kernel extraction from a region of source codes.
+* "comment" action in exclusion INI file is removed. And "remove" actions in the file is renamed to "remove_state"
+* Two python scripts that automate the creation of inclusion INI file is added in "bin" sub-directory. One is for CESM(http://www2.cesm.ucar.edu/) log files and the other for MPAS(https://mpas-dev.github.io/) log files.
+* "object" action in inclusion INI file is added to import external object files to kernel
+* --verbose KGEN flag is added. 
 
 * "--skip-intrinsic" and "--noskip-intrinsic" flags are discarded. Instead, please use "--intrinsic skip" and "--intrinsic noskip" each
 * The syntax of numbers in "--invocation" flag changed. Please use colon instead of comma as a delimiter of numbers
@@ -23,9 +30,17 @@ Changes from KGEN ver. 0.5.0
 
 [Major Improvements]
 
-* Better pruning of external library through additional exclusion actions.
-* Support of analyzing Fortran External Subprograms
+* Support for extracting a region of codes as a kernel.
+* Better preserving the original formatting
+* Better output information according to verbosity level.
+* Support Fortran external subprograms
+* fixed a bug on importing variables across multiple Fortran modules
 
+[Release Notes]
+
+* KGEN Github repository is moved to "https://github.com/NCAR/KGen.git"
+* Kernels extracted using KGEN can be accessed from "https://github.com/NCAR/kernelOptimization.git"
+* MPAS(https://github.com/MPAS-Dev/MPAS-Release.git) is being tested with this version of KGEN. As of this writing, two MPAS kernels are extracted and located in the above "kernelOptimization" github repo.
 
 Overview
 --------
@@ -63,7 +78,7 @@ Instructions & Use
 	>> git clone https://github.com/NCAR-CISL-ASAP/KGen.git
 
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
-	>> evince KGEN_Users_Guide_V0.5.3.pdf 
+	>> evince KGEN_Users_Guide_V0.0.0.pdf 
 
 3. Try "simple" in "example/simple" directory
 	>> cd example/simple;	# move to an example directory
