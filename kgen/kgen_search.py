@@ -899,3 +899,7 @@ def search_Ac_Spec(stmt, node, gentype=None):
     #import pdb ;pdb.set_trace()
     defer(stmt, node.items[0])
     get_name_or_defer(stmt, node.items[1], res_value)
+
+def search_Sequence_Stmt(stmt, node, gentype=None):
+    pass
+

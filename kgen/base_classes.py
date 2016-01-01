@@ -990,21 +990,25 @@ class Statement(object):
 
                 # tries to apply implicit rules
                 if request.state != ResState.RESOLVED:
-                    mytype = self.get_type(request.uname.firstpartname())
-                    for resolver in request.resolvers:
-                        if isinstance(mytype, resolver):
-                            anc = self.ancestors()
-                            if not hasattr(anc[-1], 'implicit_rule_resolvers'): anc[-1].implicit_rule_resolvers = []
-                            irres = ImplicitRule_Resolver(request.uname.firstpartname())
-                            irres.add_geninfo(request.uname, request)
-                            anc[-1].implicit_rule_resolvers.append(irres)
-                            request.res_stmts.append(irres)
-                            request.state = ResState.RESOLVED
-                            Logger.info('%s is resolved using implicit rules'%request.uname.firstpartname(), name=request.uname, stmt=self)
-                            break
-                    #import pdb; pdb.set_trace()
-                    # TODO: check against implicit_rules of parent
-                    # TODO: mark implicit resolution in ResState
+                    try:
+                        mytype = self.get_type(request.uname.firstpartname())
+                        for resolver in request.resolvers:
+                            if isinstance(mytype, resolver):
+                                anc = self.ancestors()
+                                if not hasattr(anc[-1], 'implicit_rule_resolvers'): anc[-1].implicit_rule_resolvers = []
+                                irres = ImplicitRule_Resolver(request.uname.firstpartname())
+                                irres.add_geninfo(request.uname, request)
+                                anc[-1].implicit_rule_resolvers.append(irres)
+                                request.res_stmts.append(irres)
+                                request.state = ResState.RESOLVED
+                                Logger.info('%s is resolved using implicit rules'%request.uname.firstpartname(), name=request.uname, stmt=self)
+                                break
+                        #import pdb; pdb.set_trace()
+                        # TODO: check against implicit_rules of parent
+                        # TODO: mark implicit resolution in ResState
+                    except:
+                        #import pdb; pdb.set_trace()
+                        pass
 
                 # if still not resolved, mark it
                 if request.state != ResState.RESOLVED:

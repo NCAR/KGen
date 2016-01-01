@@ -36,6 +36,14 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if subrname not in self.kernel_created_subrs and not part_has_node(parent, SUBP_PART, checks):
 
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: return
+
             self.kernel_created_subrs.append(subrname)
 
             checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
@@ -121,7 +129,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                             res = req.res_stmts[0]
                             callname = get_dtype_readname(res)
                             break
-                    if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                    if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                     attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
@@ -171,7 +179,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                             res = req.res_stmts[0]
                             callname = get_dtype_readname(res)
                             break
-                    if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                    if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                     attrs = {'designator': callname, 'items': ['var', 'kgen_unit', 'printvar // " %s "'%entity_name]}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
@@ -202,6 +210,14 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if subrname not in self.state_created_subrs and not part_has_node(parent, SUBP_PART, checks):
+
+            if hasattr(stmt, 'exclude_names'):
+                skip_verify = False
+                for exclude_name, actions in stmt.exclude_names.iteritems():
+                    if exclude_name==entity_name and 'remove_state' in actions:
+                        skip_verify = True
+                        break
+                if skip_verify: return
 
             self.state_created_subrs.append(subrname)
 
@@ -279,7 +295,9 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                             res = req.res_stmts[0]
                             callname = get_dtype_writename(res)
                             break
-                    if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                    if callname is None:
+                        #import pdb; pdb.set_trace()
+                        raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                     attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
@@ -325,7 +343,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                             res = req.res_stmts[0]
                             callname = get_dtype_writename(res)
                             break
-                    if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                    if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                     attrs = {'designator': callname, 'items': ['var', 'kgen_unit', 'printvar // " %s "'%entity_name]}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
@@ -361,7 +379,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             var = stmt.get_variable(entity_name)
             subrname = get_typedecl_readname(stmt, entity_name)
-            if subrname is None: raise ProgramException('Can not get subroutinename')
+            if subrname is None: raise Exception('Can not get subroutinename')
 
             if var.is_array():
                 if stmt.is_derived():
@@ -385,7 +403,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             var = stmt.get_variable(entity_name)
             subrname = get_typedecl_writename(stmt, entity_name)
-            if subrname is None: raise ProgramException('Can not get subroutinename')
+            if subrname is None: raise Exception('Can not get subroutinename')
 
             if var.is_array():
                 if stmt.is_derived():

@@ -1171,8 +1171,31 @@ class Data(Statement):
         return 'DATA ' + ' '.join(l)
 
     def resolve_uname(self, uname, request):
-        # need to add geninfo if uname is used
-        # need to resolve if any new name is used
+        from kgen_search import f2003_search_unknowns
+        from kgen_state import ResState
+
+#        if uname.firstpartname() in self.leftnames:
+#            self.add_geninfo(uname, request)
+#
+#            node = None
+#            if isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def):
+#                if self.f2003.items[1].items[0].string.lower()==uname.firstpartname():
+#                    node = self.f2003.items[1]
+#            elif isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def_List):
+#                for item in self.f2003.items[1].items:
+#                    if isinstance(item, Fortran2003.Named_Constant_Def) and \
+#                        item.items[0].string.lower()==uname.firstpartname():
+#                        node = item
+#                        break
+#            else:
+#                raise ProgramException('%s is not allowed'%self.f2003.items[1].__class__)
+#
+#            if node:
+#                if not hasattr(self, 'unknowns') or len(self.unknowns)==0:
+#                    f2003_search_unknowns(self, node.items[1])
+#                    for unknown, request in self.unknowns.iteritems():
+#                        if request.state != ResState.RESOLVED:
+#                            self.resolve(request)
 
 #        from kgen_utils import KGName
 #        for item in self.items:
@@ -2662,9 +2685,17 @@ class Where(Statement):
         i = line.index(')')
         self.expr = self.item.apply_map(line[1:i].strip())
         line = line[i+1:].lstrip()
-        newitem = self.item.copy(line)
+
+        #newitem = self.item.copy(line)
+        if not line:
+            newitem = self.get_item()
+        else:
+            newitem = self.item.copy(line, apply_map=True)
+        newline = newitem.get_line()
+
         cls = Assignment
-        if cls.match(line):
+        #if cls.match(line):
+        if cls.match(newline):
             stmt = cls(self, newitem)
             if stmt.isvalid:
                 self.content = [stmt]

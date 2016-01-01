@@ -390,18 +390,22 @@ def init_plugins():
         sys.path.insert(0, plugin_path)
         plugin_files = [x[:-3] for x in os.listdir(plugin_path) if x.endswith(".py")]
         for plugin in plugin_files:
-            mod = __import__(plugin)
-            set_plugin_env(mod)
-            match = lambda x: inspect.isclass(x) and x is not kgen_plugin.Kgen_Plugin and issubclass(x, kgen_plugin.Kgen_Plugin)
-            for name, cls in inspect.getmembers(mod, match): 
-                obj = cls()
-                if not event_register.has_key(plugin_dir):
-                    event_register[plugin_dir] = OrderedDict() 
-                if not event_register[plugin_dir].has_key(cls.__module__):
-                    event_register[plugin_dir][cls.__module__] = OrderedDict() 
-                if not event_register[plugin_dir][cls.__module__].has_key(obj):
-                    event_register[plugin_dir][cls.__module__][obj] = OrderedDict() 
-                obj.register(PluginMsg(event_register[plugin_dir][cls.__module__][obj]))
+            try:
+                mod = __import__(plugin)
+                set_plugin_env(mod)
+                match = lambda x: inspect.isclass(x) and x is not kgen_plugin.Kgen_Plugin and issubclass(x, kgen_plugin.Kgen_Plugin)
+                for name, cls in inspect.getmembers(mod, match): 
+                    obj = cls()
+                    if not event_register.has_key(plugin_dir):
+                        event_register[plugin_dir] = OrderedDict() 
+                    if not event_register[plugin_dir].has_key(cls.__module__):
+                        event_register[plugin_dir][cls.__module__] = OrderedDict() 
+                    if not event_register[plugin_dir][cls.__module__].has_key(obj):
+                        event_register[plugin_dir][cls.__module__][obj] = OrderedDict() 
+                    obj.register(PluginMsg(event_register[plugin_dir][cls.__module__][obj]))
+            except ValueError as e:
+                pass
+            except: raise 
 
 
 def get_namedpart(kernel_id, name):

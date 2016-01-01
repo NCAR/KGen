@@ -135,7 +135,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 attrspec = []
                 if var.is_array():
                     attrspec.append('DIMENSION(%s)'%','.join(':'*var.rank))
-                    attrspec.append('ALLOCATABLE')
+                    if not var.is_pointer(): attrspec.append('ALLOCATABLE')
                     # deallocate
                 if var.is_pointer(): attrspec.append('POINTER')
                 attrs['attrspec'] = attrspec 
@@ -307,7 +307,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                     res = req.res_stmts[0]
                                     subrname = get_dtype_readname(res)
                                     break
-                            if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                            if subrname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
                             self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                     else: # intrinsic type
                         self.create_read_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var, ename_prefix=ename_prefix)
@@ -335,7 +335,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 res = req.res_stmts[0]
                                 subrname = get_dtype_readname(res)
                                 break
-                        if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                        if subrname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
                         self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                 else: # intrinsic type
                     self.create_read_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
@@ -423,7 +423,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                     res = req.res_stmts[0]
                                     subrname = get_dtype_writename(res)
                                     break
-                            if subrname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                            if subrname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
                             self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                     else: # intrinsic type
                         self.create_write_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)

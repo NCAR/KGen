@@ -92,7 +92,7 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                         res = req.res_stmts[0]
                         callname = get_dtype_readname(res)
                         break
-                if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                 #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "("//%s//")"'%str_indexes]}
                 attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
@@ -145,7 +145,7 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                         res = req.res_stmts[0]
                         callname = get_dtype_readname(res)
                         break
-                if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                 attrs = {'designator': callname, 'items': ['var', 'kgen_unit', 'printvar // " %s%s "'%(ename_prefix, entity_name)]}
                 part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
@@ -251,7 +251,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                         res = req.res_stmts[0]
                         callname = get_dtype_writename(res)
                         break
-                if callname is None: raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                 #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "("//%s//")"'%str_indexes]}
                 attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
@@ -297,7 +297,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                         callname = get_dtype_writename(res)
                         break
                 if callname is None:
-                    raise ProgramException('Can not find Type resolver for %s'%stmt.name)
+                    raise Exception('Can not find Type resolver for %s'%stmt.name)
 
                 attrs = {'expr': 'PRESENT( printvar )'}
                 ifpvarobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
