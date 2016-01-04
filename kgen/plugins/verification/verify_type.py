@@ -4,7 +4,8 @@ import statements
 import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
-from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils
+from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils, is_remove_state, \
+    is_zero_array
 
 class Verify_Type(Kgen_Plugin):
     def __init__(self):
@@ -181,15 +182,11 @@ class Verify_Type(Kgen_Plugin):
                 entity_names = [ get_entity_name(decl) for decl in stmt.entity_decls ]
                 topobj = subrobj
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
-                    if hasattr(item.kgen_stmt, 'exclude_names'):
-                        skip_verify = False
-                        for exclude_name, actions in item.kgen_stmt.exclude_names.iteritems():
-                            if exclude_name==entity_name and 'remove_state' in actions:
-                                skip_verify = True 
-                                break
-                        if skip_verify: continue
-
                     var = stmt.get_variable(entity_name)
+
+                    if is_remove_state(entity_name, stmt): continue
+                    if var.is_array() and is_zero_array(var, stmt): continue
+
                     callname = get_typedecl_verifyname(stmt, entity_name)
 
                     ifallocobj = None

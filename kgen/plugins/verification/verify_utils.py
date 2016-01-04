@@ -119,3 +119,49 @@ def process_spec_stmts(stmt):
         else:
             pass
             # maybe specific handling per classes
+
+def is_excluded(ename, stmt):
+    if hasattr(stmt, 'exclude_names'):
+        for name, actions in stmt.exclude_names.iteritems():
+            if ename==name: return True
+    return False
+
+def is_remove_state(ename, stmt):
+    if hasattr(stmt, 'exclude_names'):
+        for name, actions in stmt.exclude_names.iteritems():
+            if ename==name and 'remove_state' in actions:
+                return True
+    return False
+
+def is_param_zero(length, stmt):
+    import typedecl_statements
+
+    if hasattr(stmt, 'unknowns'):
+        for uname, req in stmt.unknowns.iteritems():
+            if uname.firstpartname()==length:
+                res_stmt = req.res_stmts[0]
+                if isinstance(res_stmt, typedecl_statements.Integer) and 'parameter' in res_stmt.attrspec:
+                    for decl in res_stmt.entity_decls:
+                        vname, value = decl.split('=')            
+                        if vname.strip()==length:
+                            try:
+                                intlen = int(value)
+                                if intlen == 0: return True
+                            except:
+                                return is_param_zero(length, res_stmt)
+    return False
+
+def is_zero_array(var, stmt):
+    # Temporary turn off
+    #return False
+    if var.is_explicit_shape_array():
+        for length in var.shape:
+            try:
+                intlen = int(length)
+                if intlen==0: return True
+            except:
+                if is_param_zero(length, stmt):
+                    return True
+    return False
+
+

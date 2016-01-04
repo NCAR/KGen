@@ -7,7 +7,7 @@ from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
     get_dtype_readname, get_typedecl_readname, kernel_gencore_contains, gen_write_istrue, \
-    gen_read_istrue
+    gen_read_istrue, is_excluded, is_remove_state
 
 class Gen_Type(Kgen_Plugin):
     def __init__(self):
@@ -228,13 +228,7 @@ class Gen_Type(Kgen_Plugin):
 
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
 
-                    if hasattr(item.kgen_stmt, 'exclude_names'):
-                        skip_verify = False
-                        for exclude_name, actions in item.kgen_stmt.exclude_names.iteritems():
-                            if exclude_name==entity_name and 'remove_state' in actions:
-                                skip_verify = True
-                                break
-                        if skip_verify: continue
+                    if is_remove_state(entity_name, stmt): continue
 
                     var = stmt.get_variable(entity_name)
                     callname = get_typedecl_readname(stmt, entity_name)
@@ -323,13 +317,7 @@ class Gen_Type(Kgen_Plugin):
 
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
 
-                    if hasattr(item.kgen_stmt, 'exclude_names'):
-                        skip_verify = False
-                        for exclude_name, actions in item.kgen_stmt.exclude_names.iteritems():
-                            if exclude_name==entity_name and 'remove_state' in actions:
-                                skip_verify = True
-                                break
-                        if skip_verify: continue
+                    if is_remove_state(entity_name, stmt): continue
 
                     node.kgen_stmt.top.used4genstate = True
 

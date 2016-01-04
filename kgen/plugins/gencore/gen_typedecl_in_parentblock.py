@@ -7,7 +7,8 @@ from kgen_plugin import Kgen_Plugin
 from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS, \
     DRIVER_READ_IN_ARGS, KERNEL_PBLOCK_READ_IN_LOCALS, KERNEL_PBLOCK_READ_OUT_LOCALS, \
     DRIVER_DECL_PART, DRIVER_USE_PART, get_typedecl_writename, get_dtype_writename, state_gencore_contains, \
-    get_topname, get_typedecl_readname, get_dtype_readname, shared_objects, process_spec_stmts
+    get_topname, get_typedecl_readname, get_dtype_readname, shared_objects, process_spec_stmts, is_zero_array, \
+    is_excluded, is_remove_state, namedgen_read_istrue, namedgen_write_istrue
 from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
@@ -115,13 +116,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
 
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: continue
+            if is_remove_state(entity_name, stmt): continue
 
             if (entity_name,DRIVER_READ_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
 
@@ -195,13 +190,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
 
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: continue
+            if is_remove_state(entity_name, stmt): continue
 
             if (entity_name,KERNEL_PBLOCK_READ_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_OUT_LOCALS))
@@ -280,6 +269,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 var = stmt.get_variable(entity_name)
                 subrname = get_typedecl_readname(stmt, entity_name)
                 if var.is_array():
+                    if is_zero_array(var, stmt): continue
                     if stmt.is_derived():
                         self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                         if subrname not in self.kernel_created_subrs:
@@ -352,13 +342,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
 
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: continue
+            if is_remove_state(entity_name, stmt): continue
 
             if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
                 argintype.append((entity_name, STATE_PBLOCK_WRITE_IN_ARGS))
@@ -370,13 +354,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
 
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: continue
+            if is_remove_state(entity_name, stmt): continue
 
             if (entity_name,STATE_PBLOCK_WRITE_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_OUT_LOCALS))
@@ -390,6 +368,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 var = stmt.get_variable(entity_name)
                 subrname = get_typedecl_writename(stmt, entity_name)
                 if var.is_array():
+                    if is_zero_array(var, stmt): continue
                     if stmt.is_derived():
                         self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                         if subrname not in self.state_created_subrs:
@@ -429,30 +408,32 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                         self.create_write_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
 
     def create_read_intrinsic(self, kernel_id, partid, entity_name, stmt, var, ename_prefix=''):
-        pobj = None
 
-        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
-            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-            namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
+        pobj = namedgen_read_istrue(kernel_id, partid, var, entity_name, ename_prefix=ename_prefix)
 
-            attrs = {'expr': 'kgen_istrue'}
-            iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            pobj = iftrueobj
-
-        if var.is_allocatable():
-            attrs = {'expr': 'ALLOCATED( %s )'%(ename_prefix+entity_name)}
-            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
-            part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
-
-        if var.is_pointer():
-            attrs = {'expr': 'ASSOCIATED( %s )'%(ename_prefix+entity_name)}
-            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
-            part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
+#        pobj = None
+#        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
+#            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
+#            namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
+#
+#            attrs = {'expr': 'kgen_istrue'}
+#            iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+#
+#            pobj = iftrueobj
+#
+#        if var.is_allocatable():
+#            attrs = {'expr': 'ALLOCATED( %s )'%(ename_prefix+entity_name)}
+#            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+#
+#            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
+#            part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
+#
+#        if var.is_pointer():
+#            attrs = {'expr': 'ASSOCIATED( %s )'%(ename_prefix+entity_name)}
+#            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+#
+#            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
+#            part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
 
         if pobj:
             attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
@@ -474,67 +455,69 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 namedpart_append_genknode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
-        pobj = None
 
-        # if isarray
-        if var.is_array() and not var.is_explicit_shape_array():
-            attrs = {'expr': 'SIZE(%s)==1'%entity_name}
-            ifsizeobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+        pobj = namedgen_write_istrue(kernel_id, partid, var, entity_name)
 
-            attrs = {'expr': 'UBOUND(%s, 1)<LBOUND(%s, 1)'%(entity_name, entity_name)}
-            ifarrobj = part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'expr': 'UBOUND(%s, 1)==0 .AND. LBOUND(%s, 1)==0'%(entity_name, entity_name)}
-            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.Else, attrs=attrs)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
-            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.Else, attrs=attrs)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
-            part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        # if allocatable
-        if var.is_allocatable():
-            attrs = {'expr': '.NOT. ALLOCATED(%s)'%entity_name}
-            ifallocobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-            part_append_gensnode(ifallocobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        # if pointer
-        if var.is_pointer():
-            attrs = {'expr': '.NOT. ASSOCIATED(%s)'%entity_name}
-            ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-
-
-        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
-
-            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-            namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
-
-            attrs = {'expr': 'kgen_istrue'}
-            iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-
-            pobj = iftrueobj
+#        pobj = None
+#        # if isarray
+#        if var.is_array() and not var.is_explicit_shape_array():
+#            attrs = {'expr': 'SIZE(%s)==1'%entity_name}
+#            ifsizeobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+#
+#            attrs = {'expr': 'UBOUND(%s, 1)<LBOUND(%s, 1)'%(entity_name, entity_name)}
+#            ifarrobj = part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+#
+#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+#            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+#
+#            attrs = {'expr': 'UBOUND(%s, 1)==0 .AND. LBOUND(%s, 1)==0'%(entity_name, entity_name)}
+#            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+#
+#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+#            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+#
+#            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.Else, attrs=attrs)
+#
+#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+#            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+#
+#            part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.Else, attrs=attrs)
+#
+#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+#            part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
+#
+#        # if allocatable
+#        if var.is_allocatable():
+#            attrs = {'expr': '.NOT. ALLOCATED(%s)'%entity_name}
+#            ifallocobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+#
+#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+#            part_append_gensnode(ifallocobj, EXEC_PART, statements.Assignment, attrs=attrs)
+#
+#        # if pointer
+#        if var.is_pointer():
+#            attrs = {'expr': '.NOT. ASSOCIATED(%s)'%entity_name}
+#            ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+#
+#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+#            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+#
+#
+#        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
+#
+#            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
+#            namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
+#
+#            attrs = {'expr': 'kgen_istrue'}
+#            iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+#
+#            pobj = iftrueobj
 
         if pobj:
             attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                if stmt.is_numeric() and is_array():
+                if stmt.is_numeric() and var.is_array():
                     attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'SUM(%s)'%entity_name]}
                 else:
                     attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}

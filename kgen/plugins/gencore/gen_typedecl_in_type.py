@@ -6,7 +6,8 @@ import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
-    get_dtype_readname, get_typedecl_readname, kernel_gencore_contains, gen_read_istrue, gen_write_istrue
+    get_dtype_readname, get_typedecl_readname, kernel_gencore_contains, gen_read_istrue, gen_write_istrue, \
+    is_zero_array, is_excluded, is_remove_state
 
 class Gen_Typedecl_In_Type(Kgen_Plugin):
     def __init__(self):
@@ -36,13 +37,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if subrname not in self.kernel_created_subrs and not part_has_node(parent, SUBP_PART, checks):
 
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: return
+            if is_remove_state(entity_name, stmt): return
 
             self.kernel_created_subrs.append(subrname)
 
@@ -93,6 +88,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
             part_append_comment(subrobj, EXEC_PART, '')
 
             if var.is_array():
+
                 bound_args = []
                 for dim in range(var.rank):
                     attrs = {'items': ['kgen_bound(1, %d)'%(dim+1)], 'specs': ['UNIT = kgen_unit']}
@@ -211,13 +207,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if subrname not in self.state_created_subrs and not part_has_node(parent, SUBP_PART, checks):
 
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: return
+            if is_remove_state(entity_name, stmt): return
 
             self.state_created_subrs.append(subrname)
 
@@ -266,6 +256,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
             pobj = gen_write_istrue(subrobj, var, 'var')
 
             if var.is_array():
+
                 for dim in range(var.rank):
                     attrs = {'items': ['LBOUND(var, %d)'%(dim+1)], 'specs': ['UNIT = kgen_unit']}
                     part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -382,6 +373,8 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
             if subrname is None: raise Exception('Can not get subroutinename')
 
             if var.is_array():
+                if is_zero_array(var, stmt): continue
+
                 if stmt.is_derived():
                     self.create_read_subr(subrname, entity_name, parent, var, stmt)
                 else: # intrinsic type
@@ -406,6 +399,8 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
             if subrname is None: raise Exception('Can not get subroutinename')
 
             if var.is_array():
+                if is_zero_array(var, stmt): continue
+
                 if stmt.is_derived():
                     self.create_write_subr(subrname, entity_name, parent, var, stmt)
                 else: # intrinsic type

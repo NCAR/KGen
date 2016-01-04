@@ -30,6 +30,7 @@
 # E) Use module for dtype list and manipulate functions. Use Interface for assigning pointer
 
 import statements
+import typedecl_statements
 import block_statements
 
 shared_objects = {}
@@ -86,7 +87,7 @@ rprefix = 'kr'
 wprefix = 'kw'
 vprefix = 'kv'
 
-MAXLEN_SUBPNAME = 55
+MAXLEN_SUBPNAME = 50
 
 def get_ancestor_name(stmt, generation):
     assert stmt and hasattr(stmt, 'parent'), 'Given stmt does not have parent attribute.'
@@ -208,7 +209,7 @@ def gen_write_istrue(pobj, var, ename):
 
     # if isarray
 
-    if var.is_array() and not var.is_explicit_shape_array():
+    if var.is_array():
         attrs = {'expr': 'SIZE(%s)==1'%ename}
         ifsizeobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
@@ -228,6 +229,12 @@ def gen_write_istrue(pobj, var, ename):
 
         attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
         part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'expr': 'SIZE(%s)==0'%ename}
+        part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
         part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.Else, attrs=attrs)
 
@@ -254,7 +261,7 @@ def gen_write_istrue(pobj, var, ename):
         part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
 
-    if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
+    if var.is_array() or var.is_allocatable() or var.is_pointer():
 
         attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
         part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -267,11 +274,77 @@ def gen_write_istrue(pobj, var, ename):
         return pobj
 
 
+def namedgen_write_istrue(kernel_id, partid, var, entity_name):
+
+    pobj = None
+
+    # if isarray
+    if var.is_array():
+        attrs = {'expr': 'SIZE(%s)==1'%entity_name}
+        ifsizeobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'expr': 'UBOUND(%s, 1)<LBOUND(%s, 1)'%(entity_name, entity_name)}
+        ifarrobj = part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'expr': 'UBOUND(%s, 1)==0 .AND. LBOUND(%s, 1)==0'%(entity_name, entity_name)}
+        part_append_gensnode(ifarrobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        part_append_gensnode(ifarrobj, EXEC_PART, block_statements.Else, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'expr': 'SIZE(%s)==0'%entity_name}
+        part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.Else, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+    # if allocatable
+    if var.is_allocatable():
+        attrs = {'expr': '.NOT. ALLOCATED(%s)'%entity_name}
+        ifallocobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifallocobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+    # if pointer
+    if var.is_pointer():
+        attrs = {'expr': '.NOT. ASSOCIATED(%s)'%entity_name}
+        ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+
+    if var.is_array() or var.is_allocatable() or var.is_pointer():
+
+        attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
+        namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
+
+        attrs = {'expr': 'kgen_istrue'}
+        iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        pobj = iftrueobj
+
+    return pobj
+
 def gen_read_istrue(subrobj, var, ename, allocate=False):
 
     pobj = subrobj
  
-    if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
+    if var.is_array() or var.is_allocatable() or var.is_pointer():
         attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
         part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
@@ -295,3 +368,75 @@ def gen_read_istrue(subrobj, var, ename, allocate=False):
         part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
 
     return pobj
+
+def namedgen_read_istrue(kernel_id, partid, var, entity_name, ename_prefix=''):
+
+    pobj = None
+
+    if var.is_array() or var.is_allocatable() or var.is_pointer():
+        attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
+        namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
+
+        attrs = {'expr': 'kgen_istrue'}
+        iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        pobj = iftrueobj
+
+    if var.is_allocatable():
+        attrs = {'expr': 'ALLOCATED( %s )'%(ename_prefix+entity_name)}
+        ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
+
+    if var.is_pointer():
+        attrs = {'expr': 'ASSOCIATED( %s )'%(ename_prefix+entity_name)}
+        ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
+
+    return pobj
+
+def is_param_zero(length, stmt):
+    if hasattr(stmt, 'unknowns'):
+        for uname, req in stmt.unknowns.iteritems():
+            if uname.firstpartname()==length:
+                res_stmt = req.res_stmts[0]
+                if isinstance(res_stmt, typedecl_statements.Integer) and 'parameter' in res_stmt.attrspec:
+                    for decl in res_stmt.entity_decls:
+                        vname, value = decl.split('=')            
+                        if vname.strip()==length:
+                            try:
+                                intlen = int(value)
+                                if intlen == 0: return True
+                            except:
+                                return is_param_zero(length, res_stmt)
+    return False
+
+def is_zero_array(var, stmt):
+    # Temporary turn off
+    #return False
+    if var.is_explicit_shape_array():
+        for length in var.shape:
+            try:
+                intlen = int(length)
+                if intlen==0: return True
+            except:
+                if is_param_zero(length, stmt):
+                    return True
+    return False
+
+def is_excluded(ename, stmt):
+    if hasattr(stmt, 'exclude_names'):
+        for name, actions in stmt.exclude_names.iteritems():
+            if ename==name: return True
+    return False
+
+def is_remove_state(ename, stmt):
+    if hasattr(stmt, 'exclude_names'):
+        for name, actions in stmt.exclude_names.iteritems():
+            if ename==name and 'remove_state' in actions:
+                return True
+    return False
+

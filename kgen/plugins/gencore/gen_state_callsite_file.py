@@ -242,7 +242,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         part_append_gensnode(ifcnt, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'specs': ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="REPLACE"', 'ACCESS="STREAM"', \
-            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr']}
+            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
             #'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"']}
         part_append_gensnode(ifcnt, EXEC_PART, statements.Open, attrs=attrs)
 

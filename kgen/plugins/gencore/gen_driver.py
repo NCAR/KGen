@@ -121,7 +121,7 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_comment(doobj, EXEC_PART, '')
 
         attrs = {'specs': ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="OLD"', 'ACCESS="STREAM"', \
-            'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr']}
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
             #'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"']}
         part_append_genknode(doobj, EXEC_PART, statements.Open, attrs=attrs)
 

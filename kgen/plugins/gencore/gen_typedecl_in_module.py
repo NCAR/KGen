@@ -8,7 +8,8 @@ from kgen_plugin import Kgen_Plugin
 from gencore_utils import get_topname, get_typedecl_writename, get_dtype_writename, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
     STATE_PBLOCK_USE_PART, kernel_gencore_contains, state_gencore_contains, get_typedecl_readname, get_dtype_readname, get_module_in_readname, \
     KERNEL_PBLOCK_USE_PART, KERNEL_PBLOCK_READ_IN_EXTERNS, process_spec_stmts, get_module_out_writename, get_module_out_readname, \
-    KERNEL_PBLOCK_READ_OUT_EXTERNS, STATE_PBLOCK_WRITE_OUT_EXTERNS, gen_write_istrue, gen_read_istrue
+    KERNEL_PBLOCK_READ_OUT_EXTERNS, STATE_PBLOCK_WRITE_OUT_EXTERNS, gen_write_istrue, gen_read_istrue, is_excluded, \
+    is_remove_state, is_zero_array
 from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Module(Kgen_Plugin):
@@ -325,6 +326,24 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                     entity_decls.append(prefix+decl)
             return entity_decls
 
+        if len(entity_names)!=len(stmt.entity_decls):
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension', 'public'])
+            entity_decls = get_decls(entity_names, stmt.entity_decls)
+
+            attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
+                'selector':stmt.selector, 'entity_decls': entity_decls}
+
+            if stmt.is_derived():
+                node.type_spec = 'TYPE'
+            else:
+                node.type_spec = stmt.__class__.__name__.upper()
+            node.attrspec = attrspec
+            node.selector = stmt.selector
+            node.entity_decls = entity_decls
+            node.kgen_use_tokgen = True
+            #part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+            #part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+
         if len(out_entity_names)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
 
@@ -337,13 +356,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.kernel_extern_reads: continue
 
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: continue
+            if is_remove_state(entity_name, stmt): continue
 
             self.kernel_extern_reads.append(node.kgen_parent.name+entity_name)
 
@@ -351,6 +364,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             subrname = get_typedecl_readname(stmt, entity_name)
 
             if var.is_array():
+                if is_zero_array(var, stmt): continue
                 if stmt.is_derived():
                     self.create_read_call(self.kernel_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                     if entity_name in out_entity_names:
@@ -411,13 +425,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         #out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.state_extern_writes: continue
-            if hasattr(stmt, 'exclude_names'):
-                skip_verify = False
-                for exclude_name, actions in stmt.exclude_names.iteritems():
-                    if exclude_name==entity_name and 'remove_state' in actions:
-                        skip_verify = True
-                        break
-                if skip_verify: continue
+            if is_remove_state(entity_name, stmt): continue
 
             self.state_extern_writes.append(node.kgen_parent.name+entity_name)
 
@@ -425,6 +433,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             subrname = get_typedecl_writename(stmt, entity_name)
 
             if var.is_array():
+                if is_zero_array(var, stmt): continue
                 if stmt.is_derived():
                     self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                     if entity_name in out_entity_names:
@@ -489,7 +498,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(prefix+entity_name), prefix+entity_name]}
             part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
-    def create_write_intrinsic(self, subrobj, entity_name, stmt, var, prefix=''):
+    def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
 
         pobj = gen_write_istrue(subrobj, var, entity_name)
 

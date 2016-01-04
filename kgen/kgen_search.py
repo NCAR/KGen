@@ -3,7 +3,7 @@
 from kgen_utils import Config, Logger, show_tree, KGGenType
 import Fortran2003
 from typedecl_statements import TypeDeclarationStatement
-from block_statements import Type, TypeDecl, Function, Subroutine, Interface
+from block_statements import Type, TypeDecl, Function, Subroutine, Interface, execution_part
 from statements import External, Common, SpecificBinding
 from kgen_extra import Intrinsic_Procedures
 from ordereddict import OrderedDict
@@ -150,7 +150,7 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
                     return
 
         # skip if excluded
-        if Config.exclude.has_key('namepath'):
+        if Config.exclude.has_key('namepath') and stmt.__class__ in execution_part:
             for pattern, actions in Config.exclude['namepath'].iteritems():
                 name = node.string.lower()
                 namepath = pack_innamepath(stmt, name) 
