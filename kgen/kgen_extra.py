@@ -137,6 +137,15 @@ INTEGER, PARAMETER :: CHECK_IDENTICAL = 1
 INTEGER, PARAMETER :: CHECK_IN_TOL = 2
 INTEGER, PARAMETER :: CHECK_OUT_TOL = 3
 
+interface kgen_tostr
+    module procedure kgen_tostr_args1
+    module procedure kgen_tostr_args2
+    module procedure kgen_tostr_args3
+    module procedure kgen_tostr_args4
+    module procedure kgen_tostr_args5
+    module procedure kgen_tostr_args6
+end interface
+
 ! PERTURB: add following interface
 interface kgen_perturb_real
     module procedure kgen_perturb_real4_dim1
@@ -161,6 +170,84 @@ end type check_t
 public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb_real
 public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
 public kgen_get_newunit, kgen_error_stop
+"""
+
+kgen_utils_file_tostr = \
+"""
+function kgen_tostr_args1(idx1): result(tostr)
+    integer, intent(in) :: idx1
+    charactor(len=64) :: str_idx1
+    charactor(len=64) :: tostr
+
+    write(str_idx1, *) idx1
+    tostr = trim(adjustl(str_idx1))
+end function
+
+function kgen_tostr_args2(idx1, idx2): result(tostr)
+    integer, intent(in) :: idx1, idx2
+    charactor(len=64) :: str_idx1, str_idx2
+    charactor(len=128) :: tostr
+
+    write(str_idx1, *) idx1
+    write(str_idx2, *) idx2
+    tostr = trim(adjustl(str_idx1)) // ", " // trim(adjustl(str_idx2))
+end function
+
+function kgen_tostr_args3(idx1, idx2, idx3): result(tostr)
+    integer, intent(in) :: idx1, idx2, idx3
+    charactor(len=64) :: str_idx1, str_idx2, str_idx3
+    charactor(len=192) :: tostr
+
+    write(str_idx1, *) idx1
+    write(str_idx2, *) idx2
+    write(str_idx3, *) idx3
+    tostr = trim(adjustl(str_idx1)) // ", " // trim(adjustl(str_idx2)) &
+        // ", " // trim(adjustl(str_idx3))
+end function
+
+function kgen_tostr_args4(idx1, idx2, idx3, idx4): result(tostr)
+    integer, intent(in) :: idx1, idx2, idx3, idx4
+    charactor(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4
+    charactor(len=256) :: tostr
+
+    write(str_idx1, *) idx1
+    write(str_idx2, *) idx2
+    write(str_idx3, *) idx3
+    write(str_idx4, *) idx4
+    tostr = trim(adjustl(str_idx1)) // ", " // trim(adjustl(str_idx2)) &
+        // ", " // trim(adjustl(str_idx3)) // ", " // trim(adjustl(str_idx4))
+end function
+
+function kgen_tostr_args5(idx1, idx2, idx3, idx4, idx5): result(tostr)
+    integer, intent(in) :: idx1, idx2, idx3, idx4, idx5
+    charactor(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4, str_idx5
+    charactor(len=320) :: tostr
+
+    write(str_idx1, *) idx1
+    write(str_idx2, *) idx2
+    write(str_idx3, *) idx3
+    write(str_idx4, *) idx4
+    write(str_idx5, *) idx5
+    tostr = trim(adjustl(str_idx1)) // ", " // trim(adjustl(str_idx2)) &
+        // ", " // trim(adjustl(str_idx3)) // ", " // trim(adjustl(str_idx4)) &
+        // ", " // trim(adjustl(str_idx5))
+end function
+
+function kgen_tostr_args6(idx1, idx2, idx3, idx4, idx5, idx6): result(tostr)
+    integer, intent(in) :: idx1, idx2, idx3, idx4, idx5, idx6
+    charactor(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4, str_idx5, str_idx6
+    charactor(len=384) :: tostr
+
+    write(str_idx1, *) idx1
+    write(str_idx2, *) idx2
+    write(str_idx3, *) idx3
+    write(str_idx4, *) idx4
+    write(str_idx5, *) idx5
+    write(str_idx6, *) idx6
+    tostr = trim(adjustl(str_idx1)) // ", " // trim(adjustl(str_idx2)) &
+        // ", " // trim(adjustl(str_idx3)) // ", " // trim(adjustl(str_idx4)) &
+        // ", " // trim(adjustl(str_idx5)) // ", " // trim(adjustl(str_idx6))
+end function
 """
 
 kgen_utils_file_checksubr = \

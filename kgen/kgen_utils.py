@@ -575,7 +575,7 @@ class Config(object):
         parser.add_option("--invocation", dest="invocation", action='store', type='string', default=None, help="Nth invocation of kernel for data collection")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
-#	parser.add_option("--verify", dest="verify", action='store', type='string', default=None, help="Kernel variables verification information")
+    	parser.add_option("--verify", dest="verify", action='store', type='string', default=None, help="")
         parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
         parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
@@ -606,6 +606,9 @@ class Config(object):
             sys.exit(-1)
         if opts.noskip_intrinsic:
             print "noskip-intrinsic flag is discarded. Please use --intrinsic noskip instead"
+            sys.exit(-1)
+        if opts.verify:
+            print "verify flag is discarded. Please use --verbose"
             sys.exit(-1)
 
         callsite = args[0].split(':', 1)
@@ -672,6 +675,9 @@ class Config(object):
         if opts.include:
             for inc in opts.include:
                 inc_eq = inc.split('=')
+                if len(inc_eq)==1:
+                    for inc_colon in inc_eq[0].split(':'): 
+                        self._attrs['include']['path'].append(inc_colon)
                 if len(inc_eq)==1:
                     for inc_colon in inc_eq[0].split(':'): 
                         self._attrs['include']['path'].append(inc_colon)

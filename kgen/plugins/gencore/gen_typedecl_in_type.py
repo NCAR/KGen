@@ -106,6 +106,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                 if stmt.is_derived():
                     indexes = [ 'idx%d'%(d+1) for d in range(var.rank) ]
                     str_indexes = ','.join(indexes)
+                    #tostr_indexes = ','.join([ 'kgen_tostr(idx)' for idx in indexes])
 
                     prevobj = pobj
                     doobjs = []
@@ -127,12 +128,14 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                             break
                     if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
 
+                    #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(", %s, ")"'%tostr_indexes]}
                     attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
 
                     if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+                        #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(", %s, ")"'%(entity_name, tostr_indexes)]}
                         attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(%s)"'%(entity_name, str_indexes)]}
                         part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
                     else:
@@ -267,6 +270,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                 if stmt.is_derived():
                     indexes = [ 'idx%d'%(d+1) for d in range(var.rank) ]
                     str_indexes = ','.join(indexes)
+                    #tostr_indexes = ','.join([ 'kgen_tostr(idx)' for idx in indexes])
 
                     prevobj = pobj
                     doobjs = []
@@ -290,12 +294,14 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                         #import pdb; pdb.set_trace()
                         raise Exception('Can not find Type resolver for %s'%stmt.name)
 
+                    #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(", %s, ")"'%tostr_indexes]}
                     attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Else)
 
                     if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+                        #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(", %s, ")"'%(entity_name, tostr_indexes)]}
                         attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(%s)"'%(entity_name, str_indexes)]}
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
                     else:

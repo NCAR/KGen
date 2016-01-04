@@ -1058,6 +1058,7 @@ def generate_kgen_utils(k_id):
         f.write('MODULE kgen_utils_mod')
         f.write(kgen_utils_file_head)
         f.write('CONTAINS\n')
+        f.write(kgen_utils_file_tostr)
         f.write(kgen_utils_file_checksubr)
         f.write(kgen_get_newunit)
         f.write(kgen_error_stop)
