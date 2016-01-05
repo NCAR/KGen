@@ -174,29 +174,29 @@ public kgen_get_newunit, kgen_error_stop
 
 kgen_utils_file_tostr = \
 """
-function kgen_tostr_args1(idx1): result(tostr)
+function kgen_tostr_args1(idx1) result(tostr)
     integer, intent(in) :: idx1
-    charactor(len=64) :: str_idx1
-    charactor(len=64) :: tostr
+    character(len=64) :: str_idx1
+    character(len=64) :: tostr
 
     write(str_idx1, *) idx1
     tostr = trim(adjustl(str_idx1))
 end function
 
-function kgen_tostr_args2(idx1, idx2): result(tostr)
+function kgen_tostr_args2(idx1, idx2) result(tostr)
     integer, intent(in) :: idx1, idx2
-    charactor(len=64) :: str_idx1, str_idx2
-    charactor(len=128) :: tostr
+    character(len=64) :: str_idx1, str_idx2
+    character(len=128) :: tostr
 
     write(str_idx1, *) idx1
     write(str_idx2, *) idx2
     tostr = trim(adjustl(str_idx1)) // ", " // trim(adjustl(str_idx2))
 end function
 
-function kgen_tostr_args3(idx1, idx2, idx3): result(tostr)
+function kgen_tostr_args3(idx1, idx2, idx3) result(tostr)
     integer, intent(in) :: idx1, idx2, idx3
-    charactor(len=64) :: str_idx1, str_idx2, str_idx3
-    charactor(len=192) :: tostr
+    character(len=64) :: str_idx1, str_idx2, str_idx3
+    character(len=192) :: tostr
 
     write(str_idx1, *) idx1
     write(str_idx2, *) idx2
@@ -205,10 +205,10 @@ function kgen_tostr_args3(idx1, idx2, idx3): result(tostr)
         // ", " // trim(adjustl(str_idx3))
 end function
 
-function kgen_tostr_args4(idx1, idx2, idx3, idx4): result(tostr)
+function kgen_tostr_args4(idx1, idx2, idx3, idx4) result(tostr)
     integer, intent(in) :: idx1, idx2, idx3, idx4
-    charactor(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4
-    charactor(len=256) :: tostr
+    character(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4
+    character(len=256) :: tostr
 
     write(str_idx1, *) idx1
     write(str_idx2, *) idx2
@@ -218,10 +218,10 @@ function kgen_tostr_args4(idx1, idx2, idx3, idx4): result(tostr)
         // ", " // trim(adjustl(str_idx3)) // ", " // trim(adjustl(str_idx4))
 end function
 
-function kgen_tostr_args5(idx1, idx2, idx3, idx4, idx5): result(tostr)
+function kgen_tostr_args5(idx1, idx2, idx3, idx4, idx5) result(tostr)
     integer, intent(in) :: idx1, idx2, idx3, idx4, idx5
-    charactor(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4, str_idx5
-    charactor(len=320) :: tostr
+    character(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4, str_idx5
+    character(len=320) :: tostr
 
     write(str_idx1, *) idx1
     write(str_idx2, *) idx2
@@ -233,10 +233,10 @@ function kgen_tostr_args5(idx1, idx2, idx3, idx4, idx5): result(tostr)
         // ", " // trim(adjustl(str_idx5))
 end function
 
-function kgen_tostr_args6(idx1, idx2, idx3, idx4, idx5, idx6): result(tostr)
+function kgen_tostr_args6(idx1, idx2, idx3, idx4, idx5, idx6) result(tostr)
     integer, intent(in) :: idx1, idx2, idx3, idx4, idx5, idx6
-    charactor(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4, str_idx5, str_idx6
-    charactor(len=384) :: tostr
+    character(len=64) :: str_idx1, str_idx2, str_idx3, str_idx4, str_idx5, str_idx6
+    character(len=384) :: tostr
 
     write(str_idx1, *) idx1
     write(str_idx2, *) idx2
