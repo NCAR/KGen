@@ -1052,7 +1052,7 @@ class GenS_BeginStatement(GenS_Statement, Gen_BeginStatement):
 
 def generate_kgen_utils(k_id):
     from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \
-        kgen_get_newunit, kgen_error_stop
+        kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr
 
     with open('%s/kgen_utils.f90'%Config.path['kernel'], 'wb') as f:
         f.write('MODULE kgen_utils_mod')
