@@ -13,20 +13,15 @@ class Perturb_K_Callsite_File(Kgen_Plugin):
 
         # register initial events
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
-            getinfo('callsite_stmts')[0], None, self.create_perturb_stmts)
+            getinfo('parentblock_stmt'), None, self.gen_perturb)
 
-        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
-            getinfo('parentblock_stmt'), None, self.add_use_stmt)
-
-    def add_use_stmt(self, node):
+    def gen_perturb(self, node):
         attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_perturb_real']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
- 
-    def create_perturb_stmts(self, node):
-        index, partname, part = get_part_index(node)
+        partname = self.plugin_common[node.kgen_kernel_id]['gencore']['blocks']['before_kernel']
 
-        part_insert_comment(node.kgen_parent, partname, index, '')
-        part_insert_comment(node.kgen_parent, partname, index+1, 'Uncomment following call statement to turn on perturbation experiment.')
-        part_insert_comment(node.kgen_parent, partname, index+2, 'Adjust perturbation value and/or kind parameter if required.')
-        part_insert_comment(node.kgen_parent, partname, index+3, 'CALL kgen_perturb_real( your_variable, 1.0E-15_8 )')
-        part_insert_comment(node.kgen_parent, partname, index+4, '')
+        namedpart_append_comment(node.kgen_kernel_id, partname, '')
+        namedpart_append_comment(node.kgen_kernel_id, partname, 'Uncomment following call statement to turn on perturbation experiment.')
+        namedpart_append_comment(node.kgen_kernel_id, partname, 'Adjust perturbation value and/or kind parameter if required.')
+        namedpart_append_comment(node.kgen_kernel_id, partname, 'CALL kgen_perturb_real( your_variable, 1.0E-15_8 )')
+        namedpart_append_comment(node.kgen_kernel_id, partname, '')

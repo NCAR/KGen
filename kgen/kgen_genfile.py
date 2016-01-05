@@ -30,6 +30,7 @@ KERNEL_ID_0 = 0
 
 event_register = OrderedDict()
 named_parts = OrderedDict()
+plugin_common = OrderedDict()
 
 
 PART_PREFIX = '_kgen_part_'
@@ -202,6 +203,17 @@ def gensobj(parent, node, kernel_id, attrs=None):
     else:
         return _genobj_from_obj(FILE_TYPE.STATE, parent, node, kernel_id, attrs=attrs)
 
+def is_plugin_common_block(kernel_id, node, plugins):
+    if not isinstance(plugins, list) or node is None: return False
+
+    for pkid, pattrs in plugin_common.iteritems():
+        if pkid!=kernel_id: continue
+        for pname, attrs in pattrs.iteritems():
+            for bname, bid in attrs['blocks'].iteritems():
+                pnode, partname, part = named_parts[kernel_id][bid]
+                if part==node:
+                    return True
+    return False
 
 ########### Plugin ############
 
@@ -302,6 +314,7 @@ def getinfo(name):
     elif name=='topblock_stmt': return State.topblock['stmt']
     elif name=='verbose_level': return Config.verify['verboselevel']
     elif name=='repeat_count': return Config.timing['repeat']
+    elif name=='dummy_stmt': return statements.DummyStatement()
     else: raise ProgramException('No information for %s'%name)
 
 
@@ -373,13 +386,22 @@ def set_plugin_env(mod):
 #    mod.TYPE_BP_PART = TYPE_BP_PART
     mod.INTF_SPEC_PART = INTF_SPEC_PART
 
-def init_plugins():
-    global plugin_register
-    global plugin_module_priority
+def init_plugins(kernel_ids):
+    global plugin_common
 
     plugin_home = os.path.dirname(os.path.realpath(__file__))+'/plugins'
     sys.path.insert(0, plugin_home)
     kgen_plugin = __import__('kgen_plugin')
+
+    plugin_common = kgen_plugin.Kgen_Plugin.plugin_common
+    plugin_priority = kgen_plugin.Kgen_Plugin.priority
+
+    for kernel_id in kernel_ids:
+        plugin_common[kernel_id] = OrderedDict()
+        for pname in plugin_priority:
+            plugin_common[kernel_id][pname] = OrderedDict()
+            plugin_common[kernel_id][pname]['blocks'] =  OrderedDict()
+
     plugin_dirs = next(os.walk(plugin_home))[1]
     sorted_plugin_dirs = []
     for plugin_dir in kgen_plugin.Kgen_Plugin.priority:
@@ -693,7 +715,7 @@ class Gen_Statement(object):
     def statement_finalize(self, plugins):
         event_point(self.kgen_kernel_id, self.kgen_file_type, GENERATION_STAGE.FINISH_PROCESS, self, plugins=plugins)
 
-    def statement_flatten(self):
+    def statement_flatten(self, kernel_id, plugins):
         pass
 
     def str_unresolved(self, stmt):
@@ -727,7 +749,7 @@ class Gen_Statement(object):
                 lines_str = None
                 unres_str = self.str_unresolved(self.kgen_stmt)
 
-                if hasattr(self, 'kgen_forced_line') and self.kgen_forced_line:
+                if hasattr(self, 'kgen_forced_line'):
                     lines_str = self.kgen_forced_line
                 elif hasattr(self.kgen_stmt.item, 'span'):
                     if not self.kgen_stmt.item.span is self.kgen_gen_attrs['span']:
@@ -749,7 +771,7 @@ class Gen_Statement(object):
                         cur_indent = self.kgen_parent.kgen_indent
                     return cur_indent + self.tokgen() + unres_str
                 else:
-                    if lines_str:
+                    if isinstance(lines_str, str):
                         cur_indent = get_indent(lines_str)
                         if isinstance(self.kgen_stmt, base_classes.BeginStatement) and \
                              not self.kgen_stmt.__class__ in [ block_statements.If ]:
@@ -758,6 +780,8 @@ class Gen_Statement(object):
                         else:
                             self.kgen_gen_attrs['indent'] = cur_indent
                         return lines_str + unres_str
+                    elif isinstance(lines_str, bool) and not lines_str:
+                        return
                     elif isinstance(self.kgen_stmt, block_statements.BeginSource):
                         pass
                     else:
@@ -817,8 +841,8 @@ class GenK_Statement(Gen_Statement):
     def finalize(self, plugins):
         self.statement_finalize(plugins)
 
-    def flatten(self):
-        return self.statement_flatten()
+    def flatten(self, kernel_id, plugins):
+        return self.statement_flatten(kernel_id, plugins)
 
 class GenS_Statement(Gen_Statement):
     kgen_file_type = FILE_TYPE.STATE
@@ -836,8 +860,8 @@ class GenS_Statement(Gen_Statement):
     def finalize(self, plugins):
         self.statement_finalize(plugins)
 
-    def flatten(self):
-        return self.statement_flatten()
+    def flatten(self, kernel_id, plugins):
+        return self.statement_flatten(kernel_id, plugins)
 
 ########### BeginStatement ############
 class Gen_BeginStatement(object):
@@ -923,7 +947,7 @@ class Gen_BeginStatement(object):
 
         temp_parts = OrderedDict()
         for name in self.kgen_part_order:
-            part = getattr(self, PART_PREFIX + name)
+            part = getattr(self, get_partname(name, False))
             temp_parts[name] = part[:]
 
         for name in self.kgen_part_order:
@@ -966,7 +990,7 @@ class Gen_BeginStatement(object):
                 else:
                     node.finalize(plugins)
 
-    def beginstatement_flatten(self):
+    def beginstatement_flatten(self, kernel_id, plugins):
         #import pdb; pdb.set_trace()
         for name in self.kgen_part_order:
             part = getattr(self, get_partname(name, False))
@@ -974,10 +998,13 @@ class Gen_BeginStatement(object):
             for node in part:
                 if isinstance(node, list):
                     for sub_node in node:
-                        sub_node.flatten()
-                        flatten_part.append(sub_node)
+                        sub_node.flatten(kernel_id, plugins)
+                    if is_plugin_common_block(kernel_id, node, plugins):
+                        flatten_part.append(node)
+                    else:
+                        flatten_part.extend(node) 
                 else:
-                    node.flatten()
+                    node.flatten(kernel_id, plugins)
                     flatten_part.append(node)
             setattr(self, get_partname(name, False), flatten_part)
 
@@ -1020,8 +1047,8 @@ class GenK_BeginStatement(GenK_Statement, Gen_BeginStatement):
     def finalize(self, plugins):
         self.beginstatement_finalize(plugins)
 
-    def flatten(self):
-        self.beginstatement_flatten()
+    def flatten(self, kernel_id, plugins):
+        self.beginstatement_flatten(kernel_id, plugins)
 
     def tostring(self):
         return self.beginstatement_tostring()
@@ -1042,8 +1069,8 @@ class GenS_BeginStatement(GenS_Statement, Gen_BeginStatement):
     def finalize(self, plugins):
         self.beginstatement_finalize(plugins)
 
-    def flatten(self):
-        self.beginstatement_flatten()
+    def flatten(self, kernel_id, plugins):
+        self.beginstatement_flatten(kernel_id, plugins)
 
     def tostring(self):
         return self.beginstatement_tostring()
@@ -1077,7 +1104,7 @@ def generate_srcfiles():
         os.makedirs(Config.path['kernel'])
 
     # setup plugin framework
-    init_plugins()
+    init_plugins([KERNEL_ID_0])
 
     # generate kgen_driver.f90 in kernel directory
     driver = genkobj(None, block_statements.BeginSource, KERNEL_ID_0)
@@ -1115,10 +1142,10 @@ def generate_srcfiles():
         driver.finalize([plugin_dir])
 
         for kfile, sfile, filepath in genfiles:
-            kfile.flatten()
-            sfile.flatten()
-        driver.flatten()
-        named_part = OrderedDict()
+            kfile.flatten(KERNEL_ID_0, [plugin_dir])
+            sfile.flatten(KERNEL_ID_0, [plugin_dir])
+        driver.flatten(KERNEL_ID_0, [plugin_dir])
+        #named_part = OrderedDict()
 
     # generate source files from each node of the tree
     for kfile, sfile, filepath in genfiles:

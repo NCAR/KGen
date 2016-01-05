@@ -37,8 +37,13 @@ from utils import split_comma, specs_split_comma, AnalyzeError, ParseError,\
      get_module_file, parse_bind, parse_result, is_name
 from utils import classes
 
-import Fortran2003 # KGEN addition
-from kgen_utils import traverse, Config, pack_innamepath, Logger, ProgramException, UserException # KGEN addition
+# start of KGEN addition
+import Fortran2003
+from kgen_utils import traverse, Config, pack_innamepath, Logger, ProgramException, UserException
+
+class DummyStatement(object):
+    pass
+# end of KGEN addition
 
 class StatementWithNamelist(Statement):
     """

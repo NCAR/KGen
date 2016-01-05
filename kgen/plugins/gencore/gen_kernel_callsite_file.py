@@ -8,7 +8,7 @@ from kgen_plugin import Kgen_Plugin
 from gencore_utils import KERNEL_PBLOCK_USE_PART, KERNEL_PBLOCK_DECL_PART, KERNEL_PBLOCK_EXEC_PART, \
     KERNEL_PBLOCK_CONTAINS_PART, KERNEL_PBLOCK_SUBP_PART, KERNEL_PBLOCK_READ_IN_EXTERNS, KERNEL_PBLOCK_READ_IN_LOCALS, \
     KERNEL_PBLOCK_READ_OUT_EXTERNS, KERNEL_PBLOCK_READ_OUT_LOCALS, KERNEL_TBLOCK_USE_PART, KERNEL_TBLOCK_DECL_PART, \
-    KERNEL_TBLOCK_CONTAINS_PART, KERNEL_TBLOCK_SUBP_PART, kernel_gencore_contains
+    KERNEL_TBLOCK_CONTAINS_PART, KERNEL_TBLOCK_SUBP_PART, kernel_gencore_contains, KERNEL_PBLOCK_BEFORE_KERNEL, KERNEL_PBLOCK_AFTER_KERNEL
 
 class Gen_K_Callsite_File(Kgen_Plugin):
     def __init__(self):
@@ -22,6 +22,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('callsite_stmts')[0], None, self.create_callsite_parts)
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
+            getinfo('callsite_stmts')[0], None, self.invalid_kernel_stmts)
+
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
 
@@ -30,10 +33,6 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('topblock_stmt'), None, self.create_topblock_parts)
-
-#        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
-#            getinfo('callsite_stmt'), None, self.process_ifstmt)
-
 
     def set_args(self, node):
 
@@ -67,14 +66,29 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         part_append_comment(node, DECL_PART, '')
 
-#        # ensure contains
-#        checks = lambda n: isinstance(n.kgen_stmt, statements.Contains)
-#        if not node in kernel_gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
-#            part_append_comment(node, CONTAINS_PART, '')
-#            part_append_genknode(node, CONTAINS_PART, statements.Contains)
-#            part_append_comment(node, CONTAINS_PART, '')
-#            kernel_gencore_contains.append(node)
+        kernel_stmts = getinfo('callsite_stmts')
+        if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
+            # ensure contains
+            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
+            if not node in kernel_gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
+                part_append_comment(node, CONTAINS_PART, '')
+                part_append_genknode(node, CONTAINS_PART, statements.Contains)
+                part_append_comment(node, CONTAINS_PART, '')
+                kernel_gencore_contains.append(node)
 
+
+            part_append_comment(node, SUBP_PART, 'kgen kernel subroutine')
+            attrs = {'name': 'kgen_kernel'}
+            subrobj = part_append_genknode(node, SUBP_PART, block_statements.Subroutine, attrs=attrs)
+            part_append_comment(node, SUBP_PART, '')
+
+            start = kernel_stmts[0].item.span[0]-1
+            end = kernel_stmts[-1].item.span[1]
+            lines = kernel_stmts[0].top.prep[start:end]
+            lines_str = '\n'.join(lines)
+            dummy_node = part_append_genknode(subrobj, EXEC_PART, statements.Call)
+            dummy_node.kgen_stmt = getinfo('dummy_stmt')
+            dummy_node.kgen_forced_line = lines_str
         # debug
 #        attrs = {'variable': 'kgen_region_started', 'sign': '=', 'expr': '.TRUE.'}
 #        part_insert_gensnode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=0)
@@ -115,7 +129,31 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, 'local output variables')
 
-#    def process_ifstmt(self, node):
-#        if node.kgen_stmt.__class__ in [ block_statements.If ]:
-#            node.kgen_forced_line = node.kgen_stmt.content[0].tokgen()
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_BEFORE_KERNEL, EXEC_PART, index=index+4)
+        self.plugin_common[node.kgen_kernel_id]['gencore']['blocks']['before_kernel'] = KERNEL_PBLOCK_BEFORE_KERNEL
 
+        part_insert_comment(node.kgen_parent, EXEC_PART, index+5, '')
+        part_insert_comment(node.kgen_parent, EXEC_PART, index+6, 'call to kgen kernel')
+
+        kernel_stmts = getinfo('callsite_stmts')
+        if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
+            attrs = {'designator': 'kgen_kernel'}
+            part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, attrs=attrs, index=index+7)
+        else:
+            start = node.kgen_stmt.item.span[0]-1
+            end = node.kgen_stmt.item.span[1]
+            lines = node.kgen_stmt.top.prep[start:end]
+            lines_str = '\n'.join(lines)
+            dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+7)
+            dummy_node.kgen_stmt = node.kgen_stmt
+            dummy_node.kgen_forced_line = lines_str
+
+
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_AFTER_KERNEL, EXEC_PART, index=index+8)
+        self.plugin_common[node.kgen_kernel_id]['gencore']['blocks']['after_kernel'] = KERNEL_PBLOCK_AFTER_KERNEL
+
+    def invalid_kernel_stmts(self, node):
+        kernel_stmts = getinfo('callsite_stmts')
+
+        for stmt in kernel_stmts:
+            stmt.genkpair.kgen_forced_line = False

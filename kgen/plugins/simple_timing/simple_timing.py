@@ -31,20 +31,27 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': ['kgen_elapsed_time']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
+        part_append_comment(node, EXEC_PART, '')
+        part_append_comment(node, EXEC_PART, 'Measuring elapsed time. Please increase the value of kgen_maxiter to get improve timing measurment resolution.')
+
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 
         attrs = {'loopcontrol': 'kgen_intvar = 1, kgen_maxiter'}
         doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
 
-        callsite_stmts = getinfo('callsite_stmts')
-        start = callsite_stmts[0].item.span[0]-1
-        end = callsite_stmts[-1].item.span[1]
-        lines = callsite_stmts[0].top.prep[start:end]
-        lines_str = '\n'.join(lines)
-        dummy_node = part_append_genknode(doobj, EXEC_PART, statements.Call)
-        dummy_node.kgen_stmt = callsite_stmts[0]
-        dummy_node.kgen_forced_line = lines_str
+        kernel_stmts = getinfo('callsite_stmts')
+        if len(kernel_stmts)==1 and isinstance(kernel_stmts[0], statements.Call):
+            start = kernel_stmts[0].item.span[0]-1
+            end = kernel_stmts[0].item.span[1]
+            lines = kernel_stmts[0].top.prep[start:end]
+            lines_str = '\n'.join(lines)
+            dummy_node = part_append_genknode(doobj, EXEC_PART, statements.Call)
+            dummy_node.kgen_stmt = kernel_stmts[0]
+            dummy_node.kgen_forced_line = lines_str
+        else:
+            attrs = {'designator': 'kgen_kernel'}
+            part_append_genknode(doobj, EXEC_PART, statements.Call, attrs=attrs)
         
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
@@ -57,4 +64,4 @@ class Simple_Timing(Kgen_Plugin):
 
         attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_elapsed_time'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
-
+ 

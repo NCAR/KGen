@@ -233,7 +233,9 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             node.kgen_use_tokgen = True
             #part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
-        if len(localintype)>0:
+        if len(localintype)==0:
+            node.kgen_forced_line = False
+        elif len(localintype)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
 
             localin_names = [ localin_name for localin_name, pname in localintype]
