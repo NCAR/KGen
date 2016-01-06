@@ -4,7 +4,7 @@ KGEN: Fortran Kernel Generator
 A package for extracting a part of Fortran source codes out of a large Fortran application.
 
 :AUTHORS: Youngsung Kim, John Dennis, Raghu R. Kumar and Amogh Simha
-:VERSION: 0.6.0
+:VERSION: 0.6.1
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
@@ -71,7 +71,7 @@ Instructions & Use
 	>> git clone https://github.com/NCAR/KGen.git
 
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
-	>> evince KGEN_Users_Guide_V0.6.0.pdf 
+	>> evince KGEN_Users_Guide_V0.6.1.pdf 
 
 3. Try "simple" in "example/simple" directory
 	>> cd example/simple;	# move to an example directory
