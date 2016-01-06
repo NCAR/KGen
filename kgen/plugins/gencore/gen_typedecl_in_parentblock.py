@@ -115,7 +115,6 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             var = stmt.get_variable(entity_name)
 
             if var.is_parameter(): continue
-
             if is_remove_state(entity_name, stmt): continue
 
             if self.check_intent(entity_name, stmt):
@@ -223,8 +222,6 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             argin_names = [ argin_name for argin_name, pname in argintype]
             entity_decls = get_decls(argin_names, stmt.entity_decls)
-           
-            if 'wp2' in argin_names: import pdb; pdb.set_trace() 
 
             attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
                 'selector':stmt.selector, 'entity_decls': entity_decls}
@@ -348,23 +345,26 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             var = stmt.get_variable(entity_name)
 
             if var.is_parameter(): continue
-
             if is_remove_state(entity_name, stmt): continue
 
-            if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
-                argintype.append((entity_name, STATE_PBLOCK_WRITE_IN_ARGS))
+            if self.check_intent(entity_name, stmt):
+                if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype:
+                    argintype.append((entity_name, STATE_PBLOCK_WRITE_IN_ARGS))
             elif (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype and (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
+
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
             entity_name = uname.firstpartname()
             var = stmt.get_variable(entity_name)
 
             if var.is_parameter(): continue
-
             if is_remove_state(entity_name, stmt): continue
 
             if (entity_name,STATE_PBLOCK_WRITE_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_OUT_LOCALS))
+
+            if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) in argintype: continue
+
             if (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype:
                 localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
         vartypes = { 'argintype': argintype, 'localintype': localintype, 'localouttype': localouttype }
