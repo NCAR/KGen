@@ -118,69 +118,70 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if is_remove_state(entity_name, stmt): continue
 
-            if (entity_name,DRIVER_READ_IN_ARGS) not in argintype and self.check_intent(entity_name, stmt):
+            if self.check_intent(entity_name, stmt):
+                if (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
 
-                argintype.append((entity_name, DRIVER_READ_IN_ARGS))
+                    argintype.append((entity_name, DRIVER_READ_IN_ARGS))
 
-                if not entity_name in getinfo('kernel_driver_callsite_args'):
-                    getinfo('kernel_driver_callsite_args').append(entity_name)
+                    if not entity_name in getinfo('kernel_driver_callsite_args'):
+                        getinfo('kernel_driver_callsite_args').append(entity_name)
 
-                # add typedecl in driver
-                attrs={'type_spec':stmt.__class__.__name__.upper(), 'selector':stmt.selector, 'entity_decls': [entity_name]}
-                attrspec = []
-                if var.is_array():
-                    attrspec.append('DIMENSION(%s)'%','.join(':'*var.rank))
-                    if not var.is_pointer(): attrspec.append('ALLOCATABLE')
-                    # deallocate
-                if var.is_pointer(): attrspec.append('POINTER')
-                attrs['attrspec'] = attrspec 
-                namedpart_append_genknode(node.kgen_kernel_id, DRIVER_DECL_PART, stmt.__class__, attrs=attrs)
+                    # add typedecl in driver
+                    attrs={'type_spec':stmt.__class__.__name__.upper(), 'selector':stmt.selector, 'entity_decls': [entity_name]}
+                    attrspec = []
+                    if var.is_array():
+                        attrspec.append('DIMENSION(%s)'%','.join(':'*var.rank))
+                        if not var.is_pointer(): attrspec.append('ALLOCATABLE')
+                        # deallocate
+                    if var.is_pointer(): attrspec.append('POINTER')
+                    attrs['attrspec'] = attrspec 
+                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_DECL_PART, stmt.__class__, attrs=attrs)
 
-                if hasattr(stmt, 'unknowns'):
-                    for uname, req in stmt.unknowns.iteritems():
+                    if hasattr(stmt, 'unknowns'):
+                        for uname, req in stmt.unknowns.iteritems():
 
-                        if req.res_stmts[-1].__class__==statements.Use:
-                            checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==req.res_stmts[-1].name \
-                                and ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
-                            if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
-                                item_name = uname.firstpartname()
-                                for new_name, old_name in req.res_stmts[-1].renames:
-                                    if new_name==item_name:
-                                        item_name = '%s => %s'%(new_name, old_name) 
-                                        break
-                                if not (req.res_stmts[-1].name, item_name) in self.driver_created_uses:
-                                    attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
-                                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                    self.driver_created_uses.append((req.res_stmts[-1].name, item_name))
-
-                                if stmt.is_derived() and stmt.name==uname.firstpartname():
-                                    readname = get_dtype_readname(req.res_stmts[0])
-                                    if not (req.res_stmts[-1].name, readname) in self.driver_created_uses:
-                                        attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[readname]}
-                                        namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                        self.driver_created_uses.append((req.res_stmts[-1].name, readname))
-
-                        else:
-                            if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
-                                checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
-                                    ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                            if req.res_stmts[-1].__class__==statements.Use:
+                                checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==req.res_stmts[-1].name \
+                                    and ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                                 if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
                                     item_name = uname.firstpartname()
                                     for new_name, old_name in req.res_stmts[-1].renames:
                                         if new_name==item_name:
                                             item_name = '%s => %s'%(new_name, old_name) 
                                             break
-                                    if not (get_topname(req.res_stmts[-1]), item_name) in self.driver_created_uses:
-                                        attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
+                                    if not (req.res_stmts[-1].name, item_name) in self.driver_created_uses:
+                                        attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
                                         namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                        self.driver_created_uses.append((get_topname(req.res_stmts[-1]), item_name))
+                                        self.driver_created_uses.append((req.res_stmts[-1].name, item_name))
 
                                     if stmt.is_derived() and stmt.name==uname.firstpartname():
-                                        readname = get_dtype_readname(req.res_stmts[-1])
-                                        if not (get_topname(req.res_stmts[-1]), readname) in self.driver_created_uses:
-                                            attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[readname]}
+                                        readname = get_dtype_readname(req.res_stmts[0])
+                                        if not (req.res_stmts[-1].name, readname) in self.driver_created_uses:
+                                            attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[readname]}
                                             namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                            self.driver_created_uses.append((get_topname(req.res_stmts[-1]), readname))
+                                            self.driver_created_uses.append((req.res_stmts[-1].name, readname))
+
+                            else:
+                                if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
+                                    checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
+                                        ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                                    if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
+                                        item_name = uname.firstpartname()
+                                        for new_name, old_name in req.res_stmts[-1].renames:
+                                            if new_name==item_name:
+                                                item_name = '%s => %s'%(new_name, old_name) 
+                                                break
+                                        if not (get_topname(req.res_stmts[-1]), item_name) in self.driver_created_uses:
+                                            attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
+                                            namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                            self.driver_created_uses.append((get_topname(req.res_stmts[-1]), item_name))
+
+                                        if stmt.is_derived() and stmt.name==uname.firstpartname():
+                                            readname = get_dtype_readname(req.res_stmts[-1])
+                                            if not (get_topname(req.res_stmts[-1]), readname) in self.driver_created_uses:
+                                                attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[readname]}
+                                                namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                                self.driver_created_uses.append((get_topname(req.res_stmts[-1]), readname))
 
             elif (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype and (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
@@ -189,11 +190,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             var = stmt.get_variable(entity_name)
 
             if var.is_parameter(): continue
-
             if is_remove_state(entity_name, stmt): continue
 
             if (entity_name,KERNEL_PBLOCK_READ_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_OUT_LOCALS))
+
+            if (entity_name,DRIVER_READ_IN_ARGS) in argintype: continue
+
             if (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         localvartypes = { 'localintype': localintype, 'localouttype': localouttype }
@@ -220,7 +223,9 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             argin_names = [ argin_name for argin_name, pname in argintype]
             entity_decls = get_decls(argin_names, stmt.entity_decls)
-            
+           
+            if 'wp2' in argin_names: import pdb; pdb.set_trace() 
+
             attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
                 'selector':stmt.selector, 'entity_decls': entity_decls}
             if stmt.is_derived():
@@ -233,7 +238,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             node.kgen_use_tokgen = True
             #part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
-        if len(localintype)==0:
+        if len(localintype)==0 and len(argintype)==0 and len(localouttype)==0:
             node.kgen_forced_line = False
         elif len(localintype)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
