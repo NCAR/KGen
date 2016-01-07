@@ -452,7 +452,7 @@ class Config(object):
 
         # kgen parameters
         self._attrs['kgen'] = OrderedDict()
-        self._attrs['kgen']['version'] = [ 0, 6, '1' ]
+        self._attrs['kgen']['version'] = [ 0, 6, '2' ]
 #
 #        # Fortran parameters
 #        self._attrs['fort'] = OrderedDict()

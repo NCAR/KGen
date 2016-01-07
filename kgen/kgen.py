@@ -6,29 +6,7 @@ Created on Apr 7, 2015
 
 Author: Youngsung Kim <youngsun@ucar.edu>
 '''
-
-# NOTES:
-#
-# remove kernel driver file. Instead, put program in callsite file
-# specifing multiple callsites: command line method) filepath:name1:name2,name3:name4 filepath2:100-200
-# directive method) !$kgen callsite_begin <kernel name>
-# directive method) !$kgen callsite_end [kernel name]
-# collect multiple callsites in Config
-# format of geninfo [ kernel number id, state type, ... ]
-# kgen analyze steps: 1) resolve with general state type
-# 2) find out state type per each name in callsite lines
-# 3) update state types in geninfo dict
-# directory structure: many kernels in kernels directory
-#
-# if topblock is module, change it to program and call parent of callsite
-# put file io directly in parent of callsite block
-# if topblock is program, keep origianl code as much as possible
-
-# Python version check
-#import sys
-#if sys.hexversion < 0x020600F0:
-#    print 'ERROR: KGEN works with Python Version 2.7 or later.'
-#    sys.exit(-1)
+# NOTE: This script file is obsolete. Use "kgen" in "bin" directory instead
 
 from kgen_utils import Logger, UserException, ProgramException
 from kgen_analyze import locate_callsite, collect_kernel_info

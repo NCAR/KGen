@@ -4,7 +4,7 @@ KGEN: Fortran Kernel Generator
 A package for extracting a part of Fortran source codes out of a large Fortran application.
 
 :AUTHORS: Youngsung Kim, John Dennis, Raghu R. Kumar and Amogh Simha
-:VERSION: 0.6.1
+:VERSION: 0.6.2
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
@@ -27,7 +27,8 @@ Changes from KGEN ver. 0.5.3
 * Better preserving the original formatting
 * Better output information according to verbosity level.
 * Support Fortran external subprograms
-* fixed a bug on importing variables across multiple Fortran modules
+* Fixed a bug on importing variables across multiple Fortran modules
+* Added state data integrity check per every numerical arrays
 
 [Release Notes]
 
