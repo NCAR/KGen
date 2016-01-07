@@ -496,7 +496,7 @@ class Config(object):
         self._attrs['mpi']['enabled'] = False
         self._attrs['mpi']['ranks'] = [ '0' ]
         self._attrs['mpi']['size'] = len(self._attrs['mpi']['ranks'])
-        self._attrs['mpi']['comm'] = 'MPI_COMM_WORLD'
+        self._attrs['mpi']['comm'] = None
         self._attrs['mpi']['header'] = 'mpif.h'
         self._attrs['mpi']['use_stmts'] = []
 
