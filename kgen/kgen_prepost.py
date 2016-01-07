@@ -177,14 +177,15 @@ def preprocess():
 
             # collect required information
             if mpifpath:
-                reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
-                spec = Specification_Part(reader)
-                comm = []
-                traverse(spec, get_MPI_COMM_WORLD, comm, subnode='content')
-                if comm:
-                    Config.mpi['comm'] = comm[-1]
-                else:
-                    raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
+                if Config.mpi['comm'] is None:
+                    reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
+                    spec = Specification_Part(reader)
+                    comm = []
+                    traverse(spec, get_MPI_COMM_WORLD, comm, subnode='content')
+                    if comm:
+                        Config.mpi['comm'] = comm[-1]
+                    else:
+                        raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
             else:
                 raise UserException('Can not find mpif.h. Please provide a path to the file')
 

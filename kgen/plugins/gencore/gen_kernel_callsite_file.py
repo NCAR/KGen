@@ -53,7 +53,7 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_dp', 'kgen_array_sumcheck']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
-
+           
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
