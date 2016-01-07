@@ -7,9 +7,9 @@ from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import get_topname, get_typedecl_writename, get_dtype_writename, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
     STATE_PBLOCK_USE_PART, kernel_gencore_contains, state_gencore_contains, get_typedecl_readname, get_dtype_readname, get_module_in_readname, \
-    KERNEL_PBLOCK_USE_PART, KERNEL_PBLOCK_READ_IN_EXTERNS, process_spec_stmts, get_module_out_writename, get_module_out_readname, \
+    KERNEL_PBLOCK_USE_PART, DRIVER_READ_IN_EXTERNS, process_spec_stmts, get_module_out_writename, get_module_out_readname, \
     KERNEL_PBLOCK_READ_OUT_EXTERNS, STATE_PBLOCK_WRITE_OUT_EXTERNS, gen_write_istrue, gen_read_istrue, is_excluded, \
-    is_remove_state, is_zero_array
+    is_remove_state, is_zero_array, DRIVER_USE_PART
 from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Module(Kgen_Plugin):
@@ -217,6 +217,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
             part_append_gensnode(in_subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
+            attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+            part_append_gensnode(in_subrobj, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
             part_append_comment(in_subrobj, DECL_PART, '')
 
             # add public stmt
@@ -249,6 +252,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
                 part_append_gensnode(out_subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
+                attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+                part_append_gensnode(out_subrobj, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
                 part_append_comment(out_subrobj, DECL_PART, '')
 
                 # add public stmt
@@ -270,14 +276,14 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 block_statements.Module, self.has_externs_in_module, self.create_state_stmts_in_callsite) 
 
     def create_kernel_stmts_in_callsite(self, node):
-        if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_use_stmts and node.name!=getinfo('topblock_stmt').name:
+        if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_use_stmts:
             attrs = {'name':node.name, 'isonly': True, 'items':[self.kernel_externs_subrs[node][0].name]}
-            namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_USE_PART, statements.Use, attrs=attrs)
+            namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
             self.kernel_callsite_use_stmts.append(self.kernel_externs_subrs[node][0])
 
         if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_call_stmts:
             attrs = {'designator': self.kernel_externs_subrs[node][0].name, 'items': ['kgen_unit']}
-            namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_EXTERNS, statements.Call, attrs=attrs)
+            namedpart_append_genknode(node.kgen_kernel_id, DRIVER_READ_IN_EXTERNS, statements.Call, attrs=attrs)
             self.kernel_callsite_call_stmts.append(self.kernel_externs_subrs[node][0])
 
         if hasattr(node.kgen_stmt, 'geninfo') and KGGenType.has_state_out(node.kgen_stmt.geninfo):
@@ -290,6 +296,28 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 attrs = {'designator': self.kernel_externs_subrs[node][1].name, 'items': ['kgen_unit']}
                 namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, statements.Call, attrs=attrs)
                 self.kernel_callsite_call_stmts.append(self.kernel_externs_subrs[node][1])
+
+#
+#        if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_use_stmts and node.name!=getinfo('topblock_stmt').name:
+#            attrs = {'name':node.name, 'isonly': True, 'items':[self.kernel_externs_subrs[node][0].name]}
+#            namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_USE_PART, statements.Use, attrs=attrs)
+#            self.kernel_callsite_use_stmts.append(self.kernel_externs_subrs[node][0])
+#
+#        if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_call_stmts:
+#            attrs = {'designator': self.kernel_externs_subrs[node][0].name, 'items': ['kgen_unit']}
+#            namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_EXTERNS, statements.Call, attrs=attrs)
+#            self.kernel_callsite_call_stmts.append(self.kernel_externs_subrs[node][0])
+#
+#        if hasattr(node.kgen_stmt, 'geninfo') and KGGenType.has_state_out(node.kgen_stmt.geninfo):
+#            if not self.kernel_externs_subrs[node][1] in self.kernel_callsite_use_stmts and node.name!=getinfo('topblock_stmt').name:
+#                attrs = {'name':node.name, 'isonly': True, 'items':[self.kernel_externs_subrs[node][1].name]}
+#                namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_USE_PART, statements.Use, attrs=attrs)
+#                self.kernel_callsite_use_stmts.append(self.kernel_externs_subrs[node][1])
+#
+#            if not self.kernel_externs_subrs[node][1] in self.kernel_callsite_call_stmts:
+#                attrs = {'designator': self.kernel_externs_subrs[node][1].name, 'items': ['kgen_unit']}
+#                namedpart_append_genknode(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, statements.Call, attrs=attrs)
+#                self.kernel_callsite_call_stmts.append(self.kernel_externs_subrs[node][1])
 
     def create_state_stmts_in_callsite(self, node):
         if not self.state_externs_subrs[node][0] in self.state_callsite_use_stmts and node.name!=getinfo('topblock_stmt').name:
@@ -512,7 +540,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%(prefix+entity_name), 'SUM(%s)'%(prefix+entity_name)]}
+                attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(prefix+entity_name), 'REAL(SUM(%s), 8)'%(prefix+entity_name)]}
             else:
                 attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(prefix+entity_name), prefix+entity_name]}
             part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -526,7 +554,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%(prefix+entity_name), 'SUM(%s)'%entity_name]}
+                attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(prefix+entity_name), 'REAL(SUM(%s), 8)'%entity_name]}
             else:
                 attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(prefix+entity_name), entity_name]}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)

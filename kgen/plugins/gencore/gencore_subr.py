@@ -235,6 +235,9 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
+        attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+        part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
         # array index A
         if var.is_array():
             attrs = {'type_spec': 'INTEGER', 'entity_decls': [ 'idx%d'%(d+1) for d in range(var.rank) ]}

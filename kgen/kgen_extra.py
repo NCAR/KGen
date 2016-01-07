@@ -177,7 +177,7 @@ kgen_utils_array_sumcheck = \
 subroutine kgen_array_sumcheck(varname, sum1, sum2, finish)
     character(*), intent(in) :: varname
     real(kind=8), intent(in) :: sum1, sum2
-    real(kind=8), parameter  :: max_rel_diff = 1.E-14
+    real(kind=8), parameter  :: max_rel_diff = 1.E-10
     real(kind=8)  :: diff, rel_diff
     logical, intent(in), optional :: finish
     logical checkresult

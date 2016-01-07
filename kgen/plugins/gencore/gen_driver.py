@@ -7,7 +7,7 @@ from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import DRIVER_USE_PART, DRIVER_READ_IN_ARGS, DRIVER_CALLSITE_PART, DRIVER_DECL_PART, \
     DRIVER_EXEC_PART, DRIVER_CONTAINS_PART, DRIVER_SUBP_PART, DRIVER_ALLOC_PART, DRIVER_DEALLOC_PART, \
-    shared_objects
+    shared_objects, DRIVER_READ_IN_EXTERNS
 
 class Gen_K_Driver(Kgen_Plugin):
     def __init__(self):
@@ -146,12 +146,16 @@ class Gen_K_Driver(Kgen_Plugin):
         # register gencore parts
         namedpart_create_subpart(doobj, DRIVER_ALLOC_PART, EXEC_PART)
         namedpart_create_subpart(doobj, DRIVER_READ_IN_ARGS, EXEC_PART)
+        namedpart_create_subpart(doobj, DRIVER_READ_IN_EXTERNS, EXEC_PART)
         namedpart_create_subpart(doobj, DRIVER_CALLSITE_PART, EXEC_PART)
         namedpart_create_subpart(doobj, DRIVER_DEALLOC_PART, EXEC_PART)
 
 
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_READ_IN_ARGS, '')
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_READ_IN_ARGS, 'driver read in arguments')
+
+        namedpart_append_comment(node.kgen_kernel_id, DRIVER_READ_IN_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, DRIVER_READ_IN_EXTERNS, 'extern input variables')
 
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, '')
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, 'callsite part')

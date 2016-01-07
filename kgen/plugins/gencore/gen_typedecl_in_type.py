@@ -155,7 +155,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
                     if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                         if stmt.is_numeric() and var.is_array():
-                            attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'SUM(var)']}
+                            attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(var), 8)']}
                         else:
                             attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, 'var']}
                         part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -164,7 +164,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                         ifpvarobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                         if stmt.is_numeric() and var.is_array():
-                            attrs = {'items': ['"** KGEN DEBUG: " // printvar // " **"', 'SUM(var)']}
+                            attrs = {'items': ['"** KGEN DEBUG: REAL(SUM(" // printvar // "), 8) **"', 'REAL(SUM(var), 8)']}
                         else:
                             attrs = {'items': ['"** KGEN DEBUG: " // printvar // " **" // NEW_LINE("A")', 'var']}
                         part_append_genknode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -261,6 +261,9 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': [ 'idx%d'%(d+1) for d in range(var.rank) ]}
                 part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
+            attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+            part_append_genknode(subrobj, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
             part_append_comment(subrobj, DECL_PART, '')
 
             pobj = gen_write_istrue(subrobj, var, 'var')
@@ -321,7 +324,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
                     if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                         if stmt.is_numeric() and var.is_array():
-                            attrs = {'items': ['"** KGEN DEBUG: " // "%s **"'%entity_name, 'SUM(var)']}
+                            attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(var), 8)']}
                         else:
                             attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, 'var']}
                         part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -330,7 +333,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                         ifpvarobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                         if stmt.is_numeric() and var.is_array():
-                            attrs = {'items': ['"** KGEN DEBUG: " // printvar // " **"', 'SUM(var)']}
+                            attrs = {'items': ['"** KGEN DEBUG: REAL(SUM(" // printvar // "), 8) **"', 'REAL(SUM(var), 8)']}
                         else:
                             attrs = {'items': ['"** KGEN DEBUG: " // printvar // " **" // NEW_LINE("A")', 'var']}
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)

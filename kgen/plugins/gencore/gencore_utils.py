@@ -50,6 +50,7 @@ DRIVER_SUBP_PART = 'DSP'
 DRIVER_ALLOC_PART = 'DAP'
 DRIVER_DEALLOC_PART = 'DDAP'
 DRIVER_READ_IN_ARGS = 'DRIA'
+DRIVER_READ_IN_EXTERNS = 'DRIE'
 DRIVER_CALLSITE_PART = 'DCP'
 
 STATE_PBLOCK_USE_PART = 'SPBUP'
@@ -73,7 +74,7 @@ KERNEL_PBLOCK_DECL_PART = 'KPBDP'
 KERNEL_PBLOCK_EXEC_PART ='KPBEP'
 KERNEL_PBLOCK_CONTAINS_PART = 'KPBCP'
 KERNEL_PBLOCK_SUBP_PART = 'KPBSP'
-KERNEL_PBLOCK_READ_IN_EXTERNS = 'KPBRIE'
+#KERNEL_PBLOCK_READ_IN_EXTERNS = 'KPBRIE'
 KERNEL_PBLOCK_READ_IN_LOCALS ='KPBRIL'
 KERNEL_PBLOCK_READ_OUT_EXTERNS = 'KPBROE'
 KERNEL_PBLOCK_READ_OUT_LOCALS = 'KPBROL'
@@ -274,7 +275,10 @@ def gen_write_istrue(pobj, var, ename):
         pobj = iftrueobj
 
     if var.is_array() and var.parent.is_numeric():
-        attrs = {'items': ['REAL(SUM(%s), 8)'%ename], 'specs': ['UNIT = kgen_unit']}
+        attrs = {'variable': 'kgen_array_sum', 'sign': '=', 'expr': 'REAL(SUM(%s), 8)'%ename}
+        part_append_gensnode(pobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'items': ['kgen_array_sum'], 'specs': ['UNIT = kgen_unit']}
         part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
     
     return pobj
@@ -345,7 +349,10 @@ def namedgen_write_istrue(kernel_id, partid, var, entity_name):
         pobj = iftrueobj
 
     if var.is_array() and var.parent.is_numeric():
-        attrs = {'items': ['REAL(SUM(%s), 8)'%entity_name], 'specs': ['UNIT = kgen_unit']}
+        attrs = {'variable': 'kgen_array_sum', 'sign': '=', 'expr': 'REAL(SUM(%s), 8)'%entity_name}
+        part_append_gensnode(pobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'items': ['kgen_array_sum'], 'specs': ['UNIT = kgen_unit']}
         part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
     return pobj
