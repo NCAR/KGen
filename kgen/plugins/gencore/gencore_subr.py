@@ -44,6 +44,9 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         part_append_genknode(subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
+        attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+        part_append_genknode(subrobj, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
         # array index A
         if var.is_array():
             attrs = {'type_spec': 'INTEGER', 'entity_decls': [ 'idx%d'%(d+1) for d in range(var.rank) ]}
@@ -112,6 +115,10 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
             else: # intrinsic type
                 attrs = {'items': ['var'], 'specs': ['UNIT = kgen_unit']}
                 part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
+
+                if stmt.is_numeric():
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"var"', 'kgen_array_sum', 'REAL(SUM(var), 8)', '.TRUE.']}
+                    part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 attrs = {'expr': 'PRESENT( printvar )'}
                 ifpvarobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)

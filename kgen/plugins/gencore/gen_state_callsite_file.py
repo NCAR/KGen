@@ -70,6 +70,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['nunit', 'new_unit', 'counter']}
         part_append_gensnode(unitsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
         part_append_comment(unitsubr, DECL_PART, '')
 
         attrs = {'variable': 'new_unit', 'sign': '=', 'expr': '-1'}

@@ -172,6 +172,54 @@ public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
 public kgen_get_newunit, kgen_error_stop
 """
 
+kgen_utils_array_sumcheck = \
+"""
+subroutine kgen_array_sumcheck(varname, sum1, sum2, finish)
+    character(*), intent(in) :: varname
+    real(kind=8), intent(in) :: sum1, sum2
+    real(kind=8), parameter  :: max_rel_diff = 1.E-14
+    real(kind=8)  :: diff, rel_diff
+    logical, intent(in), optional :: finish
+    logical checkresult
+
+    if ( sum1 == sum2 ) then
+        checkresult = .TRUE.
+    else
+        checkresult = .FALSE.
+
+        diff = ABS(sum2 - sum1)
+
+        if ( .NOT. (sum1 == 0._8) ) then
+
+            rel_diff = ABS(diff / sum1)
+            if ( rel_diff > max_rel_diff ) then
+
+                print *, ''
+                print *, 'SUM of array, "', varname, '", is different.'
+                print *, 'From file : ', sum1
+                print *, 'From array: ', sum2
+                print *, 'Difference: ', diff
+                print *, 'Relative difference: ', rel_diff
+
+                if ( present(finish) .AND. finish ) then
+                    stop
+                end if
+            end if
+        else
+            print *, ''
+            print *, 'SUM of array, "', varname, '", is different.'
+            print *, 'From file : ', sum1
+            print *, 'From array: ', sum2
+            print *, 'Difference: ', diff
+
+            if ( present(finish) .AND. finish ) then
+                stop
+            end if
+        end if
+    end if
+end subroutine
+"""
+
 kgen_utils_file_tostr = \
 """
 function kgen_tostr_args1(idx1) result(tostr)

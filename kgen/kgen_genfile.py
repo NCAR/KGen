@@ -1079,12 +1079,15 @@ class GenS_BeginStatement(GenS_Statement, Gen_BeginStatement):
 
 def generate_kgen_utils(k_id):
     from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \
-        kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr
+        kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr, kgen_utils_array_sumcheck
 
     with open('%s/kgen_utils.f90'%Config.path['kernel'], 'wb') as f:
         f.write('MODULE kgen_utils_mod')
         f.write(kgen_utils_file_head)
-        f.write('CONTAINS\n')
+        f.write('\n')
+        f.write('CONTAINS')
+        f.write('\n')
+        f.write(kgen_utils_array_sumcheck)
         f.write(kgen_utils_file_tostr)
         f.write(kgen_utils_file_checksubr)
         f.write(kgen_get_newunit)

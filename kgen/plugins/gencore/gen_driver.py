@@ -43,7 +43,7 @@ class Gen_K_Driver(Kgen_Plugin):
         namedpart_link_part(node, DRIVER_CONTAINS_PART, CONTAINS_PART)
         namedpart_link_part(node, DRIVER_SUBP_PART, SUBP_PART)
 
-        attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp']}
+        attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp', 'kgen_array_sumcheck']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         attrs = {'name':getinfo('topblock_stmt').name, 'isonly': True, 'items':[getinfo('parentblock_stmt').name]}
@@ -79,6 +79,10 @@ class Gen_K_Driver(Kgen_Plugin):
 
         attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_total_time'], 'selector': (None, 'kgen_dp')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
         part_append_comment(node, DECL_PART, '')
 
         attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': '0.0_kgen_dp'}

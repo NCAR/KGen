@@ -42,6 +42,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             block_statements.Module, self.has_externs_in_module, self.create_kernel_module_parts) 
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
+            block_statements.Module, None, self.add_default_stmts) 
+
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
             block_statements.Module, self.has_specstmts_in_module, self.process_specstmts_in_module) 
 
@@ -101,8 +104,12 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         node.isonly = node.kgen_stmt.isonly
         node.kgen_use_tokgen = True
 
-    def create_kernel_module_parts(self, node):
+    def add_default_stmts(self, node):
 
+        attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_dp', 'kgen_array_sumcheck']}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+
+    def create_kernel_module_parts(self, node):
         in_subrobj = None
         in_subrname = get_module_in_readname(node.kgen_stmt)
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==in_subrname
@@ -127,6 +134,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             # kgen_istrue
             attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
             part_append_genknode(in_subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+            attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+            part_append_genknode(in_subrobj, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
             part_append_comment(in_subrobj, DECL_PART, '')
 
@@ -160,6 +170,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 # kgen_istrue
                 attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
                 part_append_genknode(out_subrobj, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+                attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+                part_append_genknode(out_subrobj, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
                 # add public stmt
                 attrs = {'items':[out_subrname]}
@@ -492,6 +505,10 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         attrs = {'items': [prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
         part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
+
+        if var.is_array() and stmt.is_numeric():
+            attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(prefix+entity_name), 'kgen_array_sum', 'REAL(SUM(%s), 8)'%(prefix+entity_name), '.TRUE.']}
+            part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             if stmt.is_numeric() and var.is_array():

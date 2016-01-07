@@ -51,7 +51,7 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         namedpart_link_part(node, KERNEL_PBLOCK_CONTAINS_PART, CONTAINS_PART)
         namedpart_link_part(node, KERNEL_PBLOCK_SUBP_PART, SUBP_PART)
 
-        attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_dp']}
+        attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_dp', 'kgen_array_sumcheck']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
@@ -63,6 +63,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+        attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
         part_append_comment(node, DECL_PART, '')
 

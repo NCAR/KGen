@@ -128,7 +128,7 @@ class Verify_Type(Kgen_Plugin):
                 part_append_comment(parent, CONTAINS_PART, '')
                 kernel_verify_contains.append(parent)
 
-            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Use and n.name=='kgen_utils_mod'
+            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Use and n.name=='kgen_utils_mod' and 'check_t' in n.items
             if not parent in kernel_verify_kgenutils and not part_has_node(parent, USE_PART, checks):
                 attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items': ['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
                 part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)

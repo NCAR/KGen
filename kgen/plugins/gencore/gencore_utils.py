@@ -271,9 +271,13 @@ def gen_write_istrue(pobj, var, ename):
         attrs = {'expr': 'kgen_istrue'}
         iftrueobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        return iftrueobj
-    else:
-        return pobj
+        pobj = iftrueobj
+
+    if var.is_array() and var.parent.is_numeric():
+        attrs = {'items': ['REAL(SUM(%s), 8)'%ename], 'specs': ['UNIT = kgen_unit']}
+        part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
+    
+    return pobj
 
 
 def namedgen_write_istrue(kernel_id, partid, var, entity_name):
@@ -340,6 +344,10 @@ def namedgen_write_istrue(kernel_id, partid, var, entity_name):
 
         pobj = iftrueobj
 
+    if var.is_array() and var.parent.is_numeric():
+        attrs = {'items': ['REAL(SUM(%s), 8)'%entity_name], 'specs': ['UNIT = kgen_unit']}
+        part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
+
     return pobj
 
 def gen_read_istrue(subrobj, var, ename, allocate=False):
@@ -369,6 +377,10 @@ def gen_read_istrue(subrobj, var, ename, allocate=False):
         attrs = {'items': ['%s'%ename]}
         part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
 
+    if var.is_array() and var.parent.is_numeric():
+        attrs = {'items': ['kgen_array_sum'], 'specs': ['UNIT = kgen_unit']}
+        part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
+
     return pobj
 
 def namedgen_read_istrue(kernel_id, partid, var, entity_name, ename_prefix=''):
@@ -386,17 +398,21 @@ def namedgen_read_istrue(kernel_id, partid, var, entity_name, ename_prefix=''):
 
     if var.is_allocatable():
         attrs = {'expr': 'ALLOCATED( %s )'%(ename_prefix+entity_name)}
-        ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+        ifalloc = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
         part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
 
     if var.is_pointer():
         attrs = {'expr': 'ASSOCIATED( %s )'%(ename_prefix+entity_name)}
-        ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
+        ifalloc = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
         part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
+
+    if var.is_array() and var.parent.is_numeric():
+        attrs = {'items': ['kgen_array_sum'], 'specs': ['UNIT = kgen_unit']}
+        part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
     return pobj
 
