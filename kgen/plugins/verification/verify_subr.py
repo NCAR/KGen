@@ -178,9 +178,6 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         part_append_comment(subrobj, DECL_PART, '')
 
         part_append_comment(subrobj, EXEC_PART, '')
-        attrs = {'variable': 'check_status%numTotal', 'sign': '=', 'expr': 'check_status%numTotal + 1'}
-        part_append_genknode(subrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-        part_append_comment(subrobj, EXEC_PART, '')
 
         ifallocobj = None
         ifassocobj = None
@@ -198,6 +195,9 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         elif ifallocobj: topobj = ifallocobj
         else: topobj = subrobj
 
+        attrs = {'variable': 'check_status%numTotal', 'sign': '=', 'expr': 'check_status%numTotal + 1'}
+        part_append_genknode(topobj, EXEC_PART, statements.Assignment, attrs=attrs)
+        part_append_comment(topobj, EXEC_PART, '')
 
         if var.is_array():
 
