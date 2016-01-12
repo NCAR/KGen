@@ -1,4 +1,0 @@
-This test implements an allocatable array that is passed as an argument to a kernel and
-deallocation of that array with options.
-Please see calling_module.F90 and kernel.F90 for more details
-
