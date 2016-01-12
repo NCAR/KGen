@@ -6,45 +6,42 @@ Created on Apr 7, 2015
 
 Author: Youngsung Kim <youngsun@ucar.edu>
 '''
-
-# NOTES:
-#
-# remove kernel driver file. Instead, put program in callsite file
-# specifing multiple callsites: command line method) filepath:name1:name2,name3:name4 filepath2:100-200
-# directive method) !$kgen callsite_begin <kernel name>
-# directive method) !$kgen callsite_end [kernel name]
-# collect multiple callsites in Config
-# format of geninfo [ kernel number id, state type, ... ]
-# kgen analyze steps: 1) resolve with general state type
-# 2) find out state type per each name in callsite lines
-# 3) update state types in geninfo dict
-# directory structure: many kernels in kernels directory
-#
-# if topblock is module, change it to program and call parent of callsite
-# put file io directly in parent of callsite block
-# if topblock is program, keep origianl code as much as possible
+import sys
+import os
 
 # Python version check
-#import sys
 #if sys.hexversion < 0x020600F0:
 #    print 'ERROR: KGEN works with Python Version 2.7 or later.'
 #    sys.exit(-1)
 
-import sys
-import os
-kgenpath = os.path.dirname(os.path.realpath(__file__))+'/../kgen'
-sys.path.append(kgenpath)
+KGEN_HOME = '%s/..'%os.path.dirname(os.path.realpath(__file__))
+KGEN_BASE = '%s/base'%KGEN_HOME
+KGEN_EXTRACTOR = '%s/kgentools/kernel_extractor'%KGEN_HOME
 
-from kgen_utils import Logger, UserException, ProgramException
-from kgen_analyze import analyze #locate_callsite, collect_kernel_info
-#from kgen_geninfo import mark_generation_info
-#from kgen_genkernel import generate_kernel
-#from kgen_genstate import generate_state
+sys.path.insert(0, KGEN_BASE)
+sys.path.insert(0, KGEN_EXTRACTOR)
+
+from kgen_utils import Logger, UserException, ProgramException, Config
+from kgen_analyze import analyze
 from kgen_genfile import generate_srcfiles
-from kgen_genmake import generate_makefiles
 from kgen_prepost import preprocess, postprocess
+from genmake import generate_makefiles
 
 def main():
+
+    Config.plugin['priority']['ext.gencore'] = '%s/plugins/gencore'%KGEN_EXTRACTOR
+    Config.plugin['priority']['ext.verification'] = '%s/plugins/verification'%KGEN_EXTRACTOR
+    Config.plugin['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXTRACTOR
+    Config.plugin['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXTRACTOR
+    #Config.plugin['priority']['ext.debug'] = '%s/plugins/debug'%KGEN_EXTRACTOR
+
+    # create state directories
+    if not os.path.exists(Config.path['state']):
+        os.makedirs(Config.path['state'])
+
+    # create kernel directories
+    if not os.path.exists(Config.path['kernel']):
+        os.makedirs(Config.path['kernel'])
 
     preprocess()
     Logger.info('Pre-processing is done', stdout=True)
@@ -52,23 +49,8 @@ def main():
     analyze()
     Logger.info('Program is analyzed', stdout=True)
 
-#    locate_callsite()
-#    Logger.info('Call-site location is found', stdout=True)
-
-#    collect_kernel_info()
-#    Logger.info('Kernel information is collected', stdout=True)
-
-#    mark_generation_info()
-#    Logger.info('Kernel generation information is marked')
-
     generate_srcfiles()
     Logger.info('Source files are generated', stdout=True)
-
-#    generate_state()
-#    Logger.info('Instrumented files are generated', stdout=True)
-#
-#    generate_kernel()
-#    Logger.info('Kernel files are generated', stdout=True)
 
     generate_makefiles()
     Logger.info('Makefiles are generated', stdout=True)

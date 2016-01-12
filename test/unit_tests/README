@@ -1,0 +1,33 @@
+Amogh Simha
+08/03/2015
+
+*****************************************************
+
+TL;DR
+For all tests: 
+"make"
+For individual tests: 
+"make copy"
+"cd <test_name>"
+"make KGEN_ROOT=../../.."
+
+******************************************************
+
+This is a suite of fortran language tests for KGEN development.
+Each test implements a specific fortran feature and a kernel using that
+feature is extracted by KGEN.
+
+Please run make in this directory to run all the tests available.
+
+This is still under development. More tests will be added soon.
+
+If a test fails, an error.log file is generated inside that test's temp folder tmp_test*/.
+Please view that file for more details.
+
+To run individual tests, please first run "make copy" in this directory. This will 
+generate a set of individual test temp folders. You can then go inside whichever test you
+wish to run and do a "make" in that folder. In this case, you will have to explicitly pass
+the value of KGEN_ROOT as an argument to make. Have KGEN_ROOT point to your kgen source.
+If you do not have a separate kgen source, this is the command to run:
+
+"make KGEN_ROOT=../../.."
