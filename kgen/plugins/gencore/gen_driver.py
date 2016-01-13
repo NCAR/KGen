@@ -53,6 +53,11 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_genknode(node, IMPLICIT_PART, typedecl_statements.Implicit)
         part_append_comment(node, IMPLICIT_PART, '')
 
+        if getinfo('add_mpi_frame'):
+            part_append_comment(node, DECL_PART, 'Uncomment following line to include a MPI header file.')
+            part_append_comment(node, DECL_PART, 'include "mpif.h"')
+            part_append_comment(node, DECL_PART, '')
+
         if getinfo('is_mpi_app'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpi_rank']}
             part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
@@ -84,6 +89,15 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
         part_append_comment(node, DECL_PART, '')
+
+        if getinfo('add_mpi_frame'):
+            part_append_comment(node, EXEC_PART, 'Uncomment following MPI_INIT block to initialize MPI.')
+            part_append_comment(node, EXEC_PART, 'CALL MPI_INIT(kgen_ierr)')
+            part_append_comment(node, EXEC_PART, 'IF (kgen_ierr .NE. MPI_SUCCESS) THEN')
+            part_append_comment(node, EXEC_PART, '  PRINT *, "MPI Initialization is failed."')
+            part_append_comment(node, EXEC_PART, '  CALL MPI_ABORT(MPI_COMM_WORLD, -1, kgen_ierr)')
+            part_append_comment(node, EXEC_PART, 'END IF')
+            part_append_comment(node, EXEC_PART, '')
 
         attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -180,3 +194,9 @@ class Gen_K_Driver(Kgen_Plugin):
 
         attrs = {'items': ['"******************************************************************************"']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+        if getinfo('add_mpi_frame'):
+            part_append_comment(node, EXEC_PART, '')
+            part_append_comment(node, EXEC_PART, 'Uncomment following mpi_finalize statement to finalize MPI.')
+            part_append_comment(node, EXEC_PART, 'CALL mpi_finalize(kgen_ierr)')
+            part_append_comment(node, EXEC_PART, '')

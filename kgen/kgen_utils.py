@@ -543,6 +543,12 @@ class Config(object):
 ##        self._attrs['kernel_link']['lib'] = []
 ##        self._attrs['kernel_link']['obj'] = []
 
+        # add mpi frame code in kernel driver
+        self._attrs['add_mpi_frame'] = OrderedDict()
+        self._attrs['add_mpi_frame']['enabled'] = False
+        self._attrs['add_mpi_frame']['np'] = '2'
+        self._attrs['add_mpi_frame']['mpiexec'] = 'mpiexec'
+
         # make state parameters
         self._attrs['state_build'] = OrderedDict()
         self._attrs['state_build']['cmds'] = ''
@@ -589,6 +595,7 @@ class Config(object):
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
         parser.add_option("--verbose", dest="verbose_level", action='store', type='int', help='Set the verbose level for verification output')
+        parser.add_option("--add-mpi-frame", dest="add_mpi_frame", type='string', default=None, help='Add MPI frame codes in kernel_driver.')
 
         opts, args = parser.parse_args()
         if len(args)<1:
@@ -824,7 +831,7 @@ class Config(object):
             for line in opts.kernel_compile:
                 for comp in line.split(','):
                     key, value = comp.split('=')
-                    if key in [ 'FC', 'FC_FLAGS' ] :
+                    if key in [ 'FC', 'FC_FLAGS' ]:
                         self._attrs['kernel_compile'][key] = value
                     else:
                         raise UserException('Unknown kernel compile option: %s' % comp)
@@ -938,6 +945,16 @@ class Config(object):
         if opts.verbose_level:
             self._attrs['verify']['verboselevel'] = str(opts.verbose_level)
 
+        # mpi frame code in kernel driver
+        if opts.add_mpi_frame:
+            self._attrs['add_mpi_frame']['enabled'] = True
+            for checkparams in opts.add_mpi_frame.split(','):
+                key, value = checkparams.split('=')
+                key = key.lower()
+                if key in ['np', 'mpiexec']:
+                    self._attrs['add_mpi_frame'][key] = value
+                else:
+                    print 'WARNING: %s is not supported add_mpi_frame parameter'%key
     def __getattr__(self, name):
         return self._attrs[name]
 

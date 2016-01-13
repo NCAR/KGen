@@ -100,7 +100,10 @@ def generate_kernel_makefile():
         write(f, '')
 
         write(f, 'run: build')
-        write(f, './kernel.exe', t=True)
+        if Config.add_mpi_frame['enabled']:
+            write(f, '%s -np %s ./kernel.exe'%(Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
+        else:
+            write(f, './kernel.exe', t=True)
         write(f, '')
 
         write(f, 'build: ${ALL_OBJS}')
