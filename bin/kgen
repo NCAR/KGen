@@ -9,6 +9,11 @@ Author: Youngsung Kim <youngsun@ucar.edu>
 import sys
 import os
 
+# NOTE:
+# to move tostring and kgenutils into this tool
+# to split Config parameters between base and this tool
+# to split command line arguments between base and this tool
+
 # Python version check
 #if sys.hexversion < 0x020600F0:
 #    print 'ERROR: KGEN works with Python Version 2.7 or later.'
