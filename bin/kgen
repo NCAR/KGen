@@ -1,82 +1,11 @@
-#!/usr/bin/python
-'''
-This is the main KGEN script.
-________________________
-Created on Apr 7, 2015
+#!/usr/bin/env python
 
-Author: Youngsung Kim <youngsun@ucar.edu>
-'''
 import sys
 import os
 
-# NOTE:
-# to move tostring and kgenutils into this tool
-# to split Config parameters between base and this tool
-# to split command line arguments between base and this tool
-
-# Python version check
-#if sys.hexversion < 0x020600F0:
-#    print 'ERROR: KGEN works with Python Version 2.7 or later.'
-#    sys.exit(-1)
-
-KGEN_HOME = '%s/..'%os.path.dirname(os.path.realpath(__file__))
-KGEN_BASE = '%s/base'%KGEN_HOME
-KGEN_EXTRACTOR = '%s/kgentools/kernel_extractor'%KGEN_HOME
-
-sys.path.insert(0, KGEN_BASE)
+KGEN_EXTRACTOR = '%s/../kgentools/kernel_extractor'%os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, KGEN_EXTRACTOR)
 
-from kgen_utils import Logger, UserException, ProgramException, Config
-from kgen_analyze import analyze
-from kgen_genfile import generate_srcfiles
-from kgen_prepost import preprocess, postprocess
-from genmake import generate_makefiles
-
-def main():
-
-    Config.plugin['priority']['ext.gencore'] = '%s/plugins/gencore'%KGEN_EXTRACTOR
-    Config.plugin['priority']['ext.verification'] = '%s/plugins/verification'%KGEN_EXTRACTOR
-    Config.plugin['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXTRACTOR
-    Config.plugin['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXTRACTOR
-    #Config.plugin['priority']['ext.debug'] = '%s/plugins/debug'%KGEN_EXTRACTOR
-
-    # create state directories
-    if not os.path.exists(Config.path['state']):
-        os.makedirs(Config.path['state'])
-
-    # create kernel directories
-    if not os.path.exists(Config.path['kernel']):
-        os.makedirs(Config.path['kernel'])
-
-    preprocess()
-    Logger.info('Pre-processing is done', stdout=True)
-
-    analyze()
-    Logger.info('Program is analyzed', stdout=True)
-
-    generate_srcfiles()
-    Logger.info('Source files are generated', stdout=True)
-
-    generate_makefiles()
-    Logger.info('Makefiles are generated', stdout=True)
-
-    postprocess()
-    Logger.info('Post-processing is done', stdout=True)
-
-    Logger.info('Completed.', stdout=True)
-
 if __name__ == "__main__":
-
-    try:
-        print ''
-        main()
-    except UserException as e:
-        print 'ERROR: %s'%str(e)
-        Logger.info(e)
-        #Logger.critical(e)
-    except ProgramException as e:
-        Logger.critical(e)
-    except Exception as e:
-        Logger.critical(e)
-    finally:
-        pass 
+    from kext_app import KExtApp
+    sys.exit(KExtApp().execute())
