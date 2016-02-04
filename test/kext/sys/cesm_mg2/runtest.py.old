@@ -1,0 +1,63 @@
+# runtest.py
+# 
+import os
+from kgen_test import KExtTest
+
+class CustomTest(KExtTest):
+    def configure_test(self):
+        #self.configure_predefined_test('yellowstone_cesm_atmos1')
+
+        # preprocess
+        # shell commands or Python callable
+
+        # create work dir
+        
+        # download
+        # - copy files under workdir
+        # - checkout from svn or github to some othe directory, may required user password
+        # - may need two copies. one for backup
+
+        # extract
+        # - set kgen flags
+        # - namepath mode or directive mode
+
+        # instrument
+        # - replace files or copy files to a certain location
+        # - save original files for recovery
+
+        # config
+        # - follow target application's config procedure
+
+        # build
+        # - follow target application's build system
+
+        # recover
+        # - use file information collected during instrumentation
+        # - may have optional recovery methods based on previous results
+
+        # state run
+        # - with or without using job scheduler
+        # - with or without MPI library
+        # - may need to set shell env.
+
+        # kernel run
+        # - run kernel
+
+        # verify
+        # - collect verification information
+
+        # save state
+        # - may or may not save state data to reduce test time
+
+        # remove work dir
+        # - according to user's input
+
+        # postprocess
+        # shell commands or Python callable
+
+
+if __name__ == "__main__":
+    # we may allow to run this test individually
+    print('Please do not run this script from command line. Instead, run this script through KGen Test Suite .')
+    print('Usage: cd ${KGEN_HOME}/test; ./kgentest.py')
+    sys.exit(-1)

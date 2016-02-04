@@ -1,133 +1,144 @@
 # kgen_test.py
 
-import os
-import shutil
 import subprocess
+from doit.tools import set_trace
 
 class KGenTest(object):
-    taskid = 0
 
-    def _gentask(self):
-        return self.task
+    (NOT_EXECUTED, FAILED, PASSED) = range(3)
+    TEST_NUM = 0
 
-    def configure_test(self):
-        pass
 
-    def runcmd(self, cmd, input=None, **kwargs):
+    def get_tasks(self):
+        for taskname, taskfunc in self.task_map:
+            yield self.tasks[taskname]
+
+    def get_result(self, key, result_type='general'):
+        return self.result[result_type][key]
+
+    def set_status(self, taskname, status, errmsg=''):
+        self.result[taskname]['status'] = status
+        if status==self.PASSED: pass
+        elif status==self.FAILED:
+            self.result['general']['errmsg'].append(errmsg)
+        elif status==self.NOT_EXECUTED: pass
+        else:
+            raise Exception('Unknown status: %s'%status)
+
+        print 'YYY: ', taskname, id(self.result['general']), id(self.result['general']['errmsg'])
+
+    def configure_test(self, task_dep=[]):
+
+        self.result = { 'general': {'passed': False, 'errmsg': []} }
+        self.tasks = {}
+        self.uptodate = {}
+
+        self.task_map = \
+            [ ('prep_task', self.preprocess), ('mkdir_task', self.mkworkdir), ('download_task', self.download), \
+            ('extract_task', self.extract), ('replace_task', self.replace), ('config_task', self.config), \
+            ('build_task', self.build), ('recover_task', self.recover), ('genstate_task', self.genstate), \
+            ('runkernel_task', self.runkernel), ('verify_task', self.verify), ('savestate_task', self.savestate), \
+            ('rmdir_task', self.rmdir), ('postp_task', self.postprocess), ('_finalize_task', self._finalize) ]
+
+        self.result['prep_task'] = { 'status': self.NOT_EXECUTED }
+        self.result['prep_task']['errmsg'] = 'prep_task is not performed.'
+        self.uptodate['prep_task'] = False
+
+        self.prep_task = {
+            'name': '%s.prep_task'%self.TEST_ID,
+            'task_dep': task_dep,
+            'uptodate': [ self.is_uptodate('prep_task') ],
+            'actions': [ (self.preprocess, [ 'prep_task'], None) ]
+        }
+        self.tasks['prep_task'] = self.prep_task
+
+        ntasks = len(self.task_map)
+        for (t1name, t1func), (t2name, t2func) in zip(self.task_map[0:(ntasks-1)], self.task_map[1:ntasks]):
+
+            self.uptodate[t2name] = False
+
+            self.result[t2name] = {}
+            self.result[t2name]['status'] = self.NOT_EXECUTED
+            self.result[t2name]['errmsg'] = '%s is not performed.'%t2name
+
+            setattr(self, t2name, {})
+            task2 = getattr(self, t2name)
+            task2['name'] = '%s.%s'%(self.TEST_ID, t2name)
+            task2['task_dep'] = ['%s:%s'%(self.TEST_PREFIX, getattr(self, t1name)['name'])]
+            task2['uptodate'] = [ self.is_uptodate(t2name) ]
+            task2['actions'] = [ ( t2func, [ t2name ], None ) ]
+
+            self.tasks[t2name] = task2
+
+        self.result['_finalize_task'] = { 'status': self.NOT_EXECUTED }
+        self.result['_finalize_task']['errmsg'] = '_finalize_task is not performed.'
+        self.uptodate['_finalize_task'] = False
+
+        self._finalize_task = {
+            'name': '%s._finalize_task'%self.TEST_ID,
+            'task_dep': ['%s:%s'%(self.TEST_PREFIX, getattr(self, 'postp_task')['name'])],
+            'uptodate': [ False ],
+            'actions': [ (self._finalize, [ '_finalize_task'], None) ]
+        }
+        self.tasks['_finalize_task'] = self._finalize_task
+
+    def is_uptodate(self, taskname):
+        return self.uptodate[taskname]
+
+    def run_shcmd(self, cmd, input=None, **kwargs):
         proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, \
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, **kwargs)
         return proc.communicate(input=input)
 
-    def add_test(self, testfunc):
-        self.task['actions'] = [ ( testfunc, None, None ) ]
+    def preprocess(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-class KExtTest(KGenTest):
-    def get_testfiles(self):
-        testfiles = [ os.path.join(self.TEST_DIR,f) for f in os.listdir(self.TEST_DIR) if \
-            f!=self.TEST_SCRIPT and f!='%sc'%self.TEST_SCRIPT and \
-            not f.startswith('.') and os.path.isfile(os.path.join(self.TEST_DIR, f))] 
+    def mkworkdir(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-        return testfiles
+    def download(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-    def copy_testfiles(self, testfiles, dest):
-        dest_files = []
-        for testfile in testfiles:
-            shutil.copy2(testfile, dest)
-            dest_files.append(os.path.join(dest, os.path.basename(testfile)))
-        return dest_files
+    def extract(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-    def extract_kernel(self, target, namepath, *args, **kwargs):
+    def replace(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-        cmds = [ self.KGEN ]
-        for kw, kwarg in kwargs.iteritems():
-            flag = kw.replace('_', '-').replace('UNDERSCORE', '_')
-            cmds.append('%s %s'%(flag, kwarg))
-        cmds.append('%s:%s'%(target, namepath))
+    def config(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-        out, err = self.runcmd(' '.join(cmds), cwd=self.TEST_DIR)
-        if not out or out.find('ERROR')>0 or err:
-            self.test['detail'] = err
-            return None
-        return out
+    def build(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-    def generate_state(self, workdir, statefiles):
-        out, err = self.runcmd('make', cwd='%s/state'%workdir)
-        if err:
-            self.test['detail'] = err
-            return None
+    def recover(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-        outfiles = []
-        for statefile in statefiles:
-            outfile = os.path.join('%s/kernel'%workdir, statefile)
-            if not os.path.exists(outfile):
-                self.test['detail'] = '%s does not exist'%outfile
-                return None
-            outfiles.append(outfile)
+    def genstate(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-        return outfiles
+    def runkernel(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-    def run_kernel(self, workdir):
-        out, err = self.runcmd('make', cwd='%s/kernel'%workdir)
-        if err:
-            self.test['detail'] = err
-            return None
-        return out
+    def verify(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-    def verify_result(self, result):
-        if not result or result.find('FAILED')>0 or result.find('PASSED')<0:
-            self.test['detail'] = str(result)
-            return False
-        self.test['result'] = True
+    def savestate(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-        return True
+    def rmdir(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-    def predefined_namepath1(self):
-        if not os.path.exists(self.TEST_DIR): return
+    def postprocess(self, myname):
+        self.result[myname]['status'] = self.PASSED
 
-        tmpdir = '%s/tmp'%self.TEST_DIR
-        if os.path.exists(tmpdir): shutil.rmtree(tmpdir)
-        os.mkdir(tmpdir)
-
-        tmpsrc = '%s/src'%tmpdir
-        os.mkdir(tmpsrc)
-
-        testfiles = self.get_testfiles()
-
-        self.copy_testfiles(testfiles, tmpsrc)
-
-        result = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
-            'calling_module:calling_subroutine:add', _D='ROW=4,COLUMN=4', _I=tmpsrc, \
-            __invocation='1', \
-            __state_build='cmds="cd %s; make clean; make build"'%tmpsrc, \
-            __state_run='cmds="cd %s; make run"'%tmpsrc, \
-            __kernel_compile='FC="%s",FC_FLAGS="%s"'%(self.COMPILER, self.COMPILER_FLAGS), \
-            __outdir=tmpdir)
-        if not result:
-            return 
-
-        statefiles = self.generate_state(tmpdir, [ 'add.1' ])
-        if not statefiles:
-            return
-
-        result = self.run_kernel(tmpdir)
-        if not result:
-            return
-
-        result = self.verify_result(result)
-        if result:
-            print '        ==> PASSED'
-            if not self.LEAVE_TEMP and os.path.exists(tmpdir):
-                shutil.rmtree(tmpdir)
-        else:
-            print '        ==> FAILED'
-        return result
-
-    def configure_predefined_test(self, testname):
-        if testname=='namepath1':
-            self.add_test(self.predefined_namepath1)
-        else:
-            print('ERROR: %s is not predefined testname.'%testname)
-
-class KCoverTest(KGenTest):
-    pass
-
+    def _finalize(self, myname):
+        self.result[myname]['status'] = self.PASSED
+        errmsg = []
+        is_passed = True
+        for taskname in [ name for name, func in self.task_map ]:
+            if self.result[taskname]['status'] not in [ self.PASSED ]:
+                is_passed = False
+                errmsg.append(self.result[taskname]['errmsg'])
+        self.result['general']['errmsg'] = errmsg
+        self.result['general']['passed'] = is_passed

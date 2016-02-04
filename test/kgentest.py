@@ -14,21 +14,24 @@ KGEN_HOME = '%s/..'%SCRIPT_HOME
 sys.path.insert(0, '%s/base'%KGEN_HOME)
 sys.path.insert(1, '%s/packages'%KGEN_HOME)
 TEST_SCRIPT = 'runtest.py'
+TEST_PREFIX = '_KGENTEST'
 
 from doit.loader import generate_tasks
 from doit.doit_cmd import DoitMain
 from doit.cmd_base import TaskLoader
-from kgen_test import KGenTest, KExtTest, KCoverTest
+from kgen_test import KGenTest
 from ordereddict import OrderedDict
 
 class KGenTestTaskLoader(TaskLoader):
     """create test tasks on the fly based on cmd-line arguments"""
     DOIT_CONFIG = {
         'verbosity': 2,
-        'continue': True,
+        'pdb': True,
         'dep_file': os.path.join(SCRIPT_HOME, '.%s.db'%SCRIPT_NAME),
         'num_process': 1,
         }
+
+        #'continue': True,
 
     def get_title(task):
         return "testing... %s" % task.name
@@ -43,7 +46,6 @@ class KGenTestTaskLoader(TaskLoader):
         parser.add_argument('-f', dest='func_tests', action='store_true', default=False, help='Functional test only.')
         parser.add_argument('-s', dest='sys_tests', action='store_true', default=False, help='System test only.')
         parser.add_argument('-c', dest='changed', action='store_true', default=False, help='Changed test only.')
-        parser.add_argument('-k', dest='kgen', type=str, default='%s/bin/kgen'%KGEN_HOME, help='Default KGEN command.')
         parser.add_argument('-t', dest='leavetemp', action='store_true', default=False, help='Leave temporary directory.')
         parser.add_argument('--compiler', dest='compiler', type=str, default='ifort', help='Default compiler to be used for tests.')
         parser.add_argument('--compiler-flags', dest='compiler_flags', type=str, default='', help='Default compiler flgas to be used for tests.')
@@ -61,56 +63,64 @@ class KGenTestTaskLoader(TaskLoader):
         for dirName, subdirList, fileList in os.walk(SCRIPT_HOME):
             relpath = os.path.relpath(dirName, SCRIPT_HOME)
             if relpath.startswith('packages'): continue
-            if relpath.startswith('old'): continue
+            if relpath.startswith('old'):
+                del subdirList[:]
+                continue
             if relpath.endswith('templates'):
                 del subdirList[:]
                 continue
 
+            # if kgen test script exists in a directory
+            # the name of test script is fixed according to relative path to SCRIPT HOME
+            path_script = '%s_test.py'%relpath.replace('/', '_')
+            if path_script in fileList and dirName != SCRIPT_HOME:
+                pathsave = sys.path[:]
+                sys.path.insert(0, dirName)
+                mod = __import__(path_script[:-3])
+
+                test_found = False
+
+                # find classes inherited from KGenTest class
+                match = lambda x: inspect.isclass(x) and issubclass(x, KGenTest) and x is not KGenTest
+                for name, cls in inspect.getmembers(mod, match):
+                    test_found = True
+                    break
+                if not test_found: sys.path = pathsave
+
+
             # if TEST_SCRIPT exists in a directory
             if TEST_SCRIPT in fileList:
-                pathsave = sys.path
+                pathsave = sys.path[:]
                 sys.path.insert(0, dirName)
                 mod = __import__(TEST_SCRIPT[:-3])
 
                 test_found = False
 
                 # find classes inherited from KGenTest class
-                match = lambda x: inspect.isclass(x) and x not in [ KGenTest, KExtTest, KCoverTest ] and issubclass(x, KGenTest)
+                match = lambda x: inspect.isclass(x) and issubclass(x, KGenTest) and x is not KGenTest and len(x.__subclasses__())==0
                 for name, cls in inspect.getmembers(mod, match):
                     # process module level preparation
-                    if not test_found:
-                        print('Adding Test: %s' % relpath)
-                        test_found = True
+                    print('Adding Test: %s' % relpath)
 
                     #  generate test object
                     obj = cls()
-                    obj.taskid += 1
+                    obj.KGEN_HOME = KGEN_HOME
+                    obj.TEST_HOME = SCRIPT_HOME
                     obj.TEST_SCRIPT = TEST_SCRIPT
                     obj.TEST_DIR = dirName
-                    obj.KGEN = args.kgen
+                    obj.TEST_NUM += 1
+                    obj.TEST_ID = '%s/%s'%(relpath, name)
+                    obj.TEST_PREFIX = TEST_PREFIX
                     obj.COMPILER = args.compiler
                     obj.COMPILER_FLAGS = args.compiler_flags
                     obj.LEAVE_TEMP = args.leavetemp
-                    obj.task = {}
-                    obj.test = {}
 
-                    testname = '%s/%s'%(relpath, name)
-                    self.testDB[testname] = obj
-                    
                     # process class level preparation
                     obj.configure_test()
 
-                    if not obj.task.has_key('name'): obj.task['name'] = testname
-                    if not obj.task.has_key('uptodate'): obj.task['uptodate'] = [ False ]
-                    #if not obj.task.has_key('title'): obj.task['title'] = (self.get_title, None)
-                    if not obj.task.has_key('actions'): obj.task['actions'] = [ 'echo "WARNING: No test is configured."' ]
+                    self.testDB[obj.TEST_ID] = obj
 
-                    if not obj.test.has_key('result'): obj.test['result'] = False
-                    if not obj.test.has_key('detail'): obj.test['detail'] = 'Unknown'
-
-                    # add the class in a test list
-
-                if not test_found: sys.path = pathsave
+                sys.path = pathsave
 
     # def download build ref execution for homme, cesm, ....
 
@@ -124,7 +134,7 @@ class KGenTestTaskLoader(TaskLoader):
 
     def report(self):
         ntests = len(self.testDB)
-        npassed = len([ obj for obj in self.testDB.values() if obj.test['result'] ])
+        npassed = len([ obj for obj in self.testDB.values() if obj.get_result('passed')])
         nfailed = ntests - npassed
 
         print ''
@@ -136,37 +146,41 @@ class KGenTestTaskLoader(TaskLoader):
         print ''
 
         for testname, testobj in self.testDB.iteritems():
-            if testobj.test['result']:
+            if testobj.get_result('passed'):
                 pass
                 #print '%s : PASSED'%testname
             else:
                 print '%s : FAILED'%testname
-                print 'ERROR MSG:'
-                print testobj.test['detail']
+                print 'ERROR MSG:', id(testobj.result['general']), id(testobj.result['general']['errmsg'])
+                print testobj.get_result('errmsg')
                 print ''
         
         print '***********************************'
-
-    def gentask_report(self, deptasks):
-
-        task = {}
-        task['name'] = 'generate_report'
-        task['task_dep'] = deptasks
-        task['actions'] = [(self.report, None, None)]
-        return task
+#
+#    def gentask_report(self, deptasks):
+#
+#        task = {}
+#        task['name'] = 'generate_report'
+#        task['task_dep'] = deptasks
+#        task['actions'] = [(self.report, None, None)]
+#        return task
 
     def _gen_tasks(self):
         # generate test tasks
         testnames = []
         for testname, testobj in self.testDB.iteritems():
-            testnames.append('KGEN_TESTS:%s'%testname)
-            yield testobj._gentask()
-        yield self.gentask_report(testnames)
+            for subtask in testobj.get_tasks():
+                testnames.append('%s:%s'%(TEST_PREFIX, subtask['name']))
+                yield subtask
+        #yield self.gentask_report(testnames)
 
     def load_tasks(self, cmd, params, args):
         """implements loader interface, return (tasks, config)"""
-        return generate_tasks('KGEN_TESTS', self._gen_tasks()), self.DOIT_CONFIG
+        return generate_tasks(TEST_PREFIX, self._gen_tasks()), self.DOIT_CONFIG
 
 if __name__ == "__main__":
-    doit_main = DoitMain(KGenTestTaskLoader())
-    sys.exit(doit_main.run(['run']))
+    kgentests = KGenTestTaskLoader()
+    doit_main = DoitMain(kgentests)
+    retval = doit_main.run(['run'])
+    kgentests.report()
+    sys.exit(retval)
