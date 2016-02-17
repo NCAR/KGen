@@ -1,0 +1,119 @@
+# kgentest.py
+
+import os
+import shutil
+import re
+import time
+from kext_sys_ys_test import KExtSysYSTest
+
+class KExtSysYSCesmTest(KExtSysYSTest):
+    def download(self, myname, result):
+
+        systestdir = result['mkdir_task']['sysdir']
+        workdir = result['mkdir_task']['workdir']
+
+        appsrc = '%s/src'%systestdir
+        if not os.path.exists(appsrc):
+            os.mkdir(appsrc)
+
+        # check if cesm exists in appsrc dir
+        out, err, retcode = self.run_shcmd('svn info | grep URL', cwd=appsrc)
+        if retcode != 0 or not out or len(out)<3 or not out.startswith('URL'):
+            out, err, retcode = self.run_shcmd('svn checkout https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta06 .', cwd=appsrc)
+
+        # copy cesm src into test specific src dir
+        tmpsrc = '%s/src'%workdir
+        if not os.path.exists(tmpsrc):
+            shutil.copytree(appsrc, tmpsrc)
+
+        result[myname]['appsrc'] = appsrc
+        result[myname]['tmpsrc'] = tmpsrc
+
+        self.set_status(result, myname, self.PASSED)
+
+        return result
+
+    def build(self, myname, result):
+
+        casedir = result['config_task']['casedir']
+        casename = result['config_task']['casename']
+        statefiles = result['extract_task']['statefiles']
+        workdir = result['mkdir_task']['workdir']
+
+        datadir = '%s/data'%workdir
+        result[myname]['datadir'] = datadir
+
+        if self.REBUILD or not os.path.exists(datadir) or any(not os.path.exists('%s/%s'%(datadir, sf)) for sf in statefiles):
+            # clean build
+            out, err, retcode = self.run_shcmd('./%s.clean_build'%casename, cwd=casedir)
+            if retcode != 0:
+                self.set_status(result, myname, self.FAILED, errmsg='%s.clean_build is failed.'%casename)
+            else:
+                # build
+                out, err, retcode = self.run_shcmd('./%s.build'%casename, cwd=casedir)
+                if retcode != 0:
+                    self.set_status(result, myname, self.FAILED, errmsg='%s.build is failed.'%casename)
+                else:
+                    self.set_status(result, myname, self.PASSED)
+        else:
+            # copy files from data to kernel directory
+            for statefile in statefiles:
+                shutil.copyfile(os.path.join(datadir, statefile), '%s/kernel/%s'%(workdir, statefile))
+
+            result['goto'] = 'runkernel_task'
+            self.set_status(result, myname, self.PASSED)
+
+        return result
+
+    def genstate(self, myname, result):
+
+        casedir = result['config_task']['casedir']
+        casename = result['config_task']['casename']
+        workdir = result['mkdir_task']['workdir']
+
+        # may need to add -P BSUB directive in .run and .st_archive scripts
+
+        # run cesm
+        out, err, retcode = self.run_shcmd('./%s.submit'%casename, cwd=casedir)
+
+        if retcode != 0 or not out:
+            self.set_status(result, myname, self.FAILED, errmsg='Job submission is failed.')
+            return result
+
+        # wait until the job is finished
+        time.sleep(5)
+
+        jobid = None
+        out, err, retcode = self.run_shcmd('bjobs'%casename)
+        for line in out.split('\n'):
+            items = line.split()
+            if len(items)>6 and items[6].endswith('MG2TEST'):
+                jobid = items[0]
+                break
+        if jobid is None:
+            self.set_status(result, myname, self.FAILED, errmsg='Job id is not found.')
+            return result
+
+        status = ''
+        maxiter = 3600
+        iter = 0
+        while status not in [ 'DONE', 'PSUSP', 'USUSP', 'SSUSP', 'EXIT', 'UNKWN', 'ZOMBI', 'FINISHED' ]:
+            time.sleep(1)
+            out, err, retcode = self.run_shcmd('bjobs %s'%jobid)
+            for line in out.split('\n'):
+                items = line.split()
+                if len(items)>3 and items[0]==jobid:
+                    status = items[2]
+                elif items[-1]=='found':
+                    status = 'FINISHED'
+
+            iter += 1
+            if iter>=maxiter:
+                break
+
+        if status=='DONE' or 'FINISHED':
+            self.set_status(result, myname, self.PASSED)
+        else:
+            self.set_status(result, myname, self.FAILED, errmsg='Job completion status is not expected.')
+
+        return result

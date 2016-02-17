@@ -37,7 +37,7 @@ def report(testDB):
         if result['general']['passed']:
             pass
         else:
-            print( '%s : FAILED'%testname )
+            print( '%s : FAILED'%testid )
             print( 'ERROR MSG:', result['general']['errmsg'] )
             print( '' )
     
@@ -56,6 +56,9 @@ def main():
     parser.add_argument('-s', dest='sys_tests', action='store_true', default=False, help='System test only.')
     parser.add_argument('-c', dest='changed', action='store_true', default=False, help='Changed test only.')
     parser.add_argument('-t', dest='leavetemp', action='store_true', default=False, help='Leave temporary directory.')
+    parser.add_argument('-r', dest='rebuild', action='store_true', default=False, help='Rebuild target software.')
+    parser.add_argument('-w', dest='work_dir', type=str, default=None, help='Set working directory.')
+    parser.add_argument('-o', dest='user_options', type=str, default='', help='User-specific options.')
     parser.add_argument('--compiler', dest='compiler', type=str, default='ifort', help='Default compiler to be used for tests.')
     parser.add_argument('--compiler-flags', dest='compiler_flags', type=str, default='', help='Default compiler flgas to be used for tests.')
 
@@ -77,6 +80,11 @@ def main():
         if relpath.endswith('templates'):
             del subdirList[:]
             continue
+
+        if args.tests:
+            if all(not relpath.startswith(argtest.rstrip(' /')) for argtest in args.tests) and \
+                all( len(relpath.split('/'))>=len(argtest.rstrip(' /').split('/')) for argtest in args.tests ):
+                continue
 
         # if kgen test script exists in a directory
         # the name of test script is fixed according to relative path to SCRIPT HOME
@@ -116,6 +124,7 @@ def main():
                 try:
                     obj = cls()
                     obj.KGEN_HOME = KGEN_HOME
+                    obj.WORK_DIR = args.work_dir
                     obj.TEST_HOME = SCRIPT_HOME
                     obj.TEST_SCRIPT = TEST_SCRIPT
                     obj.TEST_DIR = dirName
@@ -124,12 +133,20 @@ def main():
                     obj.COMPILER = args.compiler
                     obj.COMPILER_FLAGS = args.compiler_flags
                     obj.LEAVE_TEMP = args.leavetemp
+                    obj.REBUILD = args.rebuild
+
+                    if args.user_options:
+                        options = [ opt.split('=') for opt in args.user_options.split(',') ]
+                        obj.OPTIONS = {key: value for (key, value) in options}
+                    else:
+                        obj.OPTIONS = {}
 
                     # process class level preparation
                     #obj.configure_test()
                     testDB[obj.TEST_ID] = obj.perform_test()
                 except Exception as e:
                     print('FAILED: %s'%str(e))
+                    raise
             
             sys.path = pathsave
 

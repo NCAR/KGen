@@ -7,14 +7,14 @@ from kext_test import KExtTest
 
 class KExtFuncTest(KExtTest):
     def mkworkdir(self, myname, result):
-        tmpdir = '%s/tmp'%self.TEST_DIR
-        if os.path.exists(tmpdir): shutil.rmtree(tmpdir)
-        os.mkdir(tmpdir)
+        workdir = '%s/tmp'%self.TEST_DIR
+        if os.path.exists(workdir): shutil.rmtree(workdir)
+        os.mkdir(workdir)
 
-        tmpsrc = '%s/src'%tmpdir
+        tmpsrc = '%s/src'%workdir
         os.mkdir(tmpsrc)
 
-        result[myname]['tmdir'] = tmpdir
+        result[myname]['workdir'] = workdir
         result[myname]['tmpsrc'] = tmpsrc
 
         result[myname]['status'] = self.PASSED
@@ -39,7 +39,7 @@ class KExtFuncTest(KExtTest):
 
     def extract(self, myname, result):
 
-        tmpdir = result['mkdir_task']['tmdir']
+        workdir = result['mkdir_task']['workdir']
         tmpsrc = result['mkdir_task']['tmpsrc']
 
         passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
@@ -48,7 +48,7 @@ class KExtFuncTest(KExtTest):
             __state_build='cmds="cd %s; make clean; make build"'%tmpsrc, \
             __state_run='cmds="cd %s; make run"'%tmpsrc, \
             __kernel_compile='FC="%s",FC_FLAGS="%s"'%(self.COMPILER, self.COMPILER_FLAGS), \
-            __outdir=tmpdir)
+            __outdir=workdir)
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
@@ -63,10 +63,10 @@ class KExtFuncTest(KExtTest):
 
     def genstate(self, myname, result):
 
-        tmpdir = result['mkdir_task']['tmdir']
+        workdir = result['mkdir_task']['workdir']
         statefiles = result['extract_task']['statefiles']
 
-        out, err = self.run_shcmd('make', cwd='%s/state'%tmpdir)
+        out, err, retcode = self.run_shcmd('make', cwd='%s/state'%workdir)
         result[myname]['stdout'] = out 
         result[myname]['stderr'] = err
 
@@ -76,7 +76,7 @@ class KExtFuncTest(KExtTest):
 
         outfiles = []
         for statefile in statefiles:
-            outfile = os.path.join('%s/kernel'%tmpdir, statefile)
+            outfile = os.path.join('%s/kernel'%workdir, statefile)
             if os.path.exists(outfile):
                 outfiles.append(outfile)
 
@@ -87,35 +87,35 @@ class KExtFuncTest(KExtTest):
         else:
             self.set_status(result, myname, self.FAILED, errmsg=str(outfiles))
         return result
+#
+#    def runkernel(self, myname, result):
+#        workdir = result['mkdir_task']['workdir']
+#
+#        out, err, retcode = self.run_shcmd('make', cwd='%s/kernel'%workdir)
+#
+#        result[myname]['stdout'] = out
+#        result[myname]['stderr'] = err
+#
+#        if err:
+#            result[myname]['status'] = self.FAILED
+#        else:
+#            result[myname]['status'] = self.PASSED
+#        return result
 
-    def runkernel(self, myname, result):
-        tmpdir = result['mkdir_task']['tmdir']
-
-        out, err = self.run_shcmd('make', cwd='%s/kernel'%tmpdir)
-
-        result[myname]['stdout'] = out
-        result[myname]['stderr'] = err
-
-        if err:
-            result[myname]['status'] = self.FAILED
-        else:
-            result[myname]['status'] = self.PASSED
-        return result
-
-    def verify(self, myname, result):
-        outcome = result['runkernel_task']['stdout']
-
-        if not outcome or outcome.find('FAILED')>0 or outcome.find('PASSED')<0:
-            result[myname]['status'] = self.FAILED
-        else:
-            result[myname]['status'] = self.PASSED
-        return result
+#    def verify(self, myname, result):
+#        outcome = result['runkernel_task']['stdout']
+#
+#        if not outcome or outcome.find('FAILED')>0 or outcome.find('PASSED')<0:
+#            result[myname]['status'] = self.FAILED
+#        else:
+#            result[myname]['status'] = self.PASSED
+#        return result
 
     def rmdir(self, myname, result):
-        tmpdir = result['mkdir_task']['tmdir']
+        workdir = result['mkdir_task']['workdir']
 
-        if not self.LEAVE_TEMP and os.path.exists(tmpdir):
-            shutil.rmtree(tmpdir)
+        if not self.LEAVE_TEMP and os.path.exists(workdir):
+            shutil.rmtree(workdir)
 
         self.set_status(result, myname, self.PASSED)
 

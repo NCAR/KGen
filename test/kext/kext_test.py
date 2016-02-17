@@ -12,7 +12,32 @@ class KExtTest(KGenTest):
             cmds.append('%s %s'%(flag, kwarg))
         cmds.append('%s:%s'%(target, namepath))
 
-        out, err = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
-        if not out or out.find('ERROR')>0 or err:
+        out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
+        if not out or out.find('ERROR')>=0 or err or retcode!=0:
             return False, out, err
         return True, out, err
+
+    def runkernel(self, myname, result):
+        workdir = result['mkdir_task']['workdir']
+
+        out, err, retcode = self.run_shcmd('make clean; make', cwd='%s/kernel'%workdir)
+
+        result[myname]['stdout'] = out
+        result[myname]['stderr'] = err
+
+        if retcode != 0 or err:
+            self.set_status(result, myname, self.FAILED, errmsg='kernel execution is failed.')
+        else:
+            self.set_status(result, myname, self.PASSED)
+
+        return result
+
+    def verify(self, myname, result):
+        outcome = result['runkernel_task']['stdout']
+
+        if not outcome or outcome.find('FAILED')>0 or outcome.find('PASSED')<0:
+            result[myname]['errmsg'] = outcome
+            result[myname]['status'] = self.FAILED
+        else:
+            result[myname]['status'] = self.PASSED
+        return result
