@@ -140,7 +140,7 @@ class KGenTest(object):
             if result[taskname]['status'] not in [ self.PASSED ]:
                 is_passed = False
                 if result[taskname]['errmsg']:
-                    errmsg.append(result[taskname]['errmsg'])
+                    errmsg.append('%s: %s'%(taskname, result[taskname]['errmsg']))
         result['general']['errmsg'] = errmsg
         result['general']['passed'] = is_passed
 

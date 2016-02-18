@@ -25,7 +25,7 @@ class Test(KExtSysYSCesmTest):
             _i='include.ini', \
             _e='exclude.ini', \
             __invocation='1:10:30', \
-            __timing='repeat=1000', \
+            __timing='repeat=100', \
             __mpi='ranks=0:10:100:500,comm=mpicom,use="spmd_utils:mpicom"', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
@@ -34,7 +34,7 @@ class Test(KExtSysYSCesmTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['laplace_sphere_wk.1.0', 'laplace_sphere_wk.1.10', 'laplace_sphere_wk.1.100', 'laplace_sphere_wk.10.500', \
+            result[myname]['statefiles'] = ['laplace_sphere_wk.1.0', 'laplace_sphere_wk.1.10', 'laplace_sphere_wk.1.100', 'laplace_sphere_wk.1.500', \
                 'laplace_sphere_wk.10.0', 'laplace_sphere_wk.10.10', 'laplace_sphere_wk.10.100', 'laplace_sphere_wk.10.500', \
                 'laplace_sphere_wk.30.0', 'laplace_sphere_wk.30.10', 'laplace_sphere_wk.30.100', 'laplace_sphere_wk.30.500' ]
             self.set_status(result, myname, self.PASSED)

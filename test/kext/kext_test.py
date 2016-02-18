@@ -35,7 +35,7 @@ class KExtTest(KGenTest):
     def verify(self, myname, result):
         outcome = result['runkernel_task']['stdout']
 
-        if not outcome or outcome.find('FAILED')>0 or outcome.find('PASSED')<0:
+        if not outcome or outcome.find('FAILED')>0 or outcome.find('ERROR')>0 or outcome.find('PASSED')<0:
             result[myname]['errmsg'] = outcome
             result[myname]['status'] = self.FAILED
         else:
