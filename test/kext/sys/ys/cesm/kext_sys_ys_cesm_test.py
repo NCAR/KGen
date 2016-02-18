@@ -123,16 +123,18 @@ class KExtSysYSCesmTest(KExtSysYSTest):
             self.set_status(result, myname, self.FAILED, errmsg='Job submission is failed.')
             return result
 
-        # wait until the job is finished
-        time.sleep(5)
-
+        # find jobid
         jobid = None
-        out, err, retcode = self.run_shcmd('bjobs'%casename)
-        for line in out.split('\n'):
-            items = line.split()
-            if len(items)>6 and items[6].endswith('KGENCESM'):
-                jobid = items[0]
-                break
+        for iter in range(120):
+            time.sleep(5)
+            out, err, retcode = self.run_shcmd('bjobs')
+            for line in out.split('\n'):
+                items = line.split()
+                if len(items)>6 and items[6].endswith('KGENCESM'):
+                    jobid = items[0]
+                    break
+            if jobid: break
+
         if jobid is None:
             self.set_status(result, myname, self.FAILED, errmsg='Job id is not found.')
             return result
@@ -143,12 +145,15 @@ class KExtSysYSCesmTest(KExtSysYSTest):
         while status not in [ 'DONE', 'PSUSP', 'USUSP', 'SSUSP', 'EXIT', 'UNKWN', 'ZOMBI', 'FINISHED' ]:
             time.sleep(1)
             out, err, retcode = self.run_shcmd('bjobs %s'%jobid)
-            for line in out.split('\n'):
-                items = line.split()
-                if len(items)>3 and items[0]==jobid:
-                    status = items[2]
-                elif items[-1]=='found':
-                    status = 'FINISHED'
+            if retcode==0:
+                for line in out.split('\n'):
+                    items = line.split()
+                    if len(items)>3 and items[0]==jobid:
+                        status = items[2]
+                    elif len(items)>0 and items[-1]=='found':
+                        status = 'FINISHED'
+            else:
+                print('DEBUG: ', out, err, retcode)
 
             iter += 1
             if iter>=maxiter:

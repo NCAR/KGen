@@ -18,26 +18,25 @@ class Test(KExtSysYSCesmTest):
         camsrcmods = '%s/src.cam'%srcmods
         result[myname]['camsrcmods'] = camsrcmods
 
-        srcfile = '%s/components/cam/src/physics/cam/clubb_intr.F90'%tmpsrc
-        namepath = 'clubb_intr:clubb_tend_cam:advance_clubb_core'
-        fc_flags = '-no-opt-dynamic-align -fp-model source -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -xHost -O2 -mkl'
-        passed, out, err = self.extract_kernel(srcfile, namepath, \
+        srcfile = '%s/components/cam/src/dynamics/se/share/viscosity_mod.F90'%tmpsrc
+        namepath = 'viscosity_mod:biharmonic_wk_dp3d:laplace_sphere_wk'
+        fc_flags = '-no-opt-dynamic-align -fp-model source -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -xHost -O2'
+        passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _i='include.ini', \
-            __invocation='"10:50"', \
-            __source='format=free,strict=no,alias=/glade/scratch/youngsun:/glade/u/home/youngsun/trepo/temp', \
-            __timing='repeat=1', \
-            __mpi='ranks=100:300:500,comm=mpicom,use="spmd_utils:mpicom"', \
+            _e='exclude.ini', \
+            __invocation='1:10:30', \
+            __timing='repeat=1000', \
+            __mpi='ranks=0:10:100:500,comm=mpicom,use="spmd_utils:mpicom"', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
-
-            #_e='exclude.ini', \
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['advance_clubb_core.10.100', 'advance_clubb_core.10.300', 'advance_clubb_core.10.500', \
-                'advance_clubb_core.50.100', 'advance_clubb_core.50.300', 'advance_clubb_core.50.500' ]
+            result[myname]['statefiles'] = ['laplace_sphere_wk.1.0', 'laplace_sphere_wk.1.10', 'laplace_sphere_wk.1.100', 'laplace_sphere_wk.10.500', \
+                'laplace_sphere_wk.10.0', 'laplace_sphere_wk.10.10', 'laplace_sphere_wk.10.100', 'laplace_sphere_wk.10.500', \
+                'laplace_sphere_wk.30.0', 'laplace_sphere_wk.30.10', 'laplace_sphere_wk.30.100', 'laplace_sphere_wk.30.500' ]
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []
@@ -48,7 +47,6 @@ class Test(KExtSysYSCesmTest):
     def replace(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
-        srcmods = result['config_task']['srcmods']
         camsrcmods = result['extract_task']['camsrcmods']
 
         out, err, retcode = self.run_shcmd('rm -f *', cwd=camsrcmods)

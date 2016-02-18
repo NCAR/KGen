@@ -12,7 +12,6 @@ class KExtTest(KGenTest):
             cmds.append('%s %s'%(flag, kwarg))
         cmds.append('%s:%s'%(target, namepath))
 
-        print('TTT', ' '.join(cmds))
         out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
         if not out or out.find('ERROR')>=0 or err or retcode!=0:
             return False, out, err

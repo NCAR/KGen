@@ -27,3 +27,24 @@ class KExtSysTest(KExtTest):
         self.set_status(result, myname, self.PASSED)
 
         return result
+
+    def rmdir(self, myname, result):
+
+        workdir = result['mkdir_task']['workdir'] 
+        kerneldir = '%s/kernel'%workdir
+        statedir = '%s/state'%workdir
+        kgenlog = '%s/kgen.log'%workdir
+
+        if not self.LEAVE_TEMP:
+            if os.path.exists(kerneldir):
+                shutil.rmtree(kerneldir)
+
+            if os.path.exists(statedir):
+                shutil.rmtree(statedir)
+
+            if os.path.exists(kgenlog):
+                os.remove(kgenlog)
+
+        self.set_status(result, myname, self.PASSED)
+
+        return result

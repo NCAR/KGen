@@ -52,8 +52,6 @@ def main():
 
     parser = argparse.ArgumentParser(description='Perform KGEN tests.')
     parser.add_argument('tests', type=str, nargs='*', help='Specify tests.')
-    parser.add_argument('-f', dest='func_tests', action='store_true', default=False, help='Functional test only.')
-    parser.add_argument('-s', dest='sys_tests', action='store_true', default=False, help='System test only.')
     parser.add_argument('-c', dest='changed', action='store_true', default=False, help='Changed test only.')
     parser.add_argument('-t', dest='leavetemp', action='store_true', default=False, help='Leave temporary directory.')
     parser.add_argument('-r', dest='rebuild', action='store_true', default=False, help='Rebuild target software.')
@@ -64,11 +62,6 @@ def main():
 
     # parse command line arguments
     args = parser.parse_args()
-
-    # activate all test if no specific test is requested
-    if not args.func_tests and not args.sys_tests:
-        args.func_tests = True
-        args.sys_tests = True
 
     # walk through test directory tree
     for dirName, subdirList, fileList in os.walk(SCRIPT_HOME):
