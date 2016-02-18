@@ -12,7 +12,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
         systestdir = result['mkdir_task']['sysdir']
         workdir = result['mkdir_task']['workdir']
 
-        appsrc = '%s/src'%systestdir
+        appsrc = '%s/cesm_ref'%systestdir
         if not os.path.exists(appsrc):
             os.mkdir(appsrc)
 
@@ -22,12 +22,55 @@ class KExtSysYSCesmTest(KExtSysYSTest):
             out, err, retcode = self.run_shcmd('svn checkout https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta06 .', cwd=appsrc)
 
         # copy cesm src into test specific src dir
-        tmpsrc = '%s/src'%workdir
+        tmpsrc = '%s/cesm_work'%systestdir
         if not os.path.exists(tmpsrc):
             shutil.copytree(appsrc, tmpsrc)
 
         result[myname]['appsrc'] = appsrc
         result[myname]['tmpsrc'] = tmpsrc
+
+        self.set_status(result, myname, self.PASSED)
+
+        return result
+
+    def config(self, myname, result):
+
+        systestdir = result['mkdir_task']['sysdir']
+        tmpsrc = result['download_task']['tmpsrc']
+        scriptdir = '%s/cime/scripts'%tmpsrc
+        casename = 'KGENCESM'
+        casedir = '%s/%s'%(systestdir, casename)
+
+        # check if project option exists
+        if 'project' not in self.OPTIONS:
+            result[myname]['errmsg'] = 'project user option is not provided.'
+            return result
+
+        # create a case
+        if not os.path.exists(casedir):
+            casecmd = './create_newcase -project %s -mach yellowstone -compset FC5 -res ne16_ne16 -compiler intel -case %s'%(self.OPTIONS['project'], casedir)
+            out, err, retcode = self.run_shcmd(casecmd, cwd=scriptdir)
+            if retcode!=0:
+                result[myname]['errmsg'] = 'MG2 case generation is failed.'
+                return result
+
+        # modify env_build.xml to enable MG2
+        out, err, retcode = self.run_shcmd('grep mg2 env_build.xml', cwd=casedir)
+        if retcode!=0:
+            out, err, retcode = self.run_shcmd('./xmlchange -f env_build.xml -id CAM_CONFIG_OPTS -val "-microphys mg2 -clubb_sgs" -a', cwd=casedir)
+            if retcode!=0:
+                result[myname]['errmsg'] = 'Modification of env_build.xml is failed.'
+                return result
+
+        # cesm.setup
+        if not os.path.exists('%s/%s.run'%(casedir, casename)):
+            out, err, retcode = self.run_shcmd('./cesm.setup', cwd=casedir)
+
+        # include.ini was created manually
+
+        result[myname]['srcmods'] = '%s/SourceMods'%casedir
+        result[myname]['casedir'] = casedir
+        result[myname]['casename'] = casename
 
         self.set_status(result, myname, self.PASSED)
 
@@ -87,7 +130,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
         out, err, retcode = self.run_shcmd('bjobs'%casename)
         for line in out.split('\n'):
             items = line.split()
-            if len(items)>6 and items[6].endswith('MG2TEST'):
+            if len(items)>6 and items[6].endswith('KGENCESM'):
                 jobid = items[0]
                 break
         if jobid is None:

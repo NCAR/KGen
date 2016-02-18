@@ -83,8 +83,10 @@ def main():
 
         if args.tests:
             if all(not relpath.startswith(argtest.rstrip(' /')) for argtest in args.tests) and \
-                all( len(relpath.split('/'))>=len(argtest.rstrip(' /').split('/')) for argtest in args.tests ):
+                all(not argtest.startswith(relpath) for argtest in args.tests):
                 continue
+
+        #        all( len(relpath.split('/'))>=len(argtest.rstrip(' /').split('/')) for argtest in args.tests ):
 
         # if kgen test script exists in a directory
         # the name of test script is fixed according to relative path to SCRIPT HOME
