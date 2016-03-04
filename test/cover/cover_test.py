@@ -17,7 +17,6 @@ class CoverTest(KGenTest):
             cmds.append('%s %s'%(flag, kwarg))
         cmds.append('%s:%s'%(target, namepath))
 
-        print('CC: ', cmds)
         out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
         print('RETURN CODE: ', retcode)
         print 'STDOUT: ', out
