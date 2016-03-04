@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import sys
+import signal
 import os
 import inspect
 
@@ -49,6 +50,12 @@ def main():
     import argparse
 
     testDB = OrderedDict()
+
+    def signal_handler(signal, frame):
+        report(testDB)
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
 
     parser = argparse.ArgumentParser(description='Perform KGEN tests.')
     parser.add_argument('tests', type=str, nargs='*', help='Specify tests.')
@@ -130,11 +137,11 @@ def main():
                     obj.LEAVE_TEMP = args.leavetemp
                     obj.REBUILD = args.rebuild
 
+                    obj.OPTIONS = {}
                     if args.user_options:
                         options = [ opt.split('=') for opt in args.user_options.split(',') ]
-                        obj.OPTIONS = {key: value for (key, value) in options}
-                    else:
-                        obj.OPTIONS = {}
+                        for key, value in options:
+                            obj.OPTIONS[key] = value
 
                     # process class level preparation
                     #obj.configure_test()

@@ -7,5 +7,5 @@ KGEN_CDETECT = '%s/../kgentools/coverage_detector'%os.path.dirname(os.path.realp
 sys.path.insert(0, KGEN_CDETECT)
 
 if __name__ == "__main__":
-    from cdetect_app import KCDetectApp
-    sys.exit(KCDetectApp().execute())
+    from coverage_app import CDetectApp
+    sys.exit(CDetectApp().execute())

@@ -37,7 +37,7 @@ class KExtFuncTest(KExtTest):
         result[myname]['status'] = self.PASSED
         return result
 
-    def extract(self, myname, result):
+    def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['mkdir_task']['tmpsrc']
@@ -64,7 +64,7 @@ class KExtFuncTest(KExtTest):
     def genstate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
-        statefiles = result['extract_task']['statefiles']
+        statefiles = result['generate_task']['statefiles']
 
         out, err, retcode = self.run_shcmd('make', cwd='%s/state'%workdir)
         result[myname]['stdout'] = out 

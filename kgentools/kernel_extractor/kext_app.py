@@ -26,8 +26,9 @@ KGEN_EXTRACTOR = '%s/kgentools/kernel_extractor'%KGEN_HOME
 sys.path.insert(0, KGEN_BASE)
 sys.path.insert(0, KGEN_EXTRACTOR)
 
-from kgen_utils import Logger, Config
-from genfile import generate_srcfiles
+from kgen_utils import Logger, Config, ProgramException, KGGenType
+from kgen_state import State
+from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register 
 from genmake import generate_makefiles
 from kgen_app import KGenApp
 
@@ -50,13 +51,51 @@ class KExtApp(KGenApp):
         program.name = self.kernel_name
         self.append_program_in_tree(self.driver, program)
 
+        # set plugin parameters
         Config.plugin['priority']['ext.gencore'] = '%s/plugins/gencore'%KGEN_EXTRACTOR
         Config.plugin['priority']['ext.verification'] = '%s/plugins/verification'%KGEN_EXTRACTOR
         Config.plugin['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXTRACTOR
         Config.plugin['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXTRACTOR
         #Config.plugin['priority']['ext.debug'] = '%s/plugins/debug'%KGEN_EXTRACTOR
 
-        self.apply_plugins()
+        # init plugin framework
+        init_plugins([KERNEL_ID_0])
+
+        # construct a generation tree
+        for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
+            if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
+                kfile = genkobj(None, srcobj.tree, KERNEL_ID_0)
+                sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
+                if kfile is None or sfile is None:
+                    raise ProgramException('Kernel source file is not generated for %s.'%filepath)
+                self.genfiles.append((kfile, sfile, filepath))
+                State.used_srcfiles[filepath] = (srcobj, mods_used, units_used)
+
+        # process each nodes in the tree
+        for plugin_name in event_register.keys():
+            for kfile, sfile, filepath in self.genfiles:
+                kfile.created([plugin_name])
+                sfile.created([plugin_name])
+            for tree in self._trees:
+                tree.created([plugin_name])
+
+            for kfile, sfile, filepath in self.genfiles:
+                kfile.process([plugin_name])
+                sfile.process([plugin_name])
+            for tree in self._trees:
+                tree.process([plugin_name])
+
+            for kfile, sfile, filepath in self.genfiles:
+                kfile.finalize([plugin_name])
+                sfile.finalize([plugin_name])
+            for tree in self._trees:
+                tree.finalize([plugin_name])
+
+            for kfile, sfile, filepath in self.genfiles:
+                kfile.flatten(KERNEL_ID_0, [plugin_name])
+                sfile.flatten(KERNEL_ID_0, [plugin_name])
+            for tree in self._trees:
+                tree.flatten(KERNEL_ID_0, [plugin_name])
 
     def output(self):
                 

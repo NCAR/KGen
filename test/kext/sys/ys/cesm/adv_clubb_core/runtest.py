@@ -9,7 +9,7 @@ from kext_sys_ys_cesm_test import KExtSysYSCesmTest
 
 class Test(KExtSysYSCesmTest):
 
-    def extract(self, myname, result):
+    def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['download_task']['tmpsrc']
@@ -49,7 +49,7 @@ class Test(KExtSysYSCesmTest):
 
         workdir = result['mkdir_task']['workdir']
         srcmods = result['config_task']['srcmods']
-        camsrcmods = result['extract_task']['camsrcmods']
+        camsrcmods = result['generate_task']['camsrcmods']
 
         out, err, retcode = self.run_shcmd('rm -f *', cwd=camsrcmods)
 

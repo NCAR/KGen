@@ -30,11 +30,11 @@ class KGenTest(object):
 
     def perform_test(self):
 
-        result = { 'general': {'passed': False, 'errmsg': []} }
+        result = { 'general': {'passed': False, 'errmsg': [], 'mandatory_tasks': ['verify_task']} }
 
         self.task_map = \
             [ ('prep_task', self.preprocess), ('mkdir_task', self.mkworkdir), ('download_task', self.download), \
-            ('config_task', self.config), ('extract_task', self.extract), ('replace_task', self.replace), \
+            ('config_task', self.config), ('generate_task', self.generate), ('replace_task', self.replace), \
             ('build_task', self.build), ('recover_task', self.recover), ('genstate_task', self.genstate), \
             ('runkernel_task', self.runkernel), ('verify_task', self.verify), ('savestate_task', self.savestate), \
             ('rmdir_task', self.rmdir), ('postp_task', self.postprocess), ('_finalize_task', self._finalize) ]
@@ -56,7 +56,17 @@ class KGenTest(object):
 
             result = taskfunc(taskname, result)
 
-            if result[taskname]['status'] != self.PASSED:
+            is_passed = True
+            if taskname in result['general']['mandatory_tasks']:
+                if result[taskname]['status'] == self.NOT_EXECUTED:
+                    result[taskname]['errmsg'] = 'Mandatory task, "%s", is not executed.'%taskname
+                    is_passed = False
+                elif result[taskname]['status'] != self.PASSED:
+                    is_passed = False
+            elif result[taskname]['status'] not in [ self.NOT_EXECUTED, self.PASSED ]:
+                is_passed = False
+
+            if not is_passed:
                 if taskname !='_finalize_task':
                     result = self._finalize('_finalize_task', result)
                 break
@@ -73,63 +83,59 @@ class KGenTest(object):
         return out, err, proc.returncode
 
     def preprocess(self, myname, result):
-        result[myname]['status'] = self.PASSED
+        result[myname]['status'] = self.NOT_EXECUTED
         return result
 
     def mkworkdir(self, myname, result):
-        if not self.WORK_DIR: self.WORK_DIR = self.TEST_DIR
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def download(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def config(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
-    def extract(self, myname, result):
+    def generate(self, myname, result):
         self.set_status(result, myname, self.NOT_EXECUTED)
-        result[taskname]['errmsg'] = '%s is not performed.'%taskname
         return result
 
     def replace(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def build(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def recover(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def genstate(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def runkernel(self, myname, result):
         self.set_status(result, myname, self.NOT_EXECUTED)
-        result[taskname]['errmsg'] = '%s is not performed.'%taskname
         return result
 
     def verify(self, myname, result):
         self.set_status(result, myname, self.NOT_EXECUTED)
-        result[taskname]['errmsg'] = '%s is not performed.'%taskname
         return result
 
     def savestate(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def rmdir(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def postprocess(self, myname, result):
-        self.set_status(result, myname, self.PASSED)
+        self.set_status(result, myname, self.NOT_EXECUTED)
         return result
 
     def _finalize(self, myname, result):
@@ -137,8 +143,14 @@ class KGenTest(object):
         errmsg = []
         is_passed = True
         for taskname in [ name for name, func in self.task_map ]:
-            if result[taskname]['status'] not in [ self.PASSED ]:
+            if taskname in result['general']['mandatory_tasks']:
+                if result[taskname]['status'] == self.NOT_EXECUTED or \
+                    result[taskname]['status'] != self.PASSED:
+                    is_passed = False
+            elif result[taskname]['status'] not in [ self.NOT_EXECUTED, self.PASSED ]:
                 is_passed = False
+
+            if not is_passed:
                 if result[taskname]['errmsg']:
                     errmsg.append('%s: %s'%(taskname, result[taskname]['errmsg']))
         result['general']['errmsg'] = errmsg

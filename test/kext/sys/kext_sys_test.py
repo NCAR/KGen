@@ -9,7 +9,7 @@ class KExtSysTest(KExtTest):
     def savestate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
-        statefiles = result['extract_task']['statefiles']
+        statefiles = result['generate_task']['statefiles']
         datadir = result['build_task']['datadir']
 
         # if data folder does not exist, create it

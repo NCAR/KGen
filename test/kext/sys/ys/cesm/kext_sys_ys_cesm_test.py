@@ -43,7 +43,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
 
         # check if project option exists
         if 'project' not in self.OPTIONS:
-            result[myname]['errmsg'] = 'project user option is not provided.'
+            result[myname]['errmsg'] = '"project" user option is not provided. Use "-o project=<your porject id>"'
             return result
 
         # create a case
@@ -80,7 +80,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
 
         casedir = result['config_task']['casedir']
         casename = result['config_task']['casename']
-        statefiles = result['extract_task']['statefiles']
+        statefiles = result['generate_task']['statefiles']
         workdir = result['mkdir_task']['workdir']
 
         datadir = '%s/data'%workdir
