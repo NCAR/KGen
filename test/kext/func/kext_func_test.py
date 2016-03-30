@@ -117,8 +117,8 @@ class KExtFuncTest(KExtTest):
         if not self.LEAVE_TEMP and os.path.exists(workdir):
             shutil.rmtree(workdir)
 
-        if os.path.exists('kgen.log'):
-            os.remove('kgen.log')
+        if os.path.exists(os.path.join(self.TEST_DIR, 'kgen.log')):
+            os.remove(os.path.join(self.TEST_DIR, 'kgen.log'))
 
         self.set_status(result, myname, self.PASSED)
 
