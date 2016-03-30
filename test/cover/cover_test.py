@@ -18,9 +18,10 @@ class CoverTest(KGenTest):
         cmds.append('%s:%s'%(target, namepath))
 
         out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
-        print('RETURN CODE: ', retcode)
-        print 'STDOUT: ', out
-        print 'STDERR: ', err
+        #print('CMD: ', ' '.join(cmds))
+        #print('RETURN CODE: ', retcode)
+        #print 'STDOUT: ', out
+        #print 'STDERR: ', err
         if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err or retcode!=0:
             return False, out, err
         return True, out, err

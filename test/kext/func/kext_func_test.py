@@ -72,7 +72,7 @@ class KExtFuncTest(KExtTest):
 
         if err:
             self.set_status(result, myname, self.FAILED, err)
-            return
+            return result
 
         outfiles = []
         for statefile in statefiles:
@@ -116,6 +116,9 @@ class KExtFuncTest(KExtTest):
 
         if not self.LEAVE_TEMP and os.path.exists(workdir):
             shutil.rmtree(workdir)
+
+        if os.path.exists('kgen.log'):
+            os.remove('kgen.log')
 
         self.set_status(result, myname, self.PASSED)
 

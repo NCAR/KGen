@@ -8,7 +8,7 @@ BEFORE_CALLSITE = 'before_callsite'
 AFTER_CALLSITE = 'after_callsite'
 
 state_gencore_contains = []
-WRITE_FORMAT = '"(2I5)"'
+SC_WRITE_FORMAT = '"(I,1X,A,1X,A,1X,I,1X,I)"'
 
 class KernelEtime(Kgen_Plugin):
     def __init__(self):
@@ -69,7 +69,10 @@ class KernelEtime(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_unit=-1', 'kgen_counter=0']}
         part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
+        attrs = {'type_spec': 'INTEGER', 'selector': (8, None), 'entity_decls': ['start_clock', 'end_clock', 'rate_start_clock', 'rate_end_clock']}
+        part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_ivar']}
         part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_counter_conv'], 'selector':('16', None)}
@@ -197,8 +200,23 @@ class KernelEtime(Kgen_Plugin):
         attrs = {'designator': 'kgen_error_stop', 'items': ['"FILE OPEN ERROR: " // TRIM(ADJUSTL(kgen_filepath))']}
         part_append_gensnode(iferr, EXEC_PART, statements.Call, attrs=attrs)
 
-        attrs = {'items': ['kgen_counter', '0'], 'specs': ['UNIT = kgen_unit', 'FMT=%s'%WRITE_FORMAT]}
-        namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Write, attrs=attrs)
+        attrs = {'loopcontrol': 'kgen_ivar=1,10'}
+        doobj = part_append_gensnode(ifobj, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'designator': 'system_clock', 'items': ['start_clock', 'rate_start_clock']}
+        part_append_gensnode(doobj, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'designator': 'system_clock', 'items': ['end_clock', 'rate_end_clock']}
+        part_append_gensnode(doobj, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'items': ['kgen_ivar*-1', '"B"', '"SC"', 'start_clock', 'rate_start_clock'], 'specs': ['UNIT = kgen_unit', 'FMT=%s'%SC_WRITE_FORMAT]}
+        part_append_gensnode(doobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['kgen_ivar*-1', '"E"', '"SC"', 'end_clock', 'rate_end_clock'], 'specs': ['UNIT = kgen_unit', 'FMT=%s'%SC_WRITE_FORMAT]}
+        part_append_gensnode(doobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'designator': 'system_clock', 'items': ['start_clock', 'rate_start_clock']}
+        namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Call, attrs=attrs)
 
         namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END MASTER', style='openmp')
 
@@ -206,7 +224,14 @@ class KernelEtime(Kgen_Plugin):
 
         namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'MASTER', style='openmp')
 
-        attrs = {'items': ['kgen_counter', '0'], 'specs': ['UNIT = kgen_unit', 'FMT=%s'%WRITE_FORMAT]}
+        attrs = {'designator': 'system_clock', 'items': ['end_clock', 'rate_end_clock']}
+        namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Call, attrs=attrs)
+
+        # B: Begin, SC: system_clock
+        attrs = {'items': ['kgen_counter', '"B"', '"SC"', 'start_clock', 'rate_start_clock'], 'specs': ['UNIT = kgen_unit', 'FMT=%s'%SC_WRITE_FORMAT]}
+        namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['kgen_counter', '"E"', '"SC"', 'end_clock', 'rate_end_clock'], 'specs': ['UNIT = kgen_unit', 'FMT=%s'%SC_WRITE_FORMAT]}
         namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
 
         namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'END MASTER', style='openmp')

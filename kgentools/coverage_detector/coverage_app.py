@@ -20,21 +20,24 @@ sys.path.insert(0, KGEN_BASE)
 sys.path.insert(0, KGEN_CDETECT)
 
 from api import walk
+from cover_config import CoverConfig
 from kgen_utils import Logger, Config, ProgramException, KGGenType
 from kgen_state import State
 from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register
-from genmake import generate_makefiles
+from genmake import generate_makefile
 from kgen_app import KGenApp
 
 class CDetectApp(KGenApp):
     def initialize(self):
+        myconfig = CoverConfig(KGEN_CDETECT)
+
+        Config.apply(myconfig)
+
         # create state directories
         if not os.path.exists(Config.path['state']):
             os.makedirs(Config.path['state'])
 
     def transform(self):
-
-        Config.plugin['priority']['cov.core'] = '%s/plugins/core'%KGEN_CDETECT
 
         # init plugin framework
         init_plugins([KERNEL_ID_0])
@@ -79,4 +82,6 @@ class CDetectApp(KGenApp):
                 with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
                     fd.write(lines)
 
+        generate_makefile()
         Logger.info('Makefiles are generated', stdout=True)
+

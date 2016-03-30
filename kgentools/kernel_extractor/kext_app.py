@@ -26,6 +26,7 @@ KGEN_EXTRACTOR = '%s/kgentools/kernel_extractor'%KGEN_HOME
 sys.path.insert(0, KGEN_BASE)
 sys.path.insert(0, KGEN_EXTRACTOR)
 
+from kext_config import KExtConfig
 from kgen_utils import Logger, Config, ProgramException, KGGenType
 from kgen_state import State
 from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register 
@@ -34,6 +35,11 @@ from kgen_app import KGenApp
 
 class KExtApp(KGenApp):
     def initialize(self):
+
+        myconfig = KExtConfig(KGEN_EXTRACTOR)
+
+        Config.apply(myconfig)
+
         # create state directories
         if not os.path.exists(Config.path['state']):
             os.makedirs(Config.path['state'])
@@ -50,13 +56,6 @@ class KExtApp(KGenApp):
         program = self.create_program(self.driver)
         program.name = self.kernel_name
         self.append_program_in_tree(self.driver, program)
-
-        # set plugin parameters
-        Config.plugin['priority']['ext.gencore'] = '%s/plugins/gencore'%KGEN_EXTRACTOR
-        Config.plugin['priority']['ext.verification'] = '%s/plugins/verification'%KGEN_EXTRACTOR
-        Config.plugin['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXTRACTOR
-        Config.plugin['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXTRACTOR
-        #Config.plugin['priority']['ext.debug'] = '%s/plugins/debug'%KGEN_EXTRACTOR
 
         # init plugin framework
         init_plugins([KERNEL_ID_0])

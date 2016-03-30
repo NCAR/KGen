@@ -442,18 +442,14 @@ class Config(object):
     """ KGEN configuration parameter holder """
 
     def __init__(self):
-        import optparse
 
         # setup config parameters
         self._attrs = OrderedDict()
+        self.opt_handlers = OrderedDict()
 
         # KGEN operation mode
         self._attrs['check_mode'] = False
 
-        # kgen parameters
-        self._attrs['kgen'] = OrderedDict()
-        self._attrs['kgen']['version'] = [ 0, 6, '2' ]
-#
 #        # Fortran parameters
 #        self._attrs['fort'] = OrderedDict()
 #        self._attrs['fort']['maxlinelen'] = 134
@@ -468,16 +464,12 @@ class Config(object):
         self._attrs['callsite']['span'] = (-1, -1)
         self._attrs['callsite']['namepath'] = ''
 #        self._attrs['callsite']['lineafter'] = -1
-#
+
         # external tool parameters
         self._attrs['bin'] = OrderedDict()
         self._attrs['bin']['pp'] = 'cpp'
         self._attrs['bin']['cpp_flags'] = '-w -traditional'
         self._attrs['bin']['fpp_flags'] = '-w'
-#
-#        # test parameters
-#        self._attrs['test'] = OrderedDict()
-#        self._attrs['test']['suite'] = ''
 
         # search parameters
         self._attrs['search'] = OrderedDict()
@@ -491,35 +483,12 @@ class Config(object):
         self._attrs['path']['state'] = 'state'
         self._attrs['path']['kernel'] = 'kernel'
 
-        # mpi parameters
-        self._attrs['mpi'] = OrderedDict()
-        self._attrs['mpi']['enabled'] = False
-        self._attrs['mpi']['ranks'] = [ '0' ]
-        self._attrs['mpi']['size'] = len(self._attrs['mpi']['ranks'])
-        self._attrs['mpi']['comm'] = None
-        self._attrs['mpi']['header'] = 'mpif.h'
-        self._attrs['mpi']['use_stmts'] = []
-
-        # invocation parameters
-        self._attrs['invocation'] = OrderedDict()
-        self._attrs['invocation']['numbers'] = [ '1' ]
-        self._attrs['invocation']['size'] = len(self._attrs['invocation']['numbers'])
-
-        # timing parameters
-        self._attrs['timing'] = OrderedDict()
-        self._attrs['timing']['repeat'] = '10'
-
         # source file parameters
         self._attrs['source'] = OrderedDict()
         self._attrs['source']['isfree'] = None
         self._attrs['source']['isstrict'] = None
         self._attrs['source']['alias'] = OrderedDict()
         self._attrs['source']['file'] = OrderedDict()
-
-        # verification parameters
-        self._attrs['verify'] = OrderedDict()
-        self._attrs['verify']['tolerance'] = '1.E-14'
-        self._attrs['verify']['verboselevel'] = '1'
 
         # include parameters
         self._attrs['include'] = OrderedDict()
@@ -532,32 +501,6 @@ class Config(object):
         # exclude parameters
         self._attrs['exclude'] = OrderedDict()
 
-        # make kernel parameters
-        self._attrs['kernel_compile'] = OrderedDict()
-        self._attrs['kernel_compile']['FC'] = 'ifort'
-        self._attrs['kernel_compile']['FC_FLAGS'] = ''
-
-##        self._attrs['kernel_link'] = OrderedDict()
-##        self._attrs['kernel_link']['include'] = []
-##        self._attrs['kernel_link']['pre_cmds'] = []
-##        self._attrs['kernel_link']['lib'] = []
-##        self._attrs['kernel_link']['obj'] = []
-
-        # make state parameters
-        self._attrs['state_build'] = OrderedDict()
-        self._attrs['state_build']['cmds'] = ''
-        self._attrs['state_run'] = OrderedDict()
-        self._attrs['state_run']['cmds'] = ''
-        self._attrs['state_switch'] = OrderedDict()
-        self._attrs['state_switch']['type'] = 'replace'
-        self._attrs['state_switch']['cmds'] = ''
-
-        # kernel correctness check parameters
-        self._attrs['check'] = OrderedDict()
-        #self._attrs['check']['pert_invar'] = ['*']
-        self._attrs['check']['pert_invar'] = []
-        self._attrs['check']['pert_lim'] = '1.0E-15'
-
         # debugging parameters
         self._attrs['debug'] = OrderedDict()
         self._attrs['debug']['printvar'] = []
@@ -566,41 +509,46 @@ class Config(object):
         self._attrs['plugin'] = OrderedDict()
         self._attrs['plugin']['priority'] = OrderedDict()
 
-        # parsing arguments
-        usage = "usage: %prog [options] call-site"
+    def apply(self, cfg):
+        import optparse
 
-        parser = optparse.OptionParser(usage=usage, version='KGEN version %d.%d.%s'%tuple(self._attrs['kgen']['version']))
+        if not cfg:
+            raise ProgramException('Custom configuration is not provided.')
+
+        if hasattr(cfg, 'attrs'):
+            self._attrs.update(cfg.attrs)
+        
+        # parsing arguments
+        parser = optparse.OptionParser(usage=cfg.usage, version=cfg.version)
+
+        # add default options
         parser.add_option("-s", "--syntax-check", dest="syntax_check", action='store_true', default=False, help="KGEN Syntax Check Mode")
         parser.add_option("-i", "--include-ini", dest="include_ini", action='store', type='string', default=None, help="information used for analysis")
         parser.add_option("-e", "--exclude-ini", dest="exclude_ini", action='store', type='string', default=None, help="information excluded for analysis")
         parser.add_option("-I", dest="include", action='append', type='string', default=None, help="include path information used for analysis")
         parser.add_option("-D", dest="macro", action='append', type='string', default=None, help="macro information used for analysis")
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
-        parser.add_option("--invocation", dest="invocation", action='store', type='string', default=None, help="Nth invocation of kernel for data collection")
-        parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
-        parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
-    	parser.add_option("--verify", dest="verify", action='store', type='string', default=None, help="")
         parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
         parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
-        parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', help="Compile information to generate kernel makefile")
-#        parser.add_option("--kernel-link", dest="kernel_link", action='append', type='string', help="Link information to generate kernel makefile")
-        parser.add_option("--state-switch", dest="state_switch", action='append', type='string', help="Specifying how to switch orignal sources with instrumented ones.")
-        parser.add_option("--state-build", dest="state_build", action='append', type='string', help="Build information to generate makefile")
-        parser.add_option("--state-run", dest="state_run", action='append', type='string', help="Run information to generate makefile")
-        parser.add_option("--check", dest="check", action='append', type='string', help="Kernel correctness check information")
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
-        parser.add_option("--verbose", dest="verbose_level", action='store', type='int', help='Set the verbose level for verification output')
+
+        # add custom options 
+        if hasattr(cfg, 'options'):
+            for opt_handler, args, kwargs in cfg.options:
+                parser.add_option(*args, **kwargs)
+                self.opt_handlers[kwargs['dest']] = opt_handler
 
         opts, args = parser.parse_args()
+
         if len(args)<1:
             print 'ERROR: No call-site information is provided in command line.'
             sys.exit(-1)
 
         if opts.syntax_check:
-            self._process_analysis_flags(opts)
+            self._process_default_flags(opts)
             self._attrs['check_mode'] = args
             return
 
@@ -610,9 +558,6 @@ class Config(object):
             sys.exit(-1)
         if opts.noskip_intrinsic:
             print "noskip-intrinsic flag is discarded. Please use --intrinsic noskip instead"
-            sys.exit(-1)
-        if opts.verify:
-            print "verify flag is discarded. Please use --verbose"
             sys.exit(-1)
 
         callsite = args[0].split(':', 1)
@@ -630,10 +575,16 @@ class Config(object):
             print 'ERROR: Unrecognized call-site information(Syntax -> filepath[:subprogramname]): %s'%str(callsite)
             sys.exit(-1)
 
-        # read options from command line. overwrite settings from directives
-        self.process_commandline(opts)
+        # process default flags
+        self._process_default_flags(opts)
 
-    def _process_analysis_flags(self, opts):
+        # process custom flags
+        for optname, opt_handler in self.opt_handlers.items():
+            opt = getattr(opts, optname, None)
+            if opt and optname in self.opt_handlers:
+                self.opt_handlers[optname](opt)
+                
+    def _process_default_flags(self, opts):
 
         # check if exists fpp or cpp
         output = ''
@@ -787,134 +738,6 @@ class Config(object):
                             newpath.add(p1+path[len(p2):])
                 value['path'] = list(newpath)
 
-    def process_commandline(self, opts):
-
-        self._process_analysis_flags(opts)
-
-        # parsing invocation parameters
-        if opts.invocation:
-            self._attrs['invocation']['numbers'] = []
-            if opts.invocation.find(',')>0:
-                print 'ERROR: Please use colon to separate invocation numbers of invocation flag instead of comma.'
-                sys.exit(-1)
-
-            for ord in opts.invocation.split(':'):
-                if ord.isdigit():
-                    self._attrs['invocation']['numbers'].append(ord)
-            self._attrs['invocation']['numbers'].sort()
-            self._attrs['invocation']['size'] = len(self._attrs['invocation']['numbers'])
-
-        # parsing MPI parameters
-        if opts.mpi:
-            self._attrs['mpi']['enabled'] = True
-            for line in opts.mpi:
-                for mpi in line.split(','):
-                    key, value = mpi.split('=')
-                    if key=='comm':
-                        self._attrs['mpi'][key] = value
-                    elif key=='use':
-                        mod_name, identifier = value.split(':')
-                        self._attrs['mpi']['use_stmts'].append((mod_name, [identifier]))
-                    elif key=='ranks':
-                        self._attrs['mpi'][key] = value.split(':')
-                        self._attrs['mpi']['size'] = len(self._attrs['mpi'][key])
-                    elif key=='header':
-                        self._attrs['mpi'][key] = value
-                    else:
-                        raise UserException('Unknown MPI option: %s' % comp)
-
-        # parsing kernel makefile parameters
-        if opts.kernel_compile:
-            for line in opts.kernel_compile:
-                for comp in line.split(','):
-                    key, value = comp.split('=')
-                    if key in [ 'FC', 'FC_FLAGS' ] :
-                        self._attrs['kernel_compile'][key] = value
-                    else:
-                        raise UserException('Unknown kernel compile option: %s' % comp)
-
-#        if opts.kernel_link:
-#            for line in opts.kernel_link:
-#                for link in line.split(','):
-#                    key, value = link.split('=')
-#                    if key in [ 'include', 'lib', 'pre_cmds' ] :
-#                        self._attrs['kernel_link'][key].append(value)
-#                    else:
-#                        raise UserException('Unknown kernel link option: %s' % comp)
-
-        if opts.state_build:
-            for line in opts.state_build:
-                for build in line.split(','):
-                    key, value = build.split('=')
-                    if key in [ 'cmds' ] :
-                        self._attrs['state_build'][key] = value
-                    else:
-                        raise UserException('Unknown state-build option: %s' % build)
-
-        if opts.state_run:
-            for line in opts.state_run:
-                for run in line.split(','):
-                    key, value = run.split('=')
-                    if key in [ 'cmds' ] :
-                        self._attrs['state_run'][key] = value
-                    else:
-                        raise UserException('Unknown state-run option: %s' % run)
-
-        if opts.state_switch:
-            for line in opts.state_switch:
-                for run in line.split(','):
-                    key, value = run.split('=')
-                    if key in [ 'cmds', 'type' ] :
-                        self._attrs['state_switch'][key] = value
-                    else:
-                        raise UserException('Unknown state-switch option: %s' % run)
-
-        if opts.timing:
-            for time in opts.timing.split(','):
-                key, value = time.split('=')
-                if key in [ 'repeat' ] :
-                    try:
-                        self._attrs['timing'][key] = value
-                    except:
-                        raise UserException('repeat sub-flag should be integer value: %s'%value)
-                else:
-                    raise UserException('Unknown timing option: %s' % time)
-
-#	# parsing verification parameters
-#	    for verify in opts.verify.split(' '):
-#		key, value = verify.split('=')
-#		if key in [ 'verboselevel'] :
-#		    try:
-#			self._attrs['verify'][key] = int(value)
-#			#if value < 0 || value >3:
-#			 #   raise UserException('verboselevel sub-flag should be integer value: %s'%value)
-#		    except:
-#			raise UserException('verboselevel sub-flag should be integer value: %s'%value)
-#		else:
-#		    raise UserException('Unknown verification option : %s' %verify)
-#		
-
-        if opts.outdir:
-            self._attrs['path']['outdir'] = opts.outdir
-
-        # create state directories and change working directory
-        if not os.path.exists(self._attrs['path']['outdir']):
-            os.makedirs(self._attrs['path']['outdir'])
-        os.chdir(self._attrs['path']['outdir'])
-
-        # kernel correctness checks 
-        if opts.check:
-            for line in opts.check:
-                for checkparams in line.split(','):
-                    key, value = checkparams.split('=')
-                    key = key.lower()
-                    value = value.lower()
-                    if key=='pert_invar':
-                        self._attrs['check'][key] = value.split(':')
-                    elif key=='pert_lim':
-                        self._attrs['check'][key] = value
-                    else:
-                        print 'WARNING: %s is not supported check parameter'%key
 
         # parsing debugging options
         if opts.debug:
@@ -938,9 +761,13 @@ class Config(object):
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
 
-        # parsing logging options
-        if opts.verbose_level:
-            self._attrs['verify']['verboselevel'] = str(opts.verbose_level)
+        if opts.outdir:
+            self._attrs['path']['outdir'] = opts.outdir
+
+        # create state directories and change working directory
+        if not os.path.exists(self._attrs['path']['outdir']):
+            os.makedirs(self._attrs['path']['outdir'])
+        os.chdir(self._attrs['path']['outdir'])
 
     def __getattr__(self, name):
         return self._attrs[name]

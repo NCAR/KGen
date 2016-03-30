@@ -19,7 +19,7 @@ class KExtSysYSTest(KExtSysTest):
         return result
 
     def mkworkdir(self, myname, result):
-        if not self.WORK_DIR:
+        if self.WORK_DIR is None:
             self.WORK_DIR = '/glade/scratch/%s'%getpass.getuser()
 
         systestdir = '%s/kgensystest'%self.WORK_DIR

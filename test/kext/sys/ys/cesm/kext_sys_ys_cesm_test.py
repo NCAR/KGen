@@ -43,7 +43,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
 
         # check if project option exists
         if 'project' not in self.OPTIONS:
-            result[myname]['errmsg'] = '"project" user option is not provided. Use "-o project=<your porject id>"'
+            self.set_status(result, myname, self.FAILED, errmsg='"project" user option is not provided. Use "-o project=<your porject id>"')
             return result
 
         # create a case
@@ -51,7 +51,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
             casecmd = './create_newcase -project %s -mach yellowstone -compset FC5 -res ne16_ne16 -compiler intel -case %s'%(self.OPTIONS['project'], casedir)
             out, err, retcode = self.run_shcmd(casecmd, cwd=scriptdir)
             if retcode!=0:
-                result[myname]['errmsg'] = 'MG2 case generation is failed.'
+                self.set_status(result, myname, self.FAILED, errmsg='MG2 case generation is failed.')
                 return result
 
         # modify env_build.xml to enable MG2
@@ -59,7 +59,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
         if retcode!=0:
             out, err, retcode = self.run_shcmd('./xmlchange -f env_build.xml -id CAM_CONFIG_OPTS -val "-microphys mg2 -clubb_sgs" -a', cwd=casedir)
             if retcode!=0:
-                result[myname]['errmsg'] = 'Modification of env_build.xml is failed.'
+                self.set_status(result, myname, self.FAILED, errmsg='Modification of env_build.xml is failed.')
                 return result
 
         # cesm.setup
@@ -85,7 +85,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
 
         datadir = '%s/data'%workdir
         result[myname]['datadir'] = datadir
-
+        
         if self.REBUILD or not os.path.exists(datadir) or any(not os.path.exists('%s/%s'%(datadir, sf)) for sf in statefiles):
             # clean build
             out, err, retcode = self.run_shcmd('./%s.clean_build'%casename, cwd=casedir)

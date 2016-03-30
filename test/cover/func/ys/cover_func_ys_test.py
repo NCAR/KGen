@@ -42,20 +42,58 @@ class CoverFuncYSTest(CoverFuncTest):
 
         passed, out, err = self.run_coverage(os.path.join(tmpsrc, 'update_mod.F90'), \
             'update_mod:update:calc', _D='ROW=4,COLUMN=4', _I='%s:%s'%(tmpsrc, mpiinc), \
-            __invocation='1:3', \
-            __mpi='ranks=0:1', \
+            __mpi='ranks=all', \
             __state_build='cmds="cd %s; make clean; make build"'%tmpsrc, \
             __state_run='cmds="cd %s; make run"'%tmpsrc, \
-            __kernel_compile='FC="%s",FC_FLAGS="%s"'%(self.COMPILER, self.COMPILER_FLAGS), \
             __outdir=workdir)
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['coverfile'] = 'calc.cover'
+            result[myname]['coverfiles'] = [ 'invocations.0', 'invocations.1', 'invocations.2', 'invocations.3' ]
             self.set_status(result, myname, self.PASSED)
         else:
-            result[myname]['coverfile'] = None
+            result[myname]['coverfiles'] = None
             self.set_status(result, myname, self.FAILED, out)
+        return result
+
+    def genstate(self, myname, result):
+
+        tmpsrc = result['mkdir_task']['tmpsrc']
+        workdir = result['mkdir_task']['workdir']
+        statefiles = result['generate_task']['coverfiles']
+
+        out, err, retcode = self.run_shcmd('make', cwd='%s/state'%workdir)
+        result[myname]['stdout'] = out
+        result[myname]['stderr'] = err
+
+        if err:
+            self.set_status(result, myname, self.FAILED, err)
+            return result
+
+        outfiles = []
+        for statefile in statefiles:
+            outfile = os.path.join(tmpsrc, statefile)
+            if os.path.exists(outfile):
+                outfiles.append(outfile)
+
+        result[myname]['outfiles'] = outfiles
+
+        if len(outfiles)==len(statefiles):
+            self.set_status(result, myname, self.PASSED)
+        else:
+            self.set_status(result, myname, self.FAILED, errmsg=str(outfiles))
+        return result
+
+    def verify(self, myname, result):
+        tmpsrc = result['mkdir_task']['tmpsrc']
+        coverfiles = result['generate_task']['coverfiles']
+
+        if any(not os.path.exists(os.path.join(tmpsrc, cfile)) for cfile in coverfiles):
+            self.set_status(result, myname, self.FAILED, errmsg='Coverfiles could not be found.')
+            return result
+
+
+        self.set_status(result, myname, self.PASSED)
         return result
