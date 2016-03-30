@@ -316,6 +316,9 @@ def getinfo(name):
     elif name=='verbose_level': return Config.verify['verboselevel']
     elif name=='repeat_count': return Config.timing['repeat']
     elif name=='dummy_stmt': return statements.DummyStatement()
+    elif name=='add_mpi_frame': return Config.add_mpi_frame['enabled']
+    elif name=='mpi_frame_np': return Config.add_mpi_frame['np']
+    elif name=='mpi_frame_mpiexec': return Config.add_mpi_frame['mpiexec']
     else: raise ProgramException('No information for %s'%name)
 
 
