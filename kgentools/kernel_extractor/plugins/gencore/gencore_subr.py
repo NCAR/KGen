@@ -117,7 +117,7 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
                 if stmt.is_numeric():
-                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"var"', 'kgen_array_sum', 'REAL(SUM(var), 8)', '.TRUE.']}
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), 'kgen_array_sum', 'REAL(SUM(var), 8)', '.TRUE.']}
                     part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 attrs = {'expr': 'PRESENT( printvar )'}
