@@ -721,6 +721,41 @@ class Gen_Statement(object):
         if l: return ' !!! UNRESOLVED !!! %s'%', '.join(l)
         else: return ''
 
+    def pack_fortran_line(self, indent, line, comment):
+
+        lines = []
+
+        maxline = Config.fort['maxlinelen'] - 2
+        splitline = line.split(' ')
+        stripline = line.strip()
+        if len(stripline)>0 and stripline[0]=='!':
+            iscomment = True
+        else:
+            iscomment = False
+
+        tmpline = indent[:]
+        for l in splitline:
+            if not l: l = ' '
+            l += ' '
+            if len(tmpline) + len(l) > maxline:
+                lines.append(tmpline+'&')
+                if iscomment:
+                    tmpline = indent[:] + '&!' + l
+                else:
+                    tmpline = indent[:] + '&' + l
+            else:
+                tmpline += l
+
+        if len(tmpline)>1:
+            if tmpline[-1]=='&':
+                lines.append(tmpline[:-1])
+            else:
+                lines.append(tmpline)
+        if comment:
+            lines.append(comment)
+
+        return '\n'.join(lines)
+
     def tostring(self):
 
         if isinstance(self.kgen_stmt, statements.Comment):
@@ -761,7 +796,7 @@ class Gen_Statement(object):
                     elif isinstance(self.kgen_stmt, base_classes.EndStatement):
                         self.kgen_gen_attrs['indent'] = self.kgen_parent.kgen_indent
                         cur_indent = self.kgen_parent.kgen_indent
-                    return cur_indent + self.tokgen() + unres_str
+                    return self.pack_fortran_line(cur_indent, self.tokgen(), unres_str)
                 else:
                     if isinstance(lines_str, str):
                         cur_indent = get_indent(lines_str)
@@ -789,10 +824,14 @@ class Gen_Statement(object):
 
                 if self.kgen_match_class in [statements.ElseIf, statements.Else, statements.ElseWhere]:
                     kgenstr = self.tokgen()
-                    if not kgenstr is None: return self.kgen_parent.kgen_indent + kgenstr
+                    if not kgenstr is None:
+                        #return self.kgen_parent.kgen_indent + kgenstr
+                        return self.pack_fortran_line(self.kgen_parent.kgen_indent, kgenstr, None)
                 else:
                     kgenstr = self.tokgen()
-                    if not kgenstr is None: return cur_indent + kgenstr
+                    if not kgenstr is None:
+                        #return cur_indent + kgenstr
+                        return self.pack_fortran_line(cur_indent, kgenstr, None)
             else: raise ProgramException('Class does not have stmt nor match_class')
 
     def tokgen(self):

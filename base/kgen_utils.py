@@ -450,9 +450,9 @@ class Config(object):
         # KGEN operation mode
         self._attrs['check_mode'] = False
 
-#        # Fortran parameters
-#        self._attrs['fort'] = OrderedDict()
-#        self._attrs['fort']['maxlinelen'] = 134
+        # Fortran parameters
+        self._attrs['fort'] = OrderedDict()
+        self._attrs['fort']['maxlinelen'] = 132
 
         # logging parameters
         self._attrs['logging'] = OrderedDict()
