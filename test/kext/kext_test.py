@@ -40,8 +40,7 @@ class KExtTest(KGenTest):
         outcome = result['runkernel_task']['stdout']
 
         if not outcome or outcome.find('FAILED')>0 or outcome.find('ERROR')>0 or outcome.find('PASSED')<0:
-            result[myname]['errmsg'] = outcome
-            result[myname]['status'] = self.FAILED
+            self.set_status(result, myname, self.FAILED, outcome)
         else:
-            result[myname]['status'] = self.PASSED
+            self.set_status(result, myname, self.PASSED)
         return result

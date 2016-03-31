@@ -731,7 +731,8 @@ class Gen_Statement(object):
                     lines = self.kgen_stmt.top.prep[start:end]
                     lines_str = '\n'.join(lines)
                     if lines_str.strip().startswith(self.kgen_stmt.item.comment.strip()):
-                        return lines_str
+                        if hasattr(self, 'kgen_parent') and self.kgen_parent.kgen_isvalid:
+                            return lines_str
             else:
                 return self.comment
         elif self.kgen_isvalid:
