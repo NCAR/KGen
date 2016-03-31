@@ -30,6 +30,12 @@ class KExtSysYSTest(KExtSysTest):
         if not os.path.exists(workdir):
             os.mkdir(workdir)
 
+        if os.path.exists('%s/kernel'%workdir):
+            shutil.rmtree('%s/kernel'%workdir)
+
+        if os.path.exists('%s/state'%workdir):
+            shutil.rmtree('%s/state'%workdir)
+
         result[myname]['sysdir'] = systestdir
         result[myname]['workdir'] = workdir
 

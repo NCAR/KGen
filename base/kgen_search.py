@@ -39,7 +39,7 @@ def is_except(name, stmt):
     exceptlist = Config.search['except']
 
     for elist in exceptlist:
-        elist_split = elist.split('.')
+        elist_split = elist.split(':')
         same = True
         for i in range(min(len(namelist), len(elist_split))):
             if namelist[len(namelist)-i-1]!=elist_split[len(elist_split)-i-1]:

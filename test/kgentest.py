@@ -85,6 +85,9 @@ def main():
             if all(not relpath.startswith(argtest.rstrip(' /')) for argtest in args.tests) and \
                 all(not argtest.startswith(relpath) for argtest in args.tests):
                 continue
+        #else:
+        #    print('ERROR: no test type is specified. Usage: kgentest.py [kext|cover]')
+        #    sys.exit(-1)
 
         #        all( len(relpath.split('/'))>=len(argtest.rstrip(' /').split('/')) for argtest in args.tests ):
 
@@ -106,12 +109,16 @@ def main():
             #if not test_found: sys.path = pathsave
             sys.path = pathsave
 
-
         # if TEST_SCRIPT exists in a directory
         if TEST_SCRIPT in fileList:
             pathsave = sys.path[:]
             sys.path.insert(0, dirName)
-            mod = __import__(TEST_SCRIPT[:-3])
+
+            # reload module in different path
+            modname = TEST_SCRIPT[:-3]
+            if modname in sys.modules:
+                del sys.modules[modname]
+            mod = __import__(modname)
 
             test_found = False
 

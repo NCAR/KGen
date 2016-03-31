@@ -35,36 +35,41 @@ class KExtSysYSCesmTest(KExtSysYSTest):
 
     def config(self, myname, result):
 
+        workdir = result['mkdir_task']['workdir']
         systestdir = result['mkdir_task']['sysdir']
         tmpsrc = result['download_task']['tmpsrc']
         scriptdir = '%s/cime/scripts'%tmpsrc
         casename = 'KGENCESM'
         casedir = '%s/%s'%(systestdir, casename)
 
-        # check if project option exists
-        if 'project' not in self.OPTIONS:
-            self.set_status(result, myname, self.FAILED, errmsg='"project" user option is not provided. Use "-o project=<your porject id>"')
-            return result
+        datadir = '%s/data'%workdir
 
-        # create a case
-        if not os.path.exists(casedir):
-            casecmd = './create_newcase -project %s -mach yellowstone -compset FC5 -res ne16_ne16 -compiler intel -case %s'%(self.OPTIONS['project'], casedir)
-            out, err, retcode = self.run_shcmd(casecmd, cwd=scriptdir)
-            if retcode!=0:
-                self.set_status(result, myname, self.FAILED, errmsg='MG2 case generation is failed.')
+        if self.REBUILD or not os.path.exists(datadir) or len([name for name in os.listdir(datadir) if os.path.isfile(os.path.join(datadir, name))])==0:
+
+            # check if project option exists
+            if 'project' not in self.OPTIONS:
+                self.set_status(result, myname, self.FAILED, errmsg='"project" user option is not provided. Use "-o project=<your porject id>"')
                 return result
 
-        # modify env_build.xml to enable MG2
-        out, err, retcode = self.run_shcmd('grep mg2 env_build.xml', cwd=casedir)
-        if retcode!=0:
-            out, err, retcode = self.run_shcmd('./xmlchange -f env_build.xml -id CAM_CONFIG_OPTS -val "-microphys mg2 -clubb_sgs" -a', cwd=casedir)
-            if retcode!=0:
-                self.set_status(result, myname, self.FAILED, errmsg='Modification of env_build.xml is failed.')
-                return result
+            # create a case
+            if not os.path.exists(casedir):
+                casecmd = './create_newcase -project %s -mach yellowstone -compset FC5 -res ne16_ne16 -compiler intel -case %s'%(self.OPTIONS['project'], casedir)
+                out, err, retcode = self.run_shcmd(casecmd, cwd=scriptdir)
+                if retcode!=0:
+                    self.set_status(result, myname, self.FAILED, errmsg='MG2 case generation is failed.')
+                    return result
 
-        # cesm.setup
-        if not os.path.exists('%s/%s.run'%(casedir, casename)):
-            out, err, retcode = self.run_shcmd('./cesm.setup', cwd=casedir)
+            # modify env_build.xml to enable MG2
+            out, err, retcode = self.run_shcmd('grep mg2 env_build.xml', cwd=casedir)
+            if retcode!=0:
+                out, err, retcode = self.run_shcmd('./xmlchange -f env_build.xml -id CAM_CONFIG_OPTS -val "-microphys mg2 -clubb_sgs" -a', cwd=casedir)
+                if retcode!=0:
+                    self.set_status(result, myname, self.FAILED, errmsg='Modification of env_build.xml is failed.')
+                    return result
+
+            # cesm.setup
+            if not os.path.exists('%s/%s.run'%(casedir, casename)):
+                out, err, retcode = self.run_shcmd('./cesm.setup', cwd=casedir)
 
         # include.ini was created manually
 
@@ -85,7 +90,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
 
         datadir = '%s/data'%workdir
         result[myname]['datadir'] = datadir
-        
+
         if self.REBUILD or not os.path.exists(datadir) or any(not os.path.exists('%s/%s'%(datadir, sf)) for sf in statefiles):
             # clean build
             out, err, retcode = self.run_shcmd('./%s.clean_build'%casename, cwd=casedir)

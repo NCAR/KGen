@@ -619,9 +619,9 @@ class Config(object):
                 if subf and subf.find('=')>0:
                     key, value = subf.split('=')
                     if key=='except':
-                        self._attrs['search']['except'].extend(value.split(':'))
+                        self._attrs['search']['except'].extend(value.split(';'))
                     elif key=='add_intrinsic':
-                        Intrinsic_Procedures.extend([name.lower() for name in value.split(':')])
+                        Intrinsic_Procedures.extend([name.lower() for name in value.split(';')])
                     else:
                         raise UserException('Unknown intrinsic sub option: %s' % subf)
                 else:
