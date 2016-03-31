@@ -530,7 +530,9 @@ class FortranReaderBase(object):
             return None
         self.linecount += 1
         # expand tabs, replace special symbols, get rid of nl characters
-        line = line.expandtabs().replace('\xa0',' ').rstrip()
+        #line = line.expandtabs().replace('\xa0',' ').rstrip() # KGEN deletion
+        line = line.expandtabs().replace('\xc2',' ').replace('\xa0',' ').rstrip() # KGEN addition
+
         self.source_lines.append(line)
 
         if ignore_comments and _is_fix_comment(line, isstrict=self.isstrict):

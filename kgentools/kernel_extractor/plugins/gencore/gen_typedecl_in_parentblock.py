@@ -257,6 +257,9 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
         if len(localouttype)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+            if any(spec.lower().startswith('intent') for spec in stmt.attrspec) and \
+                ( 'allocatable' not in attrspec or 'pointer' not in attrspec ):
+                attrspec.append('allocatable')
 
             localout_names = [ localout_name for localout_name, pname in localouttype]
             entity_decls = get_decls(localout_names, stmt.entity_decls, prefix='kgenref_')
