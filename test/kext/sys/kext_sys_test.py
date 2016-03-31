@@ -33,7 +33,7 @@ class KExtSysTest(KExtTest):
         workdir = result['mkdir_task']['workdir'] 
         kerneldir = '%s/kernel'%workdir
         statedir = '%s/state'%workdir
-        kgenlog = '%s/kgen.log'%workdir
+        kgenlog = os.path.join(self.TEST_DIR, 'kgen.log')
 
         if not self.LEAVE_TEMP:
             if os.path.exists(kerneldir):

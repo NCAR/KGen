@@ -97,3 +97,19 @@ class CoverFuncYSTest(CoverFuncTest):
 
         self.set_status(result, myname, self.PASSED)
         return result
+
+    def rmdir(self, myname, result):
+
+        workdir = result['mkdir_task']['workdir']
+        kgenlog = os.path.join(self.TEST_DIR, 'kgen.log')
+
+        if not self.LEAVE_TEMP:
+            if os.path.exists(workdir):
+                shutil.rmtree(workdir)
+
+            if os.path.exists(kgenlog):
+                os.remove(kgenlog)
+
+        self.set_status(result, myname, self.PASSED)
+
+        return result
