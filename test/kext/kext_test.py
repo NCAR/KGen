@@ -10,7 +10,10 @@ class KExtTest(KGenTest):
         for kw, kwarg in kwargs.iteritems():
             flag = kw.replace('_', '-').replace('UNDERSCORE', '_')
             cmds.append('%s %s'%(flag, kwarg))
-        cmds.append('%s:%s'%(target, namepath))
+        if namepath:
+            cmds.append('%s:%s'%(target, namepath))
+        else:
+            cmds.append(target)
 
         out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
 
