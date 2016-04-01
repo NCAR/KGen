@@ -2,26 +2,16 @@ MODULE update_mod
     USE calc_mod, only : calc
     PUBLIC update
 CONTAINS
-    SUBROUTINE update(rank, nranks)
-        INCLUDE 'mpif.h'
-        INTEGER, INTENT(IN) :: rank, nranks
-        INTEGER :: i, j, error
-        INTEGER :: lsum, gsum(nranks)
-        INTEGER, dimension(ROW, COL) :: output
-        gsum = 0
-        !$kgen begin_callsite calc
-        DO i=1, COL
+    SUBROUTINE update()
+        INTEGER :: i, j
+        real, dimension(ROW, COLUMN) :: out2, out3, output
+        DO i=1, COLUMN
             DO j=1, ROW
-                CALL calc(i, j, output)
+                !$kgen begin_callsite calc
+                CALL calc(i, j, output, out2, out3)                 !Calling kernel
+                !$kgen end_callsite
             END DO
         END DO
-        !$kgen end_callsite calc
-        lsum = SUM(output)
-        CALL mpi_gather(lsum, 1, MPI_INTEGER, &
-            gsum, 1, MPI_INTEGER, &
-            0, MPI_COMM_WORLD, error)
-        IF (rank == 0) THEN
-            print *, 'global sum = ', SUM(gsum)
-        END IF
+        print *, 'SUM(output) = ', SUM(output)
     END SUBROUTINE
 END MODULE

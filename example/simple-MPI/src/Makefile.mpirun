@@ -1,11 +1,11 @@
 ROW := 4
 COLUMN := 4
 
-FC := ifort
-FC_FLAGS := -DROW=${ROW} -DCOLUMN=${COLUMN}
+FC := mpiifort
+FC_FLAGS := -DROW=${ROW} -DCOL=${COLUMN}
 
 run: build
-	./demo.exe
+	mpirun -n 4 ./demo.exe
 
 build: demo.exe
 

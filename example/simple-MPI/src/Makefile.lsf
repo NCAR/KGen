@@ -1,11 +1,11 @@
 ROW := 4
 COLUMN := 4
 
-FC := ifort
-FC_FLAGS := -DROW=${ROW} -DCOLUMN=${COLUMN}
+FC := mpiifort
+FC_FLAGS := -DROW=${ROW} -DCOL=${COLUMN}
 
 run: build
-	./demo.exe
+	bsub < ./job.lsf
 
 build: demo.exe
 
@@ -22,4 +22,4 @@ calc_mod.o: calc_mod.F90
 	${FC} -c -o $@ $<
 
 clean:
-	rm -f *.exe *.o *.mod
+	rm -f *.exe *.o *.mod *.err *.out

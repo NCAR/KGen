@@ -1,15 +1,12 @@
 MODULE calc_mod
     PUBLIC calc
 CONTAINS
-    SUBROUTINE calc(i, j, output)
+    SUBROUTINE calc(i, j, output, out2, out3)
         INTEGER, INTENT(IN) :: i, j
-        INTEGER, INTENT(OUT), dimension(:,:) :: output
-        CALL print_msg('start') 
+        real, INTENT(OUT), dimension(:,:) :: out3, output, out2
+          ! Also a comment
         output(i,j) = i + j
-        CALL print_msg('finish') 
-    END SUBROUTINE
-    SUBROUTINE print_msg(msg)
-        CHARACTER(*), INTENT(IN) :: msg
-        print *, msg
+        out2(i, j) = 2*(i+j)
+        out3(i, j) = 3*(i+j)
     END SUBROUTINE
 END MODULE
