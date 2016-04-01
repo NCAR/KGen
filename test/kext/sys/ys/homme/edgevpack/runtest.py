@@ -13,20 +13,19 @@ class Test(KExtSysYSHommeTest):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['download_task']['tmpsrc']
-        srcmods = result['config_task']['srcmods']
+        blddir = result['config_task']['blddir']
 
-        camsrcmods = '%s/src.cam'%srcmods
-        result[myname]['camsrcmods'] = camsrcmods
-
-        srcfile = '%s/components/cam/src/physics/cam/micro_mg_cam.F90'%tmpsrc
-        namepath = 'micro_mg_cam:micro_mg_cam_tend:micro_mg_tend2_0'
-        fc_flags = '-no-opt-dynamic-align -fp-model source -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -xHost -O2'
+        srcfile = '%s/src/share/prim_advection_mod.F90'%tmpsrc
+        mpipath = '/ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include'
+        namepath = 'prim_advection_mod:euler_step:edgevpack'
+        fc_flags = '-assume byterecl -fp-model precise -ftz -O3 -g -openmp'
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
-            _i='include.ini', \
-            __invocation='10:50:100', \
+            _I='%s/src:%s/src/share:%s/test_execs/perfTest:%s'%(tmpsrc, tmpsrc, blddir, mpipath), \
+            _e='exclude.ini', \
+            _D='HAVE_CONFIG_H', \
+            __invocation='10:50', \
             __timing='repeat=1', \
-            __intrinsic='skip,except=shr_spfn_mod:shr_spfn_gamma_nonintrinsic_r8:sum', \
-            __mpi='ranks=0:100:300,comm=mpicom,use="spmd_utils:mpicom"', \
+            __mpi='ranks=0:10', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
@@ -34,9 +33,7 @@ class Test(KExtSysYSHommeTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['micro_mg_tend2_0.10.0', 'micro_mg_tend2_0.10.100', 'micro_mg_tend2_0.10.300', \
-                'micro_mg_tend2_0.50.0', 'micro_mg_tend2_0.50.100', 'micro_mg_tend2_0.50.300', \
-                'micro_mg_tend2_0.100.0', 'micro_mg_tend2_0.100.100', 'micro_mg_tend2_0.100.300']
+            result[myname]['statefiles'] = ['edgevpack.10.0', 'edgevpack.10.10', 'edgevpack.50.0', 'edgevpack.50.10']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []
@@ -47,13 +44,15 @@ class Test(KExtSysYSHommeTest):
     def replace(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
-        camsrcmods = result['generate_task']['camsrcmods']
-
-        out, err, retcode = self.run_shcmd('rm -f *', cwd=camsrcmods)
+        tmpsrc = result['download_task']['tmpsrc']
 
         for instrumented in glob.glob('%s/state/*.F90'%workdir):
-            shutil.copy2(instrumented, camsrcmods)
-            
+            fname = os.path.basename(instrumented)
+            if not os.path.exists('%s/src/share/%s.kgen'%(tmpsrc, fname)): 
+                shutil.copy2('%s/src/share/%s'%(tmpsrc, fname), '%s/src/share/%s.kgen'%(tmpsrc, fname))
+            os.remove('%s/src/share/%s'%(tmpsrc, fname))
+            shutil.copy2(instrumented, '%s/src/share'%tmpsrc)
+ 
         self.set_status(result, myname, self.PASSED)
 
         return result

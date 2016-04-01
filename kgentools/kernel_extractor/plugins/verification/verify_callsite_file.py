@@ -20,6 +20,14 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
+            getinfo('topblock_stmt'), None, self.create_topblock_parts)
+
+    def create_topblock_parts(self, node):
+
+        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+
     def create_parentblock_parts(self, node):
 
         namedpart_link_part(node, VERIFY_PBLOCK_USE_PART, USE_PART)
@@ -39,9 +47,6 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         namedpart_create_subpart(node, VERIFY_PBLOCK_LOCALS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, 'local verify variables')
-
-        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
-        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['check_status']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Type, attrs=attrs)
