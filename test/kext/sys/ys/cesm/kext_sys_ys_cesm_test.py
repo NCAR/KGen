@@ -19,7 +19,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
         # check if cesm exists in appsrc dir
         out, err, retcode = self.run_shcmd('svn info | grep URL', cwd=appsrc)
         if retcode != 0 or not out or len(out)<3 or not out.startswith('URL'):
-            out, err, retcode = self.run_shcmd('svn checkout https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta06 .', cwd=appsrc)
+            out, err, retcode = self.run_shcmd('svn checkout -r 76722 https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta06 .', cwd=appsrc)
 
         # copy cesm src into test specific src dir
         tmpsrc = '%s/cesm_work'%systestdir

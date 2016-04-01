@@ -100,7 +100,8 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     attrs = {'items': ['kgen_bound(2, %d)'%(dim+1)], 'specs': ['UNIT = kgen_unit']}
                     part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
-                    bound_args.append('kgen_bound(2,%d)-kgen_bound(1,%d)+1'%(dim+1, dim+1))
+                    #bound_args.append('kgen_bound(2,%d)-kgen_bound(1,%d)+1'%(dim+1, dim+1))
+                    bound_args.append('kgen_bound(1,%d):kgen_bound(2,%d)'%(dim+1, dim+1))
 
                 if var.is_allocatable() or var.is_pointer() or allocate:
                     attrs = {'items': ['var(%s)'%', '.join(bound_args)]}
