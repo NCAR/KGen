@@ -47,7 +47,7 @@ Overview
 Dependencies
 ------------
 
-* Python (>=2.6.6) and Python standard library
+* Python (>=2.7) and Python standard library
 * Fortran Pre-Processor(fpp) or C Pre-Processor(cpp)
 
 
@@ -74,7 +74,8 @@ Instructions & Use
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
 	>> evince KGEN_Users_Guide_V0.6.1.pdf 
 
-3. Try "simple" in "example/simple" directory
+3. Try a kernel generation example in "example/simple" directory
+
 	>> cd example/simple;	# move to an example directory
 
 	>> vi Makefile;			# Modify FC and FC_FLAGS if required

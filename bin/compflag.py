@@ -33,6 +33,9 @@ def _getpwd(env):
 
 def main():
     parser = optparse.OptionParser()
+    parser.add_option("-P", "--import", dest="importobj", action='append', type='string', help="import objects")
+    parser.add_option("-I", "--include", dest="include", action='append', type='string', help="include paths")
+    parser.add_option("-D", "--macro", dest="macro", action='append', type='string', help="macro definitions")
     parser.add_option("-i", "--infile", dest="infile", action='store', type='string', help="strace file")
     parser.add_option("-o", "--outfile", dest="outfile", action='store', type='string', help="output file")
     options, args = parser.parse_args()
@@ -45,7 +48,7 @@ def main():
         exepath = args[0]
         exedir, exefile = os.path.split(os.path.realpath(exepath))
         qargs = [ '"%s"'%arg for arg in args[1:] ]
-        shcmds = 'cd %s; strace -o strace.log -f -q -s 100000 -e trace=execve -v -- ./%s %s'%( exedir, exefile, ' '.join(qargs))
+        shcmds = 'cd %s; strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s %s'%( exedir, exefile, ' '.join(qargs))
 
         print 'Building application using command-line of "%s" at "%s"'%(exefile, exedir)
         out, err, retcode = run_shcmd(shcmds)
@@ -55,9 +58,9 @@ def main():
         else:
             print 'ERROR: Application build command is failed.'
 
-            #print 'CMDS: ', shcmds
-            #print 'RETCODE: ', retcode
-            #print 'STDERR: ', err
+            print 'CMDS: ', shcmds
+            print 'RETCODE: ', retcode
+            print 'STDERR: ', err
             sys.exit(-1)
 
     #import pdb; pdb.set_trace()
@@ -81,7 +84,7 @@ def main():
                                     if srcs[0] in flags:
                                         flags[srcs[0]].append((incs, macros))
                                     else:
-                                        flags[srcs[0]] = (incs, macros)
+                                        flags[srcs[0]] = [ (incs, macros) ]
                             elif len(srcs)>1:
                                 raise
                             #import pdb; pdb.set_trace()
@@ -98,7 +101,38 @@ def main():
     Config = ConfigParser.RawConfigParser()
     Config.optionxform = str
 
-    for fname, (incs, macros) in flags.items():
+    if options.include:
+        Config.add_section('include')
+        for inc in options.include:
+            Config.set('include', inc, '')
+
+    if options.macro:
+        Config.add_section('macro')
+        for macro in options.macro:
+            splitmacro = macro.split('=')
+            if len(splitmacro)==2:
+                Config.set('macro', splitmacro[0], splitmacro[1])
+            elif len(splitmacro)==2:
+                Config.set('macro', macro, '')
+            else: raise
+
+    if options.importobj:
+        Config.add_section('import')
+        for impobj in options.importobj:
+            splitmacro = impobj.split('=')
+            if len(splitmacro)==2:
+                Config.set('import', splitmacro[0], splitmacro[1])
+            else: raise
+
+    for fname, incitems in flags.items():
+        if len(incitems)==1:
+            incs = incitems[0][0]
+            macros = incitems[0][1]
+        else:
+            # Use the first item found, for temporary
+            incs = incitems[0][0]
+            macros = incitems[0][1]
+
         if Config.has_section(fname):
             print 'Warning: %s section is dupulicated.' % fname
         else:
