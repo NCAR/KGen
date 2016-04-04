@@ -2,7 +2,14 @@
 
 import os
 
+COMPILERS = [ 'intel', 'gnu', 'pgi', 'cray', 'pathscale', 'ibm' ]
 FORT_EXTS = ['f', 'f90', 'f95', 'f03', 'f08', 'F', 'F90', 'F95', 'F03', 'F08' ]
+OPENMP_FLAGS = [ '-fopenmp', '-openmp', '-mp', '-qsmp' ] # NOTE: -mp(PGI) -qsmp(IBM) may have suboptions. PathScale:-mp only, Cray turn on openmp default: noomp for turn off, 
+
+#Portland Group  Pathscale   Cray    Intel   GNU Explanation
+#-mp=nonuma  -mp -Oomp (default) -openmp -fopenmp    Activate OpenMP directives and pragmas in the code
+
+
 
 def _getmacro(macro):
     splitmacro = macro.split('=')
