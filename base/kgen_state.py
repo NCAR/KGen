@@ -215,12 +215,22 @@ class SrcFile(object):
 
         # prepare include paths and macro definitions
         path_src = []
-        macros_src = ''
+        macros_src = []
         if Config.include['file'].has_key(self.abspath):
             path_src = Config.include['file'][self.abspath]['path']+[os.path.dirname(self.abspath)]
-            macros_src = ' '.join([ '-D%s=%s'%(k,v) for k, v in Config.include['file'][self.abspath]['macro'].iteritems() ])
+            for k, v in Config.include['file'][self.abspath]['macro'].iteritems():
+                if v:
+                    macros_src.append('-D%s=%s'%(k,v))
+                else:
+                    macros_src.append('-D%s'%k)
         includes = '-I'+' -I'.join(Config.include['path']+path_src)
-        macros = ' '.join([ '-D%s=%s'%(k,v) for k, v in Config.include['macro'].iteritems() ]) + ' ' + macros_src
+        macros_common = []
+        for k, v in Config.include['macro'].iteritems():
+            if v:
+                macros_common.append('-D%s=%s'%(k,v))
+            else:
+                macros_common.append('-D%s'%k)
+        macros = ' '.join(macros_common + macros_src)
 
         # execute preprocessing
         Logger.info('Reading %s'%self.srcpath, stdout=True)

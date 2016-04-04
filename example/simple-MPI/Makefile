@@ -18,10 +18,10 @@ test:
 		--invocation 1:3 \
 		--kernel-compile FC='${FC}',FC_FLAGS='${FC_FLAGS}' \
 		--timing repeat=1000 \
-		--state-build cmds="cd ${SRC_DIR}; make build" \
-		--state-run cmds="cd ${SRC_DIR}; make run" \
+		--state-build cmds="cd ${SRC_DIR}; make -f Makefile.mpirun build" \
+		--state-run cmds="cd ${SRC_DIR}; make -f Makefile.mpirun run" \
 		${SRC}:${CALLSITE}
 
 clean:
-	${MAKE} clean -C src
+	${MAKE} -f Makefile.mpirun clean -C src
 	rm -rf kernel state kgen.log

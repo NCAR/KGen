@@ -15,9 +15,9 @@ import os
 # to split command line arguments between base and this tool
 
 # Python version check
-#if sys.hexversion < 0x020600F0:
-#    print 'ERROR: KGEN works with Python Version 2.7 or later.'
-#    sys.exit(-1)
+if sys.hexversion < 0x020700F0:
+    print 'ERROR: KGEN works with Python Version 2.7 or later.'
+    sys.exit(-1)
 
 KGEN_HOME = '%s/../..'%os.path.dirname(os.path.realpath(__file__))
 KGEN_BASE = '%s/base'%KGEN_HOME

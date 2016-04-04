@@ -1,0 +1,126 @@
+
+This example shows how to use KGEN to extract a kernel from a simple Fortran application.
+This example use KGEN directive to specify the region of kernel extraction.
+
+[ Prerequisites ]
+	1. Python Version >= 2.7
+	2. cpp or fpp preprocessor
+	3. make
+
+[ Kernel extraction steps ]
+
+	1. >> vi Makefile; # Modify FC and FC_FLAGS if required
+
+	2. >> vi src/Makefile; # Modify FC and FC_FLAGS if required
+
+	3. >> make; # extract a kernel
+
+	Once "make" is completed with success, you will see information similar to next lines on screen
+
+		../../bin/kgen \
+				-D ROW=4,COLUMN=4 \
+				-I ${KGENHOME}/example/simple/src \
+				--timing repeat=1000 \
+				--invocation 1:2:3 \
+				--kernel-compile FC='ifort',FC_FLAGS='-O3' \
+				--state-build cmds="cd ${KGENHOME}/example/simple/src; make build" \
+				--state-run cmds="cd ${KGENHOME}/example/simple/src; make run" \
+				${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc
+
+		Pre-processing is done
+		Reading ${KGENHOME}/example/simple/src/update_mod.F90
+		Reading ${KGENHOME}/example/simple/src/calc_mod.F90
+			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
+		Program is analyzed
+		Makefiles are generated
+		Post-processing is done
+		Completed.
+
+	After this step, two subfolders(kernel and state) will be created under this folder.
+
+	>> cd state; # move to a directory for instrumentation files
+
+	>> make; # generate state data files
+
+	In this step, original application will be built/run again with instrumented files in state folder
+
+	Once "make" is completed with success, you will see information similar to next lines on screen
+
+		if [ ! -f ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org ]; then cp -f ${KGENHOME}/example/simple/src/update_mod.F90 ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org; fi
+		if [ ! -f update_mod.F90.kgen_org ]; then cp -f ${KGENHOME}/example/simple/src/update_mod.F90 update_mod.F90.kgen_org; fi
+		#rm -f kernel.exe *.mod *.o
+		cp -f update_mod.F90 ${KGENHOME}/example/simple/src/update_mod.F90
+		cd ${KGENHOME}/example/simple/src; make build
+		make[1]: Entering directory `${KGENHOME}/example/simple/src'
+		ifort -c -o calc_mod.o calc_mod.F90
+		ifort -DROW=4 -DCOLUMN=4 -c -o update_mod.o update_mod.F90
+		ifort -c -o program.o program.F90
+		ifort -o demo.exe program.o update_mod.o calc_mod.o
+		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
+		mv -f ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org ${KGENHOME}/example/simple/src/update_mod.F90
+		cd ${KGENHOME}/example/simple/src; make run
+		make[1]: Entering directory `${KGENHOME}/example/simple/src'
+		./demo.exe
+		 KGEN writes input state variables at count =            1
+		 kgen_counter =            1
+		 KGEN writes input state variables at count =            2
+		 kgen_counter =            2
+		 KGEN writes input state variables at count =            3
+		 kgen_counter =            3
+		 All state data is collected.   Stopping program...
+		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
+
+	>> cd ../kernel; # move to a kernel directory
+
+	>> make; # build and run a kernel
+
+	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
+
+		ifort -O3 -c -o kgen_utils.o kgen_utils.f90
+		ifort -O3 -c -o calc_mod.o calc_mod.F90
+		ifort -O3 -c -o update_mod.o update_mod.F90
+		ifort -O3 -c -o kernel_driver.o kernel_driver.f90
+		ifort -O3   -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		./kernel.exe
+		 
+		 ***************** Verification against 'calc.1' *****************
+		 
+		 Number of verified variables:            3
+		 Number of identical variables:            3
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-015
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   1.600000075995922E-002
+		 
+		 ***************** Verification against 'calc.2' *****************
+		 
+		 Number of verified variables:            3
+		 Number of identical variables:            3
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-015
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   1.600000075995922E-002
+		 
+		 ***************** Verification against 'calc.3' *****************
+		 
+		 Number of verified variables:            3
+		 Number of identical variables:            3
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-015
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   1.700000092387199E-002
+		 
+		 ******************************************************************************
+		 calc summary: Total number of verification cases: 3
+		 calc summary: Average call time of all calls (usec):   1.633333414793015E-002
+		 ******************************************************************************
+

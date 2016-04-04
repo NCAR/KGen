@@ -373,7 +373,7 @@ class ProgramException(KGException):
 def process_include_option(include_option, incattrs):
 
     # collect include configuration information
-    Inc = KgenConfigParser()
+    Inc = KgenConfigParser(allow_no_value=True)
     #Inc.optionxform = str
     Inc.read(include_option)
     for section in Inc.sections():
@@ -410,7 +410,7 @@ def process_include_option(include_option, incattrs):
 def process_exclude_option(exclude_option, excattrs):
 
     # collect exclude configuration information
-    Exc = KgenConfigParser()
+    Exc = KgenConfigParser(allow_no_value=True)
     #Exc.optionxform = str
     Exc.read(exclude_option)
     for section in Exc.sections():
