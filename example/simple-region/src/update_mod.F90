@@ -4,8 +4,8 @@ MODULE update_mod
 CONTAINS
     SUBROUTINE update()
         INTEGER :: i, j
-        real, dimension(ROW, COLUMN) :: out2, out3, output
-        DO i=1, COLUMN
+        real, dimension(ROW, COL) :: out2, out3, output
+        DO i=1, COL
             DO j=1, ROW
                 !$kgen begin_callsite calc
                 CALL calc(i, j, output, out2, out3)                 !Calling kernel

@@ -9,7 +9,7 @@ FC_FLAGS := -O3
 
 test:
 	${KGEN} \
-		-D ROW=4,COLUMN=4 \
+		-D ROW=4,COL=4 \
 		-I ${SRC_DIR} \
 		--timing repeat=1000 \
 		--invocation 1:2:3 \

@@ -1,8 +1,8 @@
 ROW := 4
-COLUMN := 4
+COL := 4
 
 FC := mpiifort
-FC_FLAGS := -DROW=${ROW} -DCOL=${COLUMN}
+FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
 run: build
 	bsub < ./job.lsf

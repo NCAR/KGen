@@ -17,7 +17,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 	Once "make" is completed with success, you will see information similar to next lines on screen
 
 		../../bin/kgen \
-				-D ROW=4,COLUMN=4 \
+				-D ROW=4,COL=4 \
 				-I ${KGENHOME}/example/simple/src \
 				--timing repeat=1000 \
 				--invocation 1:2:3 \
@@ -52,7 +52,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		cd ${KGENHOME}/example/simple/src; make build
 		make[1]: Entering directory `${KGENHOME}/example/simple/src'
 		ifort -c -o calc_mod.o calc_mod.F90
-		ifort -DROW=4 -DCOLUMN=4 -c -o update_mod.o update_mod.F90
+		ifort -DROW=4 -DCOL=4 -c -o update_mod.o update_mod.F90
 		ifort -c -o program.o program.F90
 		ifort -o demo.exe program.o update_mod.o calc_mod.o
 		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
