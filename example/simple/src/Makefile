@@ -1,8 +1,8 @@
 ROW := 4
-COLUMN := 4
+COL := 4
 
 FC := ifort
-FC_FLAGS := -DROW=${ROW} -DCOLUMN=${COLUMN}
+FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
 run: build
 	./demo.exe
