@@ -1,21 +1,50 @@
 import os
+import getpass
 import shutil
 from cover_func_test import CoverFuncTest
 
 class CoverFuncYSTest(CoverFuncTest):
     def mkworkdir(self, myname, result):
-        workdir = '%s/tmp'%self.TEST_DIR
-        if os.path.exists(workdir): shutil.rmtree(workdir)
-        os.mkdir(workdir)
+        if self.WORK_DIR is None:
+            self.WORK_DIR = '/glade/scratch/%s'%getpass.getuser()
+
+        systestdir = '%s/kgensystest'%self.WORK_DIR
+        if not os.path.exists(systestdir):
+            os.mkdir(systestdir)
+
+        workdir = '%s/%s'%(systestdir, self.TEST_ID.replace('/', '_'))
+        if not os.path.exists(workdir):
+            os.mkdir(workdir)
+
+        if os.path.exists('%s/state'%workdir):
+            shutil.rmtree('%s/state'%workdir)
 
         tmpsrc = '%s/src'%workdir
+        if os.path.exists(tmpsrc):
+            shutil.rmtree(tmpsrc)
         os.mkdir(tmpsrc)
 
+        result[myname]['sysdir'] = systestdir
         result[myname]['workdir'] = workdir
         result[myname]['tmpsrc'] = tmpsrc
 
-        result[myname]['status'] = self.PASSED
+        self.set_status(result, myname, self.PASSED)
+
         return result
+
+
+#        workdir = '%s/tmp'%self.TEST_DIR
+#        if os.path.exists(workdir): shutil.rmtree(workdir)
+#        os.mkdir(workdir)
+#
+#        tmpsrc = '%s/src'%workdir
+#        os.mkdir(tmpsrc)
+#
+#        result[myname]['workdir'] = workdir
+#        result[myname]['tmpsrc'] = tmpsrc
+#
+#        result[myname]['status'] = self.PASSED
+#        return result
 
     def download(self, myname, result):
         testfiles = [ os.path.join(self.TEST_DIR,f) for f in os.listdir(self.TEST_DIR) if \
@@ -101,14 +130,13 @@ class CoverFuncYSTest(CoverFuncTest):
     def rmdir(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
-        kgenlog = os.path.join(self.TEST_DIR, 'kgen.log')
+
+        if os.path.exists(os.path.join(self.TEST_DIR, 'kgen.log')):
+            os.remove(os.path.join(self.TEST_DIR, 'kgen.log'))
 
         if not self.LEAVE_TEMP:
             if os.path.exists(workdir):
                 shutil.rmtree(workdir)
-
-            if os.path.exists(kgenlog):
-                os.remove(kgenlog)
 
         self.set_status(result, myname, self.PASSED)
 
