@@ -12,9 +12,9 @@ import os
 #    print 'ERROR: KGEN works with Python Version 2.7 or later.'
 #    sys.exit(-1)
 
-KGEN_HOME = '%s/../..'%os.path.dirname(os.path.realpath(__file__))
+KGEN_CDETECT = os.path.dirname(os.path.realpath(__file__))
+KGEN_HOME = '%s/../..'%KGEN_CDETECT
 KGEN_BASE = '%s/base'%KGEN_HOME
-KGEN_CDETECT = '%s/kgentools/coverage_detector'%KGEN_HOME
 
 sys.path.insert(0, KGEN_BASE)
 sys.path.insert(0, KGEN_CDETECT)
