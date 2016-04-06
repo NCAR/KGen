@@ -2,21 +2,21 @@
 
 from kgen_test import KGenTest
 
-class CoverTest(KGenTest):
-    def preprocess(self, myname, result):
-        result['general']['mandatory_tasks'].extend([ 'generate_task', 'genstate_task', 'verify_task' ])
-        self.set_status(result, myname, self.PASSED)
-        return result
-
-    def run_coverage(self, target, namepath, *args, **kwargs):
-
-        cmds = [ '%s/bin/coverage'%self.KGEN_HOME ]
+class CompflagTest(KGenTest):
+#    def preprocess(self, myname, result):
+#        result['general']['mandatory_tasks'].extend([ 'generate_task', 'genstate_task', 'verify_task' ])
+#        self.set_status(result, myname, self.PASSED)
+#        return result
+ 
+    def run_compflag(self, target, cwd, *args, **kwargs):
+ 
+        cmds = [ '%s/bin/compflag'%self.KGEN_HOME ]
         for kw, kwarg in kwargs.iteritems():
             flag = kw.replace('_', '-').replace('UNDERSCORE', '_')
             cmds.append('%s %s'%(flag, kwarg))
-        cmds.append('%s:%s'%(target, namepath))
-
-        out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
+        cmds.append('-- %s'%target)
+ 
+        out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=cwd)
         #print('CMD: ', ' '.join(cmds))
         #print('RETURN CODE: ', retcode)
         #print 'STDOUT: ', out
