@@ -4,6 +4,7 @@
 from ordereddict import OrderedDict
 
 class KExtConfig(object):
+
     def __init__(self, homedir):
         self.home = homedir
         self.attrs = OrderedDict()
@@ -13,19 +14,20 @@ class KExtConfig(object):
         self.attrs['kgen'] = OrderedDict()
         self.attrs['kgen']['version'] = [ 0, 6, '3' ]
 
+        # openmp parameters
+        self.attrs['openmp'] = OrderedDict()
+        self.attrs['openmp']['enabled'] = False
+
         # mpi parameters
         self.attrs['mpi'] = OrderedDict()
         self.attrs['mpi']['enabled'] = False
-        self.attrs['mpi']['ranks'] = [ '0' ]
-        self.attrs['mpi']['size'] = len(self.attrs['mpi']['ranks'])
         self.attrs['mpi']['comm'] = None
         self.attrs['mpi']['header'] = 'mpif.h'
         self.attrs['mpi']['use_stmts'] = []
 
         # invocation parameters
         self.attrs['invocation'] = OrderedDict()
-        self.attrs['invocation']['numbers'] = [ '1' ]
-        self.attrs['invocation']['size'] = len(self.attrs['invocation']['numbers'])
+        self.attrs['invocation']['triples'] = [ ('0', '0', '0') ]
 
 
         # timing parameters
@@ -67,7 +69,8 @@ class KExtConfig(object):
         self.attrs['plugin']['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%self.home
         self.attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%self.home
 
-        self.options.append( (self.opt_invocation, ["--invocation"], {'dest':"invocation", 'action':'store', 'type':'string', 'default':None, 'help':"Nth invocation of kernel for data collection"}) )
+        self.options.append( (self.opt_invocation, ["--invocation"], {'dest':"invocation", 'action':'append', 'type':'string', 'default':None, 'help':"(process, thread, invocation) pairs of kernel for data collection"}) )
+        self.options.append( (self.opt_openmp, ["--openmp"], {'dest':"openmp", 'action':'store_true', 'default':False, 'help':"Specifying OpenMP support"}) )
         self.options.append( (self.opt_mpi, ["--mpi"], {'dest':"mpi", 'action':'append', 'type':'string', 'default':None, 'help':"MPI information for data collection"}) )
         self.options.append( (self.opt_timing, ["--timing"], {'dest':"timing", 'action':'store', 'type':'string', 'default':None, 'help':"Timing measurement information"}) )
         self.options.append( (self.opt_kernel_compile, ["--kernel-compile"], {'dest':"kernel_compile", 'action':'append', 'type':'string', 'help':"Compile information to generate kernel makefile"}) )
@@ -83,16 +86,28 @@ class KExtConfig(object):
 
     # parsing invocation parameters
     def opt_invocation(self, opt):
-        self.attrs['invocation']['numbers'] = []
-        if opt.find(',')>0:
-            print 'ERROR: Please use colon to separate invocation numbers of invocation flag instead of comma.'
-            sys.exit(-1)
+        self.attrs['invocation']['triples'] = []
+        for line in opt:
+            for invocation in line.split(','):
+                tri = invocation.split(':'):
+                lentri = len(tri)
 
-        for ord in opt.split(':'):
-            if ord.isdigit():
-                self.attrs['invocation']['numbers'].append(ord)
-        self.attrs['invocation']['numbers'].sort()
-        self.attrs['invocation']['size'] = len(self.attrs['invocation']['numbers'])
+                if lentri > 3: raise UserException('Wrong invocation syntax.')
+
+                if lentri > 2: proc = tri[-3]
+                else: proc = '0'
+
+                if lentri > 1: thread = tri[-2]
+                else: thread = '0'
+
+                if lentri > 0: invoke = tri[-1]
+                else: invoke = '0'
+
+                self.attrs['invocation']['triples'].append((proc, thread, invoke))
+
+    # parsing OpenMP parameters
+    def opt_openmp(self, opt):
+        self.attrs['openmp']['enabled'] = True
 
     # parsing MPI parameters
     def opt_mpi(self, opt):
@@ -106,8 +121,10 @@ class KExtConfig(object):
                     mod_name, identifier = value.split(':')
                     self.attrs['mpi']['use_stmts'].append((mod_name, [identifier]))
                 elif key=='ranks':
-                    self.attrs['mpi'][key] = value.split(':')
-                    self.attrs['mpi']['size'] = len(self.attrs['mpi'][key])
+                    print 'ranks subflag for mpi is not supported. Please use invocation flag instead'
+                    sys.exit(-1)
+                    #self.attrs['mpi'][key] = value.split(':')
+                    #self.attrs['mpi']['size'] = len(self.attrs['mpi'][key])
                 elif key=='header':
                     self.attrs['mpi'][key] = value
                 else:
