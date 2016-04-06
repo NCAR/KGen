@@ -1,4 +1,4 @@
-# kgen_app.py
+# kgen_tool.py
 
 from kgen_utils import Logger, UserException, ProgramException, KGGenType
 from kgen_state import State
@@ -7,7 +7,7 @@ from kgen_prepost import preprocess, postprocess
 from kgen_genfile import genkobj, KERNEL_ID_0, append_item_in_part, UNIT_PART, Gen_Statement
 import block_statements
 
-class KGenApp(object):
+class KGenTool(object):
     def execute(self):
 
         self._trees = []

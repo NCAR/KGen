@@ -25,9 +25,9 @@ from kgen_utils import Logger, Config, ProgramException, KGGenType
 from kgen_state import State
 from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register
 from genmake import generate_makefile
-from kgen_app import KGenApp
+from kgen_tool import KGenTool
 
-class CDetectApp(KGenApp):
+class CDetectTool(KGenTool):
     def initialize(self):
         myconfig = CoverConfig(KGEN_CDETECT)
 
@@ -84,4 +84,10 @@ class CDetectApp(KGenApp):
 
         generate_makefile()
         Logger.info('Makefiles are generated', stdout=True)
+
+        # clean, build and run application
+
+        # analyze output
+
+        # generate result
 

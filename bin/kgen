@@ -7,5 +7,5 @@ KGEN_EXTRACTOR = '%s/../kgentools/kernel_extractor'%os.path.dirname(os.path.real
 sys.path.insert(0, KGEN_EXTRACTOR)
 
 if __name__ == "__main__":
-    from kext_app import KExtApp
-    sys.exit(KExtApp().execute())
+    from kext_tool import KExtTool
+    sys.exit(KExtTool().execute())
