@@ -19,9 +19,9 @@ if sys.hexversion < 0x020700F0:
     print 'ERROR: KGEN works with Python Version 2.7 or later.'
     sys.exit(-1)
 
-KGEN_HOME = '%s/../..'%os.path.dirname(os.path.realpath(__file__))
+KGEN_EXTRACTOR = os.path.dirname(os.path.realpath(__file__))
+KGEN_HOME = '%s/../..'%KGEN_EXTRACTOR
 KGEN_BASE = '%s/base'%KGEN_HOME
-KGEN_EXTRACTOR = '%s/kgentools/kernel_extractor'%KGEN_HOME
 
 sys.path.insert(0, KGEN_BASE)
 sys.path.insert(0, KGEN_EXTRACTOR)

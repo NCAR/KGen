@@ -3,7 +3,7 @@
 import sys
 import os
 
-KGEN_EXTRACTOR = '%s/../kgentools/kernel_extractor'%os.path.dirname(os.path.realpath(__file__))
+KGEN_EXTRACTOR = '%s/../kgenapps/kernel_extractor'%os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, KGEN_EXTRACTOR)
 
 if __name__ == "__main__":

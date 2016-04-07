@@ -3,7 +3,7 @@
 import sys
 import os
 
-KGEN_CDETECT = '%s/../kgentools/coverage_detector'%os.path.dirname(os.path.realpath(__file__))
+KGEN_CDETECT = '%s/../kgenapps/coverage_detector'%os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, KGEN_CDETECT)
 
 if __name__ == "__main__":
