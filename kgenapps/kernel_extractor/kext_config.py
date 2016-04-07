@@ -1,6 +1,6 @@
 # kext_config.py
 
-
+import sys
 from ordereddict import OrderedDict
 
 class KExtConfig(object):
@@ -70,7 +70,7 @@ class KExtConfig(object):
         self.attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%self.home
 
         self.options.append( (self.opt_invocation, ["--invocation"], {'dest':"invocation", 'action':'append', 'type':'string', 'default':None, 'help':"(process, thread, invocation) pairs of kernel for data collection"}) )
-        self.options.append( (self.opt_openmp, ["--openmp"], {'dest':"openmp", 'action':'store_true', 'default':False, 'help':"Specifying OpenMP support"}) )
+        self.options.append( (self.opt_openmp, ["--openmp"], {'dest':"openmp", 'action':'append', 'type':'string', 'default':None, 'help':"Specifying OpenMP options"}) )
         self.options.append( (self.opt_mpi, ["--mpi"], {'dest':"mpi", 'action':'append', 'type':'string', 'default':None, 'help':"MPI information for data collection"}) )
         self.options.append( (self.opt_timing, ["--timing"], {'dest':"timing", 'action':'store', 'type':'string', 'default':None, 'help':"Timing measurement information"}) )
         self.options.append( (self.opt_kernel_compile, ["--kernel-compile"], {'dest':"kernel_compile", 'action':'append', 'type':'string', 'help':"Compile information to generate kernel makefile"}) )
@@ -89,7 +89,7 @@ class KExtConfig(object):
         self.attrs['invocation']['triples'] = []
         for line in opt:
             for invocation in line.split(','):
-                tri = invocation.split(':'):
+                tri = invocation.split(':')
                 lentri = len(tri)
 
                 if lentri > 3: raise UserException('Wrong invocation syntax.')
@@ -108,6 +108,13 @@ class KExtConfig(object):
     # parsing OpenMP parameters
     def opt_openmp(self, opt):
         self.attrs['openmp']['enabled'] = True
+        for line in opt:
+            for openmp in line.split(','):
+                key, value = openmp.split('=')
+                if key=='enabled':
+                    pass
+                else:
+                    raise UserException('Unknown OpenMP option: %s' % openmp)
 
     # parsing MPI parameters
     def opt_mpi(self, opt):
@@ -127,6 +134,8 @@ class KExtConfig(object):
                     #self.attrs['mpi']['size'] = len(self.attrs['mpi'][key])
                 elif key=='header':
                     self.attrs['mpi'][key] = value
+                elif key=='enabled':
+                    pass
                 else:
                     raise UserException('Unknown MPI option: %s' % mpi)
 
