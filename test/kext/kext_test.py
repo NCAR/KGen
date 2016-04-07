@@ -18,7 +18,8 @@ class KExtTest(KGenTest):
         out, err, retcode = self.run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
 
         # debug
-        #print out
+        #print ' '.join(cmds)
+        print out
 
         if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err or retcode!=0:
             return False, out, err

@@ -1055,7 +1055,6 @@ class Gen_BeginStatement(object):
                 new_order.append(name)
 
         if not matched:
-            import pdb; pdb.set_trace()
             raise ProgramException('Wrong sequence of stmt type: %s'%item.kgen_stmt.__class__)
 
         return new_order

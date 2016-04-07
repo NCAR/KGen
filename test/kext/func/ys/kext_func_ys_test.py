@@ -53,7 +53,7 @@ class KExtFuncYSTest(KExtFuncTest):
 
         result[myname]['srcfiles'] = dest_files
 
-        result[myname]['status'] = self.PASSED
+        self.set_status(result, myname, self.PASSED)
         return result
 
     def generate(self, myname, result):

@@ -117,6 +117,21 @@ class GeneralAssignment(Statement):
     _repr_attr_names = ['variable','sign','expr'] + Statement._repr_attr_names
 
     def process_item(self):
+        # start of KGEN addition
+        from block_statements import declaration_construct
+
+        def get_names(node, bag, depth):
+            from Fortran2003 import Name
+            if isinstance(node, Name) and node.string not in bag:
+                bag.append(node.string)
+
+        def get_partrefs(node, bag, depth):
+            from Fortran2003 import Part_Ref
+            if isinstance(node, Part_Ref):
+                bag.append(True)
+
+        # end of KGEN addition
+
         m = self.item_re(self.item.get_line())
         if not m:
             self.isvalid = False
@@ -147,6 +162,28 @@ class GeneralAssignment(Statement):
                 return
         self.variable = apply_map(v1)
         self.expr = apply_map(m.group('expr'))
+
+        # start of KGEN addition
+        child = None
+        for child in reversed(self.parent.content):
+            if not isinstance(child, Comment):
+                break
+        if child and child.__class__ in declaration_construct:
+            try:
+                self.__class__ = StmtFuncStatement
+                self.parse_f2003()
+                arg_names = []; traverse(self.f2003.items[1], get_names, arg_names)
+                expr_names = []; traverse(self.f2003.items[2], get_names, expr_names)
+                partrefs = []; traverse(self.f2003.items[2], get_partrefs, partrefs)
+                if args_names!=expr_names or any(partref):
+                    self.__class__ = Assignment
+            except:
+                self.__class__ = Assignment
+            finally:
+                if hasattr(self, 'f2003'):
+                    delattr(self, 'f2003')
+        # end of KGEN addition
+
         return
 
     # start of KGEN addition
@@ -167,6 +204,11 @@ class Assignment(GeneralAssignment):
 class PointerAssignment(GeneralAssignment):
     f2003_class = Fortran2003.Pointer_Assignment_Stmt # KGEN addition
     pass
+
+# start of KGEN addition
+class StmtFuncStatement(GeneralAssignment):
+    f2003_class = Fortran2003.Stmt_Function_Stmt # KGEN addition
+# end of KGEN addition
 
 class Assign(Statement):
     """
