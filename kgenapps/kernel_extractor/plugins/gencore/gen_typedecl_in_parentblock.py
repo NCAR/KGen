@@ -447,7 +447,12 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
             if var.is_array() and stmt.is_numeric():
-                attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), 'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}
+                if isinstance(stmt, typedecl_statements.Real):
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
+                        'kgen_array_sum', 'REAL(SUM(%s, mask=ieee_is_normal(%s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
+                else:
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
+                        'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}
                 part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
@@ -461,7 +466,12 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
 
             if var.is_array() and stmt.is_numeric():
-                attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), 'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}
+                if isinstance(stmt, typedecl_statements.Real):
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
+                        'kgen_array_sum', 'REAL(SUM(%s, mask=ieee_is_normal(%s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
+                else:
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
+                        'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}
                 part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):

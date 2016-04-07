@@ -151,7 +151,10 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
                     if stmt.is_numeric():
-                        attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%entity_name, 'kgen_array_sum', 'REAL(SUM(var), 8)', '.TRUE.']}
+                        if isinstance(stmt, typedecl_statements.Real):
+                            attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%entity_name, 'kgen_array_sum', 'REAL(SUM(var, mask=ieee_is_normal(var)), 8)', '.TRUE.']}
+                        else:
+                            attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%entity_name, 'kgen_array_sum', 'REAL(SUM(var), 8)', '.TRUE.']}
                         part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
                     if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
