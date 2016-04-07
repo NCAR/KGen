@@ -46,6 +46,9 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp', 'kgen_array_sumcheck']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
+        attrs = {'name':'IEEE_ARITHMETIC', 'nature': 'INTRINSIC', 'isonly': True, 'items':['ieee_is_normal']}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+
         attrs = {'name':getinfo('topblock_stmt').name, 'isonly': True, 'items':[getinfo('parentblock_stmt').name]}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
         part_append_comment(node, USE_PART, '')

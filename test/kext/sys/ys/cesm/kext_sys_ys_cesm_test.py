@@ -74,6 +74,8 @@ class KExtSysYSCesmTest(KExtSysYSTest):
         # include.ini was created manually
 
         result[myname]['srcmods'] = '%s/SourceMods'%casedir
+        # TODO : remove files in srcmods
+        
         result[myname]['casedir'] = casedir
         result[myname]['casename'] = casename
 
