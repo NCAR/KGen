@@ -895,11 +895,14 @@ def search_Data_Implied_Do(stmt, node, gentype=None):
     get_name_or_defer(stmt, node.items[4], res_value)
 
 def search_Ac_Spec(stmt, node, gentype=None):
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
     defer(stmt, node.items[0])
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Sequence_Stmt(stmt, node, gentype=None):
     pass
 
+def search_Stmt_Function_Stmt(stmt, node, gentype=None):
+    get_name_or_defer(stmt, node.items[0], res_typedecl)
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+    pass
