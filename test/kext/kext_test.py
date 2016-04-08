@@ -19,7 +19,7 @@ class KExtTest(KGenTest):
 
         # debug
         #print ' '.join(cmds)
-        print out
+        #print out
 
         if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err or retcode!=0:
             return False, out, err

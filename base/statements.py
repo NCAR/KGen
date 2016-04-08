@@ -23,7 +23,8 @@ __all__ = ['GeneralAssignment',
            'FinalBinding','Allocatable','Asynchronous','Bind','Else','ElseIf',
            'Case','WhereStmt','ElseWhere','Enumerator','FortranName','Threadsafe',
            'Depend','Check','CallStatement','CallProtoArgument','Pause',
-           'Comment']
+           'Comment', 'StmtFuncStatement'] # KGEN addition
+           #'Comment'] # KGEN deletion
 
 import re
 import os
@@ -117,20 +118,6 @@ class GeneralAssignment(Statement):
     _repr_attr_names = ['variable','sign','expr'] + Statement._repr_attr_names
 
     def process_item(self):
-        # start of KGEN addition
-        from block_statements import declaration_construct
-
-        def get_names(node, bag, depth):
-            from Fortran2003 import Name
-            if isinstance(node, Name) and node.string not in bag:
-                bag.append(node.string)
-
-        def get_partrefs(node, bag, depth):
-            from Fortran2003 import Part_Ref
-            if isinstance(node, Part_Ref):
-                bag.append(True)
-
-        # end of KGEN addition
 
         m = self.item_re(self.item.get_line())
         if not m:
@@ -162,28 +149,6 @@ class GeneralAssignment(Statement):
                 return
         self.variable = apply_map(v1)
         self.expr = apply_map(m.group('expr'))
-
-        # start of KGEN addition
-        child = None
-        for child in reversed(self.parent.content):
-            if not isinstance(child, Comment):
-                break
-        if child and child.__class__ in declaration_construct:
-            try:
-                self.__class__ = StmtFuncStatement
-                self.parse_f2003()
-                arg_names = []; traverse(self.f2003.items[1], get_names, arg_names)
-                expr_names = []; traverse(self.f2003.items[2], get_names, expr_names)
-                partrefs = []; traverse(self.f2003.items[2], get_partrefs, partrefs)
-                if args_names!=expr_names or any(partref):
-                    self.__class__ = Assignment
-            except:
-                self.__class__ = Assignment
-            finally:
-                if hasattr(self, 'f2003'):
-                    delattr(self, 'f2003')
-        # end of KGEN addition
-
         return
 
     # start of KGEN addition
@@ -206,8 +171,84 @@ class PointerAssignment(GeneralAssignment):
     pass
 
 # start of KGEN addition
-class StmtFuncStatement(GeneralAssignment):
-    f2003_class = Fortran2003.Stmt_Function_Stmt # KGEN addition
+class StmtFuncStatement(Statement):
+    """
+        R1238
+        function-name ( [ dummy-arg-name-list ] ) = scalar-expr
+    """
+
+    f2003_class = Fortran2003.Stmt_Function_Stmt
+
+    match = re.compile(r'\w[^=]*\s*=\>?').match
+    item_re = re.compile(r'(?P<variable>\w[^=]*)\s*(?P<sign>=\>?)\s*(?P<expr>.*)\Z',re.I).match
+    _repr_attr_names = ['variable','sign','expr'] + Statement._repr_attr_names
+
+    def process_item(self):
+        from block_statements import declaration_construct
+
+        def get_names(node, bag, depth):
+            from Fortran2003 import Name
+            if isinstance(node, Name) and node.string not in bag:
+                bag.append(node.string)
+
+        def get_partrefs(node, bag, depth):
+            from Fortran2003 import Part_Ref
+            if isinstance(node, Part_Ref):
+                bag.append(True)
+
+
+        m = self.item_re(self.item.get_line())
+        if not m:
+            self.isvalid = False
+            return
+        self.sign = sign = m.group('sign')
+        if sign != '=':
+            self.isvalid = False
+            return
+
+        apply_map = self.item.apply_map
+        v1 = v = m.group('variable').replace(' ','')
+        while True:
+            i = v.find(')')
+            if i==-1:
+                break
+            v = v[i+1:]
+            if v.startswith('(') or v.startswith(r'%'):
+                continue
+            if v:
+                self.isvalid = False
+                return
+        self.func_stmt = apply_map(v1)
+        self.scalar_expr = apply_map(m.group('expr'))
+
+        child = None
+        for child in reversed(self.parent.content):
+            if not isinstance(child, Comment):
+                break
+        if child and child.__class__ in declaration_construct:
+            try:
+                self.parse_f2003()
+                arg_names = []; traverse(self.f2003.items[1], get_names, arg_names)
+                expr_names = []; traverse(self.f2003.items[2], get_names, expr_names)
+                partrefs = []; traverse(self.f2003.items[2], get_partrefs, partrefs)
+                if arg_names!=expr_names or any(partrefs):
+                    self.isvalid = False
+            except:
+                self.isvalid = False
+            finally:
+                if hasattr(self, 'f2003'):
+                    delattr(self, 'f2003')
+        else: self.isvalid = False
+        return
+
+    def tokgen(self):
+        return '%s %s %s' % (self.func_stmt, self.sign, self.scalar_expr)
+
+    def tofortran(self, isfix=None):
+        return self.get_indent_tab(isfix=isfix) + '%s %s %s' \
+               % (self.func_stmt, self.sign, self.scalar_expr)
+
+    def analyze(self): return
 # end of KGEN addition
 
 class Assign(Statement):

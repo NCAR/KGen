@@ -1565,7 +1565,8 @@ internal_subprogram_part = [ Contains, ] + internal_subprogram
 
 declaration_construct = [ TypeDecl, Entry, Enum, Format, Interface,
     Parameter, ModuleProcedure, ] + specification_stmt + \
-    type_declaration_stmt
+    type_declaration_stmt + [ StmtFuncStatement ] # KGEN addition
+    #type_declaration_stmt # KGEN deletion
 # stmt-function-stmt
 
 implicit_part = [ Implicit, Parameter, Format, Entry ]

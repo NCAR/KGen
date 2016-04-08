@@ -6,8 +6,8 @@ module kernel
 
         subroutine add(a1, a2, a3)
 
-                !real(kind=4) F, G, s
-                real(kind=4) s
+                real(kind=4) F, G, s
+                !real(kind=4) s
                 real(kind=4), dimension(:,:,:,:), intent(in) :: a1
                 real(kind=4), dimension(:,:,:,:), intent(in) :: a2
                 F(a,b) = a + b
