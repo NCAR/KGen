@@ -110,34 +110,38 @@ class KExtConfig(object):
         self.attrs['openmp']['enabled'] = True
         for line in opt:
             for openmp in line.split(','):
-                key, value = openmp.split('=')
-                if key=='enabled':
+                if openmp=='enable':
                     pass
                 else:
-                    raise UserException('Unknown OpenMP option: %s' % openmp)
+#                    key, value = openmp.split('=')
+#                    if key=='enabled':
+#                        pass
+#                    else:
+                     raise UserException('Unknown OpenMP option: %s' % openmp)
 
     # parsing MPI parameters
     def opt_mpi(self, opt):
         self.attrs['mpi']['enabled'] = True
         for line in opt:
             for mpi in line.split(','):
-                key, value = mpi.split('=')
-                if key=='comm':
-                    self.attrs['mpi'][key] = value
-                elif key=='use':
-                    mod_name, identifier = value.split(':')
-                    self.attrs['mpi']['use_stmts'].append((mod_name, [identifier]))
-                elif key=='ranks':
-                    print 'ranks subflag for mpi is not supported. Please use invocation flag instead'
-                    sys.exit(-1)
-                    #self.attrs['mpi'][key] = value.split(':')
-                    #self.attrs['mpi']['size'] = len(self.attrs['mpi'][key])
-                elif key=='header':
-                    self.attrs['mpi'][key] = value
-                elif key=='enabled':
+                if mpi=='enable':
                     pass
                 else:
-                    raise UserException('Unknown MPI option: %s' % mpi)
+                    key, value = mpi.split('=')
+                    if key=='comm':
+                        self.attrs['mpi'][key] = value
+                    elif key=='use':
+                        mod_name, identifier = value.split(':')
+                        self.attrs['mpi']['use_stmts'].append((mod_name, [identifier]))
+                    elif key=='ranks':
+                        print 'ranks subflag for mpi is not supported. Please use invocation flag instead'
+                        sys.exit(-1)
+                        #self.attrs['mpi'][key] = value.split(':')
+                        #self.attrs['mpi']['size'] = len(self.attrs['mpi'][key])
+                    elif key=='header':
+                        self.attrs['mpi'][key] = value
+                    else:
+                        raise UserException('Unknown MPI option: %s' % mpi)
 
     # parsing kernel makefile parameters
     def opt_kernel_compile(self, opt):
