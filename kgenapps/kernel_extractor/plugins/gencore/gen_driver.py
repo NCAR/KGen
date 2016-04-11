@@ -60,30 +60,15 @@ class Gen_K_Driver(Kgen_Plugin):
             part_append_comment(node, DECL_PART, 'Uncomment following line to include a MPI header file.')
             part_append_comment(node, DECL_PART, 'include "mpif.h"')
             part_append_comment(node, DECL_PART, '')
-#
-#        if getinfo('is_mpi_app'):
-#            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpi_rank']}
-#            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-#        
-#            attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_mpi_rank_conv'], 'selector':('16', None)}
-#            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-#
-#            attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER', 'DIMENSION(%s)'%getinfo('mpi_rank_size')], \
-#                'entity_decls': ['kgen_mpi_rank_at = (/ %s /)'%', '.join(getinfo('mpi_ranks'))]}
-#            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-#
-#        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_unit', 'kgen_counter', 'kgen_repeat_counter']}
-#        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-#
-#        attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_counter_conv'], 'selector':('16', None)}
-#        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-#
-#        attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER', 'DIMENSION(%s)'%getinfo('invocation_size')], \
-#            'entity_decls': ['kgen_counter_at = (/ %s /)'%', '.join(getinfo('invocation_numbers'))]}
-#        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-#
-#        attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
-#        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr_list', 'kgen_unit_list']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_unit', 'kgen_count']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_total_time'], 'selector': (None, 'kgen_dp')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
@@ -104,68 +89,65 @@ class Gen_K_Driver(Kgen_Plugin):
 
         attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_count', 'sign': '=', 'expr': '0'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
         part_append_comment(node, EXEC_PART, '')
-       
-#        # file open head
-#        if getinfo('is_mpi_app'):
-#            repeat_count = getinfo('mpi_rank_size') * getinfo('invocation_size')
-#        else:
-#            repeat_count = getinfo('invocation_size')
-#
-#        attrs = {'loopcontrol': 'kgen_repeat_counter = 0, %d'%(repeat_count-1)}
-#        doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
-#        part_append_comment(doobj, EXEC_PART, '')
-#
-#        if getinfo('is_mpi_app'):
-#            attrs = {'variable': 'kgen_mpi_rank', 'sign': '=', 'expr': 'kgen_mpi_rank_at(kgen_repeat_counter/%d + 1)'%getinfo('invocation_size')}
-#            part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#            attrs = {'items': ['kgen_mpi_rank'], 'specs': ['kgen_mpi_rank_conv', '*']}
-#            part_append_genknode(doobj, EXEC_PART, statements.Write, attrs=attrs)
-#
-#        attrs = {'variable': 'kgen_counter', 'sign': '=', 'expr': 'kgen_counter_at(mod(kgen_repeat_counter, %d) + 1)'%getinfo('invocation_size')}
-#        part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#        attrs = {'items': ['kgen_counter'], 'specs': ['kgen_counter_conv', '*']}
-#        part_append_genknode(doobj, EXEC_PART, statements.Write, attrs=attrs)
-#
-#        if getinfo('is_mpi_app'):
-#            attrs = {'variable': 'kgen_filepath', 'sign': '=', 'expr': '"%s." // TRIM(ADJUSTL(kgen_counter_conv)) // "." // TRIM(ADJUSTL(kgen_mpi_rank_conv))'% \
-#                getinfo('kernel_name')}
-#            part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#        else:
-#            attrs = {'variable': 'kgen_filepath', 'sign': '=', 'expr': '"%s." // TRIM(ADJUSTL(kgen_counter_conv))'%getinfo('kernel_name')}
-#            part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#        attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-#        part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#        part_append_comment(doobj, EXEC_PART, '')
-#
-#        attrs = {'specs': ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="OLD"', 'ACCESS="STREAM"', \
-#            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-#            #'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr', 'CONVERT="BIG_ENDIAN"']}
-#        part_append_genknode(doobj, EXEC_PART, statements.Open, attrs=attrs)
-#
-#        attrs = {'expr': 'kgen_ierr /= 0'}
-#        ifobj = part_append_genknode(doobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-#
-#        attrs = {'designator': 'kgen_error_stop', 'items': ['"FILE OPEN ERROR: " // TRIM(ADJUSTL(kgen_filepath))']}
-#        part_append_genknode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
-#        part_append_comment(doobj, EXEC_PART, '')
-#
+
+        attrs = {'variable': 'kgen_unit_list', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+      
+        attrs = {'specs': ['UNIT=kgen_unit_list', 'FILE="state_file.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
+        part_append_genknode(node, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr_list /= 0'}
+        iflist = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['"Can not find state_file.lst in kernel directory."']}
+        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"state_file.lst is a text file that contains a list of paths to state data files."']}
+        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+
+        part_append_genknode(iflist, EXEC_PART, statements.Stop)
+
+        attrs = {'loopcontrol': 'WHILE ( kgen_ierr_list == 0 )'}
+        doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'items': ['kgen_filepath'], 'specs': ['UNIT = kgen_unit_list', 'FMT="(A)"', 'IOSTAT=kgen_ierr_list']}
+        part_append_genknode(doobj, EXEC_PART, statements.Read, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr_list == 0'}
+        ifread = part_append_genknode(doobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+        part_append_genknode(ifread, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath))', 'STATUS="OLD"', 'ACCESS="STREAM"', \
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+        part_append_genknode(ifread, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr == 0'}
+        ifopen = part_append_genknode(ifread, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['""']}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"***************** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' *****************"']}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
-        part_append_comment(node, EXEC_PART, '')
+        part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'variable': 'kgen_count', 'sign': '=', 'expr': 'kgen_count + 1'}
+        part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        part_append_comment(ifopen, EXEC_PART, '')
 
         # register gencore parts
-        namedpart_create_subpart(node, DRIVER_ALLOC_PART, EXEC_PART)
-        namedpart_create_subpart(node, DRIVER_READ_IN_ARGS, EXEC_PART)
-        namedpart_create_subpart(node, DRIVER_READ_IN_EXTERNS, EXEC_PART)
-        namedpart_create_subpart(node, DRIVER_CALLSITE_PART, EXEC_PART)
-        namedpart_create_subpart(node, DRIVER_DEALLOC_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen, DRIVER_ALLOC_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen, DRIVER_READ_IN_ARGS, EXEC_PART)
+        namedpart_create_subpart(ifopen, DRIVER_READ_IN_EXTERNS, EXEC_PART)
+        namedpart_create_subpart(ifopen, DRIVER_CALLSITE_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen, DRIVER_DEALLOC_PART, EXEC_PART)
 
 
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_READ_IN_ARGS, '')
@@ -178,8 +160,11 @@ class Gen_K_Driver(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, 'callsite part')
 
         attrs = {'specs': ['UNIT=kgen_unit']}
-        part_append_genknode(node, EXEC_PART, statements.Close, attrs=attrs)
+        part_append_genknode(ifopen, EXEC_PART, statements.Close, attrs=attrs)
         part_append_comment(node, EXEC_PART, '')
+
+        attrs = {'specs': ['UNIT=kgen_unit_list']}
+        part_append_genknode(node, EXEC_PART, statements.Close, attrs=attrs)
 
         part_append_comment(node, EXEC_PART, '')
 
@@ -189,11 +174,19 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['"******************************************************************************"']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        #attrs = {'items': ['"%s summary: Total number of verification cases: %d"'%(getinfo('kernel_name'), repeat_count)]}
-        #part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'expr': 'kgen_count == 0'}
+        ifcount = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        #attrs = {'items': ['"%s summary: Average call time of all calls (usec): ", kgen_total_time / %d'%(getinfo('kernel_name'), repeat_count)]}
-        #part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'items': ['"No data file is verified."'] }
+        part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        part_append_genknode(ifcount, EXEC_PART, statements.Else)
+
+        attrs = {'items': ['"%s summary: Total number of verification cases: "'%getinfo('kernel_name'), 'kgen_count']}
+        part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"%s summary: Average call time of all calls (usec): ", kgen_total_time / REAL(kgen_count)'%getinfo('kernel_name')]}
+        part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"******************************************************************************"']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)

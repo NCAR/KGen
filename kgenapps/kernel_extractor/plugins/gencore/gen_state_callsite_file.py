@@ -118,6 +118,57 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'items': ['"KGEN writes input state variables at count = "', 'counter']}
         part_append_gensnode(cntsubr, EXEC_PART, statements.Write, attrs=attrs)
 
+
+        #SUBROUTINE kgen_check_save(mpi_rank, mpi_size, openmp_num, openmp_size, invoke_num)
+        attrs = {'name': 'kgen_check_save', 'prefix': 'LOGICAL', \
+            'args': ['mpi_rank', 'mpi_size', 'openmp_num', 'openmp_size', 'invoke_num']}
+        checksubr = part_append_gensnode(node, SUBP_PART, block_statements.Function, attrs=attrs)
+        part_append_comment(node, SUBP_PART, '')
+
+        attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': \
+            ['mpi_rank', 'mpi_size', 'openmp_num', 'openmp_size', 'invoke_num']}
+        part_append_gensnode(checksubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['mpi_s', 'mpi_e', 'openmp_s', 'openmp_e', 'invoke_s', 'invoke_e']}
+        part_append_gensnode(checksubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        for (mpi_s, mpi_e), (openmp_s, openmp_e), (invoke_s, invoke_e) in getinfo('invocations'):
+
+            attrs = {'variable': 'mpi_s', 'sign': '=', 'expr': 'INT(%s)'%mpi_s.replace('e', '(mpi_size-1)')}
+            part_append_gensnode(checksubr, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'mpi_e', 'sign': '=', 'expr': 'INT(%s)'%mpi_e.replace('e', '(mpi_size-1)')}
+            part_append_gensnode(checksubr, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'openmp_s', 'sign': '=', 'expr': 'INT(%s)'%openmp_s.replace('e', '(openmp_size-1)')}
+            part_append_gensnode(checksubr, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'openmp_e', 'sign': '=', 'expr': 'INT(%s)'%openmp_e.replace('e', '(openmp_size-1)')}
+            part_append_gensnode(checksubr, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'invoke_s', 'sign': '=', 'expr': 'INT(%s)'%invoke_s.replace('e', '(invoke_size-1)')}
+            part_append_gensnode(checksubr, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'invoke_e', 'sign': '=', 'expr': 'INT(%s)'%invoke_e.replace('e', '(invoke_size-1)')}
+            part_append_gensnode(checksubr, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'expr': '(mpi_rank .GE. mpi_s) .AND. (mpi_rank .LE. mpi_e)'}
+            ifmpi = part_append_gensnode(checksubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'expr': '(openmp_num .GE. openmp_s) .AND. (openmp_num .LE. openmp_e)'}
+            ifopenmp = part_append_gensnode(ifmpi, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'expr': '(invoke_num .GE. invoke_s) .AND. (invoke_num .LE. invoke_e)'}
+            ifinvoke = part_append_gensnode(ifopenmp, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'variable': 'kgen_check_save', 'sign': '=', 'expr': '.TRUE.'}
+            part_append_gensnode(ifinvoke, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            part_append_gensnode(ifinvoke, EXEC_PART, statements.Return)
+
+        attrs = {'variable': 'kgen_check_save', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_gensnode(checksubr, EXEC_PART, statements.Assignment, attrs=attrs)
+
         if getinfo('is_mpi_app'):
             #SUBROUTINE kgen_print_mpirank_counter( rank, counter )
             attrs = {'name': 'kgen_print_mpirank_counter', 'args': ['rank', 'counter']}
@@ -140,6 +191,12 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
     def create_callsite_parts1(self, node):
 
+        # remove state list and state lock files
+        try: os.remove('%s/state_file_list.txt'%getinfo('kernel_path'))
+        except: pass
+        try: os.remove('%s/state_file.lock'%getinfo('kernel_path'))
+        except: pass
+        
         if getinfo('is_mpi_app'):
             mpi_use_stmts = getinfo('mpi_use')
             if mpi_use_stmts and len(mpi_use_stmts)>0:
@@ -170,7 +227,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_unit']}
             namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_unit2', 'kgen_ierr']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
         namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
@@ -231,11 +288,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
             part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'kgen_unit2', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
-
-
-        attrs = {'specs': ['UNIT=kgen_filepath', 'FMT="(A,I,A,I,A,I)"' ], 'items': [ '"%s/kernel/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
+        attrs = {'specs': ['UNIT=kgen_filepath', 'FMT="(A,I0,A,I0,A,I0)"' ], 'items': [ '"%s/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
         part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
         if getinfo('is_openmp_app'):
@@ -245,30 +298,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'specs': ['UNIT=kgen_unit', 'FILE=kgen_filepath', 'STATUS="REPLACE"', 'ACCESS="STREAM"', \
                 'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
-
-
-        
-        attrs = {'specs': ['FILE=kgen_filepath', 'EXIST=kgen_istrue' ]}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Inquire, attrs=attrs)
-
-        attrs = {'expr': 'kgen_istrue'}
-        ifistrue = part_append_gensnode(ifsave, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'specs': ['UNIT=kgen_unit2', 'FILE="%s/kernel/state_file_list.txt"'%getinfo('kernel_path'), 'STATUS="OLD"', \
-            'ACCESS="SEQUENTIAL"', 'FORM="FORMATTED"', 'ACTION="WRITE"', 'POSITION="APPEND"', 'IOSTAT=kgen_ierr']}
-        part_append_gensnode(ifistrue, EXEC_PART, statements.Open, attrs=attrs)
-
-        part_append_gensnode(ifistrue, EXEC_PART, statements.Else)
-
-        attrs = {'specs': ['UNIT=kgen_unit2', 'FILE="%s/kernel/state_file_list.txt"'%getinfo('kernel_path'), 'STATUS="NEW"', \
-            'ACCESS="SEQUENTIAL"', 'FORM="FORMATTED"', 'ACTION="WRITE"', 'POSITION="APPEND"', 'IOSTAT=kgen_ierr']}
-        part_append_gensnode(ifistrue, EXEC_PART, statements.Open, attrs=attrs)
-
-        attrs = {'specs': ['UNIT=kgen_unit2', 'FMT=*' ], 'items': [ 'kgen_filepath' ] }
-        part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'specs': [ 'UNIT=kgen_unit2' ]}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Close, attrs=attrs)
 
         namedpart_create_subpart(ifsave, STATE_PBLOCK_WRITE_IN_ARGS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_ARGS, '')

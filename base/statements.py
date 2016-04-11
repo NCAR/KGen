@@ -471,7 +471,7 @@ class Return(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        if self.expr:
+        if hasattr(self, 'expr') and self.expr:
             return 'RETURN %s' % (self.expr)
         return 'RETURN'
     # end of KGEN addition

@@ -305,7 +305,7 @@ def getinfo(name):
     elif name=='is_mpi_app': return Config.mpi['enabled']
     elif name=='mpi_comm': return Config.mpi['comm']
     elif name=='mpi_use': return Config.mpi['use_stmts']
-    elif name=='invocation_triples': return Config.invocation['triples']
+    elif name=='invocations': return Config.invocation['triples']
     elif name=='print_var_names': return Config.debug['printvar']
     elif name=='callsite_file_path': return Config.callsite['filepath']
     elif name=='callsite_stmts': return State.callsite['stmts']

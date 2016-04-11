@@ -1,6 +1,7 @@
 # kext_config.py
 
 import sys
+from kgen_utils import UserException
 from ordereddict import OrderedDict
 
 class KExtConfig(object):
@@ -89,21 +90,26 @@ class KExtConfig(object):
         self.attrs['invocation']['triples'] = []
         for line in opt:
             for invocation in line.split(','):
-                tri = invocation.split(':')
-                lentri = len(tri)
+                t = invocation.split(':')
+                if len(t) != 3:
+                    raise UserException('Wrong invocation syntax.')
 
-                if lentri > 3: raise UserException('Wrong invocation syntax.')
-
-                if lentri > 2: proc = tri[-3]
-                else: proc = '0'
-
-                if lentri > 1: thread = tri[-2]
-                else: thread = '0'
-
-                if lentri > 0: invoke = tri[-1]
-                else: invoke = '0'
-
-                self.attrs['invocation']['triples'].append((proc, thread, invoke))
+                triple = []
+                for pair in t:
+                    r = pair.split('-')
+                    if len(r)==1:
+                        triple.append((r[0],r[0]))
+                    elif len(r)==2:
+                        triple.append(r)
+                    else:
+                        raise UserException('Wrong invocation syntax.')
+                try:
+                    print triple
+                    int(triple[2][0])
+                    int(triple[2][1])
+                except:
+                    raise UserException('The last item in invocation triple should be number.')
+                self.attrs['invocation']['triples'].append(triple)
 
     # parsing OpenMP parameters
     def opt_openmp(self, opt):
