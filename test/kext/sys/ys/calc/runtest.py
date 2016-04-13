@@ -39,7 +39,6 @@ class Test(KExtSysYSTest):
         fc_flags = '-O3'
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _i='include.ini', \
-            _e='exclude.ini', \
             _I=tmpsrc, \
             __invocation='0-1:0:1,0-1:0:3', \
             __timing='repeat=1', \
@@ -47,11 +46,13 @@ class Test(KExtSysYSTest):
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
+            #__debug='printvar=:i,:j,:output',
+
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['calc.1.0', 'calc.1.1', 'calc.3.0', 'calc.3.1']
+            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.0.0.3', 'calc.1.0.1', 'calc.1.0.3']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

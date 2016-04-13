@@ -482,20 +482,24 @@ end subroutine kgen_print_check
 
 kgen_get_newunit = \
 """
-FUNCTION kgen_get_newunit() RESULT(new_unit)
-   INTEGER, PARAMETER :: UNIT_MIN=100, UNIT_MAX=1000000
-   LOGICAL :: is_opened
-   INTEGER :: nunit, new_unit, counter
+FUNCTION kgen_get_newunit() RESULT ( new_unit )
+    INTEGER, PARAMETER :: UNIT_MIN=100, UNIT_MAX=1000000
+    LOGICAL :: is_opened
+    INTEGER :: nunit, new_unit, counter
+    REAL :: r
 
-   new_unit = -1
-   DO counter=UNIT_MIN, UNIT_MAX
-       inquire(UNIT=counter, OPENED=is_opened)
-       IF (.NOT. is_opened) THEN
-           new_unit = counter
-           EXIT
-       END IF
-   END DO
-END FUNCTION
+    CALL RANDOM_SEED
+    new_unit = -1
+    DO counter=1, UNIT_MAX
+        CALL RANDOM_NUMBER(r)
+        nunit = INT(r*UNIT_MAX+UNIT_MIN)
+        INQUIRE (UNIT=nunit, OPENED=is_opened)
+        IF (.NOT. is_opened) THEN
+            new_unit = nunit
+            EXIT
+        END IF
+    END DO
+END FUNCTION kgen_get_newunit
 """
 
 kgen_error_stop = \
