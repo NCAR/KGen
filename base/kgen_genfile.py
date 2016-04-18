@@ -726,7 +726,11 @@ class Gen_Statement(object):
         maxline = Config.fort['maxlinelen'] - 2
         splitline = line.split(' ')
         stripline = line.strip()
-        if len(stripline)>0 and stripline[0]=='!':
+        ompline = stripline.upper().replace(' ', '')
+        isomp = False
+        if len(ompline)>4 and stripline[:5]=='!$OMP':
+            isomp = True
+        elif len(stripline)>0 and stripline[0]=='!':
             iscomment = True
         else:
             iscomment = False
@@ -737,7 +741,9 @@ class Gen_Statement(object):
             l += ' '
             if len(tmpline) + len(l) > maxline:
                 lines.append(tmpline+'&')
-                if iscomment:
+                if isomp:
+                    tmpline = indent[:] + '!$OMP ' + l
+                elif iscomment:
                     tmpline = indent[:] + '&!' + l
                 else:
                     tmpline = indent[:] + '&' + l

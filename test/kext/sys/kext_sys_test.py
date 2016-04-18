@@ -18,10 +18,12 @@ class KExtSysTest(KExtTest):
 
         # copy statefiles if they are newer.
         statefile = 'state_file.lst'
-        statelist = '%s/kernel/%s'%(workdir, statefile)
-        if os.path.exists('%s/%s'%(datadir, statefile)):
-            os.remove('%s/%s'%(datadir, statefile))
-        shutil.copyfile(statelist, '%s/%s'%(datadir, statefile))
+        kernel_sf = '%s/kernel/%s'%(workdir, statefile)
+        data_sf = '%s/data/%s'%(workdir, statefile)
+        if os.path.exists(kernel_sf) and os.path.exists(data_sf):
+            os.remove(data_sf)
+        if os.path.exists(kernel_sf):
+            shutil.copyfile(kernel_sf, data_sf)
 
         for statefile in statefiles:
             kerneldata = '%s/kernel/%s'%(workdir, statefile)

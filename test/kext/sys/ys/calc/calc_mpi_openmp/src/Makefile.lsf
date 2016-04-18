@@ -1,5 +1,5 @@
-ROW := 4
-COL := 4
+ROW := 256
+COL := 256
 
 FC := mpiifort
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
@@ -10,16 +10,16 @@ run: build
 build: demo.exe
 
 demo.exe: program.o update_mod.o calc_mod.o
-	${FC} -o $@ $^
+	${FC} -openmp -o $@ $^
 
 program.o: program.F90 update_mod.o
-	${FC} -c -o $@ $<
+	${FC} -openmp -c -o $@ $<
 
 update_mod.o: update_mod.F90 calc_mod.o
-	${FC} ${FC_FLAGS} -c -o $@ $<
+	${FC} -openmp ${FC_FLAGS} -c -o $@ $<
 
 calc_mod.o: calc_mod.F90
-	${FC} -c -o $@ $<
+	${FC} -openmp -c -o $@ $<
 
 clean:
 	rm -f *.exe *.o *.mod *.err *.out

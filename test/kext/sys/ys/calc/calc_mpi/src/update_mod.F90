@@ -9,11 +9,15 @@ CONTAINS
         INTEGER :: lsum, gsum(nranks)
         INTEGER, dimension(ROW, COL) :: output
         gsum = 0
+
+        output(:,:) = 0
+
         DO i=1, COL
             DO j=1, ROW
                 CALL calc(i, j, output)
             END DO
         END DO
+
         lsum = SUM(output)
         CALL mpi_gather(lsum, 1, MPI_INTEGER, &
             gsum, 1, MPI_INTEGER, &
