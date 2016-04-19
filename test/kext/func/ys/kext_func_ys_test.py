@@ -63,7 +63,7 @@ class KExtFuncYSTest(KExtFuncTest):
 
         passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
             'calling_module:calling_subroutine:add', _D='ROW=4,COLUMN=4', _I=tmpsrc, \
-            __invocation='1', \
+            __invocation='0:0:0', \
             __state_build='cmds="cd %s; make clean; make build"'%tmpsrc, \
             __state_run='cmds="cd %s; make run"'%tmpsrc, \
             __kernel_compile='FC="%s",FC_FLAGS="%s"'%(self.COMPILER, self.COMPILER_FLAGS), \
@@ -73,7 +73,7 @@ class KExtFuncYSTest(KExtFuncTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['add.1']
+            result[myname]['statefiles'] = ['add.0.0.0']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []
@@ -89,7 +89,8 @@ class KExtFuncYSTest(KExtFuncTest):
         result[myname]['stdout'] = out 
         result[myname]['stderr'] = err
 
-        if err:
+        if retcode != 0:
+            print (out, err, retcode)
             self.set_status(result, myname, self.FAILED, err)
             return result
 

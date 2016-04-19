@@ -1186,6 +1186,7 @@ class If(BeginStatement):
     def tofortran(self,isfix=None):
         return self.get_indent_tab(isfix=isfix) + self.tostr()
 
+    # start of KGEN addtion
     def tokgen(self):
         if hasattr(self, 'action_stmt'):
             line = self.action_stmt
@@ -1195,10 +1196,13 @@ class If(BeginStatement):
             raise Exception('Wrong If statement syntac')
 
         # remove label
-        line = self.remove_label(line)
-        line = self.remove_construct_name(line)
+        if hasattr(self, 'remove_label'):
+            line = self.remove_label(line)
+        if hasattr(self, 'self.remove_construct_name'):
+            line = self.self.remove_construct_name(line)
 
         return 'IF (%s) %s' % (self.expr, line)
+    # end of KGEN addtion
 
     def get_classes(self):
         return action_stmt

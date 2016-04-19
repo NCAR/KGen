@@ -104,7 +104,6 @@ class KExtConfig(object):
                     else:
                         raise UserException('Wrong invocation syntax.')
                 try:
-                    print triple
                     int(triple[2][0])
                     int(triple[2][1])
                 except:

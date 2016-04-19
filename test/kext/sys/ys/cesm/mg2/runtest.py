@@ -23,10 +23,11 @@ class Test(KExtSysYSCesmTest):
         fc_flags = '-no-opt-dynamic-align -fp-model source -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -xHost -O2'
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _i='include.ini', \
-            __invocation='10:50:100', \
+            __invocation='0:0:10,0:0:50,0:0:100,100:0:10,100:0:50,100:0:100,300:0:10,300:0:50,300:0:100', \
             __timing='repeat=1', \
             __intrinsic='skip,except=shr_spfn_mod:shr_spfn_gamma_nonintrinsic_r8:sum', \
-            __mpi='ranks=0:100:300,comm=mpicom,use="spmd_utils:mpicom"', \
+            __mpi='comm=mpicom,use="spmd_utils:mpicom"', \
+            __openmp='enable', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
@@ -34,9 +35,9 @@ class Test(KExtSysYSCesmTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['micro_mg_tend2_0.10.0', 'micro_mg_tend2_0.10.100', 'micro_mg_tend2_0.10.300', \
-                'micro_mg_tend2_0.50.0', 'micro_mg_tend2_0.50.100', 'micro_mg_tend2_0.50.300', \
-                'micro_mg_tend2_0.100.0', 'micro_mg_tend2_0.100.100', 'micro_mg_tend2_0.100.300']
+            result[myname]['statefiles'] = ['micro_mg_tend2_0.0.0.10', 'micro_mg_tend2_0.0.0.50', 'micro_mg_tend2_0.0.0.100', \
+                'micro_mg_tend2_0.100.0.10', 'micro_mg_tend2_0.100.0.50', 'micro_mg_tend2_0.100.0.100', \
+                'micro_mg_tend2_0.300.0.10', 'micro_mg_tend2_0.300.0.50', 'micro_mg_tend2_0.300.0.100']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

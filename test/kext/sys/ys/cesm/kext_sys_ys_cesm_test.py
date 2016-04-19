@@ -108,6 +108,8 @@ class KExtSysYSCesmTest(KExtSysYSTest):
             for statefile in statefiles:
                 shutil.copyfile(os.path.join(datadir, statefile), '%s/kernel/%s'%(workdir, statefile))
 
+            shutil.copyfile(os.path.join(datadir, 'state_file.lst'), '%s/kernel/state_file.lst'%workdir)
+
             result['goto'] = 'runkernel_task'
             self.set_status(result, myname, self.PASSED)
 

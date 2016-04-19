@@ -19,7 +19,7 @@ class Test(KExtSysYSPsradTest):
         fc_flags = '-fpp -g -traceback -m64 -O3 -xHost'
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _I='%s/src:%s/include'%(tmpsrc, tmpsrc), \
-            __invocation='2:10', \
+            __invocation='0:0:2,0:0:10', \
             __timing='repeat=10', \
             __intrinsic='skip,except="mo_lrtm_driver:planckfunction:index;mo_lrtm_driver:planckfunction:fraction"', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
@@ -30,7 +30,7 @@ class Test(KExtSysYSPsradTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['lrtm.2', 'lrtm.10']
+            result[myname]['statefiles'] = ['lrtm.0.0.2', 'lrtm.0.0.10']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

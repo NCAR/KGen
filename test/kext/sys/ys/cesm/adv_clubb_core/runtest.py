@@ -23,10 +23,11 @@ class Test(KExtSysYSCesmTest):
         fc_flags = '-no-opt-dynamic-align -fp-model source -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -xHost -O2 -mkl'
         passed, out, err = self.extract_kernel(srcfile, namepath, \
             _i='include.ini', \
-            __invocation='"10:50"', \
+            __invocation='"100:0-1:10,100:0-1:50,300:0-1:10,300:0-1:50,500:0-1:10,500:0-1:50"', \
             __source='format=free,strict=no,alias=/glade/scratch/youngsun:/glade/u/home/youngsun/trepo/temp', \
             __timing='repeat=1', \
-            __mpi='ranks=100:300:500,comm=mpicom,use="spmd_utils:mpicom"', \
+            __mpi='comm=mpicom,use="spmd_utils:mpicom"', \
+            __openmp='enable', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
@@ -36,8 +37,10 @@ class Test(KExtSysYSCesmTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['advance_clubb_core.10.100', 'advance_clubb_core.10.300', 'advance_clubb_core.10.500', \
-                'advance_clubb_core.50.100', 'advance_clubb_core.50.300', 'advance_clubb_core.50.500' ]
+            result[myname]['statefiles'] = ['advance_clubb_core.100.0.10', 'advance_clubb_core.100.1.10', 'advance_clubb_core.100.0.50', \
+                'advance_clubb_core.100.1.50', 'advance_clubb_core.300.0.10', 'advance_clubb_core.300.1.10', 'advance_clubb_core.300.0.50', \
+                'advance_clubb_core.300.1.50', 'advance_clubb_core.500.0.10', 'advance_clubb_core.500.1.10', 'advance_clubb_core.500.0.50', \
+                'advance_clubb_core.500.1.50' ]
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

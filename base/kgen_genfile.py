@@ -800,6 +800,7 @@ class Gen_Statement(object):
                     elif isinstance(self.kgen_stmt, base_classes.EndStatement):
                         self.kgen_gen_attrs['indent'] = self.kgen_parent.kgen_indent
                         cur_indent = self.kgen_parent.kgen_indent
+
                     return self.pack_fortran_line(cur_indent, self.tokgen(), unres_str)
                 else:
                     if isinstance(lines_str, str):

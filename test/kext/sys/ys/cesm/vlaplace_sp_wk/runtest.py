@@ -24,9 +24,10 @@ class Test(KExtSysYSCesmTest):
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _i='include.ini', \
             _e='exclude.ini', \
-            __invocation='1:10:30', \
+            __invocation='0:0:1,0:0:10,0:0:30,10:0:1,10:0:10,10:0:30,100:0:1,100:0:10,100:0:30,500:0:1,500:0:10,500:0:30', \
             __timing='repeat=100', \
-            __mpi='ranks=0:10:100:500,comm=mpicom,use="spmd_utils:mpicom"', \
+            __mpi='comm=mpicom,use="spmd_utils:mpicom"', \
+            __openmp='enable', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
@@ -34,9 +35,9 @@ class Test(KExtSysYSCesmTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['laplace_sphere_wk.1.0', 'laplace_sphere_wk.1.10', 'laplace_sphere_wk.1.100', 'laplace_sphere_wk.1.500', \
-                'laplace_sphere_wk.10.0', 'laplace_sphere_wk.10.10', 'laplace_sphere_wk.10.100', 'laplace_sphere_wk.10.500', \
-                'laplace_sphere_wk.30.0', 'laplace_sphere_wk.30.10', 'laplace_sphere_wk.30.100', 'laplace_sphere_wk.30.500' ]
+            result[myname]['statefiles'] = ['laplace_sphere_wk.0.0.1', 'laplace_sphere_wk.0.0.10', 'laplace_sphere_wk.0.0.30', 'laplace_sphere_wk.10.0.1', \
+                'laplace_sphere_wk.10.0.10', 'laplace_sphere_wk.10.0.30', 'laplace_sphere_wk.100.0.1', 'laplace_sphere_wk.100.0.10', \
+                'laplace_sphere_wk.100.0.30', 'laplace_sphere_wk.500.0.1', 'laplace_sphere_wk.500.0.10', 'laplace_sphere_wk.500.0.30' ]
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

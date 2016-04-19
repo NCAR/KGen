@@ -456,12 +456,15 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         if getinfo('is_openmp_app'):
             part_append_comment(ifsave, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
 
-        for stmt in getinfo('callsite_stmts'):
-            attrs = {}
-            for key, value in stmt.__dict__.items():
-                if not key.startswith('_'):
-                    attrs[key] = value
-            part_append_gensnode(ifsave, EXEC_PART, stmt.__class__, attrs=attrs) 
+        callsite_stmts = getinfo('callsite_stmts')
+
+        start = callsite_stmts[0].item.span[0]-1
+        end = callsite_stmts[-1].item.span[1]
+        lines = callsite_stmts[0].top.prep[start:end]
+        lines_str = '\n'.join(lines)
+        dummy_node = part_append_gensnode(ifsave, EXEC_PART, statements.Call)
+        dummy_node.kgen_stmt = getinfo('dummy_stmt')
+        dummy_node.kgen_forced_line = lines_str
 
         if getinfo('is_openmp_app'):
             part_append_comment(ifsave, EXEC_PART, 'END CRITICAL (kgen_kernel)', style='openmp')

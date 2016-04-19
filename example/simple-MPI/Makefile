@@ -14,8 +14,8 @@ test:
 		-i include.ini \
 		-I ${SRC_DIR}:${MPI_INC} \
 		-e exclude.ini \
-		--mpi ranks=0:1 \
-		--invocation 1:3 \
+		--mpi enable \
+		--invocation 0:0:1,0:0:3,1:0:1,1:0:3 \
 		--kernel-compile FC='${FC}',FC_FLAGS='${FC_FLAGS}' \
 		--timing repeat=1000 \
 		--state-build cmds="cd ${SRC_DIR}; make -f Makefile.mpirun build" \
