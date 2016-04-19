@@ -7,7 +7,7 @@ module calling_module
         contains
 
         subroutine calling_subroutine()
-                integer, parameter :: is_true = .TRUE.
+                logical, parameter :: is_true = .TRUE.
                 real(kind=4), dimension(2,2) :: ar1, ar2, ar3, ar4
 
                 ar1(:,:) = 1.0

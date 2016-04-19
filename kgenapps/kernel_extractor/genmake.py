@@ -94,6 +94,7 @@ def generate_kernel_makefile():
 
         write(f, 'FC := %s'%Config.kernel_compile['FC'])
         write(f, 'FC_FLAGS := %s'%Config.kernel_compile['FC_FLAGS'])
+        write(f, 'PRERUN := %s'%Config.kernel_compile['PRERUN'])
 #	write(f, 'verboselevel = %d'%Config.verify['verboselevel'])
         write(f, '')
         write(f, 'ALL_OBJS := %s'%' '.join(all_objs))
@@ -101,9 +102,9 @@ def generate_kernel_makefile():
 
         write(f, 'run: build')
         if Config.add_mpi_frame['enabled']:
-            write(f, '%s -np %s ./kernel.exe'%(Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
+            write(f, '${PRERUN}; %s -np %s ./kernel.exe'%(Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
         else:
-            write(f, './kernel.exe', t=True)
+            write(f, '${PRERUN}; ./kernel.exe', t=True)
         write(f, '')
 
         write(f, 'build: ${ALL_OBJS}')
@@ -111,16 +112,16 @@ def generate_kernel_makefile():
         #    write(f, 'bash -i -c "%s; ${FC} ${FC_FLAGS} %s -o kernel.exe $^"'%(pre_cmds, link_flags), t=True)
         #else:
         #    write(f, '${FC} ${FC_FLAGS} %s -o kernel.exe $^'%link_flags, t=True)
-        write(f, '${FC} ${FC_FLAGS} %s %s -o kernel.exe $^'%(link_flags, objects), t=True)
+        write(f, '${PRERUN}; ${FC} ${FC_FLAGS} %s %s -o kernel.exe $^'%(link_flags, objects), t=True)
         write(f, '')
 
         for dep_base in dep_bases:
             write(f, '%s: %s %s' % (obj(dep_base), dep_base, depends[dep_base]))
-            write(f, '${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
+            write(f, '${PRERUN}; ${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
             write(f, '')
 
         write(f, '%s: %s' % (obj(kgen_utils_file), kgen_utils_file))
-        write(f, '${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
+        write(f, '${PRERUN}; ${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
         write(f, '')
            
         write(f, 'clean:')

@@ -744,9 +744,19 @@ class Gen_Statement(object):
                 if isomp:
                     tmpline = indent[:] + '!$OMP ' + l
                 elif iscomment:
-                    tmpline = indent[:] + '&!' + l
+                    tmpline = indent[:] + '!' + l
                 else:
                     tmpline = indent[:] + '&' + l
+
+                while len(tmpline) > maxline:
+                    lines.append(tmpline[:maxline]+'&')
+                    p = tmpline[maxline:]
+                    if isomp:
+                        tmpline = indent[:] + '!$OMP ' + p
+                    elif iscomment:
+                        tmpline = indent[:] + '!' + p
+                    else:
+                        tmpline = indent[:] + '&' + p
             else:
                 tmpline += l
 

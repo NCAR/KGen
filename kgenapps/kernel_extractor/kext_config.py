@@ -44,6 +44,7 @@ class KExtConfig(object):
         self.attrs['kernel_compile'] = OrderedDict()
         self.attrs['kernel_compile']['FC'] = 'ifort'
         self.attrs['kernel_compile']['FC_FLAGS'] = ''
+        self.attrs['kernel_compile']['PRERUN'] = 'true'
 
         # make state parameters
         self.attrs['state_build'] = OrderedDict()
@@ -153,7 +154,7 @@ class KExtConfig(object):
         for line in opt:
             for comp in line.split(','):
                 key, value = comp.split('=')
-                if key in [ 'FC', 'FC_FLAGS' ] :
+                if key in [ 'FC', 'FC_FLAGS', 'PRERUN' ] :
                     self.attrs['kernel_compile'][key] = value
                 else:
                     raise UserException('Unknown kernel compile option: %s' % comp)

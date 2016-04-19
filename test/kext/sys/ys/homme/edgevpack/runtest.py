@@ -23,9 +23,10 @@ class Test(KExtSysYSHommeTest):
             _I='%s/src:%s/src/share:%s/test_execs/perfTest:%s'%(tmpsrc, tmpsrc, blddir, mpipath), \
             _e='exclude.ini', \
             _D='HAVE_CONFIG_H', \
-            __invocation='10:50', \
+            __invocation='0:0-1:10,0:0-1:50,10:0-1:10,10:0-1:50', \
             __timing='repeat=1', \
-            __mpi='ranks=0:10', \
+            __mpi='enable', \
+            __openmp='enable', \
             __kernel_compile='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
@@ -33,7 +34,8 @@ class Test(KExtSysYSHommeTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['edgevpack.10.0', 'edgevpack.10.10', 'edgevpack.50.0', 'edgevpack.50.10']
+            result[myname]['statefiles'] = ['edgevpack.0.0.10', 'edgevpack.0.0.50', 'edgevpack.0.1.10', 'edgevpack.0.1.50', \
+                'edgevpack.10.0.10', 'edgevpack.10.0.50', 'edgevpack.10.1.10', 'edgevpack.10.1.50']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

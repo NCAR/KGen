@@ -40,9 +40,11 @@ class KExtFuncYSTest(KExtFuncTest):
         return result
 
     def download(self, myname, result):
-        testfiles = [ os.path.join(self.TEST_DIR,f) for f in os.listdir(self.TEST_DIR) if \
+        srcdir = '%s/..'%self.TEST_DIR
+
+        testfiles = [ os.path.join(srcdir,f) for f in os.listdir(srcdir) if \
             f!=self.TEST_SCRIPT and f!='%sc'%self.TEST_SCRIPT and \
-            not f.startswith('.') and os.path.isfile(os.path.join(self.TEST_DIR, f))]
+            not f.startswith('.') and os.path.isfile(os.path.join(srcdir, f))]
 
         tmpsrc = result['mkdir_task']['tmpsrc']
 
@@ -60,13 +62,16 @@ class KExtFuncYSTest(KExtFuncTest):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['mkdir_task']['tmpsrc']
+        FC = result['config_task']['FC']
+        FC_FLAGS = result['config_task']['FC_FLAGS']
+        PRERUN = result['config_task']['PRERUN']
 
         passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
             'calling_module:calling_subroutine:add', _D='ROW=4,COLUMN=4', _I=tmpsrc, \
             __invocation='0:0:0', \
             __state_build='cmds="cd %s; make clean; make build"'%tmpsrc, \
             __state_run='cmds="cd %s; make run"'%tmpsrc, \
-            __kernel_compile='FC="%s",FC_FLAGS="%s"'%(self.COMPILER, self.COMPILER_FLAGS), \
+            __kernel_compile='FC="%s",FC_FLAGS="%s",PRERUN="%s"'%(FC, FC_FLAGS, PRERUN), \
             __outdir=workdir)
 
         result[myname]['stdout'] = out
@@ -84,8 +89,11 @@ class KExtFuncYSTest(KExtFuncTest):
 
         workdir = result['mkdir_task']['workdir']
         statefiles = result['generate_task']['statefiles']
+        FC = result['config_task']['FC']
+        FC_FLAGS = result['config_task']['FC_FLAGS']
+        PRERUN = result['config_task']['PRERUN']
 
-        out, err, retcode = self.run_shcmd('make', cwd='%s/state'%workdir)
+        out, err, retcode = self.run_shcmd('make FC="%s" FC_FLAGS="%s" PRERUN="%s"'%(FC, FC_FLAGS, PRERUN), cwd='%s/state'%workdir)
         result[myname]['stdout'] = out 
         result[myname]['stderr'] = err
 
@@ -107,29 +115,6 @@ class KExtFuncYSTest(KExtFuncTest):
         else:
             self.set_status(result, myname, self.FAILED, errmsg=str(outfiles))
         return result
-#
-#    def runkernel(self, myname, result):
-#        workdir = result['mkdir_task']['workdir']
-#
-#        out, err, retcode = self.run_shcmd('make', cwd='%s/kernel'%workdir)
-#
-#        result[myname]['stdout'] = out
-#        result[myname]['stderr'] = err
-#
-#        if err:
-#            result[myname]['status'] = self.FAILED
-#        else:
-#            result[myname]['status'] = self.PASSED
-#        return result
-
-#    def verify(self, myname, result):
-#        outcome = result['runkernel_task']['stdout']
-#
-#        if not outcome or outcome.find('FAILED')>0 or outcome.find('PASSED')<0:
-#            result[myname]['status'] = self.FAILED
-#        else:
-#            result[myname]['status'] = self.PASSED
-#        return result
 
     def rmdir(self, myname, result):
         workdir = result['mkdir_task']['workdir']
