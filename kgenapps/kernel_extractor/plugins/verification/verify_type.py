@@ -382,7 +382,12 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
                             else: # not numerical
-                                attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= kgenref_var%%%s)'%(entity_name, entity_name)}
+
+                                if stmt.name=='logical':
+                                    attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s .NEQV. kgenref_var%%%s)'%(entity_name, entity_name)}
+                                else:
+                                    attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= kgenref_var%%%s)'%(entity_name, entity_name)}
+
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}

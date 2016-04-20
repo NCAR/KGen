@@ -42,6 +42,12 @@ class KExtSysYSCesmTest(KExtSysYSTest):
         casename = 'KGENCESM'
         casedir = '%s/%s'%(systestdir, casename)
 
+        for fname in os.listdir('%s/SourceMods'%casedir):
+            if fname.startswith('src.') and os.path.isdir(os.path.join('%s/SourceMods'%casedir, fname)):
+                for srcfile in os.listdir('%s/SourceMods/%s'%(casedir, fname)):
+                    if os.path.isfile(os.path.join('%s/SourceMods/%s'%(casedir, fname), srcfile)):
+                        os.remove(os.path.join('%s/SourceMods/%s'%(casedir, fname), srcfile))
+
         datadir = '%s/data'%workdir
 
         if self.REBUILD or not os.path.exists(datadir) or len([name for name in os.listdir(datadir) if os.path.isfile(os.path.join(datadir, name))])==0:

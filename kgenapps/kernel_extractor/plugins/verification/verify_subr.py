@@ -376,7 +376,11 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
                 else: # not numerical
-                    attrs = {'variable': 'n', 'sign': '=', 'expr': 'COUNT(var /= kgenref_var)'}
+
+                    if stmt.name=='logical':
+                        attrs = {'variable': 'n', 'sign': '=', 'expr': 'COUNT(var .NEQV. kgenref_var)'}
+                    else:
+                        attrs = {'variable': 'n', 'sign': '=', 'expr': 'COUNT(var /= kgenref_var)'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}

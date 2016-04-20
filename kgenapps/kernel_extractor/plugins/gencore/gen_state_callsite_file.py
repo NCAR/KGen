@@ -49,8 +49,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         namedpart_link_part(node, STATE_PBLOCK_CONTAINS_PART, CONTAINS_PART)
         namedpart_link_part(node, STATE_PBLOCK_SUBP_PART, SUBP_PART)
 
-        attrs = {'name':'IEEE_ARITHMETIC', 'nature': 'INTRINSIC', 'isonly': True, 'items':['ieee_is_normal']}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_USE_PART, statements.Use, attrs=attrs)
+        #attrs = {'name':'IEEE_ARITHMETIC', 'nature': 'INTRINSIC', 'isonly': True, 'items':['ieee_is_normal']}
+        #namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_USE_PART, statements.Use, attrs=attrs)
 
         # ensure contains
         checks = lambda n: n.kgen_match_class==statements.Contains

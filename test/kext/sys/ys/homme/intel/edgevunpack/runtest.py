@@ -4,10 +4,10 @@ import os
 import sys
 import glob
 import shutil
-from kext_sys_ys_homme_test import KExtSysYSHommeTest
+from kext_sys_ys_homme_intel_test import KExtSysYSHommeIntelTest
 
 
-class Test(KExtSysYSHommeTest):
+class Test(KExtSysYSHommeIntelTest):
 
     def generate(self, myname, result):
 
@@ -16,11 +16,11 @@ class Test(KExtSysYSHommeTest):
         blddir = result['config_task']['blddir']
 
         srcfile = '%s/src/share/prim_advection_mod.F90'%tmpsrc
-        mpipath = '/ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include'
-        namepath = 'prim_advection_mod:euler_step:edgevpack'
+        namepath = 'prim_advection_mod:euler_step:edgevunpack'
         fc_flags = '-assume byterecl -fp-model precise -ftz -O3 -g -openmp'
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
-            _I='%s/src:%s/src/share:%s/test_execs/perfTest:%s'%(tmpsrc, tmpsrc, blddir, mpipath), \
+            _i='include.ini', \
+            _I='%s/src:%s/src/share:%s/test_execs/perfTest'%(tmpsrc, tmpsrc, blddir), \
             _e='exclude.ini', \
             _D='HAVE_CONFIG_H', \
             __invocation='0:0-1:10,0:0-1:50,10:0-1:10,10:0-1:50', \
@@ -34,8 +34,8 @@ class Test(KExtSysYSHommeTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['edgevpack.0.0.10', 'edgevpack.0.0.50', 'edgevpack.0.1.10', 'edgevpack.0.1.50', \
-                'edgevpack.10.0.10', 'edgevpack.10.0.50', 'edgevpack.10.1.10', 'edgevpack.10.1.50']
+            result[myname]['statefiles'] = ['edgevunpack.0.0.10', 'edgevunpack.0.0.50', 'edgevunpack.0.1.10', 'edgevunpack.0.1.50', \
+                'edgevunpack.10.0.10', 'edgevunpack.10.0.50', 'edgevunpack.10.1.10', 'edgevunpack.10.1.50']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

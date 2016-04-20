@@ -451,7 +451,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             if var.is_array() and stmt.is_numeric():
                 if isinstance(stmt, typedecl_statements.Real):
                     attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
-                        'kgen_array_sum', 'REAL(SUM(%s, mask=ieee_is_normal(%s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
+                        'kgen_array_sum', 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
                 else:
                     attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
                         'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}
@@ -470,7 +470,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             if var.is_array() and stmt.is_numeric():
                 if isinstance(stmt, typedecl_statements.Real):
                     attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
-                        'kgen_array_sum', 'REAL(SUM(%s, mask=ieee_is_normal(%s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
+                        'kgen_array_sum', 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
                 else:
                     attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
                         'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}

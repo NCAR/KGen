@@ -107,7 +107,7 @@ class Gen_Type(Kgen_Plugin):
         if var.is_array() and stmt.is_numeric():
             if isinstance(stmt, typedecl_statements.Real):
                 attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"var%%%s"'%entity_name, 'kgen_array_sum', \
-                    'REAL(SUM(var%%%s, mask=ieee_is_normal(var%%%s)), 8)'%(entity_name, entity_name), '.TRUE.']}
+                    'REAL(SUM(var%%%s, mask=(var%%%s .eq. var%%%s)), 8)'%(entity_name, entity_name, entity_name), '.TRUE.']}
             else:
                 attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"var%%%s"'%entity_name, 'kgen_array_sum', \
                     'REAL(SUM(var%%%s), 8)'%entity_name, '.TRUE.']}

@@ -276,7 +276,7 @@ def gen_write_istrue(pobj, var, ename):
 
     if var.is_array() and var.parent.is_numeric():
         if isinstance(var.parent, typedecl_statements.Real):
-            attrs = {'variable': 'kgen_array_sum', 'sign': '=', 'expr': 'REAL(SUM(%s, mask=ieee_is_normal(%s)), 8)'%(ename, ename)}
+            attrs = {'variable': 'kgen_array_sum', 'sign': '=', 'expr': 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename, ename, ename)}
         else:
             attrs = {'variable': 'kgen_array_sum', 'sign': '=', 'expr': 'REAL(SUM(%s), 8)'%ename}
         part_append_gensnode(pobj, EXEC_PART, statements.Assignment, attrs=attrs)

@@ -23,7 +23,7 @@ job_script = \
 %s
 
 # Pure MPI test 1
-/ncar/opt/intel/psxe-2015/impi/5.0.1.035/intel64/bin/mpirun %s < %s
+%s %s < %s
 """
 
 namelist = \
@@ -107,19 +107,6 @@ output_type       = 'netcdf'
 """
 
 class KExtSysYSHommeTest(KExtSysYSTest):
-    def get_prerun_cmds(self):
-        prerun_cmds = []
-        prerun_cmds.append('module purge')
-        prerun_cmds.append('module try-load ncarenv/1.0')
-        prerun_cmds.append('module try-load ncarbinlibs/1.1')
-        prerun_cmds.append('module try-load ncarcompilers/1.0')
-        prerun_cmds.append('module try-load intel/16.0.1')
-        prerun_cmds.append('module try-load impi/5.0.1.035')
-        prerun_cmds.append('module try-load netcdf/4.3.0')
-        prerun_cmds.append('module try-load pnetcdf/1.4.1')
-        prerun_cmds.append('module try-load cmake/2.8.10.2')
-
-        return prerun_cmds
 
     def download(self, myname, result):
 
@@ -137,58 +124,21 @@ class KExtSysYSHommeTest(KExtSysYSTest):
 
         # copy homme src into test specific src dir
         tmpsrc = '%s/homme_work'%systestdir
-        if os.path.exists(tmpsrc):
-            shutil.rmtree(tmpsrc)
-        shutil.copytree(appsrc, tmpsrc)
+#        if os.path.exists(tmpsrc):
+#            shutil.rmtree(tmpsrc)
+#        shutil.copytree(appsrc, tmpsrc)
+        if not os.path.exists(tmpsrc):
+            shutil.copytree(appsrc, tmpsrc)
+        else:
+            for fname in os.listdir('%s/src'%tmpsrc):
+                if fname.endswith('.kgen'):
+                    shutil.copyfile(os.path.join('%s/src'%tmpsrc, fname), os.path.join('%s/src'%tmpsrc, fname[:-5]))
+            for fname in os.listdir('%s/src/share'%tmpsrc):
+                if fname.endswith('.kgen'):
+                    shutil.copyfile(os.path.join('%s/src/share'%tmpsrc, fname), os.path.join('%s/src/share'%tmpsrc, fname[:-5]))
 
         result[myname]['appsrc'] = appsrc
         result[myname]['tmpsrc'] = tmpsrc
-
-        self.set_status(result, myname, self.PASSED)
-
-        return result
-
-    def config(self, myname, result):
-
-        workdir = result['mkdir_task']['workdir']
-        systestdir = result['mkdir_task']['sysdir']
-        tmpsrc = result['download_task']['tmpsrc']
-
-        blddir = '%s/bld'%workdir
-        if not os.path.exists(blddir):
-            os.mkdir(blddir)
-
-        result[myname]['blddir'] = blddir
-
-        datadir = '%s/data'%workdir
-
-        if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))])==0:
-
-            # prepare prerun command
-            prerun_cmds = self.get_prerun_cmds()
-            prerun_cmds.append('rm -rf CMakeFiles CMakeCache.txt')
-
-            # prepare cmake command
-            cmake_cmd = ['cmake']
-            cmake_cmd.append('-DHOMME_PROJID="STDD0002"')
-            cmake_cmd.append('-DENABLE_PERFTEST=TRUE')
-            cmake_cmd.append('-DENABLE_OPENMP=TRUE')
-            cmake_cmd.append('-DUSE_MPIEXEC="mpirun"')
-            cmake_cmd.append('-DCMAKE_C_COMPILER="mpiicc"')
-            cmake_cmd.append('-DCMAKE_CXX_COMPILER="mpiicc"')
-            cmake_cmd.append('-DCMAKE_Fortran_COMPILER="mpiifort"')
-            cmake_cmd.append('-DNETCDF_DIR:PATH=$NETCDF')
-            cmake_cmd.append('-DPNETCDF_DIR:PATH=$PNETCDF')
-            cmake_cmd.append('-DHDF5_DIR:PATH=/glade/apps/opt/hdf5/1.8.12/intel/12.1.5')
-            cmake_cmd.append(tmpsrc)
-
-            out, err, retcode = self.run_shcmd('%s; %s'%('; '.join(prerun_cmds), ' '.join(cmake_cmd)), cwd=blddir)
-
-            if retcode != 0:
-                self.set_status(result, myname, self.FAILED, errmsg=err)
-                return result
-
-        # include.ini was created manually
 
         self.set_status(result, myname, self.PASSED)
 
@@ -199,13 +149,21 @@ class KExtSysYSHommeTest(KExtSysYSTest):
         statefiles = result['generate_task']['statefiles']
         workdir = result['mkdir_task']['workdir']
         blddir = result['config_task']['blddir'] 
+        prerun_cmds = result['config_task']['prerun_build'] 
 
         datadir = '%s/data'%workdir
         result[myname]['datadir'] = datadir
 
         if self.REBUILD or not os.path.exists(datadir) or any(not os.path.exists('%s/%s'%(datadir, sf)) for sf in statefiles):
-            # prepare prerun command
-            prerun_cmds = self.get_prerun_cmds()
+            if self.LEAVE_TEMP:
+                with open('%s/build_cmds.sh'%blddir, 'w') as f:
+                    f.write('#!/bin/bash\n')
+                    f.write('\n')
+                    for cmd in prerun_cmds:
+                        f.write('    %s; \\\n'%cmd)
+                    f.write('    make clean; \\\n')
+                    f.write('    make -j 8 perfTest &> build.log')
+                os.chmod('%s/build_cmds.sh'%blddir, 0755)
 
             # build
             out, err, retcode = self.run_shcmd('%s; make clean; make -j 8 perfTest &> build.log'%'; '.join(prerun_cmds), cwd=blddir)
@@ -230,6 +188,8 @@ class KExtSysYSHommeTest(KExtSysYSTest):
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['download_task']['tmpsrc']
         blddir = result['config_task']['blddir']
+        prerun_cmds = result['config_task']['prerun_run'] 
+        mpirun = result['config_task']['mpirun'] 
 
         rundir = '%s/run'%workdir
         if os.path.exists(rundir):
@@ -254,14 +214,8 @@ class KExtSysYSHommeTest(KExtSysYSTest):
         os.system('rm -f %s/homme.*.out'%rundir)
 
         # create job submit script
-
-        prerun_cmds = self.get_prerun_cmds()
-        prerun_cmds.append('export OMP_NUM_THREADS=2')
-        prerun_cmds.append('export LD_LIBRARY_PATH=$NETCDF/lib:/glade/apps/opt/hdf5/1.8.12/intel/12.1.5/lib:$LD_LIBRARY_PATH')
-        prerun_cmds.append('ulimit -s unlimited')
-
         with open('%s/homme.submit'%rundir, 'w') as fd:
-            fd.write(job_script%('16', '16', '\n'.join(prerun_cmds), '%s/test_execs/perfTest/perfTest'%blddir, '%s/homme.nl'%rundir))
+            fd.write(job_script%('16', '16', '\n'.join(prerun_cmds), mpirun, '%s/test_execs/perfTest/perfTest'%blddir, '%s/homme.nl'%rundir))
 
 
         # submit and wait to finish
