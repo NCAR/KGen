@@ -8,7 +8,7 @@ from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCA
     DRIVER_READ_IN_ARGS, KERNEL_PBLOCK_READ_IN_LOCALS, KERNEL_PBLOCK_READ_OUT_LOCALS, \
     DRIVER_DECL_PART, DRIVER_USE_PART, get_typedecl_writename, get_dtype_writename, state_gencore_contains, \
     get_topname, get_typedecl_readname, get_dtype_readname, shared_objects, process_spec_stmts, is_zero_array, \
-    is_excluded, is_remove_state, namedgen_read_istrue, namedgen_write_istrue
+    is_excluded, is_remove_state, namedgen_read_istrue, namedgen_write_istrue, check_class_derived 
 from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
@@ -266,6 +266,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
         # for kernel - local variables
+        is_class_derived = check_class_derived(stmt)
         for vartypename, vartype in localvartypes.iteritems():
             for entity_name, partid in vartype:
                 if vartypename=='localouttype': ename_prefix = 'kgenref_'
@@ -274,7 +275,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 subrname = get_typedecl_readname(stmt, entity_name)
                 if var.is_array():
                     if is_zero_array(var, stmt): continue
-                    if stmt.is_derived():
+                    if stmt.is_derived() or is_class_derived:
                         self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                         if subrname not in self.kernel_created_subrs:
                             create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix)
@@ -288,7 +289,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix)
                                 self.kernel_created_subrs.append(subrname)
                 else: # scalar
-                    if stmt.is_derived():
+                    if stmt.is_derived() or is_class_derived:
                         if var.is_allocatable() or var.is_pointer():
                             self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                             if subrname not in self.kernel_created_subrs:
@@ -316,7 +317,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     create_read_subr(subrname, entity_name, shared_objects['driver_object'], var, stmt, allocate=True)
                     self.driver_created_subrs.append(subrname)
             else: # scalar
-                if stmt.is_derived():
+                if stmt.is_derived() or is_class_derived:
                     if var.is_allocatable() or var.is_pointer():
                         self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                         if subrname not in self.kernel_created_subrs:
@@ -370,13 +371,14 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         vartypes = { 'argintype': argintype, 'localintype': localintype, 'localouttype': localouttype }
 
         # for state
+        is_class_derived = check_class_derived(stmt)
         for vartypename, vartype in vartypes.iteritems():
             for entity_name, partid in vartype:
                 var = stmt.get_variable(entity_name)
                 subrname = get_typedecl_writename(stmt, entity_name)
                 if var.is_array():
                     if is_zero_array(var, stmt): continue
-                    if stmt.is_derived():
+                    if stmt.is_derived() or is_class_derived:
                         self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                         if subrname not in self.state_created_subrs:
                             create_write_subr(subrname, entity_name, node.kgen_parent, var, stmt)
@@ -396,7 +398,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 create_write_subr(subrname, entity_name, node.kgen_parent, var, stmt)
                                 self.state_created_subrs.append(subrname)
                 else: # scalar
-                    if stmt.is_derived():
+                    if stmt.is_derived() or is_class_derived:
                         if var.is_allocatable() or var.is_pointer():
                             self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                             if subrname not in self.state_created_subrs:

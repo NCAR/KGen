@@ -408,6 +408,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 'selector':stmt.selector, 'entity_decls': entity_decls}
             part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
+        is_class_derived = check_class_derived(stmt)
+
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.kernel_extern_reads: continue
 
@@ -420,7 +422,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
             if var.is_array():
                 if is_zero_array(var, stmt): continue
-                if stmt.is_derived():
+                if stmt.is_derived() or is_class_derived:
                     self.create_read_call(self.kernel_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                     if entity_name in out_entity_names:
                         self.create_read_call(self.kernel_externs_subrs[node.kgen_parent][1], subrname, entity_name, stmt, var, prefix='kgenref_')
@@ -440,7 +442,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                             create_read_subr(subrname, entity_name, parent, var, stmt)
                             self.kernel_created_subrs.append(subrname)
             else: # scalar
-                if stmt.is_derived():
+                if stmt.is_derived() or is_class_derived:
                     if var.is_allocatable() or var.is_pointer():
                         self.create_read_call(self.kernel_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                         if entity_name in out_entity_names:
@@ -451,7 +453,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                     else:
                         subrname = None
                         for uname, req in stmt.unknowns.iteritems():
-                            if uname.firstpartname()==stmt.name:
+                            if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
+                            #if uname.firstpartname()==stmt.name:
                                 res = req.res_stmts[0]
                                 subrname = get_dtype_readname(res)
                                 break
@@ -478,6 +481,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         #entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
         #out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+
+        is_class_derived = check_class_derived(stmt)
+
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.state_extern_writes: continue
             if is_remove_state(entity_name, stmt): continue
@@ -489,7 +495,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
             if var.is_array():
                 if is_zero_array(var, stmt): continue
-                if stmt.is_derived():
+                if stmt.is_derived() or is_class_derived:
                     self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                     if entity_name in out_entity_names:
                         self.create_write_call(self.state_externs_subrs[node.kgen_parent][1], subrname, entity_name, stmt, var)
@@ -509,7 +515,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                             create_write_subr(subrname, entity_name, parent, var, stmt)
                             self.state_created_subrs.append(subrname)
             else: # scalar
-                if stmt.is_derived():
+                if stmt.is_derived() or is_class_derived:
                     if var.is_allocatable() or var.is_pointer():
                         self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                         if entity_name in out_entity_names:
@@ -520,7 +526,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                     else:
                         subrname = None
                         for uname, req in stmt.unknowns.iteritems():
-                            if uname.firstpartname()==stmt.name:
+                            if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
+                            #if uname.firstpartname()==stmt.name:
                                 res = req.res_stmts[0]
                                 subrname = get_dtype_writename(res)
                                 break

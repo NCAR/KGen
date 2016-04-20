@@ -3,7 +3,7 @@
 import statements
 import block_statements
 import typedecl_statements
-from verify_utils import kernel_verify_contains, kernel_verify_kgenutils, get_dtype_verifyname
+from verify_utils import kernel_verify_contains, kernel_verify_kgenutils, get_dtype_verifyname, check_class_derived
 
 ########################## Verbose level table ####################
 #  Content #  level <1   #    level 1   #  level 2   # level >2   #
@@ -117,6 +117,8 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
 
 
     checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
+    is_class_derived = check_class_derived(stmt)
+
     if  not part_has_node(parent, SUBP_PART, checks):
 
         checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
@@ -152,18 +154,17 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable']) + ['INTENT(IN)']
         if var.is_array():
             attrspec.append('DIMENSION(%s)'%','.join(':'*var.rank))
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
                 # comp_check_status
                 attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['comp_check_status']}
                 part_append_genknode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
+            if stmt.is_derived():
                 type_spec = 'TYPE'
                 selector = (None, stmt.name)
                 var_class = typedecl_statements.Type
-            else: pass
         else:
-            if stmt.is_derived() and not var.is_pointer():
+            if (stmt.is_derived() or is_class_derived) and not var.is_pointer():
                 raise Exception('Non array or not pointer of derived type should not be processed here.')
-            else: pass
         attrs = {'type_spec': type_spec, 'attrspec': attrspec, 'selector':selector, 'entity_decls': ['var', 'kgenref_var']}
         part_append_genknode(subrobj, DECL_PART, var_class, attrs=attrs)
 
@@ -208,11 +209,12 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
             dim_shape = ','.join(':'*var.rank)
             get_size = ','.join(['SIZE(var,dim=%d)'%(dim+1) for dim in range(var.rank)])
 
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
 
                 callname = 'NOT_FOUND'
                 for uname, req in stmt.unknowns.iteritems():
-                    if uname.firstpartname()==stmt.name:
+                    #if uname.firstpartname()==stmt.name:
+                    if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                         callname = get_dtype_verifyname(req.res_stmts[0])
                         break
 
@@ -389,7 +391,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
         else: # scalar
-            if not stmt.is_derived():
+            if not stmt.is_derived() or is_class_derived:
                 # diff
                 attrs = {'type_spec': stmt.name, 'selector':stmt.selector, 'entity_decls': ['diff']}
                 part_append_genknode(subrobj, DECL_PART, stmt.__class__, attrs=attrs)
@@ -463,7 +465,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
 
         print_detail = print_dummy_detail
         if var.is_array(): # array
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
                 print_detail = print_dtypearr_detail
             else:
                 if stmt.is_numeric():
@@ -471,7 +473,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                 else:
                     pass
         else:
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
                 pass
             else:
                 if stmt.is_numeric():

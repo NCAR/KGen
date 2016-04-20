@@ -4,7 +4,7 @@ import statements
 import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
-from verify_utils import VERIFY_PBLOCK_LOCALS, get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array
+from verify_utils import VERIFY_PBLOCK_LOCALS, get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array, check_class_derived
 from verify_subr import create_verify_subr
 
 class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
@@ -30,6 +30,7 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
 
     def create_subr_verify_typedecl_in_parentblock(self, node):
         stmt = node.kgen_stmt
+        is_class_derived = check_class_derived(stmt)
         entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if entity_name in self.verify_locals: continue
@@ -45,12 +46,13 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
             if subrname not in self.verify_parentblock_subrnames:
                 self.verify_parentblock_subrnames.append(subrname)
 
-                if stmt.is_derived():
+                if stmt.is_derived() or is_class_derived:
                     if var.is_pointer() or var.is_array():
                         create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
                     else:
                         for uname, req in stmt.unknowns.iteritems():
-                            if uname.firstpartname()==stmt.name:
+                            if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
+                            #if uname.firstpartname()==stmt.name:
                                 subrname = get_dtype_verifyname(req.res_stmts[0])
                                 break
                 else:

@@ -164,4 +164,16 @@ def is_zero_array(var, stmt):
                     return True
     return False
 
+def check_class_derived(stmt):
+    from block_statements import Type, TypeDecl
 
+    if not stmt.is_class(): return False
+
+    # check if the name of kind in unknows, and the last res of the unknown is derivied type
+    dtypename = stmt.selector[1]
+    if hasattr(stmt, 'unknowns'):
+        for uname, res in stmt.unknowns.items():
+            if uname.firstpartname()==dtypename:
+                if isinstance(res.res_stmts[0], (Type, TypeDecl)):
+                    return True
+    return False

@@ -42,6 +42,7 @@ class KExtSysTest(KExtTest):
         kerneldir = '%s/kernel'%workdir
         statedir = '%s/state'%workdir
         kgenlog = os.path.join(self.TEST_DIR, 'kgen.log')
+        kgencmd = os.path.join(self.TEST_DIR, 'kgen_cmds.sh')
 
         if not self.LEAVE_TEMP:
             if os.path.exists(kerneldir):
@@ -52,6 +53,9 @@ class KExtSysTest(KExtTest):
 
             if os.path.exists(kgenlog):
                 os.remove(kgenlog)
+
+            if os.path.exists(kgencmd):
+                os.remove(kgencmd)
 
         self.set_status(result, myname, self.PASSED)
 

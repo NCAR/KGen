@@ -4,11 +4,14 @@ import statements
 import block_statements
 import typedecl_statements
 from gencore_utils import kernel_gencore_contains, state_gencore_contains, get_dtype_writename, get_dtype_readname, \
-    gen_read_istrue, gen_write_istrue
+    gen_read_istrue, gen_write_istrue, check_class_derived
 
 def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, ename_prefix=''):
 
     checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
+
+    is_class_derived = check_class_derived(stmt)
+
     if not part_has_node(parent, SUBP_PART, checks):
 
         checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
@@ -75,7 +78,7 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 attrs = {'items': ['var(%s)'%', '.join(bound_args)]}
                 part_append_genknode(pobj, EXEC_PART, statements.Allocate, attrs=attrs)
 
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
                 indexes = [ 'idx%d'%(d+1) for d in range(var.rank) ]
                 str_indexes = ','.join(indexes)
                 #tostr_indexes = ','.join([ 'kgen_tostr(idx)' for idx in indexes])
@@ -93,7 +96,7 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
 
                 callname = None
                 for uname, req in stmt.unknowns.iteritems():
-                    if uname.firstpartname()==stmt.name:
+                    if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                         res = req.res_stmts[0]
                         callname = get_dtype_readname(res)
                         break
@@ -157,13 +160,14 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 attrs = {'items': ['var']}
                 part_append_genknode(pobj, EXEC_PART, statements.Allocate, attrs=attrs)
 
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
                 attrs = {'expr': 'PRESENT( printvar )'}
                 ifpvarobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                 callname = None
                 for uname, req in stmt.unknowns.iteritems():
-                    if uname.firstpartname()==stmt.name:
+                    if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
+                    #if uname.firstpartname()==stmt.name:
                         res = req.res_stmts[0]
                         callname = get_dtype_readname(res)
                         break
@@ -204,6 +208,9 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
 
 def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
     checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
+
+    is_class_derived = check_class_derived(stmt)
+
     if not part_has_node(parent, SUBP_PART, checks):
 
         checks = lambda n: n.kgen_match_class==statements.Contains
@@ -262,7 +269,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 attrs = {'items': ['UBOUND(var, %d)'%(dim+1)], 'specs': ['UNIT = kgen_unit']}
                 part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
                 indexes = [ 'idx%d'%(d+1) for d in range(var.rank) ]
                 str_indexes = ','.join(indexes)
                 #tostr_indexes = ','.join([ 'kgen_tostr(idx)' for idx in indexes])
@@ -281,7 +288,8 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
 
                 callname = None
                 for uname, req in stmt.unknowns.iteritems():
-                    if uname.firstpartname()==stmt.name:
+                    if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
+                    #if uname.firstpartname()==stmt.name:
                         res = req.res_stmts[0]
                         callname = get_dtype_writename(res)
                         break
@@ -331,11 +339,12 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
 
 
         else: # scalar
-            if stmt.is_derived():
+            if stmt.is_derived() or is_class_derived:
 
                 callname = None
                 for uname, req in stmt.unknowns.iteritems():
-                    if uname.firstpartname()==stmt.name:
+                    if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
+                    #if uname.firstpartname()==stmt.name:
                         res = req.res_stmts[0]
                         callname = get_dtype_writename(res)
                         break

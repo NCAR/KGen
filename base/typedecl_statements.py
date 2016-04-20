@@ -505,6 +505,7 @@ class TypeDeclarationStatement(Statement):
 
     def is_intrinsic(self): return not isinstance(self,(Type,Class))
     def is_derived(self): return isinstance(self,Type)
+    def is_class(self): return isinstance(self,Class) # KGEN addition
 
     def is_numeric(self): return isinstance(self,(Integer,Real, DoublePrecision,Complex,DoubleComplex,Byte))
     def is_nonnumeric(self): return isinstance(self,(Character,Logical))
