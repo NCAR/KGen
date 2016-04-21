@@ -7,7 +7,7 @@ import time
 from kext_sys_ys_homme_test import KExtSysYSHommeTest
 
 class KExtSysYSHommeGnuTest(KExtSysYSHommeTest):
-    def get_prerun_cmds(self):
+    def get_prerun_kernel_cmds(self):
         prerun_cmds = []
         prerun_cmds.append('module purge')
         prerun_cmds.append('module try-load ncarenv/1.0')
@@ -15,12 +15,17 @@ class KExtSysYSHommeGnuTest(KExtSysYSHommeTest):
         prerun_cmds.append('module try-load ncarcompilers/1.0')
         prerun_cmds.append('module try-load gnu/4.8.2')
         #prerun_cmds.append('module try-load gnu/5.3.0')
-        #prerun_cmds.append('module try-load impi/5.0.1.035')
+
+        return prerun_cmds
+
+    def get_prerun_cmds(self):
+        prerun_cmds = self.get_prerun_kernel_cmds()
         prerun_cmds.append('module try-load netcdf/4.3.0')
         prerun_cmds.append('module try-load pnetcdf/1.4.1')
         prerun_cmds.append('module try-load cmake/2.8.10.2')
 
         return prerun_cmds
+
 
     def config(self, myname, result):
 
@@ -39,6 +44,7 @@ class KExtSysYSHommeGnuTest(KExtSysYSHommeTest):
         result[myname]['prerun_run'] = self.get_prerun_cmds() + ['export OMP_NUM_THREADS=2', \
             'export LD_LIBRARY_PATH=$NETCDF/lib:/glade/apps/opt/hdf5/1.8.12/gnu/4.8.2/lib:$LD_LIBRARY_PATH', \
             'ulimit -s unlimited' ]
+        result[myname]['prerun_kernel'] = self.get_prerun_kernel_cmds()
         result[myname]['mpirun'] = 'mpirun.lsf'
 
         if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))])==0:
@@ -65,9 +71,9 @@ class KExtSysYSHommeGnuTest(KExtSysYSHommeTest):
                     f.write('#!/bin/bash\n')
                     f.write('\n')
                     for cmd in prerun_cmds:
-                        f.write('    %s; \\\n'%cmd)
+                        f.write('    %s\n'%cmd)
                     for cmd in cmake_cmd[:-1]:
-                        f.write('    %s; \\\n'%cmd)
+                        f.write('    %s \\\n'%cmd)
                     f.write('    %s &> config.log'%cmake_cmd[-1])
                 os.chmod('%s/config_cmds.sh'%blddir, 0755)
 

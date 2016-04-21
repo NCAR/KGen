@@ -160,9 +160,9 @@ class KExtSysYSHommeTest(KExtSysYSTest):
                     f.write('#!/bin/bash\n')
                     f.write('\n')
                     for cmd in prerun_cmds:
-                        f.write('    %s; \\\n'%cmd)
-                    f.write('    make clean; \\\n')
-                    f.write('    make -j 8 perfTest &> build.log')
+                        f.write('    %s\n'%cmd)
+                    f.write('    make clean\n')
+                    f.write('    make -j 4 perfTest &> build.log')
                 os.chmod('%s/build_cmds.sh'%blddir, 0755)
 
             # build

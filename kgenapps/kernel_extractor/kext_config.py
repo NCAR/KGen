@@ -133,7 +133,7 @@ class KExtConfig(object):
                 if mpi=='enable':
                     pass
                 else:
-                    key, value = mpi.split('=')
+                    key, value = mpi.split('=', 1)
                     if key=='comm':
                         self.attrs['mpi'][key] = value
                     elif key=='use':
@@ -153,7 +153,7 @@ class KExtConfig(object):
     def opt_kernel_compile(self, opt):
         for line in opt:
             for comp in line.split(','):
-                key, value = comp.split('=')
+                key, value = comp.split('=', 1)
                 if key in [ 'FC', 'FC_FLAGS', 'PRERUN' ] :
                     self.attrs['kernel_compile'][key] = value
                 else:
@@ -162,7 +162,7 @@ class KExtConfig(object):
     def opt_state_build(self, opt):
         for line in opt:
             for build in line.split(','):
-                key, value = build.split('=')
+                key, value = build.split('=', 1)
                 if key in [ 'cmds' ] :
                     self.attrs['state_build'][key] = value
                 else:
@@ -171,7 +171,7 @@ class KExtConfig(object):
     def opt_state_run(self, opt):
         for line in opt:
             for run in line.split(','):
-                key, value = run.split('=')
+                key, value = run.split('=', 1)
                 if key in [ 'cmds' ] :
                     self.attrs['state_run'][key] = value
                 else:
@@ -180,7 +180,7 @@ class KExtConfig(object):
     def opt_state_switch(self, opt):
         for line in opt:
             for run in line.split(','):
-                key, value = run.split('=')
+                key, value = run.split('=', 1)
                 if key in [ 'cmds', 'type' ] :
                     self.attrs['state_switch'][key] = value
                 else:
@@ -188,7 +188,7 @@ class KExtConfig(object):
 
     def opt_timing(self, opt):
         for time in opt.split(','):
-            key, value = time.split('=')
+            key, value = time.split('=', 1)
             if key in [ 'repeat' ] :
                 try:
                     self.attrs['timing'][key] = value
@@ -201,7 +201,7 @@ class KExtConfig(object):
     def opt_check(self, opt):
         for line in opt:
             for checkparams in line.split(','):
-                key, value = checkparams.split('=')
+                key, value = checkparams.split('=', 1)
                 key = key.lower()
                 value = value.lower()
                 if key=='pert_invar':

@@ -18,7 +18,9 @@ class Test(KExtSysYSHommeGnuTest):
         srcfile = '%s/src/share/prim_advection_mod.F90'%tmpsrc
         namepath = 'prim_advection_mod:euler_step:edgevunpack'
         fc = 'gfortran'
-        fc_flags = '-ffree-line-length-none -O3 -g -fopenmp'
+        #fc_flags = '-ffree-line-length-none -O3 -g -fopenmp'
+        fc_flags = '-ffree-line-length-none -O3 -g'
+        prerun_cmds = ';'.join(result['config_task']['prerun_kernel'])
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _i='include.ini', \
             _I='%s/src:%s/src/share:%s/test_execs/perfTest'%(tmpsrc, tmpsrc, blddir), \
@@ -28,7 +30,7 @@ class Test(KExtSysYSHommeGnuTest):
             __timing='repeat=1', \
             __mpi='enable', \
             __openmp='enable', \
-            __kernel_compile='FC="%s",FC_FLAGS="%s"'%(fc, fc_flags), \
+            __kernel_compile='FC="%s",FC_FLAGS="%s",PRERUN="%s"'%(fc, fc_flags, prerun_cmds), \
             __outdir=workdir)
 
         result[myname]['stdout'] = out

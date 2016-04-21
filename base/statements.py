@@ -99,7 +99,7 @@ class StatementWithNamelist(Statement):
     def resolve_uname(self, uname, request):
         for item in self.items:
             if any(elem in item for elem in r'-=>'):
-                print 'TTT: %s has non-ascii character.'%self.__class__
+                print 'DEBUG: %s has non-ascii character.'%self.__class__
                 import pdb; pdb.set_trace()
         if uname.firstpartname() in self.items:
             self.add_geninfo(uname, request)
@@ -1245,11 +1245,7 @@ class Data(Statement):
             l.append('%s / %s /' %(', '.join(o),', '.join(v)))
         return tab + 'DATA ' + ' '.join(l)
     def analyze(self):
-        # start of KGEN addition
-        if not hasattr(self.parent, 'spec_stmts'):
-            self.parent.spec_stmts = []
-        self.parent.spec_stmts.append(self)
-        # end of KGEN addition
+        pass
 
     # start of KGEN addition
     def tokgen(self):
@@ -1257,47 +1253,6 @@ class Data(Statement):
         for o,v in self.stmts:
             l.append('%s / %s /' %(', '.join(o),', '.join(v)))
         return 'DATA ' + ' '.join(l)
-
-    def resolve_uname(self, uname, request):
-        from kgen_search import f2003_search_unknowns
-        from kgen_state import ResState
-
-#        if uname.firstpartname() in self.leftnames:
-#            self.add_geninfo(uname, request)
-#
-#            node = None
-#            if isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def):
-#                if self.f2003.items[1].items[0].string.lower()==uname.firstpartname():
-#                    node = self.f2003.items[1]
-#            elif isinstance(self.f2003.items[1], Fortran2003.Named_Constant_Def_List):
-#                for item in self.f2003.items[1].items:
-#                    if isinstance(item, Fortran2003.Named_Constant_Def) and \
-#                        item.items[0].string.lower()==uname.firstpartname():
-#                        node = item
-#                        break
-#            else:
-#                raise ProgramException('%s is not allowed'%self.f2003.items[1].__class__)
-#
-#            if node:
-#                if not hasattr(self, 'unknowns') or len(self.unknowns)==0:
-#                    f2003_search_unknowns(self, node.items[1])
-#                    for unknown, request in self.unknowns.iteritems():
-#                        if request.state != ResState.RESOLVED:
-#                            self.resolve(request)
-
-#        from kgen_utils import KGName
-#        for item in self.items:
-#            if item.startswith('/') and item.endswith('/'):
-#                if uname.firstpartname()==item[1:-1].strip():
-#                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
-#                    self.add_geninfo(newname, request)
-#            else:
-#                if uname.firstpartname()==item:
-#                    newname = KGName(pack_innamepath(self, uname.firstpartname()))
-#                    self.add_geninfo(newname, request)
-
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
-        pass
     # end of KGEN addition
 
 

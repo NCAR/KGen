@@ -4,10 +4,10 @@ import os
 import sys
 import glob
 import shutil
-from kext_sys_ys_homme_intel_test import KExtSysYSHommeIntelTest
+from kext_sys_ys_homme_pgi_test import KExtSysYSHommePgiTest
 
 
-class Test(KExtSysYSHommeIntelTest):
+class Test(KExtSysYSHommePgiTest):
 
     def generate(self, myname, result):
 
@@ -16,10 +16,10 @@ class Test(KExtSysYSHommeIntelTest):
         blddir = result['config_task']['blddir']
 
         srcfile = '%s/src/share/prim_advection_mod.F90'%tmpsrc
-        namepath = 'prim_advection_mod:euler_step:edgevpack'
-        fc = 'ifort'
-        #fc_flags = '-assume byterecl -fp-model precise -ftz -O3 -g -openmp'
-        fc_flags = '-assume byterecl -fp-model precise -ftz -O3 -g'
+        namepath = 'prim_advection_mod:euler_step:edgevunpack'
+        fc = 'pgfortran'
+        #fc_flags = '-Mflushz -O2 -gopt -gopt -gopt -mp'
+        fc_flags = '-Mflushz -O2 -gopt -gopt -gopt'
         prerun_cmds = ';'.join(result['config_task']['prerun_kernel'])
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _i='include.ini', \
@@ -37,8 +37,8 @@ class Test(KExtSysYSHommeIntelTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['edgevpack.0.0.10', 'edgevpack.0.0.50', 'edgevpack.0.1.10', 'edgevpack.0.1.50', \
-                'edgevpack.10.0.10', 'edgevpack.10.0.50', 'edgevpack.10.1.10', 'edgevpack.10.1.50']
+            result[myname]['statefiles'] = ['edgevunpack.0.0.10', 'edgevunpack.0.0.50', 'edgevunpack.0.1.10', 'edgevunpack.0.1.50', \
+                'edgevunpack.10.0.10', 'edgevunpack.10.0.50', 'edgevunpack.10.1.10', 'edgevunpack.10.1.50']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

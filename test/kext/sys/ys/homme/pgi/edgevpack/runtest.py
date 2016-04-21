@@ -4,10 +4,10 @@ import os
 import sys
 import glob
 import shutil
-from kext_sys_ys_homme_intel_test import KExtSysYSHommeIntelTest
+from kext_sys_ys_homme_pgi_test import KExtSysYSHommePgiTest
 
 
-class Test(KExtSysYSHommeIntelTest):
+class Test(KExtSysYSHommePgiTest):
 
     def generate(self, myname, result):
 
@@ -17,9 +17,9 @@ class Test(KExtSysYSHommeIntelTest):
 
         srcfile = '%s/src/share/prim_advection_mod.F90'%tmpsrc
         namepath = 'prim_advection_mod:euler_step:edgevpack'
-        fc = 'ifort'
-        #fc_flags = '-assume byterecl -fp-model precise -ftz -O3 -g -openmp'
-        fc_flags = '-assume byterecl -fp-model precise -ftz -O3 -g'
+        fc = 'pgfortran'
+        #fc_flags = '-Mflushz -O2 -gopt -gopt -gopt -mp'
+        fc_flags = '-Mflushz -O2 -gopt -gopt -gopt'
         prerun_cmds = ';'.join(result['config_task']['prerun_kernel'])
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             _i='include.ini', \
