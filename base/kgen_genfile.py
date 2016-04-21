@@ -9,7 +9,7 @@ import base_classes
 import statements
 import block_statements
 import typedecl_statements
-from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath, pack_exnamepath, get_exclude_actions
+from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath, pack_exnamepath, get_exclude_actions, Logger
 from kgen_state import State
 from kgen_plugin import Kgen_Plugin
 from ordereddict import OrderedDict
@@ -710,13 +710,16 @@ class Gen_Statement(object):
     def str_unresolved(self, stmt):
         from kgen_state import ResState
 
-        if not hasattr(self, 'geninfo'): return ''
+        if not hasattr(stmt, 'unknowns'): return ''
 
         l = []
-        for uname, req in self.geninfo:
-            if request.state != ResState.RESOLVED:
+        for uname, req in stmt.unknowns.items():
+            if req.state != ResState.RESOLVED:
                 l.append(uname.firstpartname())
-        if l: return ' !!! UNRESOLVED !!! %s'%', '.join(l)
+        if l:
+            output = ' !!! UNRESOLVED !!! %s'%', '.join(l)
+            Logger.warn(output, stmt=stmt)
+            return output
         else: return ''
 
     def pack_fortran_line(self, indent, line, comment):

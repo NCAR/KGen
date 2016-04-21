@@ -2,16 +2,16 @@
 
 from kgen_utils import Config, Logger, show_tree, KGGenType
 import Fortran2003
-from typedecl_statements import TypeDeclarationStatement
+from typedecl_statements import TypeDeclarationStatement, TypeStmt
 from block_statements import Type, TypeDecl, Function, Subroutine, Interface, execution_part
 from statements import External, Common, SpecificBinding
 from kgen_extra import Intrinsic_Procedures
 from ordereddict import OrderedDict
 
-
 res_default = [ TypeDeclarationStatement ]
 res_external = [ External ]
 res_typedecl = [ TypeDeclarationStatement ]
+res_typestmt = [ TypeStmt ]
 res_derivedtype = [ Type, TypeDecl ] 
 res_kind = [ TypeDeclarationStatement ] + res_derivedtype
 res_typespec = [ TypeDeclarationStatement ] + res_derivedtype
@@ -483,7 +483,11 @@ def search_Data_Ref(stmt, node, gentype=None):
 
     # NOTE: to limit the scope of data saving in derived type,
     #       the last part_ref would be the one that has gentype=gentype
-    get_name_or_defer(stmt, node.items[0], res_value, gentype=gentype)
+    if isinstance(node.items[0], Name):
+        get_name_or_defer(stmt, node.items[0], res_typestmt, gentype=gentype)
+    elif isinstance(node.items[0], Part_Ref):
+        get_name_or_defer(stmt, node.items[0].items[0], res_typestmt, gentype=gentype) 
+        get_name_or_defer(stmt, node.items[0].items[1], res_value) 
 
     for item in node.items[1:]:
         if isinstance(item, Name): pass
