@@ -28,7 +28,7 @@ class KExtConfig(object):
 
         # invocation parameters
         self.attrs['invocation'] = OrderedDict()
-        self.attrs['invocation']['triples'] = [ ('0', '0', '0') ]
+        self.attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
 
 
         # timing parameters
@@ -93,7 +93,7 @@ class KExtConfig(object):
             for invocation in line.split(','):
                 t = invocation.split(':')
                 if len(t) != 3:
-                    raise UserException('Wrong invocation syntax.')
+                    raise UserException('Wrong invocation syntax: expected <mpi ranks>:<openmp numbers>:invocations but used %s'%invocation)
 
                 triple = []
                 for pair in t:
@@ -103,13 +103,15 @@ class KExtConfig(object):
                     elif len(r)==2:
                         triple.append(r)
                     else:
-                        raise UserException('Wrong invocation syntax.')
+                        raise UserException('Wrong invocation syntax: expected a single number or "number-number" format but used %s'%pair)
                 try:
                     int(triple[2][0])
                     int(triple[2][1])
                 except:
                     raise UserException('The last item in invocation triple should be number.')
                 self.attrs['invocation']['triples'].append(triple)
+        if not self.attrs['invocation']['triples']:
+            self.attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
 
     # parsing OpenMP parameters
     def opt_openmp(self, opt):
