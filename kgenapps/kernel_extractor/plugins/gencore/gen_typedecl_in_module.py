@@ -333,6 +333,10 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
     def create_state_stmts_in_callsite(self, node):
         if not self.state_externs_subrs[node][0] in self.state_callsite_use_stmts and node.name!=getinfo('topblock_stmt').name:
+            #print 'AA1', node.name
+            #print 'AA2', self.state_externs_subrs[node]
+            #print 'AA3', self.state_externs_subrs[node][0]
+            #print 'AA4', self.state_externs_subrs[node][0].name
             attrs = {'name':node.name, 'isonly': True, 'items':[self.state_externs_subrs[node][0].name]}
             namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_USE_PART, statements.Use, attrs=attrs)
             self.state_callsite_use_stmts.append(self.state_externs_subrs[node][0])
