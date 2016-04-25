@@ -18,17 +18,17 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 
 		../../bin/kgen \
 				-D ROW=4,COL=4 \
-				-I ${KGENHOME}/example/simple/src \
+				-I /glade/u/home/youngsun/repos/github/KGen/example/simple/src \
 				--timing repeat=1000 \
-				--invocation 1:2:3 \
-				--kernel-compile FC='ifort',FC_FLAGS='-O3' \
-				--state-build cmds="cd ${KGENHOME}/example/simple/src; make build" \
-				--state-run cmds="cd ${KGENHOME}/example/simple/src; make run" \
-				${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc
+				--invocation 0:0:1,0:0:2,0:0:3 \
+				--kernel-compile FC='gfortran',FC_FLAGS='-O3' \
+				--state-build cmds="cd /glade/u/home/youngsun/repos/github/KGen/example/simple/src; make build" \
+				--state-run cmds="cd /glade/u/home/youngsun/repos/github/KGen/example/simple/src; make run" \
+				/glade/u/home/youngsun/repos/github/KGen/example/simple/src/update_mod.F90:update_mod:update:calc
 
 		Pre-processing is done
-		Reading ${KGENHOME}/example/simple/src/update_mod.F90
-		Reading ${KGENHOME}/example/simple/src/calc_mod.F90
+		Reading /glade/u/home/youngsun/repos/github/KGen/example/simple/src/update_mod.F90
+		Reading /glade/u/home/youngsun/repos/github/KGen/example/simple/src/calc_mod.F90
 			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
 		Program is analyzed
 		Makefiles are generated
@@ -50,23 +50,21 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		#rm -f kernel.exe *.mod *.o
 		cp -f update_mod.F90 ${KGENHOME}/example/simple/src/update_mod.F90
 		cd ${KGENHOME}/example/simple/src; make build
-		make[1]: Entering directory `${KGENHOME}/example/simple/src'
-		ifort -c -o calc_mod.o calc_mod.F90
-		ifort -DROW=4 -DCOL=4 -c -o update_mod.o update_mod.F90
-		ifort -c -o program.o program.F90
-		ifort -o demo.exe program.o update_mod.o calc_mod.o
+		make[1]: Entering directory `${KGENHOME}/KGen/example/simple/src'
+		gfortran -c -o calc_mod.o calc_mod.F90
+		gfortran -DROW=4 -DCOL=4 -c -o update_mod.o update_mod.F90
+		gfortran -c -o program.o program.F90
+		gfortran -o demo.exe program.o update_mod.o calc_mod.o
 		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
 		mv -f ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org ${KGENHOME}/example/simple/src/update_mod.F90
 		cd ${KGENHOME}/example/simple/src; make run
 		make[1]: Entering directory `${KGENHOME}/example/simple/src'
 		./demo.exe
-		 KGEN writes input state variables at count =            1
-		 kgen_counter =            1
-		 KGEN writes input state variables at count =            2
-		 kgen_counter =            2
-		 KGEN writes input state variables at count =            3
-		 kgen_counter =            3
-		 All state data is collected.   Stopping program...
+		 Collected Kernel Input/Ouput state from:            0           0           1
+		 Collected Kernel Input/Ouput state from:            0           0           2
+		 Collected Kernel Input/Ouput state from:            0           0           3
+		 Stopping application...
+		STOP 0
 		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
 
 	>> cd ../kernel; # move to a kernel directory
@@ -75,51 +73,51 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 
 	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
 
-		ifort -O3 -c -o kgen_utils.o kgen_utils.f90
-		ifort -O3 -c -o calc_mod.o calc_mod.F90
-		ifort -O3 -c -o update_mod.o update_mod.F90
-		ifort -O3 -c -o kernel_driver.o kernel_driver.f90
-		ifort -O3   -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
-		./kernel.exe
+		true; gfortran -O3 -c -o kgen_utils.o kgen_utils.f90
+		true; gfortran -O3 -c -o calc_mod.o calc_mod.F90
+		true; gfortran -O3 -c -o update_mod.o update_mod.F90
+		true; gfortran -O3 -c -o kernel_driver.o kernel_driver.f90
+		true; gfortran -O3   -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		true; ./kernel.exe
 		 
-		 ***************** Verification against 'calc.1' *****************
-		 
-		 Number of verified variables:            3
-		 Number of identical variables:            3
-		 Number of non-identical variables within tolerance:            0
-		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
-		 
-		 Verification PASSED
-		 
-		 calc : Time per call (usec):   1.600000075995922E-002
-		 
-		 ***************** Verification against 'calc.2' *****************
+		 ***************** Verification against 'calc.0.0.1' *****************
 		 
 		 Number of verified variables:            3
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:    1.0000000000000001E-015
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.600000075995922E-002
+		 calc : Time per call (usec):    4.0727000683546066E-002
 		 
-		 ***************** Verification against 'calc.3' *****************
+		 ***************** Verification against 'calc.0.0.2' *****************
 		 
 		 Number of verified variables:            3
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:    1.0000000000000001E-015
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.700000092387199E-002
+		 calc : Time per call (usec):    6.3884004950523376E-002
+		 
+		 ***************** Verification against 'calc.0.0.3' *****************
+		 
+		 Number of verified variables:            3
+		 Number of identical variables:            3
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:    1.0000000000000001E-015
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):    3.8392998278141022E-002
 		 
 		 ******************************************************************************
-		 calc summary: Total number of verification cases: 3
-		 calc summary: Average call time of all calls (usec):   1.633333414793015E-002
+		 calc summary: Total number of verification cases:            3
+		 calc summary: Average call time of all calls (usec):    4.7668001304070153E-002
 		 ******************************************************************************
 

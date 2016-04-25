@@ -21,7 +21,7 @@ This example use KGEN directive to specify the region of kernel extraction.
 				-D ROW=4,COL=4 \
 				-I ${KGENHOME}/example/simple/src \
 				--timing repeat=1000 \
-				--invocation 1:2:3 \
+				--invocation 0:0:1,0:0:2,0:0:3 \
 				--kernel-compile FC='ifort',FC_FLAGS='-O3' \
 				--state-build cmds="cd ${KGENHOME}/example/simple/src; make build" \
 				--state-run cmds="cd ${KGENHOME}/example/simple/src; make run" \
@@ -61,13 +61,11 @@ This example use KGEN directive to specify the region of kernel extraction.
 		cd ${KGENHOME}/example/simple/src; make run
 		make[1]: Entering directory `${KGENHOME}/example/simple/src'
 		./demo.exe
-		 KGEN writes input state variables at count =            1
-		 kgen_counter =            1
-		 KGEN writes input state variables at count =            2
-		 kgen_counter =            2
-		 KGEN writes input state variables at count =            3
-		 kgen_counter =            3
-		 All state data is collected.   Stopping program...
+		 Collected Kernel Input/Ouput state from:            0           0           1
+		 Collected Kernel Input/Ouput state from:            0           0           2
+		 Collected Kernel Input/Ouput state from:            0           0           3
+		 Stopping application...
+		0
 		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
 
 	>> cd ../kernel; # move to a kernel directory
