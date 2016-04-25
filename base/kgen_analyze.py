@@ -25,7 +25,8 @@ def update_state_info(parent):
     if hasattr(parent, 'content'):
         for stmt in parent.content:
             if isinstance(stmt, TypeDeclarationStatement) and \
-                "parameter" not in stmt.attrspec and hasattr(stmt, 'geninfo') and len(stmt.geninfo)>0 :
+                "parameter" not in stmt.attrspec and hasattr(stmt, 'geninfo') and \
+                any(len(v)>0 for v in stmt.geninfo.values()):
                 for uname, req in KGGenType.get_state_in(stmt.geninfo):
                     if KGGenType.has_uname_out(uname, stmt.geninfo): continue
 

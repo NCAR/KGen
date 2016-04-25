@@ -57,7 +57,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
     def has_externs_in_module(self, node):
         for stmt in node.kgen_stmt.content:
             if isinstance(stmt, typedecl_statements.TypeDeclarationStatement) and \
-                "parameter" not in stmt.attrspec and  hasattr(stmt, 'geninfo') and len(stmt.geninfo)>0 :
+                "parameter" not in stmt.attrspec and  hasattr(stmt, 'geninfo') and \
+                any(len(v) > 0 for v in stmt.geninfo.items()):
                 for entity_name in [ get_entity_name(decl) for decl in stmt.entity_decls ]:
                     var = stmt.get_variable(entity_name)
                     if not var.is_parameter():
@@ -190,9 +191,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 attrs = {'items':[out_subrname]}
                 part_append_genknode(node, DECL_PART, statements.Public, attrs=attrs)
 
-        self.kernel_externs_subrs[node] = ( in_subrobj, out_subrobj )
 
         if in_subrobj or out_subrobj:
+            self.kernel_externs_subrs[node] = ( in_subrobj, out_subrobj )
 
             # register event per typedecl 
             self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
@@ -273,9 +274,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 attrs = {'items':[out_subrname]}
                 part_append_gensnode(node, DECL_PART, statements.Public, attrs=attrs)
 
-        self.state_externs_subrs[node] = (in_subrobj, out_subrobj)
-
         if in_subrobj or out_subrobj:
+            self.state_externs_subrs[node] = (in_subrobj, out_subrobj)
 
             node.kgen_stmt.top.used4genstate = True
 
@@ -286,6 +286,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             # register event per module
             self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
                 block_statements.Module, self.has_externs_in_module, self.create_state_stmts_in_callsite) 
+        else:
+            import pdb; pdb.set_trace()
 
     def create_kernel_stmts_in_callsite(self, node):
         if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_use_stmts:
