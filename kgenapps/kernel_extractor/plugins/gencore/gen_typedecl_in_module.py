@@ -58,7 +58,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         for stmt in node.kgen_stmt.content:
             if isinstance(stmt, typedecl_statements.TypeDeclarationStatement) and \
                 "parameter" not in stmt.attrspec and  hasattr(stmt, 'geninfo') and \
-                any(len(v) > 0 for v in stmt.geninfo.items()):
+                any(len(v) > 0 for v in stmt.geninfo.values()):
                 for entity_name in [ get_entity_name(decl) for decl in stmt.entity_decls ]:
                     var = stmt.get_variable(entity_name)
                     if not var.is_parameter():
@@ -71,7 +71,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         else: return False
 
     def is_extern_in_kernel_module(self, node):
-        if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0 and \
+        if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and any(len(v) > 0 for v in node.kgen_stmt.geninfo.values()) and \
             isinstance(node.kgen_parent.kgen_stmt, block_statements.Module) and 'parameter' not in node.kgen_stmt.attrspec:
             for entity_name in [ get_entity_name(decl) for decl in node.kgen_stmt.entity_decls ]:
                 var = node.kgen_stmt.get_variable(entity_name)
@@ -80,7 +80,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         return False
 
     def is_extern_in_state_module(self, node):
-        if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0 and \
+        if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and any(len(v) > 0 for v in node.kgen_stmt.geninfo.values()) and \
             isinstance(node.kgen_parent.kgen_stmt, block_statements.Module) and 'parameter' not in node.kgen_stmt.attrspec:
             for entity_name in [ get_entity_name(decl) for decl in node.kgen_stmt.entity_decls ]:
                 var = node.kgen_stmt.get_variable(entity_name)
@@ -287,7 +287,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
                 block_statements.Module, self.has_externs_in_module, self.create_state_stmts_in_callsite) 
         else:
-            import pdb; pdb.set_trace()
+            raise Exception('Dupulicated state extern subroutine name for module: '%node.name)
 
     def create_kernel_stmts_in_callsite(self, node):
         if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_use_stmts:
