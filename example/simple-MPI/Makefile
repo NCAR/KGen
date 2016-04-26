@@ -14,7 +14,7 @@ test:
 		-I ${SRC_DIR}:${MPI_INC} \
 		--mpi enable \
 		--invocation 0:0:1,0:0:3,1:0:1,1:0:3 \
-		--kernel-compile FC='${FC}' \
+		--kernel-compile FC='ifort' \
 		--timing repeat=1000 \
 		--state-build cmds="cd ${SRC_DIR}; make -f Makefile.mpirun build FC='${FC}'" \
 		--state-run cmds="cd ${SRC_DIR}; make -f Makefile.mpirun run" \
