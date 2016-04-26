@@ -60,48 +60,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             part_append_comment(node, CONTAINS_PART, '')
             state_gencore_contains.append(node)
 
-        #FUNCTION kgen_get_newunit() RESULT(new_unit)
-        attrs = {'name': 'kgen_get_newunit', 'result': 'new_unit' }
-        unitsubr = part_append_gensnode(node, SUBP_PART, block_statements.Function, attrs=attrs)
-        part_append_comment(node, SUBP_PART, '')
-
-        attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['UNIT_MIN=100', 'UNIT_MAX=1000000']}
-        part_append_gensnode(unitsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-        attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['SEED=86456']}
-        part_append_gensnode(unitsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-   
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['is_opened']}
-        part_append_gensnode(unitsubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
-
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['temp_unit', 'new_unit', 'counter']}
-        part_append_gensnode(unitsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-        part_append_comment(unitsubr, DECL_PART, '')
-
-        attrs = {'designator': 'SRAND', 'items': ['SEED']}
-        part_append_gensnode(unitsubr, EXEC_PART, statements.Call, attrs=attrs)
-
-        attrs = {'variable': 'new_unit', 'sign': '=', 'expr': '-1'}
-        part_append_gensnode(unitsubr, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'loopcontrol': 'counter=UNIT_MIN, UNIT_MAX'}
-        docnt = part_append_gensnode(unitsubr, EXEC_PART, block_statements.Do, attrs=attrs)
-
-        attrs = {'variable': 'temp_unit', 'sign': '=', 'expr': 'MODULO(IRAND(), UNIT_MAX) + UNIT_MIN'}
-        part_append_gensnode(docnt, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'specs': ['UNIT=temp_unit', 'OPENED=is_opened']}
-        part_append_gensnode(docnt, EXEC_PART, statements.Inquire, attrs=attrs)
-
-        attrs = {'expr': '.NOT. is_opened'}
-        ifopen = part_append_gensnode(docnt, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'variable': 'new_unit', 'sign': '=', 'expr': 'temp_unit'}
-        part_append_gensnode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        part_append_gensnode(ifopen, EXEC_PART, statements.Exit)
-
         #SUBROUTINE kgen_init_vars
         attrs = {'name': 'kgen_init_vars', 'args': ['mpi_s', 'mpi_e', 'omp_s', 'omp_e', 'invoke_e', 'msize', \
             'osize', 'lockpath', 'last_invoke', 'isstop']}
@@ -421,10 +379,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                 'items': [ '"%s/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
             part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+            #part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'specs': ['UNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())))', \
+            attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())))', \
                 'STATUS="REPLACE"', 'ACCESS="STREAM"', 'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
             part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
 
@@ -454,10 +412,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                 'items': [ '"%s/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
             part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+            #part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'specs': ['UNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, 0)))', \
+            attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, 0)))', \
                 'STATUS="REPLACE"', 'ACCESS="STREAM"', 'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
             part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
 
@@ -525,10 +483,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
             part_append_comment(ifstop, EXEC_PART, 'CRITICAL (kgen_fini)', style='openmp')
 
-            attrs = {'variable': 'kgen_stopunit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-            part_append_gensnode(ifstop, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_stopunit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+            #part_append_gensnode(ifstop, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'specs': ['UNIT=kgen_stopunit', 'FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, OMP_GET_THREAD_NUM())))', \
+            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, OMP_GET_THREAD_NUM())))', \
                 'STATUS="NEW"', 'IOSTAT=kgen_ierr']}
             part_append_gensnode(ifstop, EXEC_PART, statements.Open, attrs=attrs)
 
@@ -591,10 +549,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'expr': 'kgen_islast(0)'}
             ifstop = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'variable': 'kgen_stopunit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-            part_append_gensnode(ifstop, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_stopunit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+            #part_append_gensnode(ifstop, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'specs': ['UNIT=kgen_stopunit', 'FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, 0)))', \
+            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, 0)))', \
                 'STATUS="NEW"', 'IOSTAT=kgen_ierr']}
             part_append_gensnode(ifstop, EXEC_PART, statements.Open, attrs=attrs)
 

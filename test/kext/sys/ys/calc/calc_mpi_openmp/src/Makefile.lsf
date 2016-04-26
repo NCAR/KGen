@@ -1,5 +1,5 @@
-ROW := 256
-COL := 256
+ROW := 16
+COL := 16
 
 FC := mpiifort
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
