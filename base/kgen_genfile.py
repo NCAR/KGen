@@ -1068,12 +1068,16 @@ class Gen_BeginStatement(object):
         for name in insert_order:
             if not matched:
                 if isinstance(item.kgen_stmt, statements.StmtFuncStatement):
-                    if statements.StmtFuncStatement in part_classes[name] and item.kgen_stmt.issfs:
+                    if statements.Assignment in part_classes[name]:
                         matched = True
                         append_item_in_part(self, name, item)
-                    elif statements.Assignment in part_classes[name] and not item.kgen_stmt.issfs:
-                        matched = True
-                        append_item_in_part(self, name, item)
+                    elif statements.StmtFuncStatement in part_classes[name]:
+                        if item.kgen_stmt.issfs:
+                            matched = True
+                            append_item_in_part(self, name, item)
+                    else:
+                        #import pdb; pdb.set_trace()
+                        raise ProgramException('Wrong sequence for StmtFuncStatement: %s'%item.kgen_stmt.__class__)
                 elif item.kgen_stmt.__class__ in part_classes[name]:
                     matched = True
                     append_item_in_part(self, name, item)

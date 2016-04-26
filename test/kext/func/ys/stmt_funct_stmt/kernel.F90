@@ -1,6 +1,8 @@
 module kernel
 
-        public add
+        real :: non_sfs2(2,2)
+
+        public add, non_sfs2
 
         contains
 

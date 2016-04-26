@@ -1,6 +1,6 @@
 module calling_module
 
-        USE kernel, only : add
+        USE kernel
 
         public calling_subroutine
 
@@ -13,8 +13,13 @@ module calling_module
                 real(kind=real_kind), allocatable :: array_1(:,:,:,:), &
                                                         array_2(:,:,:,:), &
                                                         array_3(:,:,:,:)
-
+                real(kind=real_kind) :: non_sfs1(2,2)
                 integer(kind=4), parameter :: array_size = 10
+                integer :: i = 1, j = 2
+
+                sfs(a, b) = a + b
+                non_sfs2(i, j) = i - j
+                non_sfs1(i, j) = i + j
 
                 allocate(array_1(array_size,array_size,array_size,array_size))
                 allocate(array_2(array_size,array_size,array_size,array_size))
