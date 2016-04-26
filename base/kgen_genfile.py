@@ -317,8 +317,8 @@ def getinfo(name):
     elif name=='add_mpi_frame': return Config.add_mpi_frame['enabled']
     elif name=='mpi_frame_np': return Config.add_mpi_frame['np']
     elif name=='mpi_frame_mpiexec': return Config.add_mpi_frame['mpiexec']
+    elif name=='verify_tol': return Config.verify['tolerance']
     else: raise ProgramException('No information for %s'%name)
-
 
 def set_plugin_env(mod):
 
@@ -521,7 +521,7 @@ def namedpart_append_comment(kernel_id, name, comment_string, style=None):
     return namedpart_append_gensnode(kernel_id, name, statements.Comment, attrs={'comment': comment_string, 'style':style})
 
 def namedpart_insert_comment(kernel_id, name, index, comment_string, style=None):
-    return namedpart_insert_gensnode(kernel_id, name, statements.Comment, attrs={'comment': comment_string, 'style':style})
+    return namedpart_insert_gensnode(kernel_id, name, statements.Comment, index, attrs={'comment': comment_string, 'style':style})
 
 def namedpart_insert_node(kernel_id, name, index, node):
     pnode, rawname, named_part = get_namedpart(kernel_id, name)
@@ -538,7 +538,7 @@ def namedpart_insert_genknode(kernel_id, name, clsobj, index, attrs=None):
     return namedpart_insert_gennode(genkobj, kernel_id, name, clsobj, index, attrs=attrs)
 
 def namedpart_insert_gensnode(kernel_id, name, clsobj, index, attrs=None):
-    return namedpart_insert_gennode(gensobj, kernel_id, name, clsobj, index, attrs=None)
+    return namedpart_insert_gennode(gensobj, kernel_id, name, clsobj, index, attrs=attrs)
 
 def namedpart_remove_node(kernel_id, name, node):
     pnode, rawname, named_part = get_namedpart(kernel_id, name)
@@ -1066,9 +1066,17 @@ class Gen_BeginStatement(object):
         new_order = []
         matched = False
         for name in insert_order:
-            if not matched and item.kgen_stmt.__class__ in part_classes[name]:
-                matched = True
-                append_item_in_part(self, name, item)
+            if not matched:
+                if isinstance(item.kgen_stmt, statements.StmtFuncStatement):
+                    if statements.StmtFuncStatement in part_classes[name] and item.kgen_stmt.issfs:
+                        matched = True
+                        append_item_in_part(self, name, item)
+                    elif statements.Assignment in part_classes[name] and not item.kgen_stmt.issfs:
+                        matched = True
+                        append_item_in_part(self, name, item)
+                elif item.kgen_stmt.__class__ in part_classes[name]:
+                    matched = True
+                    append_item_in_part(self, name, item)
             if matched:
                 new_order.append(name)
 

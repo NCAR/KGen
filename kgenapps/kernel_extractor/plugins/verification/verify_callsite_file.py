@@ -51,7 +51,8 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['check_status']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Type, attrs=attrs)
 
-        attrs = {'designator': 'kgen_init_check', 'items': ['check_status', 'verboseLevel=%s'%getinfo('verbose_level')]}
+        attrs = {'designator': 'kgen_init_check', 'items': ['check_status', 'tolerance=%s'%getinfo('verify_tol'), \
+            'verboseLevel=%s'%getinfo('verbose_level')]}
         namedpart_append_genknode(node.kgen_kernel_id, VERIFY_PBLOCK_INIT, statements.Call, attrs=attrs)
 
         attrs = {'items': ['""']}

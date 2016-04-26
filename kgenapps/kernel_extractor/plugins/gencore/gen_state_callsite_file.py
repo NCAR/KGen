@@ -222,43 +222,44 @@ class Gen_S_Callsite_File(Kgen_Plugin):
     def create_callsite_parts1(self, node):
 
         # declaration part
+
         if getinfo('is_mpi_app'):
             mpi_use_stmts = getinfo('mpi_use')
             if mpi_use_stmts and len(mpi_use_stmts)>0:
                 for mod_name, use_names in mpi_use_stmts:
                     attrs = {'name':mod_name, 'isonly': True, 'items':use_names}
-                    namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_USE_PART, statements.Use, attrs=attrs)
-
-        namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, 'kgen variables')
+                    namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_USE_PART, statements.Use, 0, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'SAVE', 'ALLOCATABLE', 'DIMENSION(:)' ], \
             'entity_decls': ['kgen_invoke', 'kgen_last_invoke']}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
 
         attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'SAVE', 'ALLOCATABLE', 'DIMENSION(:)' ], \
             'entity_decls': ['kgen_islast', 'kgen_issave']}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, attrs=attrs)
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'attrspec': [ 'SAVE', 'ALLOCATABLE', 'DIMENSION(:,:)' ], \
             'entity_decls': ['kgen_filepath', 'kgen_lockpath'], 'selector':('1024', None)}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Character, attrs=attrs)
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Character, 0, attrs=attrs)
 
         attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'SAVE', 'ALLOCATABLE', 'DIMENSION(:,:)' ], 'entity_decls': ['kgen_isstop']}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, attrs=attrs)
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
 
         attrs = {'type_spec': 'REAL', 'attrspec': [ 'SAVE' ], 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Real, attrs=attrs)
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Real, 0, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'SAVE' ], 'entity_decls': ['kgen_mymid', 'kgen_msize', 'kgen_osize', \
             'kgen_unit', 'kgen_stopunit', 'kgen_ierr']}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
 
         if getinfo('is_openmp_app'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_NUM_THREADS', 'OMP_GET_THREAD_NUM']}
-            namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
 
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue', 'kgen_isexist']}
-        namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, attrs=attrs)
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
+
+        namedpart_insert_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, 0, 'kgen variables')
 
         index, partname, part = get_part_index(node)
 

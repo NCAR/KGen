@@ -196,7 +196,6 @@ class StmtFuncStatement(Statement):
             if isinstance(node, Part_Ref):
                 bag.append(True)
 
-
         m = self.item_re(self.item.get_line())
         if not m:
             self.isvalid = False
@@ -206,19 +205,21 @@ class StmtFuncStatement(Statement):
             self.isvalid = False
             return
 
+        line = m.group('variable').replace(' ','')
+        i = line.find('(')
+        items = []
+        if i==-1:
+            self.isvalid = False
+            return
+
+        j = line.find(')')
+        if j == -1 or len(line)-1 != j:
+            self.isvalid = False
+            return
+
         apply_map = self.item.apply_map
-        v1 = v = m.group('variable').replace(' ','')
-        while True:
-            i = v.find(')')
-            if i==-1:
-                break
-            v = v[i+1:]
-            if v.startswith('(') or v.startswith(r'%'):
-                continue
-            if v:
-                self.isvalid = False
-                return
-        self.func_stmt = apply_map(v1)
+        self.func_name = apply_map(line[:i]).strip()
+        self.func_stmt = apply_map(line).strip()
         self.scalar_expr = apply_map(m.group('expr'))
 
         child = None
@@ -239,6 +240,10 @@ class StmtFuncStatement(Statement):
                 if hasattr(self, 'f2003'):
                     delattr(self, 'f2003')
         else: self.isvalid = False
+
+        if self.isvalid:
+            self.issfs = True # Is valid StatementFuncStatement
+
         return
 
     def tokgen(self):
@@ -248,7 +253,15 @@ class StmtFuncStatement(Statement):
         return self.get_indent_tab(isfix=isfix) + '%s %s %s' \
                % (self.func_stmt, self.sign, self.scalar_expr)
 
-    def analyze(self): return
+    def analyze(self):
+        for anc in self.ancestors():
+            if hasattr(anc, 'a') and hasattr(anc.a, 'variables') and \
+                self.func_name in anc.a.variables.keys():
+                var = anc.a.variables[self.func_name]
+                if var.is_array():
+                    self.issfs = False
+                    break
+        return
 # end of KGEN addition
 
 class Assign(Statement):

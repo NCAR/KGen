@@ -255,8 +255,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             node.kgen_use_tokgen = True
             #part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
+        local_allocate = False
         if len(localouttype)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+            if var.is_array() and (not var.is_explicit_shape_array()) and \
+                'allocatable' not in attrspec and 'pointer' not in attrspec:
+                local_allocate = True
+                attrspec.append('allocatable')
 
             localout_names = [ localout_name for localout_name, pname in localouttype]
             entity_decls = get_decls(localout_names, stmt.entity_decls, prefix='kgenref_')
@@ -278,7 +283,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     if stmt.is_derived() or is_class_derived:
                         self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                         if subrname not in self.kernel_created_subrs:
-                            create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix)
+                            create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix, allocate=local_allocate)
                             self.kernel_created_subrs.append(subrname)
                     else: # intrinsic type
                         if var.is_explicit_shape_array():
@@ -286,14 +291,14 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                         else: # implicit array
                             self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                             if subrname not in self.kernel_created_subrs:
-                                create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix)
+                                create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix, allocate=local_allocate)
                                 self.kernel_created_subrs.append(subrname)
                 else: # scalar
                     if stmt.is_derived() or is_class_derived:
                         if var.is_allocatable() or var.is_pointer():
                             self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                             if subrname not in self.kernel_created_subrs:
-                                create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix)
+                                create_read_subr(subrname, entity_name, node.kgen_parent, var, stmt, ename_prefix=ename_prefix, allocate=local_allocate)
                                 self.kernel_created_subrs.append(subrname)
                         else:
                             subrname = None

@@ -37,7 +37,7 @@ class KExtConfig(object):
 
         # verification parameters
         self.attrs['verify'] = OrderedDict()
-        self.attrs['verify']['tolerance'] = '1.E-14'
+        self.attrs['verify']['tolerance'] = '1.D-14'
         self.attrs['verify']['verboselevel'] = '1'
 
         # make kernel parameters
@@ -210,6 +210,8 @@ class KExtConfig(object):
                     self.attrs['check'][key] = value.split(':')
                 elif key=='pert_lim':
                     self.attrs['check'][key] = value
+                elif key=='tolerance':
+                    self.attrs['verify'][key] = value
                 else:
                     print 'WARNING: %s is not supported check parameter'%key
 
