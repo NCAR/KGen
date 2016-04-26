@@ -27,7 +27,7 @@ Changes from KGEN ver. 0.6.2
 * Supported Statement Function Statement
 * Fixed a but for Sumcheck having NaN entities
 * Splitted codebase to  KGen core codes and KGen applications
-( Refactored to support plugins framework for source-to-source translation on Abstract Syntax Tree
+* Refactored to support plugins framework for source-to-source translation on Abstract Syntax Tree
 
 Overview
 --------
