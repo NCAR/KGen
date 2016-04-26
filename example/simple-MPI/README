@@ -22,14 +22,12 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 
 	Once "make" is completed with success, you will see information similar to next lines on screen
 	Note that Makefile.mpirun in src subfolder is used in this example. 
-
-		../../bin/kgen \
 				-D ROW=4,COL=4 \
 				-i include.ini \
-				-I ${KGENHOME}/example/simple-MPI/src:${MPI_HOME}/include \
+				-I ${KGENHOME}/example/simple-MPI/src:${MPI_INC}/include \
 				-e exclude.ini \
-				--mpi ranks=0:1 \
-				--invocation 1:3 \
+				--mpi enable \
+				--invocation 0:0:1,0:0:3,1:0:1,1:0:3 \
 				--kernel-compile FC='ifort',FC_FLAGS='-O3' \
 				--timing repeat=1000 \
 				--state-build cmds="cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun build" \
@@ -74,71 +72,13 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 finish
 		 start
 		 finish
-		 kgen_counter =            1  at rank            3
-		 kgen_counter =            1  at rank            2
-		 KGEN writes input state variables at count =            1  on mpirank = 
-				   1
+         ...
 		 start
 		 finish
-		 KGEN writes output state variables at count =            1  on mpirank = 
-				   1
-		 kgen_counter =            1  at rank            1
-		 KGEN writes input state variables at count =            1  on mpirank = 
-				   0
-		 start
-		 finish
-		 KGEN writes output state variables at count =            1  on mpirank = 
-				   0
-		 kgen_counter =            1  at rank            0
-		 start
-		 finish
-		 kgen_counter =            2  at rank            0
-		 start
-		 finish
-		 kgen_counter =            2  at rank            1
-		 start
-		 finish
-		 kgen_counter =            2  at rank            2
-		 start
-		 finish
-		 kgen_counter =            3  at rank            2
-		 start
-		 finish
-		 kgen_counter =            2  at rank            3
-		 start
-		 finish
-		 kgen_counter =            3  at rank            3
-		 KGEN writes input state variables at count =            3  on mpirank = 
-				   1
-		 start
-		 finish
-		 KGEN writes output state variables at count =            3  on mpirank = 
-				   1
-		 kgen_counter =            3  at rank            1
-		 KGEN writes input state variables at count =            3  on mpirank = 
-				   0
-		 start
-		 finish
-		 KGEN writes output state variables at count =            3  on mpirank = 
-				   0
-		 kgen_counter =            3  at rank            0
-		 start
-		 finish
-		 All state data is collected.   Stopping program...
-		 start
-		 finish
-		 All state data is collected.   Stopping program...
-		 start
-		 finish
-		 All state data is collected.   Stopping program...
-		 start
-		 finish
-		 All state data is collected.   Stopping program...
+		 Stopping application...
+		 Stopping application...
 		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 0
 		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 1
-		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 2
-		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 3
-		APPLICATION TERMINATED WITH THE EXIT STRING: Hangup (signal 1)
 		make[1]: *** [run] Error 1
 		make[1]: Leaving directory `${KGENHOME}/example/simple-MPI/src'
 		make: *** [run] Error 2
