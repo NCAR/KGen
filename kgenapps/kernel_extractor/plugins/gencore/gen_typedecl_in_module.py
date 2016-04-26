@@ -388,7 +388,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         if len(entity_names)==0:
             node.kgen_forced_line = False
         elif len(entity_names)!=len(stmt.entity_decls):
-            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension', 'public'])
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension', 'public', 'target'])
             entity_decls = get_decls(entity_names, stmt.entity_decls)
 
             attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \

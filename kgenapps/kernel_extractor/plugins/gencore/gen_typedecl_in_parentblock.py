@@ -238,7 +238,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         if len(localintype)==0 and len(argintype)==0 and len(localouttype)==0:
             node.kgen_forced_line = False
         elif len(localintype)>0:
-            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension', 'target'])
 
             localin_names = [ localin_name for localin_name, pname in localintype]
             entity_decls = get_decls(localin_names, stmt.entity_decls)
