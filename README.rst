@@ -9,15 +9,15 @@ A package for extracting a part of Fortran source codes out of a large Fortran a
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
 
-Changes from KGEN ver. 0.5.2
+Changes from KGEN ver. 0.6.2
 ----------------------------
 
 [User Interface]
 
 * Python version > 2.7 and < 3.0 is required
 * Invocation KGEN option is changed to support MPI rank, OpenMP number and invocations more precisely.
-* enableâsub-option for --mpi KGEN flag should be used for kernel extraction from MPI application
-* enableâsub-option for --openmpâKGEN flag should be used for kernel extraction from MPI application
+* enable sub-option for --mpi KGEN flag should be used for kernel extraction from MPI application
+* enable sub-option for --openmp KGEN flag should be used for kernel extraction from MPI application
 
 [Major Improvements]
 
