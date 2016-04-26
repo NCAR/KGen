@@ -217,7 +217,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             return entity_decls
 
         if len(argintype)>0:
-            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
+            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension', 'target'])
             attrspec.append('INTENT(INOUT)')
 
             argin_names = [ argin_name for argin_name, pname in argintype]
