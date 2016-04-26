@@ -3,38 +3,31 @@ KGEN: Fortran Kernel Generator
 
 A package for extracting a part of Fortran source codes out of a large Fortran application.
 
-:AUTHORS: Youngsung Kim, John Dennis, Raghu R. Kumar and Amogh Simha
-:VERSION: 0.6.2
+:AUTHORS: Youngsung Kim and John Dennis
+:VERSION: 0.6.3
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
 
-Changes from KGEN ver. 0.5.3
+Changes from KGEN ver. 0.5.2
 ----------------------------
 
 [User Interface]
 
-* To invoke KGEN, user can use "kgen" command without having "python" in command line. The script is located in "bin" sub-directory
-* "begin_callsite" and "end_callsite" KGEN directives are added to support a kernel extraction from a region of source codes.
-* "comment" action in exclusion INI file is removed. And "remove" actions in the file is renamed to "remove_state"
-* Two python scripts that automate the creation of inclusion INI file is added in "bin" sub-directory. One is for CESM(http://www2.cesm.ucar.edu/) log files and the other for MPAS(https://mpas-dev.github.io/) log files.
-* "object" action in inclusion INI file is added to import external object files to kernel
-* --verbose KGEN flag is added. 
+* Python version > 2.7 and < 3.0 is required
+* Invocation KGEN option is changed to support MPI rank, OpenMP number and invocations more precisely.
+* enableâsub-option for --mpi KGEN flag should be used for kernel extraction from MPI application
+* enableâsub-option for --openmpâKGEN flag should be used for kernel extraction from MPI application
 
 [Major Improvements]
 
-* Support for extracting a region of codes as a kernel.
-* Better preserving the original formatting
-* Better output information according to verbosity level.
-* Support Fortran external subprograms
-* Fixed a bug on importing variables across multiple Fortran modules
-* Added state data integrity check per every numerical arrays
-
-[Release Notes]
-
-* KGEN Github repository is moved to "https://github.com/NCAR/KGen.git"
-* Kernels extracted using KGEN can be accessed from "https://github.com/NCAR/kernelOptimization.git"
-* MPAS(https://github.com/MPAS-Dev/MPAS-Release.git) is being tested with this version of KGEN. As of this writing, two MPAS kernels are extracted and located in the above "kernelOptimization" github repo.
+* Added support for class type declaration type in state generation
+* Added unit tests for GNU and PGI compilers
+* Supported detail control for state generation from MPI ranks and OpenMP threads
+* Supported Statement Function Statement
+* Fixed a but for Sumcheck having NaN entities
+* Splitted codebase to  KGen core codes and KGen applications
+( Refactored to support plugins framework for source-to-source translation on Abstract Syntax Tree
 
 Overview
 --------
@@ -47,7 +40,7 @@ Overview
 Dependencies
 ------------
 
-* Python (>=2.7) and Python standard library
+* Python (>=2.7 and < 3.0) and Python standard library
 * Fortran Pre-Processor(fpp) or C Pre-Processor(cpp)
 
 
@@ -72,15 +65,13 @@ Instructions & Use
 	>> git clone https://github.com/NCAR/KGen.git
 
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
-	>> evince KGEN_Users_Guide_V0.6.1.pdf 
+	>> evince KGEN_Users_Guide_V0.6.3.pdf 
 
 3. Try a kernel generation example in "example/simple" directory
 
 	>> cd example/simple;	# move to an example directory
 
-	>> vi Makefile;			# Modify FC and FC_FLAGS if required
-
-	>> vi src/Makefile;		# Modify FC and FC_FLAGS if required
+	>> vi Makefile;			# Modify FC if required
 
 	>> make;				# extract a kernel
 
