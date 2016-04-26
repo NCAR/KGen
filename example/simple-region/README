@@ -9,23 +9,22 @@ This example use KGEN directive to specify the region of kernel extraction.
 
 [ Kernel extraction steps ]
 
-	1. >> vi Makefile; # Modify FC and FC_FLAGS if required
+	1. >> vi Makefile; # Modify FC if required
 
-	2. >> vi src/Makefile; # Modify FC and FC_FLAGS if required
-
-	3. >> make; # extract a kernel
+	2. >> make; # extract a kernel
 
 	Once "make" is completed with success, you will see information similar to next lines on screen
 
 		../../bin/kgen \
-				-D ROW=4,COL=4 \
-				-I ${KGENHOME}/example/simple/src \
-				--timing repeat=1000 \
-				--invocation 0:0:1,0:0:2,0:0:3 \
-				--kernel-compile FC='ifort',FC_FLAGS='-O3' \
-				--state-build cmds="cd ${KGENHOME}/example/simple/src; make build" \
-				--state-run cmds="cd ${KGENHOME}/example/simple/src; make run" \
-				${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc
+			-D ROW=4,COL=4 \
+			-I ${KGENHOME}/example/simple-region/src \
+			--timing repeat=1000 \
+			--invocation 0:0:1,0:0:2,0:0:3 \
+			--kernel-compile FC="'gfortran'" \
+			--state-build cmds="cd ${KGENHOME}/example/simple-region/src; make build FC='gfortran'" \
+			--state-run cmds="cd ${KGENHOME}/example/simple-region/src; make run" \
+			--check tolerance=1.0D-10 \
+			${KGENHOME}/example/simple-region/src/update_mod.F90
 
 		Pre-processing is done
 		Reading ${KGENHOME}/example/simple/src/update_mod.F90
@@ -38,9 +37,9 @@ This example use KGEN directive to specify the region of kernel extraction.
 
 	After this step, two subfolders(kernel and state) will be created under this folder.
 
-	>> cd state; # move to a directory for instrumentation files
+	3. >> cd state; # move to a directory for instrumentation files
 
-	>> make; # generate state data files
+	4. >> make; # generate state data files
 
 	In this step, original application will be built/run again with instrumented files in state folder
 
@@ -52,10 +51,10 @@ This example use KGEN directive to specify the region of kernel extraction.
 		cp -f update_mod.F90 ${KGENHOME}/example/simple/src/update_mod.F90
 		cd ${KGENHOME}/example/simple/src; make build
 		make[1]: Entering directory `${KGENHOME}/example/simple/src'
-		ifort -c -o calc_mod.o calc_mod.F90
-		ifort -DROW=4 -DCOL=4 -c -o update_mod.o update_mod.F90
-		ifort -c -o program.o program.F90
-		ifort -o demo.exe program.o update_mod.o calc_mod.o
+		gfortran -c -o calc_mod.o calc_mod.F90
+		gfortran -DROW=4 -DCOL=4 -c -o update_mod.o update_mod.F90
+		gfortran -c -o program.o program.F90
+		gfortran -o demo.exe program.o update_mod.o calc_mod.o
 		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
 		mv -f ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org ${KGENHOME}/example/simple/src/update_mod.F90
 		cd ${KGENHOME}/example/simple/src; make run
@@ -68,57 +67,60 @@ This example use KGEN directive to specify the region of kernel extraction.
 		0
 		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
 
-	>> cd ../kernel; # move to a kernel directory
+	5. >> cd ../kernel; # move to a kernel directory
 
-	>> make; # build and run a kernel
+	6. >> make; # build and run a kernel
 
 	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
 
-		ifort -O3 -c -o kgen_utils.o kgen_utils.f90
-		ifort -O3 -c -o calc_mod.o calc_mod.F90
-		ifort -O3 -c -o update_mod.o update_mod.F90
-		ifort -O3 -c -o kernel_driver.o kernel_driver.f90
-		ifort -O3   -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
-		./kernel.exe
+		true; 'gfortran'  -c -o kgen_utils.o kgen_utils.f90
+		true; 'gfortran'  -c -o calc_mod.o calc_mod.F90
+		true; 'gfortran'  -c -o update_mod.o update_mod.F90
+		true; 'gfortran'  -c -o kernel_driver.o kernel_driver.f90
+		true; 'gfortran'    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		true; ./kernel.exe
 		 
-		 ***************** Verification against 'calc.1' *****************
+		 ***************** Verification against 'calc.0.0.1' *****************
+		 output is NOT IDENTICAL(within tolerance).
 		 
 		 Number of verified variables:            3
-		 Number of identical variables:            3
-		 Number of non-identical variables within tolerance:            0
+		 Number of identical variables:            2
+		 Number of non-identical variables within tolerance:            1
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:   1.00000000000000004E-010
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.600000075995922E-002
+		 calc : Time per call (usec):    0.0000000000000000     
 		 
-		 ***************** Verification against 'calc.2' *****************
+		 ***************** Verification against 'calc.0.0.2' *****************
+		 output is NOT IDENTICAL(within tolerance).
 		 
 		 Number of verified variables:            3
-		 Number of identical variables:            3
-		 Number of non-identical variables within tolerance:            0
+		 Number of identical variables:            2
+		 Number of non-identical variables within tolerance:            1
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:   1.00000000000000004E-010
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.600000075995922E-002
+		 calc : Time per call (usec):    0.0000000000000000     
 		 
-		 ***************** Verification against 'calc.3' *****************
+		 ***************** Verification against 'calc.0.0.3' *****************
+		 output is NOT IDENTICAL(within tolerance).
 		 
 		 Number of verified variables:            3
-		 Number of identical variables:            3
-		 Number of non-identical variables within tolerance:            0
+		 Number of identical variables:            2
+		 Number of non-identical variables within tolerance:            1
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:   1.00000000000000004E-010
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.700000092387199E-002
+		 calc : Time per call (usec):    0.0000000000000000     
 		 
 		 ******************************************************************************
-		 calc summary: Total number of verification cases: 3
-		 calc summary: Average call time of all calls (usec):   1.633333414793015E-002
+		 calc summary: Total number of verification cases:            3
+		 calc summary: Average call time of all calls (usec):    0.0000000000000000     
 		 ******************************************************************************
 

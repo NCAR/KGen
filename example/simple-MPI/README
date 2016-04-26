@@ -12,31 +12,35 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 	1. Modify Makefile
 	   You may need to modify Makefile to apply your MPI library to be used and compiler environment correctly.
 
-       >> vi Makefile; # Modify names of Makefile in src subfolder, MPI_INC, FC and FC_FLAGS if required
+       >> vi Makefile; # Modify names of Makefile in src subfolder, MPI_INC and FC if required
 
 	2. Modify or create Makefile and job submission script for using your MPI library
        >> vi src/Makefile.mpirun or src/Makefile.lsf or create your own Makefile
        >> vi src/job.lsf or create your own job submission script
 
-	3. >> make; # extract a kernel
+	3. Modify include.ini
+       >> vi include.ini; # Modify path to MPI include path
+
+	4. >> make; # extract a kernel
 
 	Once "make" is completed with success, you will see information similar to next lines on screen
 	Note that Makefile.mpirun in src subfolder is used in this example. 
+
+		../../bin/kgen \
 				-D ROW=4,COL=4 \
 				-i include.ini \
 				-I ${KGENHOME}/example/simple-MPI/src:${MPI_INC}/include \
-				-e exclude.ini \
 				--mpi enable \
 				--invocation 0:0:1,0:0:3,1:0:1,1:0:3 \
-				--kernel-compile FC='ifort',FC_FLAGS='-O3' \
+				--kernel-compile FC='mpiifort' \
 				--timing repeat=1000 \
-				--state-build cmds="cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun build" \
+				--state-build cmds="cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun build FC='mpiifort'" \
 				--state-run cmds="cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun run" \
 				${KGENHOME}/example/simple-MPI/src/update_mod.F90:update_mod:update:calc
 
 		Pre-processing is done
-		Reading ${KGENHOME}/example/simple-MPI/src/update_mod.F90
-		Reading ${KGENHOME}/example/simple-MPI/src/calc_mod.F90
+		Reading /glade/u/home/youngsun/repos/github/KGen/example/simple-MPI/src/update_mod.F90
+		Reading /glade/u/home/youngsun/repos/github/KGen/example/simple-MPI/src/calc_mod.F90
 			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
 		Program is analyzed
 		Makefiles are generated
@@ -45,9 +49,9 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 
 	After this step, two subfolders(kernel and state) will be created under this folder.
 
-	>> cd state; # move to a directory for instrumentation files
+	5. >> cd state; # move to a directory for instrumentation files
 
-	>> make; # generate state data files
+	6. >> make; # generate state data files
 
 	In this step, original application will be built/run again with instrumented files in state folder
 
@@ -57,7 +61,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		if [ ! -f update_mod.F90.kgen_org ]; then cp -f ${KGENHOME}/example/simple-MPI/src/update_mod.F90 update_mod.F90.kgen_org; fi
 		#rm -f kernel.exe *.mod *.o
 		cp -f update_mod.F90 ${KGENHOME}/example/simple-MPI/src/update_mod.F90
-		cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun build
+		cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun build FC='mpiifort'
 		make[1]: Entering directory `${KGENHOME}/example/simple-MPI/src'
 		mpiifort -c -o calc_mod.o calc_mod.F90
 		mpiifort -DROW=4 -DCOL=4 -c -o update_mod.o update_mod.F90
@@ -68,86 +72,83 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun run
 		make[1]: Entering directory `${KGENHOME}/example/simple-MPI/src'
 		mpirun -n 4 ./demo.exe
-		 start
-		 finish
-		 start
-		 finish
-         ...
-		 start
-		 finish
+		 Collected Kernel Input/Ouput state from:            1           0           1
+		 Collected Kernel Input/Ouput state from:            0           0           1
+		 Collected Kernel Input/Ouput state from:            1           0           3
+		 Collected Kernel Input/Ouput state from:            0           0           3
 		 Stopping application...
 		 Stopping application...
 		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 0
 		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 1
-		make[1]: *** [run] Error 1
+		make[1]: *** [run] Error 255
 		make[1]: Leaving directory `${KGENHOME}/example/simple-MPI/src'
 		make: *** [run] Error 2
 
 		Note that multiple invocations to MPI_Abort are shown. This is expected outcome and a future version of KGEN would implement a more graceful termination of application.
 
-	>> cd ../kernel; # move to a kernel directory
+	7. >> cd ../kernel; # move to a kernel directory
 
-	>> make; # build and run a kernel
+	8. >> make; # build and run a kernel
 
 	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
 
-		ifort -O3 -c -o kgen_utils.o kgen_utils.f90
-		ifort -O3 -c -o calc_mod.o calc_mod.F90
-		ifort -O3 -c -o update_mod.o update_mod.F90
-		ifort -O3 -c -o kernel_driver.o kernel_driver.f90
-		ifort -O3   -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
-		./kernel.exe
+		true; mpiifort  -c -o kgen_utils.o kgen_utils.f90
+		true; mpiifort  -c -o calc_mod.o calc_mod.F90
+		true; mpiifort  -c -o update_mod.o update_mod.F90
+		true; mpiifort  -c -o kernel_driver.o kernel_driver.f90
+		true; mpiifort    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		true; ./kernel.exe
 		 
-		 ***************** Verification against 'calc.1.0' *****************
-		 
-		 Number of verified variables:            1
-		 Number of identical variables:            1
-		 Number of non-identical variables within tolerance:            0
-		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
-		 
-		 Verification PASSED
-		 
-		 calc : Time per call (usec):   6.000000052154064E-003
-		 
-		 ***************** Verification against 'calc.3.0' *****************
+		 ***************** Verification against 'calc.0.0.1' *****************
 		 
 		 Number of verified variables:            1
 		 Number of identical variables:            1
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:   1.000000000000000E-014
 		 
 		 Verification PASSED
 		 
 		 calc : Time per call (usec):   4.999999888241291E-003
 		 
-		 ***************** Verification against 'calc.1.1' *****************
+		 ***************** Verification against 'calc.0.0.3' *****************
 		 
 		 Number of verified variables:            1
 		 Number of identical variables:            1
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:   1.000000000000000E-014
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   6.000000052154064E-003
+		 calc : Time per call (usec):   4.999999888241291E-003
 		 
-		 ***************** Verification against 'calc.3.1' *****************
+		 ***************** Verification against 'calc.1.0.1' *****************
 		 
 		 Number of verified variables:            1
 		 Number of identical variables:            1
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:   1.000000000000000E-015
+		 Tolerance:   1.000000000000000E-014
 		 
 		 Verification PASSED
 		 
 		 calc : Time per call (usec):   6.000000052154064E-003
+		 
+		 ***************** Verification against 'calc.1.0.3' *****************
+		 
+		 Number of verified variables:            1
+		 Number of identical variables:            1
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-014
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   4.999999888241291E-003
 		 
 		 ******************************************************************************
-		 calc summary: Total number of verification cases: 4
-		 calc summary: Average call time of all calls (usec):   5.750000011175871E-003
+		 calc summary: Total number of verification cases:            4
+		 calc summary: Average call time of all calls (usec):   5.249999929219484E-003
 		 ******************************************************************************
 
