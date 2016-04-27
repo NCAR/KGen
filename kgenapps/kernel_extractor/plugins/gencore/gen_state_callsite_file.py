@@ -80,14 +80,23 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             'entity_decls': ['lockpath'], 'selector':('1024', None)}
         part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['mpi_idx', 'openmp_idx']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['mpi_idx', 'openmp_idx', 'temp_unit', 'ierr']}
         part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'CHARACTER', 'selector': ( '16', None ), 'entity_decls': ['mpi_str', 'openmp_str']}
+        part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         attrs = {'loopcontrol': 'mpi_idx=mpi_s,mpi_e'}
         dompi = part_append_gensnode(initvarsubr, EXEC_PART, block_statements.Do, attrs=attrs)
 
+        attrs = {'specs': ['mpi_str', '"(I16)"'], 'items': [ 'mpi_idx' ]}
+        part_append_gensnode(dompi, EXEC_PART, statements.Write, attrs=attrs)
+
         attrs = {'loopcontrol': 'openmp_idx=omp_s,omp_e'}
         doopenmp = part_append_gensnode(dompi, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'specs': ['openmp_str', '"(I16)"'], 'items': [ 'openmp_idx' ]}
+        part_append_gensnode(doopenmp, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': [ 'lockpath(mpi_idx, openmp_idx)', 'FMT="(A,I0,A,I0)"'], \
             'items': ['"%s/done."'%getinfo('kernel_path'), 'mpi_idx', '"."', 'openmp_idx']}
@@ -98,6 +107,16 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         attrs = {'variable': 'last_invoke(openmp_idx)', 'sign': '=', 'expr': 'invoke_e'}
         part_append_gensnode(doopenmp, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'specs': ['NEWUNIT=temp_unit', 'FILE="%s/done." // TRIM(ADJUSTL(mpi_str)) // "." // TRIM(ADJUSTL(openmp_str))'% \
+            getinfo('kernel_path'), 'STATUS="OLD"', 'IOSTAT=ierr']}
+        part_append_gensnode(doopenmp, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'expr': 'ierr .EQ. 0'}
+        ifopenmp = part_append_gensnode(doopenmp, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'specs': [ 'UNIT=temp_unit', 'STATUS="DELETE"' ]}
+        part_append_gensnode(ifopenmp, EXEC_PART, statements.Close, attrs=attrs)
 
         #SUBROUTINE kgen_check_save
         attrs = {'name': 'kgen_check_save', 'args': ['mpi_s', 'mpi_e', 'omp_s', 'omp_e', 'invoke_s', 'invoke_e', 'mymid', \
@@ -135,7 +154,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         #SUBROUTINE kgen_check_stop
         attrs = {'name': 'kgen_check_stop', 'args': ['mpi_s', 'mpi_e', 'omp_s', 'omp_e', 'msize', \
-            'osize', 'myoid', 'lockpath', 'isexist', 'isstop']}
+            'osize', 'myoid', 'lockpath', 'isstop']}
         checkstopsubr = part_append_gensnode(node, SUBP_PART, block_statements.Subroutine, attrs=attrs)
         part_append_comment(node, SUBP_PART, '')
 
@@ -143,8 +162,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             ['mpi_s', 'mpi_e', 'omp_s', 'omp_e', 'msize', 'osize', 'myoid'] }
         part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['isexist'] }
-        part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+        #attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['isexist', 'isopened'] }
+        #part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(IN)', 'DIMENSION(0:msize-1,0:osize-1)'], \
             'entity_decls': ['lockpath'], 'selector':('1024', None)}
@@ -153,7 +172,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'LOGICAL', 'attrspec': ['INTENT(OUT)', 'DIMENSION(0:msize-1,0:osize-1)'], 'entity_decls': ['isstop']}
         part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['mpi_idx', 'openmp_idx']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['mpi_idx', 'openmp_idx', 'ierr', 'myunit']}
         part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'loopcontrol': 'mpi_idx=mpi_s,mpi_e'}
@@ -165,11 +184,66 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'expr': '.NOT. isstop(mpi_idx, openmp_idx)'}
         ifstop = part_append_gensnode(doopenmp, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'specs': ['FILE=TRIM(ADJUSTL(lockpath(mpi_idx, openmp_idx))), EXIST=isexist']}
-        part_append_gensnode(ifstop, EXEC_PART, statements.Inquire, attrs=attrs)
+        attrs = {'specs': ['NEWUNIT=myunit', 'FILE=TRIM(ADJUSTL(lockpath(mpi_idx, openmp_idx)))', \
+            'STATUS="OLD"', 'ACTION="READ"', 'IOSTAT=ierr']}
+        part_append_gensnode(ifstop, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'variable': 'isstop(mpi_idx, openmp_idx)', 'sign': '=', 'expr': 'isexist'}
-        part_append_gensnode(ifstop, EXEC_PART, statements.Assignment, attrs=attrs)
+        attrs = {'expr': 'ierr .EQ. 0'}
+        ifopen = part_append_gensnode(ifstop, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'isstop(mpi_idx, openmp_idx)', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_gensnode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'specs': [ 'UNIT=myunit' ]}
+        part_append_gensnode(ifopen, EXEC_PART, statements.Close, attrs=attrs)
+
+        #SUBROUTINE kgen_write_list
+        attrs = {'name': 'kgen_write_list', 'args': ['myunit', 'mpi_s', 'mpi_e', 'omp_s', 'omp_e', 'invoke_s', 'invoke_e']}
+        checkstopsubr = part_append_gensnode(node, SUBP_PART, block_statements.Subroutine, attrs=attrs)
+        part_append_comment(node, SUBP_PART, '')
+
+        attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': \
+            ['myunit', 'mpi_s', 'mpi_e', 'omp_s', 'omp_e', 'invoke_s', 'invoke_e'] }
+        part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['mpi_idx', 'openmp_idx', 'invoke_idx', 'temp_unit', 'ierr']}
+        part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'CHARACTER', 'selector': ( '16', None ), 'entity_decls': ['mpi_str', 'openmp_str', 'invoke_str']}
+        part_append_gensnode(checkstopsubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
+
+        attrs = {'loopcontrol': 'mpi_idx=mpi_s,mpi_e'}
+        dompi = part_append_gensnode(checkstopsubr, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'specs': ['mpi_str', '"(I16)"'], 'items': [ 'mpi_idx' ]}
+        part_append_gensnode(dompi, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'loopcontrol': 'openmp_idx=omp_s,omp_e'}
+        doopenmp = part_append_gensnode(dompi, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'specs': ['openmp_str', '"(I16)"'], 'items': [ 'openmp_idx' ]}
+        part_append_gensnode(doopenmp, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'loopcontrol': 'invoke_idx=invoke_s,invoke_e'}
+        doinvoke = part_append_gensnode(doopenmp, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'specs': ['invoke_str', '"(I16)"'], 'items': [ 'invoke_idx' ]}
+        part_append_gensnode(doinvoke, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'specs': ['UNIT = myunit', 'FMT="(A)"'], 'items': ['"%s." // TRIM(ADJUSTL(mpi_str)) // "." \
+// TRIM(ADJUSTL(openmp_str)) // "." // TRIM(ADJUSTL(invoke_str))'%getinfo('kernel_name')]}
+        part_append_gensnode(doinvoke, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'specs': ['NEWUNIT=temp_unit', 'FILE="%s/done." // TRIM(ADJUSTL(mpi_str)) // "." // TRIM(ADJUSTL(openmp_str))'% \
+            getinfo('kernel_path'), 'STATUS="OLD"', 'IOSTAT=ierr']}
+        part_append_gensnode(doopenmp, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'expr': 'ierr .EQ. 0'}
+        ifopenmp = part_append_gensnode(doopenmp, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'specs': [ 'UNIT=temp_unit', 'STATUS="DELETE"' ]}
+        part_append_gensnode(ifopenmp, EXEC_PART, statements.Close, attrs=attrs)
+
 
         #SUBROUTINE kgen_error_stop( ierr, errmsg )
         attrs = {'name': 'kgen_error_stop', 'args': ['ierr', 'errmsg']}
@@ -256,7 +330,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_NUM_THREADS', 'OMP_GET_THREAD_NUM']}
             namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue', 'kgen_isexist']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_count']}
+        namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
 
         namedpart_insert_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, 0, 'kgen variables')
@@ -338,11 +415,14 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'variable': 'kgen_isstop(:,:)', 'sign': '=', 'expr': '.TRUE.'}
         part_append_gensnode(ifinit, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'designator': 'SYSTEM', 'items': ['"rm -f %s/state_file.lst 2>/dev/null"'%getinfo('kernel_path')]}
-        part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
+        attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE="%s/state_file.lst"'%getinfo('kernel_path'), 'STATUS="OLD"', 'IOSTAT=kgen_ierr']}
+        part_append_gensnode(ifinit, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'designator': 'SYSTEM', 'items': ['"rm -f %s/done.*.* 2>/dev/null"'%getinfo('kernel_path')]}
-        part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
+        attrs = {'expr': 'kgen_ierr .EQ. 0'}
+        iflst = part_append_gensnode(ifinit, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'specs': [ 'UNIT=kgen_unit', 'STATUS="DELETE"' ]}
+        part_append_gensnode(iflst, EXEC_PART, statements.Close, attrs=attrs)
 
         for (mpi_s, mpi_e), (openmp_s, openmp_e), (invoke_s, invoke_e) in getinfo('invocations'):
             attrs = {'designator': 'kgen_init_vars', 'items': ['INT(%s)'%mpi_s.replace('e', '(kgen_msize-1)'), \
@@ -358,8 +438,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'variable': 'kgen_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
             namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
-            attrs = {'variable': 'kgen_islast(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
-            namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_islast(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
+            #namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
             for (mpi_s, mpi_e), (openmp_s, openmp_e), (invoke_s, invoke_e) in getinfo('invocations'):
                 attrs = {'designator': 'kgen_check_save', 'items': ['INT(%s)'%mpi_s.replace('e', '(kgen_msize-1)'), \
@@ -496,48 +576,50 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'specs': [ 'UNIT=kgen_stopunit', 'STATUS="KEEP"' ]}
             part_append_gensnode(ifopen, EXEC_PART, statements.Close, attrs=attrs)
            
-#            attrs = {'specs': ['FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, OMP_GET_THREAD_NUM()))), EXIST=kgen_isexist']}
-#            part_append_gensnode(ifstop, EXEC_PART, statements.Inquire, attrs=attrs)
-#
-#            attrs = {'loopcontrol': 'WHILE( .NOT. kgen_isexist)'}
-#            doexist = part_append_gensnode(ifstop, EXEC_PART, block_statements.Do, attrs=attrs)
-#
-#            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, OMP_GET_THREAD_NUM())))', \
-#                'STATUS="REPLACE"', 'IOSTAT=kgen_ierr']}
-#            part_append_gensnode(doexist, EXEC_PART, statements.Open, attrs=attrs)
-#
-#            attrs = {'specs': ['FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, OMP_GET_THREAD_NUM()))), EXIST=kgen_isexist']}
-#            part_append_gensnode(doexist, EXEC_PART, statements.Inquire, attrs=attrs)
-#
-#            attrs = {'specs': [ 'UNIT=kgen_stopunit', 'STATUS="KEEP"' ]}
-#            part_append_gensnode(ifstop, EXEC_PART, statements.Close, attrs=attrs)
-#
             for (mpi_s, mpi_e), (openmp_s, openmp_e), (invoke_s, invoke_e) in getinfo('invocations'):
                 attrs = {'designator': 'kgen_check_stop', 'items': ['INT(%s)'%mpi_s.replace('e', '(kgen_msize-1)'), \
                     'INT(%s)'%mpi_e.replace('e', '(kgen_msize-1)'), 'INT(%s)'%openmp_s.replace('e', '(kgen_osize-1)'), \
                     'INT(%s)'%openmp_e.replace('e', '(kgen_osize-1)'), 'kgen_msize', 'kgen_osize', \
-                    'OMP_GET_THREAD_NUM()', 'kgen_lockpath', 'kgen_isexist', 'kgen_isstop']}
+                    'OMP_GET_THREAD_NUM()', 'kgen_lockpath', 'kgen_isstop']}
                 part_append_gensnode(ifstop, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'expr': 'ALL(kgen_isstop)'}
             ifallstop = part_append_gensnode(ifstop, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'designator': 'SYSTEM', 'items': ['"cd %s; ls -1 2>/dev/null %s.*.*.* > state_file.lst"'% \
-                (getinfo('kernel_path'), getinfo('kernel_name'))]}
-            part_append_gensnode(ifallstop, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE="%s/state_file.lst"'%getinfo('kernel_path'), 'STATUS="NEW"', \
+                'FORM="FORMATTED"', 'ACCESS="SEQUENTIAL"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr']}
+            part_append_gensnode(ifallstop, EXEC_PART, statements.Open, attrs=attrs)
 
-            attrs = {'designator': 'SYSTEM', 'items': ['"rm -f %s/done.*.* 2>/dev/null"'%getinfo('kernel_path')]}
-            part_append_gensnode(ifallstop, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'expr': 'kgen_ierr .EQ. 0'}
+            iflst = part_append_gensnode(ifallstop, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'specs': ['kgen_stopunit']}
+            part_append_gensnode(iflst, EXEC_PART, statements.Flush, attrs=attrs)
+
+            for (mpi_s, mpi_e), (openmp_s, openmp_e), (invoke_s, invoke_e) in getinfo('invocations'):
+                attrs = {'designator': 'kgen_write_list', 'items': ['kgen_stopunit', 'INT(%s)'%mpi_s.replace('e', '(kgen_msize-1)'), \
+                    'INT(%s)'%mpi_e.replace('e', '(kgen_msize-1)'), 'INT(%s)'%openmp_s.replace('e', '(kgen_osize-1)'), \
+                    'INT(%s)'%openmp_e.replace('e', '(kgen_osize-1)'), 'INT(%s)'%invoke_s, 'INT(%s)'%invoke_e]}
+                part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
+
+            attrs = {'specs': ['kgen_stopunit']}
+            part_append_gensnode(iflst, EXEC_PART, statements.Flush, attrs=attrs)
+
+            attrs = {'specs': [ 'UNIT=kgen_stopunit', 'STATUS="KEEP"' ]}
+            part_append_gensnode(iflst, EXEC_PART, statements.Close, attrs=attrs)
 
             attrs = {'items': ['"Stopping application..."']}
-            part_append_gensnode(ifallstop, EXEC_PART, statements.Write, attrs=attrs)
+            part_append_gensnode(iflst, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'designator': 'SLEEP', 'items': ['5']}
+            part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
 
             if getinfo('is_mpi_app'):
                 attrs = {'designator': 'mpi_abort', 'items': [getinfo('mpi_comm'), '0', 'kgen_ierr']}
-                part_append_gensnode(ifallstop, EXEC_PART, statements.Call, attrs=attrs)
+                part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
             else:
                 attrs = {'code': '0'}
-                part_append_gensnode(ifallstop, EXEC_PART, statements.Stop, attrs=attrs)
+                part_append_gensnode(iflst, EXEC_PART, statements.Stop, attrs=attrs)
 
             part_append_comment(ifstop, EXEC_PART, 'END CRITICAL (kgen_fini)', style='openmp')
 
@@ -562,48 +644,51 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'specs': [ 'UNIT=kgen_stopunit', 'STATUS="KEEP"' ]}
             part_append_gensnode(ifopen, EXEC_PART, statements.Close, attrs=attrs)
  
-#            attrs = {'specs': ['FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, 0))), EXIST=kgen_isexist']}
-#            part_append_gensnode(ifstop, EXEC_PART, statements.Inquire, attrs=attrs)
-#
-#            attrs = {'loopcontrol': 'WHILE( .NOT. kgen_isexist )'}
-#            doexist = part_append_gensnode(ifstop, EXEC_PART, block_statements.Do, attrs=attrs)
-#
-#            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, 0)))', \
-#                'STATUS="REPLACE"', 'IOSTAT=kgen_ierr']}
-#            part_append_gensnode(doexist, EXEC_PART, statements.Open, attrs=attrs)
-#
-#            attrs = {'specs': ['FILE=TRIM(ADJUSTL(kgen_lockpath(kgen_mymid, 0))), EXIST=kgen_isexist']}
-#            part_append_gensnode(doexist, EXEC_PART, statements.Inquire, attrs=attrs)
-#
-#            attrs = {'specs': [ 'UNIT=kgen_stopunit', 'STATUS="KEEP"' ]}
-#            part_append_gensnode(ifstop, EXEC_PART, statements.Close, attrs=attrs)
 
             for (mpi_s, mpi_e), (openmp_s, openmp_e), (invoke_s, invoke_e) in getinfo('invocations'):
                 attrs = {'designator': 'kgen_check_stop', 'items': ['INT(%s)'%mpi_s.replace('e', '(kgen_msize-1)'), \
                     'INT(%s)'%mpi_e.replace('e', '(kgen_msize-1)'), 'INT(%s)'%openmp_s.replace('e', '(kgen_osize-1)'), \
                     'INT(%s)'%openmp_e.replace('e', '(kgen_osize-1)'), 'kgen_msize', 'kgen_osize', \
-                    '0', 'kgen_lockpath', 'kgen_isexist', 'kgen_isstop']}
+                    '0', 'kgen_lockpath', 'kgen_isstop']}
                 part_append_gensnode(ifstop, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'expr': 'ALL(kgen_isstop)'}
             ifallstop = part_append_gensnode(ifstop, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'designator': 'SYSTEM', 'items': ['"cd %s; ls -1 2>/dev/null %s.*.*.* > state_file.lst"'% \
-                (getinfo('kernel_path'), getinfo('kernel_name'))]}
-            part_append_gensnode(ifallstop, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE="%s/state_file.lst"'%getinfo('kernel_path'), 'STATUS="NEW"', \
+                'FORM="FORMATTED"', 'ACCESS="SEQUENTIAL"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr']}
+            part_append_gensnode(ifallstop, EXEC_PART, statements.Open, attrs=attrs)
 
-            attrs = {'designator': 'SYSTEM', 'items': ['"rm -f %s/done.*.* 2>/dev/null"'%getinfo('kernel_path')]}
-            part_append_gensnode(ifallstop, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'expr': 'kgen_ierr .EQ. 0'}
+            iflst = part_append_gensnode(ifallstop, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'specs': ['kgen_stopunit']}
+            part_append_gensnode(iflst, EXEC_PART, statements.Flush, attrs=attrs)
+
+            for (mpi_s, mpi_e), (openmp_s, openmp_e), (invoke_s, invoke_e) in getinfo('invocations'):
+                attrs = {'designator': 'kgen_write_list', 'items': ['kgen_stopunit', 'INT(%s)'%mpi_s.replace('e', '(kgen_msize-1)'), \
+                    'INT(%s)'%mpi_e.replace('e', '(kgen_msize-1)'), 'INT(%s)'%openmp_s.replace('e', '(kgen_osize-1)'), \
+                    'INT(%s)'%openmp_e.replace('e', '(kgen_osize-1)'), 'INT(%s)'%invoke_s, 'INT(%s)'%invoke_e]}
+                part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
+
+            attrs = {'specs': ['kgen_stopunit']}
+            part_append_gensnode(iflst, EXEC_PART, statements.Flush, attrs=attrs)
+
+            attrs = {'specs': [ 'UNIT=kgen_stopunit', 'STATUS="KEEP"' ]}
+            part_append_gensnode(iflst, EXEC_PART, statements.Close, attrs=attrs)
 
             attrs = {'items': ['"Stopping application..."']}
-            part_append_gensnode(ifallstop, EXEC_PART, statements.Write, attrs=attrs)
+            part_append_gensnode(iflst, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'designator': 'SLEEP', 'items': ['5']}
+            part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
 
             if getinfo('is_mpi_app'):
                 attrs = {'designator': 'mpi_abort', 'items': [getinfo('mpi_comm'), '0', 'kgen_ierr']}
-                part_append_gensnode(ifallstop, EXEC_PART, statements.Call, attrs=attrs)
+                part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
             else:
                 attrs = {'code': '0'}
-                part_append_gensnode(ifallstop, EXEC_PART, statements.Stop, attrs=attrs)
+                part_append_gensnode(iflst, EXEC_PART, statements.Stop, attrs=attrs)
 
             attrs = {'variable': 'kgen_invoke(0)', 'sign': '=', 'expr': 'kgen_invoke(0) + 1'}
             namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)

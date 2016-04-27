@@ -14,10 +14,10 @@ not_parsed = {}
 
 def get_MPI_COMM_WORLD(node, bag, depth):
     if isinstance(node, Type_Declaration_Stmt):
-        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string=='MPI_COMM_WORLD':
+        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()=='MPI_COMM_WORLD':
             pass
     elif isinstance(node, Parameter_Stmt):
-        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string=='MPI_COMM_WORLD':
+        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()=='MPI_COMM_WORLD':
             bag.append(node.items[1].items[1].items[0])
 
 def check_mode():
