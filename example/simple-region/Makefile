@@ -13,7 +13,7 @@ test:
 		--invocation 0:0:1,0:0:2,0:0:3 \
 		--kernel-compile FC="'${FC}'" \
 		--state-build cmds="cd ${SRC_DIR}; make build FC='${FC}'" \
-		--state-run cmds="cd ${SRC_DIR}; make run" \
+		--state-run cmds="cd ${SRC_DIR}; make run FC='${FC}'" \
 		--check tolerance=1.0D-10 \
 		${SRC}
 

@@ -214,8 +214,13 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['""']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"******************************************************************************"'], \
-            'specs': [ '*', '"(A)"' ]}
+        attrs = {'items': ['"****************************************************"'], 'specs': [ '*', '"(A)"' ]}
+        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"kernel execution summary: %s"'%getinfo('kernel_name')], 'specs': [ '*', '"(10X,A)"' ]}
+        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"****************************************************"'], 'specs': [ '*', '"(A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'expr': 'kgen_count == 0'}
@@ -226,28 +231,28 @@ class Gen_K_Driver(Kgen_Plugin):
 
         part_append_genknode(ifcount, EXEC_PART, statements.Else)
 
-        attrs = {'items': ['"%s summary: Total number of verification cases : "'%getinfo('kernel_name'), 'kgen_count'], \
-            'specs': [ '*', '"(1X, A, I6)"' ]}
+        attrs = {'items': ['"Total number of verification cases  "', '":"', 'kgen_count'], 'specs': [ '*', '"(4X, A36, A1, I6)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Number of verification-passed cases: "'%getinfo('kernel_name'), 'kgen_count_verified'], \
-            'specs': [ '*', '"(1X, A, I6)"' ]}
+        attrs = {'items': ['"Number of verification-passed cases "', '":"', 'kgen_count_verified'], 'specs': [ '*', '"(4X, A36, A1, I6)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Average call time (usec): ", kgen_total_time / REAL(kgen_count)'%getinfo('kernel_name')], \
-            'specs': [ '*', '"(1X, A, E10.3)"' ]}
+        #attrs = {'items': ['"Verification tolerance "', '":"', '%s'%getinfo('verify_tol')], 'specs': [ '*', '"(4X, A22, A1, E24.16)"' ]}
+        #part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['""']}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Minimum call time (usec): ", kgen_min_time'%getinfo('kernel_name')], \
-            'specs': [ '*', '"(1X, A, E10.3)"' ]}
+        attrs = {'items': ['"Average call time (usec): ", kgen_total_time / REAL(kgen_count)'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Maximum call time (usec): ", kgen_max_time'%getinfo('kernel_name')], \
-            'specs': [ '*', '"(1X, A, E10.3)"' ]}
+        attrs = {'items': ['"Minimum call time (usec): ", kgen_min_time'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"******************************************************************************"'], \
-            'specs': [ '*', '"(A)"' ]}
+        attrs = {'items': ['"Maximum call time (usec): ", kgen_max_time'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
+        part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"****************************************************"'], 'specs': [ '*', '"(A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         if getinfo('add_mpi_frame'):

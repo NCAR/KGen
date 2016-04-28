@@ -72,19 +72,32 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun run
 		make[1]: Entering directory `${KGENHOME}/example/simple-MPI/src'
 		mpirun -n 4 ./demo.exe
-		 Collected Kernel Input/Ouput state from:            1           0           1
 		 Collected Kernel Input/Ouput state from:            0           0           1
-		 Collected Kernel Input/Ouput state from:            1           0           3
+		 Collected Kernel Input/Ouput state from:            1           0           1
 		 Collected Kernel Input/Ouput state from:            0           0           3
+		 Collected Kernel Input/Ouput state from:            1           0           3
+		forrtl: No such file or directory
 		 Stopping application...
-		 Stopping application...
-		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 0
-		application called MPI_Abort(MPI_COMM_WORLD, 0) - process 1
-		make[1]: *** [run] Error 255
-		make[1]: Leaving directory `${KGENHOME}/example/simple-MPI/src'
+		forrtl: severe (28): CLOSE error, unit -141, file "Unknown"
+		Image              PC                Routine            Line        Source             
+		demo.exe           000000000047E93A  Unknown               Unknown  Unknown
+		demo.exe           000000000047D436  Unknown               Unknown  Unknown
+		demo.exe           000000000043E100  Unknown               Unknown  Unknown
+		demo.exe           000000000041476E  Unknown               Unknown  Unknown
+		demo.exe           0000000000413CAF  Unknown               Unknown  Unknown
+		demo.exe           000000000040B3F6  Unknown               Unknown  Unknown
+		demo.exe           000000000040AEB3  Unknown               Unknown  Unknown
+		demo.exe           0000000000409DCE  Unknown               Unknown  Unknown
+		demo.exe           0000000000408721  Unknown               Unknown  Unknown
+		demo.exe           000000000040868C  Unknown               Unknown  Unknown
+		libc.so.6          0000003101E1ED5D  Unknown               Unknown  Unknown
+		demo.exe           0000000000408589  Unknown               Unknown  Unknown
+		APPLICATION TERMINATED WITH THE EXIT STRING: Hangup (signal 1)
+		make[1]: *** [run] Error 1
+		make[1]: Leaving directory `/glade/u/home/youngsun/repos/github/KGen/example/simple-MPI/src'
 		make: *** [run] Error 2
 
-		Note that multiple invocations to MPI_Abort are shown. This is expected outcome and a future version of KGEN would implement a more graceful termination of application.
+		Note that multiple errors are shown above result. This is expected outcome and a future version of KGEN would implement a more graceful termination of application.
 
 	7. >> cd ../kernel; # move to a kernel directory
 
@@ -92,11 +105,11 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 
 	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
 
-		true; mpiifort  -c -o kgen_utils.o kgen_utils.f90
-		true; mpiifort  -c -o calc_mod.o calc_mod.F90
-		true; mpiifort  -c -o update_mod.o update_mod.F90
-		true; mpiifort  -c -o kernel_driver.o kernel_driver.f90
-		true; mpiifort    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		true; ifort  -c -o kgen_utils.o kgen_utils.f90
+		true; ifort  -c -o calc_mod.o calc_mod.F90
+		true; ifort  -c -o update_mod.o update_mod.F90
+		true; ifort  -c -o kernel_driver.o kernel_driver.f90
+		true; ifort    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
 		true; ./kernel.exe
 		 
 		 ***************** Verification against 'calc.0.0.1' *****************
@@ -109,7 +122,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   4.999999888241291E-003
+		 calc : Time per call (usec):   6.200000178068876E-003
 		 
 		 ***************** Verification against 'calc.0.0.3' *****************
 		 
@@ -121,7 +134,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   4.999999888241291E-003
+		 calc : Time per call (usec):   5.400000140070915E-003
 		 
 		 ***************** Verification against 'calc.1.0.1' *****************
 		 
@@ -133,7 +146,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   6.000000052154064E-003
+		 calc : Time per call (usec):   5.299999844282866E-003
 		 
 		 ***************** Verification against 'calc.1.0.3' *****************
 		 
@@ -145,10 +158,15 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   4.999999888241291E-003
+		 calc : Time per call (usec):   5.499999970197678E-003
 		 
-		 ******************************************************************************
-		 calc summary: Total number of verification cases:            4
-		 calc summary: Average call time of all calls (usec):   5.249999929219484E-003
-		 ******************************************************************************
-
+		****************************************************
+				  kernel execution summary: calc
+		****************************************************
+			Total number of verification cases  :     4
+			Number of verification-passed cases :     4
+		 
+			Average call time (usec):  0.560E-02
+			Minimum call time (usec):  0.530E-02
+			Maximum call time (usec):  0.620E-02
+		****************************************************
