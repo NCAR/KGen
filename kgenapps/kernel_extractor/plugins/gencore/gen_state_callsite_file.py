@@ -83,20 +83,11 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['mpi_idx', 'openmp_idx', 'temp_unit', 'ierr']}
         part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'CHARACTER', 'selector': ( '16', None ), 'entity_decls': ['mpi_str', 'openmp_str']}
-        part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
-
         attrs = {'loopcontrol': 'mpi_idx=mpi_s,mpi_e'}
         dompi = part_append_gensnode(initvarsubr, EXEC_PART, block_statements.Do, attrs=attrs)
 
-        attrs = {'specs': ['mpi_str', '"(I16)"'], 'items': [ 'mpi_idx' ]}
-        part_append_gensnode(dompi, EXEC_PART, statements.Write, attrs=attrs)
-
         attrs = {'loopcontrol': 'openmp_idx=omp_s,omp_e'}
         doopenmp = part_append_gensnode(dompi, EXEC_PART, block_statements.Do, attrs=attrs)
-
-        attrs = {'specs': ['openmp_str', '"(I16)"'], 'items': [ 'openmp_idx' ]}
-        part_append_gensnode(doopenmp, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': [ 'lockpath(mpi_idx, openmp_idx)', 'FMT="(A,I0,A,I0)"'], \
             'items': ['"%s/done."'%getinfo('kernel_path'), 'mpi_idx', '"."', 'openmp_idx']}
@@ -108,8 +99,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'variable': 'last_invoke(openmp_idx)', 'sign': '=', 'expr': 'invoke_e'}
         part_append_gensnode(doopenmp, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'specs': ['NEWUNIT=temp_unit', 'FILE="%s/done." // TRIM(ADJUSTL(mpi_str)) // "." // TRIM(ADJUSTL(openmp_str))'% \
-            getinfo('kernel_path'), 'STATUS="OLD"', 'IOSTAT=ierr']}
+        attrs = {'specs': ['NEWUNIT=temp_unit', 'FILE=lockpath(mpi_idx, openmp_idx)', 'STATUS="OLD"', 'IOSTAT=ierr']}
         part_append_gensnode(doopenmp, EXEC_PART, statements.Open, attrs=attrs)
 
         attrs = {'expr': 'ierr .EQ. 0'}
@@ -680,13 +670,17 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'items': ['"Stopping application..."']}
             part_append_gensnode(iflst, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'designator': 'SLEEP', 'items': ['5']}
-            part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
 
             if getinfo('is_mpi_app'):
+                attrs = {'designator': 'SLEEP', 'items': ['5']}
+                part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
+
                 attrs = {'designator': 'mpi_abort', 'items': [getinfo('mpi_comm'), '0', 'kgen_ierr']}
                 part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
             else:
+                attrs = {'designator': 'SLEEP', 'items': ['1']}
+                part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
+
                 attrs = {'code': '0'}
                 part_append_gensnode(iflst, EXEC_PART, statements.Stop, attrs=attrs)
 

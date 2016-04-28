@@ -28,8 +28,8 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['kgen_maxiter = %s'%getinfo('repeat_count')]}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
-        attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': ['kgen_elapsed_time']}
-        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
+        #attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': ['kgen_elapsed_time']}
+        #part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
         part_append_comment(node, EXEC_PART, '')
         part_append_comment(node, EXEC_PART, 'Measuring elapsed time. Please increase the value of kgen_maxiter to get improve timing measurment resolution.')
@@ -62,6 +62,6 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_elapsed_time']}
         part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_elapsed_time'}
-        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+        #attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_elapsed_time'}
+        #part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
  

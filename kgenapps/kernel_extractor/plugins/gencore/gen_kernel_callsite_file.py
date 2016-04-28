@@ -60,9 +60,12 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'REAL', 'attrspec': ['INTENT(INOUT)'], 'entity_decls': ['kgen_total_time'], \
+        attrs = {'type_spec': 'REAL', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['kgen_elapsed_time'], \
             'selector': (None, 'kgen_dp')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['kgen_isverified']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)

@@ -61,16 +61,20 @@ class Gen_K_Driver(Kgen_Plugin):
             part_append_comment(node, DECL_PART, 'include "mpif.h"')
             part_append_comment(node, DECL_PART, '')
 
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_isverified']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr_list', 'kgen_unit_list']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_unit', 'kgen_count']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_unit', 'kgen_count', 'kgen_count_verified']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_total_time'], 'selector': (None, 'kgen_dp')}
+        attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': \
+            ['kgen_elapsed_time', 'kgen_total_time', 'kgen_min_time', 'kgen_max_time'], }
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
@@ -90,7 +94,16 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
+        attrs = {'variable': 'kgen_min_time', 'sign': '=', 'expr': 'HUGE(0.0_kgen_dp)'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_max_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
         attrs = {'variable': 'kgen_count', 'sign': '=', 'expr': '0'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_count_verified', 'sign': '=', 'expr': '0'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
         part_append_comment(node, EXEC_PART, '')
@@ -104,10 +117,22 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'expr': 'kgen_ierr_list /= 0'}
         iflist = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'items': ['"Can not find state_file.lst in kernel directory."']}
+        attrs = {'items': ['""']}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"state_file.lst is a text file that contains a list of paths to state data files."']}
+        attrs = {'items': ['"ERROR: ""state_file.lst"" is not found in current directory."']}
+        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['""']}
+        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"""state_file.lst"" is a text file that has paths to state data files."']}
+        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"If state data files exist, create ""state_file.lst"" manually or"']}
+        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"by executing ""ls -1 %s.*.*.* > state_file.lst"""'%getinfo('kernel_name')]}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
         part_append_genknode(iflist, EXEC_PART, statements.Stop)
@@ -140,6 +165,9 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'variable': 'kgen_count', 'sign': '=', 'expr': 'kgen_count + 1'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
 
+        attrs = {'variable': 'kgen_isverified', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
         part_append_comment(ifopen, EXEC_PART, '')
 
         # register gencore parts
@@ -159,6 +187,21 @@ class Gen_K_Driver(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, '')
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, 'callsite part')
 
+        attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_elapsed_time'}
+        part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_min_time', 'sign': '=', 'expr': 'MIN( kgen_min_time, kgen_elapsed_time )'}
+        part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_max_time', 'sign': '=', 'expr': 'MAX( kgen_max_time, kgen_elapsed_time )'}
+        part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'expr': 'kgen_isverified'}
+        ifverified = part_append_genknode(ifopen, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_count_verified', 'sign': '=', 'expr': 'kgen_count_verified + 1'}
+        part_append_genknode(ifverified, EXEC_PART, statements.Assignment, attrs=attrs)
+
         attrs = {'specs': ['UNIT=kgen_unit']}
         part_append_genknode(ifopen, EXEC_PART, statements.Close, attrs=attrs)
         part_append_comment(node, EXEC_PART, '')
@@ -171,7 +214,8 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['""']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"******************************************************************************"']}
+        attrs = {'items': ['"******************************************************************************"'], \
+            'specs': [ '*', '"(A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'expr': 'kgen_count == 0'}
@@ -182,13 +226,28 @@ class Gen_K_Driver(Kgen_Plugin):
 
         part_append_genknode(ifcount, EXEC_PART, statements.Else)
 
-        attrs = {'items': ['"%s summary: Total number of verification cases: "'%getinfo('kernel_name'), 'kgen_count']}
+        attrs = {'items': ['"%s summary: Total number of verification cases : "'%getinfo('kernel_name'), 'kgen_count'], \
+            'specs': [ '*', '"(1X, A, I6)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"%s summary: Average call time of all calls (usec): ", kgen_total_time / REAL(kgen_count)'%getinfo('kernel_name')]}
+        attrs = {'items': ['"%s summary: Number of verification-passed cases: "'%getinfo('kernel_name'), 'kgen_count_verified'], \
+            'specs': [ '*', '"(1X, A, I6)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"******************************************************************************"']}
+        attrs = {'items': ['"%s summary: Average call time (usec): ", kgen_total_time / REAL(kgen_count)'%getinfo('kernel_name')], \
+            'specs': [ '*', '"(1X, A, E10.3)"' ]}
+        part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"%s summary: Minimum call time (usec): ", kgen_min_time'%getinfo('kernel_name')], \
+            'specs': [ '*', '"(1X, A, E10.3)"' ]}
+        part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"%s summary: Maximum call time (usec): ", kgen_max_time'%getinfo('kernel_name')], \
+            'specs': [ '*', '"(1X, A, E10.3)"' ]}
+        part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"******************************************************************************"'], \
+            'specs': [ '*', '"(A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         if getinfo('add_mpi_frame'):

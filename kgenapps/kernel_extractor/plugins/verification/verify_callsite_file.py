@@ -90,12 +90,18 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.FALSE.'}
         part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+        attrs = {'variable': 'kgen_isverified', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
         part_append_genknode(ifobj, EXEC_PART, statements.Else, attrs=attrs)
 
         attrs = {'items': ['"Verification PASSED"']}
         part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
         
         attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_isverified', 'sign': '=', 'expr': '.TRUE.'}
         part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'items': ['""']}

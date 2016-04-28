@@ -10,12 +10,12 @@ test:
 	${KGEN} \
 		-D ROW=4,COL=4 \
 		-I ${SRC_DIR} \
-		--timing repeat=1000 \
+		--timing repeat=10 \
 		--invocation 0:0:1,0:0:2,0:0:3 \
 		--kernel-compile FC='${FC}' \
 		--state-build cmds="cd ${SRC_DIR}; make build FC='${FC}'" \
 		--state-run cmds="cd ${SRC_DIR}; make run" \
-		--check tolerance=1.0D-10 \
+		--check tolerance=1.0D-14 \
 		${SRC}:${CALLSITE}
 
 clean:
