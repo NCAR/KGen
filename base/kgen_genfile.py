@@ -304,6 +304,8 @@ def getinfo(name):
     elif name=='is_openmp_app': return Config.openmp['enabled']
     elif name=='is_mpi_app': return Config.mpi['enabled']
     elif name=='mpi_comm': return Config.mpi['comm']
+    elif name=='mpi_logical': return Config.mpi['logical']
+    elif name=='mpi_status_size': return Config.mpi['status_size']
     elif name=='mpi_use': return Config.mpi['use_stmts']
     elif name=='invocations': return Config.invocation['triples']
     elif name=='print_var_names': return Config.debug['printvar']

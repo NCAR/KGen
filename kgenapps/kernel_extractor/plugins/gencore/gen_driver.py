@@ -111,7 +111,7 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'variable': 'kgen_unit_list', 'sign': '=', 'expr': 'kgen_get_newunit()'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
       
-        attrs = {'specs': ['UNIT=kgen_unit_list', 'FILE="state_file.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
+        attrs = {'specs': ['UNIT=kgen_unit_list', 'FILE="kgen_statefile.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
         part_append_genknode(node, EXEC_PART, statements.Open, attrs=attrs)
 
         attrs = {'expr': 'kgen_ierr_list /= 0'}
@@ -120,19 +120,19 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['""']}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"ERROR: ""state_file.lst"" is not found in current directory."']}
+        attrs = {'items': ['"ERROR: ""kgen_statefile.lst"" is not found in current directory."']}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['""']}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"""state_file.lst"" is a text file that has paths to state data files."']}
+        attrs = {'items': ['"""kgen_statefile.lst"" is a text file that has paths to state data files."']}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"If state data files exist, create ""state_file.lst"" manually or"']}
+        attrs = {'items': ['"If state data files exist, create ""kgen_statefile.lst"" manually or"']}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"by executing ""ls -1 %s.*.*.* > state_file.lst"""'%getinfo('kernel_name')]}
+        attrs = {'items': ['"by executing ""ls -1 %s.*.*.* > kgen_statefile.lst"""'%getinfo('kernel_name')]}
         part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
 
         part_append_genknode(iflist, EXEC_PART, statements.Stop)

@@ -20,6 +20,22 @@ def get_MPI_COMM_WORLD(node, bag, depth):
         if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()=='MPI_COMM_WORLD':
             bag.append(node.items[1].items[1].items[0])
 
+def get_MPI_LOGICAL(node, bag, depth):
+    if isinstance(node, Type_Declaration_Stmt):
+        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()=='MPI_LOGICAL':
+            pass
+    elif isinstance(node, Parameter_Stmt):
+        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()=='MPI_LOGICAL':
+            bag.append(node.items[1].items[1].items[0])
+
+def get_MPI_STATUS_SIZE(node, bag, depth):
+    if isinstance(node, Type_Declaration_Stmt):
+        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()=='MPI_STATUS_SIZE':
+            pass
+    elif isinstance(node, Parameter_Stmt):
+        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()=='MPI_STATUS_SIZE':
+            bag.append(node.items[1].items[1].items[0])
+
 def check_mode():
     from kgen_utils import Config, exec_cmd
     from utils import module_file_extensions
@@ -187,15 +203,36 @@ def preprocess():
 
             # collect required information
             if mpifpath:
-                if Config.mpi['comm'] is None:
+                try:
                     reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
                     spec = Specification_Part(reader)
-                    comm = []
-                    traverse(spec, get_MPI_COMM_WORLD, comm, subnode='content')
-                    if comm:
-                        Config.mpi['comm'] = comm[-1]
-                    else:
-                        raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
+
+                    if Config.mpi['comm'] is None:
+                        comm = []
+                        traverse(spec, get_MPI_COMM_WORLD, comm, subnode='content')
+                        if comm:
+                            Config.mpi['comm'] = comm[-1]
+                        else:
+                            raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
+
+                    if Config.mpi['logical'] is None:
+                        logical = []
+                        traverse(spec, get_MPI_LOGICAL, logical, subnode='content')
+                        if logical:
+                            Config.mpi['logical'] = logical[-1]
+                        else:
+                            raise UserException('Can not find MPI_LOGICAL in mpif.h')
+
+                    if Config.mpi['status_size'] is None:
+                        status_size = []
+                        traverse(spec, get_MPI_STATUS_SIZE, status_size, subnode='content')
+                        if status_size:
+                            Config.mpi['status_size'] = status_size[-1]
+                        else:
+                            raise UserException('Can not find MPI_STATUS_SIZE in mpif.h')
+
+                except Exception as e:
+                    raise UserException('Error occurred during reading %s.'%mpifpath)
             else:
                 raise UserException('Can not find mpif.h. Please provide a path to the file')
 
