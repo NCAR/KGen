@@ -2,39 +2,28 @@
 
 import sys
 import os.path
-from kgen_utils import Logger, Config, traverse, UserException
+from kgen_utils import Logger, Config, traverse, UserException, show_tree
 from kgen_state import State
 from readfortran import FortranFileReader
 from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
-    NoMatchError, Module_Stmt, Program_Stmt
+    NoMatchError, Module_Stmt, Program_Stmt, Named_Constant_Def_List
 
 exclude_list = [ Module_Stmt, Program_Stmt ]
 not_supported = {}
 not_parsed = {}
 
-def get_MPI_COMM_WORLD(node, bag, depth):
-    if isinstance(node, Type_Declaration_Stmt):
-        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()=='MPI_COMM_WORLD':
-            pass
-    elif isinstance(node, Parameter_Stmt):
-        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()=='MPI_COMM_WORLD':
-            bag.append(node.items[1].items[1].items[0])
 
-def get_MPI_LOGICAL(node, bag, depth):
+def get_MPI_PARAM(node, bag, depth):
     if isinstance(node, Type_Declaration_Stmt):
-        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()=='MPI_LOGICAL':
+        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()==bag['key']:
             pass
     elif isinstance(node, Parameter_Stmt):
-        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()=='MPI_LOGICAL':
-            bag.append(node.items[1].items[1].items[0])
-
-def get_MPI_STATUS_SIZE(node, bag, depth):
-    if isinstance(node, Type_Declaration_Stmt):
-        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()=='MPI_STATUS_SIZE':
-            pass
-    elif isinstance(node, Parameter_Stmt):
-        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()=='MPI_STATUS_SIZE':
-            bag.append(node.items[1].items[1].items[0])
+        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()==bag['key']:
+            bag[bag['key']].append(str(node.items[1].items[1]).replace(' ', ''))
+        elif isinstance(node.items[1], Named_Constant_Def_List):
+            for item in node.items[1].items:
+                if isinstance(item, Named_Constant_Def) and item.items[0].string.upper()==bag['key']:
+                    bag[bag['key']].append(str(item.items[1]).replace(' ', ''))
 
 def check_mode():
     from kgen_utils import Config, exec_cmd
@@ -207,29 +196,51 @@ def preprocess():
                     reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
                     spec = Specification_Part(reader)
 
+                    bag = {}
                     if Config.mpi['comm'] is None:
-                        comm = []
-                        traverse(spec, get_MPI_COMM_WORLD, comm, subnode='content')
-                        if comm:
-                            Config.mpi['comm'] = comm[-1]
+                        bag['key'] = 'MPI_COMM_WORLD'
+                        bag[bag['key']] = []
+                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
+                        if bag.has_key(bag['key']):
+                            Config.mpi['comm'] = bag[bag['key']][-1]
                         else:
                             raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
 
                     if Config.mpi['logical'] is None:
-                        logical = []
-                        traverse(spec, get_MPI_LOGICAL, logical, subnode='content')
-                        if logical:
-                            Config.mpi['logical'] = logical[-1]
+                        bag['key'] = 'MPI_LOGICAL'
+                        bag[bag['key']] = []
+                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
+                        if bag.has_key(bag['key']):
+                            Config.mpi['logical'] = bag[bag['key']][-1]
                         else:
                             raise UserException('Can not find MPI_LOGICAL in mpif.h')
 
                     if Config.mpi['status_size'] is None:
-                        status_size = []
-                        traverse(spec, get_MPI_STATUS_SIZE, status_size, subnode='content')
-                        if status_size:
-                            Config.mpi['status_size'] = status_size[-1]
+                        bag['key'] = 'MPI_STATUS_SIZE'
+                        bag[bag['key']] = []
+                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
+                        if bag.has_key(bag['key']):
+                            Config.mpi['status_size'] = bag[bag['key']][-1]
                         else:
                             raise UserException('Can not find MPI_STATUS_SIZE in mpif.h')
+
+                    if Config.mpi['any_source'] is None:
+                        bag['key'] = 'MPI_ANY_SOURCE'
+                        bag[bag['key']] = []
+                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
+                        if bag.has_key(bag['key']):
+                            Config.mpi['any_source'] =  bag[bag['key']][-1]
+                        else:
+                            raise UserException('Can not find MPI_ANY_SOURCE in mpif.h')
+
+                    if Config.mpi['source'] is None:
+                        bag['key'] = 'MPI_SOURCE'
+                        bag[bag['key']] = []
+                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
+                        if bag.has_key(bag['key']):
+                            Config.mpi['source'] =  bag[bag['key']][-1]
+                        else:
+                            raise UserException('Can not find MPI_SOURCE in mpif.h')
 
                 except Exception as e:
                     import pdb; pdb.set_trace()

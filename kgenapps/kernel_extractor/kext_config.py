@@ -25,6 +25,8 @@ class KExtConfig(object):
         self.attrs['mpi']['comm'] = None
         self.attrs['mpi']['logical'] = None
         self.attrs['mpi']['status_size'] = None
+        self.attrs['mpi']['source'] = None
+        self.attrs['mpi']['any_source'] = None
         self.attrs['mpi']['header'] = 'mpif.h'
         self.attrs['mpi']['use_stmts'] = []
 

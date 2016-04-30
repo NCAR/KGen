@@ -67,7 +67,7 @@ class Test(KExtSysYSCalcTest):
             for statefile in statefiles:
                 shutil.copyfile(os.path.join(datadir, statefile), '%s/kernel/%s'%(workdir, statefile))
 
-            shutil.copyfile(os.path.join(datadir, 'state_file.lst'), '%s/kernel/state_file.lst'%workdir)
+            shutil.copyfile(os.path.join(datadir, 'kgen_statefile.lst'), '%s/kernel/kgen_statefile.lst'%workdir)
 
             result['goto'] = 'runkernel_task'
             self.set_status(result, myname, self.PASSED)

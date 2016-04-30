@@ -17,7 +17,7 @@ class KExtSysTest(KExtTest):
             os.mkdir(datadir)
 
         # copy statefiles if they are newer.
-        statefile = 'state_file.lst'
+        statefile = 'kgen_statefile.lst'
         kernel_sf = '%s/kernel/%s'%(workdir, statefile)
         data_sf = '%s/data/%s'%(workdir, statefile)
         if os.path.exists(kernel_sf) and os.path.exists(data_sf):

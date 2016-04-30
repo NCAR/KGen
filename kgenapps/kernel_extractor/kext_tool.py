@@ -48,10 +48,6 @@ class KExtTool(KGenTool):
         if not os.path.exists(Config.path['kernel']):
             os.makedirs(Config.path['kernel'])
 
-        os.system('rm -f %s/state_file.lst'%Config.path['kernel'])
-        os.system('rm -f %s/done.*'%Config.path['kernel'])
-
-
     def transform(self):
 
         # generate kgen_driver.f90 in kernel directory
