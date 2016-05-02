@@ -117,25 +117,25 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'expr': 'kgen_ierr_list /= 0'}
         iflist = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
+        attrs = {'designator': 'SYSTEM', 'items': ['"ls -1 %s.*.*.* > kgen_statefile.lst"'%getinfo('kernel_name')]}
+        part_append_genknode(iflist, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'designator': 'SLEEP', 'items': ['1']}
+        part_append_genknode(iflist, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=kgen_unit_list', 'FILE="kgen_statefile.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
+        part_append_genknode(iflist, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr_list /= 0'}
+        iflist2 = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['""']}
-        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(iflist2, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"ERROR: ""kgen_statefile.lst"" is not found in current directory."']}
-        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(iflist2, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['""']}
-        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'items': ['"""kgen_statefile.lst"" is a text file that has paths to state data files."']}
-        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'items': ['"If state data files exist, create ""kgen_statefile.lst"" manually or"']}
-        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'items': ['"by executing ""ls -1 %s.*.*.* > kgen_statefile.lst"""'%getinfo('kernel_name')]}
-        part_append_genknode(iflist, EXEC_PART, statements.Write, attrs=attrs)
-
-        part_append_genknode(iflist, EXEC_PART, statements.Stop)
+        part_append_genknode(iflist2, EXEC_PART, statements.Stop)
 
         attrs = {'loopcontrol': 'WHILE ( kgen_ierr_list == 0 )'}
         doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
