@@ -579,7 +579,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'loopcontrol': 'kgen_count=1,3'}
             doretry = part_append_gensnode(ifallstop, EXEC_PART, block_statements.Do, attrs=attrs)
 
-            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE="%s/state_file.lst"'%getinfo('kernel_path'), 'STATUS="NEW"', \
+            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE="%s/kgen_statefile.lst"'%getinfo('kernel_path'), 'STATUS="NEW"', \
                 'FORM="FORMATTED"', 'ACCESS="SEQUENTIAL"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr']}
             part_append_gensnode(doretry, EXEC_PART, statements.Open, attrs=attrs)
 
@@ -656,7 +656,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'expr': 'ALL(kgen_isstop)'}
             ifallstop = part_append_gensnode(ifstop, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE="%s/state_file.lst"'%getinfo('kernel_path'), 'STATUS="NEW"', \
+            attrs = {'specs': ['NEWUNIT=kgen_stopunit', 'FILE="%s/kgen_statefile.lst"'%getinfo('kernel_path'), 'STATUS="NEW"', \
                 'FORM="FORMATTED"', 'ACCESS="SEQUENTIAL"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr']}
             part_append_gensnode(ifallstop, EXEC_PART, statements.Open, attrs=attrs)
 
