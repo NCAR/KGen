@@ -28,8 +28,8 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
     def is_typedecl_in_type(self, node):
         parent = node.kgen_parent
-        if parent.kgen_match_class is block_statements.Type and parent.kgen_stmt and hasattr(parent.kgen_stmt, 'geninfo') and \
-            len(parent.kgen_stmt.geninfo)>0:
+        if parent.kgen_match_class is block_statements.Type and parent.kgen_stmt and node.kgen_stmt and \
+            hasattr(parent.kgen_stmt, 'geninfo') and len(parent.kgen_stmt.geninfo)>0: 
             return True
         else: return False
 

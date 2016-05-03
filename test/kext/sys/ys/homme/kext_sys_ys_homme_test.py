@@ -176,7 +176,7 @@ class KExtSysYSHommeTest(KExtSysYSTest):
             for statefile in statefiles:
                 shutil.copyfile(os.path.join(datadir, statefile), '%s/kernel/%s'%(workdir, statefile))
 
-            if s.path.exists(os.path.join(datadir, 'kgen_statefile.lst')):
+            if os.path.exists(os.path.join(datadir, 'kgen_statefile.lst')):
                 shutil.copyfile(os.path.join(datadir, 'kgen_statefile.lst'), '%s/kernel/kgen_statefile.lst'%workdir)
 
             result['goto'] = 'runkernel_task'
