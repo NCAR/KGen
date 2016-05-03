@@ -94,7 +94,6 @@ def update_state_info(parent):
                                         else:
                                             argidx = 0
                                     elif anc.__class__ == Interface_Stmt:
-                                        print 'III'
                                         import pdb; pdb.set_trace()
 
                                 # get intent
@@ -242,4 +241,5 @@ def locate_callsite(cs_tree):
             elif len(directs)>0 and directs[-1]=='callsite':
                 State.callsite['stmts'].append(stmt)
 
-    if len(State.callsite['stmts'])==0: raise UserException('Can not find callsite')
+    if len(State.callsite['stmts'])==0:
+        raise UserException('Can not find callsite')

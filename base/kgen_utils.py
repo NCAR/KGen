@@ -577,7 +577,7 @@ class Config(object):
 
         # set namepath if exists in command line argument
         if len(callsite)==2:
-            self.callsite['namepath'] = callsite[1]
+            self.callsite['namepath'] = callsite[1].lower()
         elif len(callsite)>2:
             print 'ERROR: Unrecognized call-site information(Syntax -> filepath[:subprogramname]): %s'%str(callsite)
             sys.exit(-1)

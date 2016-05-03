@@ -863,7 +863,10 @@ def search_Ac_Implied_Do_Control(stmt, node, gentype=None):
 def search_Specific_Binding(stmt, node, gentype=None):
     get_name_or_defer(stmt, node.items[0], res_typespec + [ Interface ])
     get_name_or_defer(stmt, node.items[1], res_value)
-    get_name_or_defer(stmt, node.items[3], res_subprogram)
+    if node.items[3] is None:
+        get_name_or_defer(stmt, node.items[2], res_subprogram)
+    else:
+        get_name_or_defer(stmt, node.items[3], res_subprogram)
 
 def search_Binding_Attr(stmt, node, gentype=None):
     pass

@@ -47,8 +47,11 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
         return False
 
     def create_verify_module_parts(self, node):
-        subrname = get_module_verifyname(node.kgen_stmt)
 
+        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+
+        subrname = get_module_verifyname(node.kgen_stmt)
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if not part_has_node(node, SUBP_PART, checks):
 

@@ -89,8 +89,10 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
     def process_specstmts_in_upperblocks(self, node):
         process_spec_stmts(node.kgen_stmt)
 
-        if hasattr(node, 'kgen_parent') and not node.kgen_parent.kgen_stmt.__class__ in [ block_statements.Module, block_statements.Program ]:
-            process_specstmts_in_upperblocks(node.kgen_parent)
+        #if node.kgen_parent is None: import pdb; pdb.set_trace()
+        if hasattr(node, 'kgen_parent') and node.kgen_parent and \
+            not node.kgen_parent.kgen_stmt.__class__ in [ block_statements.Module, block_statements.Program ]:
+            self.process_specstmts_in_upperblocks(node.kgen_parent)
 
     def typedecl_has_state_parentblock(self, node):
         if hasattr(node.kgen_stmt, 'geninfo') and KGGenType.has_state(node.kgen_stmt.geninfo) \

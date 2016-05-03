@@ -130,7 +130,6 @@ def check_mode():
                         not_supported[file] = []
                     not_supported[file].append((clsname, stmt.item.span[0]))
             except Exception as e:
-                #import pdb; pdb.set_trace()
                 print 'WARNING: Following statement is not correctly parsed'
                 print stmt
                 print ''
@@ -243,7 +242,6 @@ def preprocess():
                             raise UserException('Can not find MPI_SOURCE in mpif.h')
 
                 except Exception as e:
-                    import pdb; pdb.set_trace()
                     raise UserException('Error occurred during reading %s.'%mpifpath)
             else:
                 raise UserException('Can not find mpif.h. Please provide a path to the file')

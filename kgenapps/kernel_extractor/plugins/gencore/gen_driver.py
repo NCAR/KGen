@@ -217,7 +217,7 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['"****************************************************"'], 'specs': [ '*', '"(A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"kernel execution summary: %s"'%getinfo('kernel_name')], 'specs': [ '*', '"(10X,A)"' ]}
+        attrs = {'items': ['"kernel execution summary: %s"'%getinfo('kernel_name')], 'specs': [ '*', '"(4X,A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"****************************************************"'], 'specs': [ '*', '"(A)"' ]}
