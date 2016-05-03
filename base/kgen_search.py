@@ -150,7 +150,8 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
                     return
 
         # skip if excluded
-        if Config.exclude.has_key('namepath') and stmt.__class__ in execution_part:
+        #if Config.exclude.has_key('namepath') and stmt.__class__ in execution_part:
+        if Config.exclude.has_key('namepath'):
             for pattern, actions in Config.exclude['namepath'].iteritems():
                 name = node.string.lower()
                 namepath = pack_innamepath(stmt, name) 
