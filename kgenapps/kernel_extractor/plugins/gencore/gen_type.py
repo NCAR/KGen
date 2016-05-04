@@ -45,7 +45,7 @@ class Gen_Type(Kgen_Plugin):
         if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo'):
             if not node.kgen_stmt.isonly: return False
             for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
-                if any(isinstance(req.res_stmts[0], block_statements.Type) for uname, req in reqlist):
+                if any(len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type) for uname, req in reqlist):
                     return True
         return False
 
@@ -54,7 +54,7 @@ class Gen_Type(Kgen_Plugin):
 
         for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
             for uname, req in reqlist:
-                if isinstance(req.res_stmts[0], block_statements.Type):
+                if len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_readname(req.res_stmts[0])
                     checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
                         subrname in n.kgen_stmt.items
@@ -75,7 +75,7 @@ class Gen_Type(Kgen_Plugin):
 
         for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
             for uname, req in reqlist:
-                if isinstance(req.res_stmts[0], block_statements.Type):
+                if len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_writename(req.res_stmts[0])
                     checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
                         subrname in n.kgen_stmt.items
@@ -261,12 +261,15 @@ class Gen_Type(Kgen_Plugin):
                             else:
                                 callname = None
                                 for uname, req in stmt.unknowns.iteritems():
-                                    if uname.firstpartname()==stmt.name:
+                                    if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                         res = req.res_stmts[0]
                                         callname = get_dtype_readname(res)
                                         break
                                 if callname is None:
                                     print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                                    part_append_comment(subrobj, EXEC_PART, \
+                                        'ERROR: "%s" is not resolved. Call statement to read "%s" is not created here.'%\
+                                        (stmt.name, stmt.name))
                                 else:
                                     self.create_read_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
@@ -356,12 +359,15 @@ class Gen_Type(Kgen_Plugin):
                             else:
                                 callname = None
                                 for uname, req in stmt.unknowns.iteritems():
-                                    if uname.firstpartname()==stmt.name:
+                                    if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                         res = req.res_stmts[0]
                                         callname = get_dtype_writename(res)
                                         break
                                 if callname is None:
                                     print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                                    part_append_comment(subrobj, EXEC_PART, \
+                                        'ERROR: "%s" is not resolved. Call statement to write "%s" is not created here.'%\
+                                        (stmt.name, stmt.name))
                                 else:
                                     self.create_write_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type

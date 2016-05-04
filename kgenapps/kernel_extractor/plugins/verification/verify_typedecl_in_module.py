@@ -118,15 +118,18 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
                     if var.is_pointer() or var.is_array():
                         create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
                     else:
+                        subrname = None
                         for uname, req in stmt.unknowns.iteritems():
                             if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                             #if uname.firstpartname()==stmt.name:
-                                subrname = get_dtype_verifyname(req.res_stmts[0])
-                                break
+                                if len(req.res_stmts)>0:
+                                    subrname = get_dtype_verifyname(req.res_stmts[0])
+                                    break
                 else:
                     create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
 
-            attrs = {'designator': subrname, 'items': ['"%s"'%entity_name, 'check_status', entity_name, 'kgenref_%s'%entity_name]}
-            part_append_genknode(self.verify_externs_subrs[node.kgen_parent], EXEC_PART, statements.Call, attrs=attrs)
+            if subrname:
+                attrs = {'designator': subrname, 'items': ['"%s"'%entity_name, 'check_status', entity_name, 'kgenref_%s'%entity_name]}
+                part_append_genknode(self.verify_externs_subrs[node.kgen_parent], EXEC_PART, statements.Call, attrs=attrs)
 
 

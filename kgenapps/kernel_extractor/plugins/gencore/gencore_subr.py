@@ -96,25 +96,29 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
 
                 callname = None
                 for uname, req in stmt.unknowns.iteritems():
-                    if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
-                        res = req.res_stmts[0]
-                        callname = get_dtype_readname(res)
-                        break
-                if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
-
-                #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(", %s, ")"'%tostr_indexes]}
-                attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
-                part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
-
-                part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
-
-                if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s%s(", %s, ")"'%(ename_prefix, entity_name, tostr_indexes)]}
-                    attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s%s(%s)"'%(ename_prefix, entity_name, str_indexes)]}
-                    part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                    if ( is_class_derived and uname.firstpartname()==stmt.selector[1] ) or uname.firstpartname()==stmt.name:
+                        if len(req.res_stmts)>0:
+                            res = req.res_stmts[0]
+                            callname = get_dtype_readname(res)
+                            break
+                if callname is None:
+                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    part_append_comment(ifpvarobj, EXEC_PART, \
+                        'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
+                        (stmt.name, stmt.name))
                 else:
-                    attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit']}
+                    attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+
+                    part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
+
+                    if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+                        #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s%s(", %s, ")"'%(ename_prefix, entity_name, tostr_indexes)]}
+                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s%s(%s)"'%(ename_prefix, entity_name, str_indexes)]}
+                        part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                    else:
+                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit']}
+                        part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
             else: # intrinsic type
                 attrs = {'items': ['var'], 'specs': ['UNIT = kgen_unit']}
@@ -167,23 +171,27 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 callname = None
                 for uname, req in stmt.unknowns.iteritems():
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
-                    #if uname.firstpartname()==stmt.name:
-                        res = req.res_stmts[0]
-                        callname = get_dtype_readname(res)
-                        break
-                if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
-
-                attrs = {'designator': callname, 'items': ['var', 'kgen_unit', 'printvar // " %s%s "'%(ename_prefix, entity_name)]}
-                part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
-
-                part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
-
-                if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'designator': callname, 'items': ['var', 'kgen_unit', '"%s%s"'%(ename_prefix, entity_name)]}
-                    part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                        if len(req.res_stmts)>0:
+                            res = req.res_stmts[0]
+                            callname = get_dtype_readname(res)
+                            break
+                if callname is None:
+                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    part_append_comment(ifpvarobj, EXEC_PART, \
+                        'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
+                        (stmt.name, stmt.name))
                 else:
-                    attrs = {'designator': callname, 'items': ['var', 'kgen_unit']}
+                    attrs = {'designator': callname, 'items': ['var', 'kgen_unit', 'printvar // " %s%s "'%(ename_prefix, entity_name)]}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+
+                    part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
+
+                    if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+                        attrs = {'designator': callname, 'items': ['var', 'kgen_unit', '"%s%s"'%(ename_prefix, entity_name)]}
+                        part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                    else:
+                        attrs = {'designator': callname, 'items': ['var', 'kgen_unit']}
+                        part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
             else: # intrinsic type
                 attrs = {'items': ['var'], 'specs': ['UNIT = kgen_unit']}
                 part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
@@ -290,24 +298,29 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 for uname, req in stmt.unknowns.iteritems():
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                     #if uname.firstpartname()==stmt.name:
-                        res = req.res_stmts[0]
-                        callname = get_dtype_writename(res)
-                        break
-                if callname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
-
-                #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(", %s, ")"'%tostr_indexes]}
-                attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
-                part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
-
-                part_append_gensnode(ifpvarobj, EXEC_PART, statements.Else)
-
-                if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(", %s, ")"'%(entity_name, tostr_indexes)]}
-                    attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(%s)"'%(entity_name, str_indexes)]}
-                    part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                        if len(req.res_stmts)>0:
+                            res = req.res_stmts[0]
+                            callname = get_dtype_writename(res)
+                            break
+                if callname is None:
+                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    part_append_comment(ifpvarobj, EXEC_PART, \
+                        'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
+                        (stmt.name, stmt.name))
                 else:
-                    attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit']}
+                    #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(", %s, ")"'%tostr_indexes]}
+                    attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printvar // "(%s)"'%str_indexes]}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+
+                    part_append_gensnode(ifpvarobj, EXEC_PART, statements.Else)
+
+                    if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+                        #attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(", %s, ")"'%(entity_name, tostr_indexes)]}
+                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', '"%s(%s)"'%(entity_name, str_indexes)]}
+                        part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                    else:
+                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit']}
+                        part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
             else: # intrinsic type
                 attrs = {'items': ['var'], 'specs': ['UNIT = kgen_unit']}
@@ -345,26 +358,30 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 for uname, req in stmt.unknowns.iteritems():
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                     #if uname.firstpartname()==stmt.name:
-                        res = req.res_stmts[0]
-                        callname = get_dtype_writename(res)
-                        break
+                        if len(req.res_stmts)>0:
+                            res = req.res_stmts[0]
+                            callname = get_dtype_writename(res)
+                            break
                 if callname is None:
-                    raise Exception('Can not find Type resolver for %s'%stmt.name)
-
-                attrs = {'expr': 'PRESENT( printvar )'}
-                ifpvarobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-                attrs = {'designator': callname, 'items': ['var', 'kgen_unit', 'printvar // " %s "'%entity_name]}
-                part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
-
-                part_append_gensnode(ifpvarobj, EXEC_PART, statements.Else)
-
-                if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-                    attrs = {'designator': callname, 'items': ['var', 'kgen_unit', '"%s"'%entity_name]}
-                    part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    part_append_comment(pobj, EXEC_PART, \
+                        'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
+                        (stmt.name, stmt.name))
                 else:
-                    attrs = {'designator': callname, 'items': ['var', 'kgen_unit']}
+                    attrs = {'expr': 'PRESENT( printvar )'}
+                    ifpvarobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                    attrs = {'designator': callname, 'items': ['var', 'kgen_unit', 'printvar // " %s "'%entity_name]}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+
+                    part_append_gensnode(ifpvarobj, EXEC_PART, statements.Else)
+
+                    if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
+                        attrs = {'designator': callname, 'items': ['var', 'kgen_unit', '"%s"'%entity_name]}
+                        part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
+                    else:
+                        attrs = {'designator': callname, 'items': ['var', 'kgen_unit']}
+                        part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
             else: # intrinsic type
                 attrs = {'items': ['var'], 'specs': ['UNIT = kgen_unit']}
                 part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)

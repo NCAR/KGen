@@ -457,11 +457,15 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                         for uname, req in stmt.unknowns.iteritems():
                             if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                             #if uname.firstpartname()==stmt.name:
-                                res = req.res_stmts[0]
-                                subrname = get_dtype_readname(res)
-                                break
+                                if len(req.res_stmts)>0:
+                                    res = req.res_stmts[0]
+                                    subrname = get_dtype_readname(res)
+                                    break
                         if subrname is None:
-                            raise Exception('Can not find Type resolver for %s'%stmt.name)
+                            print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            namedpart_append_comment(self.kernel_externs_subrs[node.kgen_parent][0], EXEC_PART, \
+                                'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
+                                (stmt.name, stmt.name))
                         else:
                             self.create_read_call(self.kernel_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                             if entity_name in out_entity_names:
@@ -530,11 +534,15 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                         for uname, req in stmt.unknowns.iteritems():
                             if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                             #if uname.firstpartname()==stmt.name:
-                                res = req.res_stmts[0]
-                                subrname = get_dtype_writename(res)
-                                break
+                                if len(req.res_stmts)>0:
+                                    res = req.res_stmts[0]
+                                    subrname = get_dtype_writename(res)
+                                    break
                         if subrname is None:
-                            raise Exception('Can not find Type resolver for %s'%stmt.name)
+                            print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            namedpart_append_comment(self.state_externs_subrs[node.kgen_parent][0], EXEC_PART, \
+                                'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
+                                (stmt.name, stmt.name))
                         else:
                             self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
                             if entity_name in out_entity_names:
