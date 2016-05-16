@@ -1,13 +1,10 @@
-# kgentest.py
-
 import os
 import shutil
 import getpass
-from kext_sys_test import KExtSysTest
+from kapp_sys_test import KAppSysTest
 from kgen_utils import run_shcmd
 
-class KExtSysYSTest(KExtSysTest):
-
+class KAppSysYSTest(KAppSysTest):
     def preprocess(self, myname, result):
         out, err, retcode = run_shcmd('bqueues')
 

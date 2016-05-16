@@ -1,6 +1,7 @@
 # kgentest.py
 
 import os
+import time
 from kgen_test import KGenTest
 from kgen_utils import run_shcmd
 
@@ -26,8 +27,10 @@ class KAppTest(KGenTest):
         out, err, retcode = run_shcmd(' '.join(cmds))
 
         # debug
-        #print ' '.join(cmds)
-        #print out
+        #print 'CMDS: ', ' '.join(cmds)
+        #print 'STDOUT: ', out
+        #print 'STDERR: ', err
+        #print 'RETCODE: ', retcode
         if self.LEAVE_TEMP:
             with open('%s/kgen_cmds.sh'%outdir, 'w') as f:
                 f.write('#!/bin/bash\n')
@@ -38,7 +41,9 @@ class KAppTest(KGenTest):
             os.chmod('%s/kgen_cmds.sh'%outdir, 0755)
 
         if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err or retcode!=0:
+
             return False, out, err
+
         return True, out, err
 
     def runkernel(self, myname, result):

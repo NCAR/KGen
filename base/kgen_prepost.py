@@ -183,11 +183,19 @@ def preprocess():
                 else:
                     raise UserException('Can not find %s'%Config.mpi['header'])
             else:
-                for p in Config.include['path']: # KGEN addition
+                for p in Config.include['path']:
                     fp = os.path.join(p, Config.mpi['header'])
                     if os.path.exists(fp):
                         mpifpath = fp
                         break
+                if not mpifpath:
+                    for incpath, incdict in Config.include['file'].items():
+                        for p in incdict['path']:
+                            fp = os.path.join(p, Config.mpi['header'])
+                            if os.path.exists(fp):
+                                mpifpath = fp
+                                break
+                        if mpifpath: break
 
             # collect required information
             if mpifpath:

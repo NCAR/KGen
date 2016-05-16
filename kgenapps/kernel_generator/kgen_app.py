@@ -53,6 +53,9 @@ def main():
 
         # kext options
         parser.add_option("--invocation", dest="invocation", action='append', type='string', default=None, help="(process, thread, invocation) pairs of kernel for data collection")
+        parser.add_option("--openmp", dest="openmp", action='append', type='string', default=None, help="Specifying OpenMP options")
+        parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
+        parser.add_option("--timing", dest="timing", action='append', type='string', default=None, help="Timing measurement information")
 
         opts, args = parser.parse_args()
 
@@ -86,6 +89,15 @@ def main():
         if opts.invocation:
             kext_argv.append('--invocation')
             kext_argv.extend(opts.invocation)
+        if opts.mpi:
+            kext_argv.append('--mpi')
+            kext_argv.extend(opts.mpi)
+        if opts.openmp:
+            kext_argv.append('--openmp')
+            kext_argv.extend(opts.openmp)
+        if opts.timing:
+            kext_argv.append('--timing')
+            kext_argv.extend(opts.timing)
         kext_argv.append('--state-build')
         kext_argv.append('cmds=%s'%args[1])
         kext_argv.append('--state-run')
@@ -108,10 +120,10 @@ def main():
 
         # generate state
         out, err, retcode = run_shcmd('make', cwd='%s/state'%outdir)
-        if retcode != 0:
-            print (out, err, retcode)
-
+        #if retcode != 0:
+        #    print ('STATE GEN ERROR: ', out, err, retcode)
         return 0
+
     except UserException as e:
         print 'ERROR: %s'%str(e)
         Logger.info(e)

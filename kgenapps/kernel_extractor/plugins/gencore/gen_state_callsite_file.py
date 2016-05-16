@@ -547,8 +547,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         if getinfo('is_openmp_app'):
             namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'CRITICAL (kgen_fini)', style='openmp')
 
-            attrs = {'items': ['"DEBUG 1: "', 'kgen_ischecked', 'kgen_islast']}
-            namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Write, attrs=attrs)
+            #attrs = {'items': ['"DEBUG 1: "', 'kgen_ischecked', 'kgen_islast']}
+            #namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Write, attrs=attrs)
 
             attrs = {'expr': '.NOT. kgen_ischecked(OMP_GET_THREAD_NUM()) .AND. kgen_islast(OMP_GET_THREAD_NUM())'}
             ifstop = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)

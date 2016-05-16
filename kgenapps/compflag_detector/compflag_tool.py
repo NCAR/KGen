@@ -56,14 +56,10 @@ class CompFlagDetect(KGenTool):
 
             shcmds = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s'%(SH%self.config.build['cwd'])
 
-#            exedir, exefile = os.path.split(os.path.realpath(exepath))
-#            qargs = [ '"%s"'%arg for arg in args[1:] ]
-#            shcmds = 'cd %s; strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s %s'%( exedir, exefile, ' '.join(qargs))
-
             print 'Building application using command-line of "%s"'%self.config.build['cmdline']
             out, err, retcode = run_shcmd(shcmds, cwd=self.config.build['cwd'])
 
-            #os.remove(SH%self.config.build['cwd'])
+            os.remove(SH%self.config.build['cwd'])
 
             if retcode==0:
                 stracefile = '%s/strace.log'%self.config.build['cwd']
