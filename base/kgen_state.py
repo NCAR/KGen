@@ -191,7 +191,7 @@ class SrcFile(object):
 
     def __init__(self, srcpath):
         import os.path
-        from kgen_utils import exec_cmd
+        from kgen_utils import run_shcmd
         from statements import Comment
         from block_statements import Module, Program
 
@@ -245,7 +245,7 @@ class SrcFile(object):
 
         new_lines = []
         with open(self.abspath, 'r') as f:
-            output = exec_cmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
+            output, err, retcode = run_shcmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
             prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
             new_lines = self.handle_include(prep)
 

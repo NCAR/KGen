@@ -3,9 +3,9 @@
 import sys
 import os
 
-KGEN_EXTRACTOR = '%s/../kgenapps/kernel_extractor'%os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, KGEN_EXTRACTOR)
+KGEN_APPLICATION = '%s/../kgenapps/kernel_generator'%os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, KGEN_APPLICATION)
 
 if __name__ == "__main__":
-    from kext_tool import KExtTool
-    sys.exit(KExtTool().execute())
+    from kgen_app import main
+    sys.exit(main())

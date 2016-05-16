@@ -51,8 +51,8 @@ class CompflagFuncTest(CompflagTest):
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['mkdir_task']['tmpsrc']
 
-        passed, out, err = self.run_compflag(os.path.join(tmpsrc, 'make'), \
-            tmpsrc, _o='%s/include.ini'%workdir)
+        passed, out, err = self.run_compflag('make', \
+            tmpsrc, __ini='outpath=%s/include.ini'%workdir)
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err

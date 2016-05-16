@@ -1,13 +1,15 @@
 # kext_config.py
 
 import sys
+import os
 from kgen_utils import UserException
-from ordereddict import OrderedDict
+from collections import OrderedDict
+
+KGEN_EXT = os.path.dirname(os.path.realpath(__file__))
 
 class KExtConfig(object):
 
-    def __init__(self, homedir):
-        self.home = homedir
+    def __init__(self, argv=None):
         self.attrs = OrderedDict()
         self.options = []
 
@@ -70,10 +72,10 @@ class KExtConfig(object):
         self.attrs['plugin'] = OrderedDict()
         self.attrs['plugin']['priority'] = OrderedDict()
 
-        self.attrs['plugin']['priority']['ext.gencore'] = '%s/plugins/gencore'%self.home
-        self.attrs['plugin']['priority']['ext.verification'] = '%s/plugins/verification'%self.home
-        self.attrs['plugin']['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%self.home
-        self.attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%self.home
+        self.attrs['plugin']['priority']['ext.gencore'] = '%s/plugins/gencore'%KGEN_EXT
+        self.attrs['plugin']['priority']['ext.verification'] = '%s/plugins/verification'%KGEN_EXT
+        self.attrs['plugin']['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXT
+        self.attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXT
 
         self.options.append( (self.opt_invocation, ["--invocation"], {'dest':"invocation", 'action':'append', 'type':'string', 'default':None, 'help':"(process, thread, invocation) pairs of kernel for data collection"}) )
         self.options.append( (self.opt_openmp, ["--openmp"], {'dest':"openmp", 'action':'append', 'type':'string', 'default':None, 'help':"Specifying OpenMP options"}) )

@@ -26,19 +26,31 @@ KGEN_BASE = '%s/base'%KGEN_HOME
 sys.path.insert(0, KGEN_BASE)
 sys.path.insert(0, KGEN_EXTRACTOR)
 
+import block_statements
 from kext_config import KExtConfig
-from kgen_utils import Logger, Config, ProgramException, KGGenType
+from kgen_utils import Config, Logger, UserException, ProgramException, KGGenType 
 from kgen_state import State
-from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register 
+from kgen_analyze import analyze 
+from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register, \
+    append_item_in_part, UNIT_PART, Gen_Statement
+from kgen_prepost import preprocess, postprocess 
 from genmake import generate_makefiles
 from kgen_tool import KGenTool
 
 class KExtTool(KGenTool):
-    def initialize(self):
 
-        myconfig = KExtConfig(KGEN_EXTRACTOR)
+    def init(self, argv=None):
 
-        Config.apply(myconfig)
+        self._trees = []
+        self.genfiles = []
+        self.kernel_name = State.kernel_driver['name']
+        self.config= KExtConfig(argv=argv)
+
+        Config.register(self.config)
+
+    def main(self):
+
+        print ''
 
         # create state directories
         if not os.path.exists(Config.path['state']):
@@ -51,7 +63,11 @@ class KExtTool(KGenTool):
         os.system('rm -f %s/kgen_statefile.lst'%Config.path['kernel'])
         os.system('rm -f %s/done.*'%Config.path['kernel'])
 
-    def transform(self):
+        preprocess()
+        Logger.info('Pre-processing is done', stdout=True)
+    
+        analyze()
+        Logger.info('Program is analyzed', stdout=True)
 
         # generate kgen_driver.f90 in kernel directory
         self.driver = self.create_tree()
@@ -98,8 +114,8 @@ class KExtTool(KGenTool):
             for tree in self._trees:
                 tree.flatten(KERNEL_ID_0, [plugin_name])
 
-    def output(self):
-                
+    def fini(self):
+               
         # generate source files from each node of the tree
         for kfile, sfile, filepath in self.genfiles:
             filename = os.path.basename(filepath)
@@ -126,6 +142,11 @@ class KExtTool(KGenTool):
 
         generate_makefiles()
         Logger.info('Makefiles are generated', stdout=True)
+ 
+        postprocess()
+        Logger.info('Post-processing is done', stdout=True)
+
+        Logger.info('Completed.', stdout=True)
 
     def generate_kgen_utils(self):
         from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \
@@ -143,3 +164,17 @@ class KExtTool(KGenTool):
             f.write(kgen_get_newunit)
             f.write(kgen_error_stop)
             f.write('END MODULE kgen_utils_mod\n')
+
+    def create_tree(self):
+        tree = genkobj(None, block_statements.BeginSource, KERNEL_ID_0)
+        self._trees.append(tree)
+        return tree
+
+    def create_program(self, parent):
+        return genkobj(parent, block_statements.Program, KERNEL_ID_0)
+
+    def append_program_in_tree(self, driver, program):
+        append_item_in_part(driver, UNIT_PART, program)
+
+    def set_indent(self, indent):
+        Gen_Statement.kgen_gen_attrs = {'indent': '', 'span': None}

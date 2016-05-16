@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 import sys
-import subprocess
+#import subprocess
 
 class KGenTest(object):
 
@@ -76,11 +76,11 @@ class KGenTest(object):
     def is_uptodate(self, taskname):
         return self.uptodate[taskname]
 
-    def run_shcmd(self, cmd, input=None, **kwargs):
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, \
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, **kwargs)
-        out, err = proc.communicate(input=input)
-        return out, err, proc.returncode
+#    def run_shcmd(self, cmd, input=None, **kwargs):
+#        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, \
+#            stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, **kwargs)
+#        out, err = proc.communicate(input=input)
+#        return out, err, proc.returncode
 
     def preprocess(self, myname, result):
         result[myname]['status'] = self.NOT_EXECUTED

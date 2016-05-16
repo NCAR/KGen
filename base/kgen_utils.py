@@ -4,10 +4,12 @@
 import os
 import re
 import sys
+import subprocess
+from collections import OrderedDict
 from copy import deepcopy
+import optparse
 from Fortran2003 import Name, Data_Ref
 from ConfigParser import RawConfigParser
-from ordereddict import OrderedDict
 
 #############################################################################
 ## COMMON
@@ -158,19 +160,36 @@ def singleton(cls):
         return instances[cls]
     return get_instance()
 
-def exec_cmd(cmd, show_error_msg=True, input=None):
-    import subprocess
+def run_shcmd(cmd, input=None, **kwargs):
 
-    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    show_error_msg = None
+    if kwargs.has_key('show_error_msg'):
+        show_error_msg = kwargs['show_error_msg']
+        del kwargs['show_error_msg']
 
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, \
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, **kwargs)
     out, err = proc.communicate(input=input)
 
-    ret_code = proc.wait()
-    if ret_code != 0 and show_error_msg:
+    if proc.returncode != 0 and show_error_msg:
         print '>> %s' % cmd
         print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n'
 
-    return out
+    return out, err, proc.returncode
+
+#def exec_cmd(cmd, show_error_msg=True, input=None):
+#    import subprocess
+#
+#    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#
+#    out, err = proc.communicate(input=input)
+#
+#    ret_code = proc.wait()
+#    if ret_code != 0 and show_error_msg:
+#        print '>> %s' % cmd
+#        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n'
+#
+#    return out
 
 # traverse f2003 nodes
 # traverse and func will return None if to continue processing
@@ -515,40 +534,52 @@ class Config(object):
         self._attrs['plugin'] = OrderedDict()
         self._attrs['plugin']['priority'] = OrderedDict()
 
-    def apply(self, cfg):
-        import optparse
+        self.parser = optparse.OptionParser()
 
+    def register(self, cfg):
+    
         if not cfg:
             raise ProgramException('Custom configuration is not provided.')
 
         if hasattr(cfg, 'attrs'):
             self._attrs.update(cfg.attrs)
-        
-        # parsing arguments
-        parser = optparse.OptionParser(usage=cfg.usage, version=cfg.version)
-
-        # add default options
-        parser.add_option("-s", "--syntax-check", dest="syntax_check", action='store_true', default=False, help="KGEN Syntax Check Mode")
-        parser.add_option("-i", "--include-ini", dest="include_ini", action='store', type='string', default=None, help="information used for analysis")
-        parser.add_option("-e", "--exclude-ini", dest="exclude_ini", action='store', type='string', default=None, help="information excluded for analysis")
-        parser.add_option("-I", dest="include", action='append', type='string', default=None, help="include path information used for analysis")
-        parser.add_option("-D", dest="macro", action='append', type='string', default=None, help="macro information used for analysis")
-        parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
-        parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
-        parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
-        parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
-        parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
-        parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
-        parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
-        parser.add_option("--add-mpi-frame", dest="add_mpi_frame", type='string', default=None, help='Add MPI frame codes in kernel_driver.')
 
         # add custom options 
         if hasattr(cfg, 'options'):
             for opt_handler, args, kwargs in cfg.options:
-                parser.add_option(*args, **kwargs)
+                self.parser.add_option(*args, **kwargs)
                 self.opt_handlers[kwargs['dest']] = opt_handler
 
-        opts, args = parser.parse_args()
+    def apply(self, argv=None, cfg=None):
+        if cfg and hasattr(cfg, 'attrs'):
+            self._attrs.update(cfg.attrs)
+        
+        # parsing arguments
+
+        # add default options
+        self.parser.add_option("-s", "--syntax-check", dest="syntax_check", action='store_true', default=False, help="KGEN Syntax Check Mode")
+        self.parser.add_option("-i", "--include-ini", dest="include_ini", action='store', type='string', default=None, help="information used for analysis")
+        self.parser.add_option("-e", "--exclude-ini", dest="exclude_ini", action='store', type='string', default=None, help="information excluded for analysis")
+        self.parser.add_option("-I", dest="include", action='append', type='string', default=None, help="include path information used for analysis")
+        self.parser.add_option("-D", dest="macro", action='append', type='string', default=None, help="macro information used for analysis")
+        self.parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
+        self.parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
+        self.parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
+        self.parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
+        self.parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
+        self.parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
+        self.parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
+        self.parser.add_option("--add-mpi-frame", dest="add_mpi_frame", type='string', default=None, help='Add MPI frame codes in kernel_driver.')
+
+        #self.parser.set_usage(cfg.usage)
+
+        # add custom options 
+        if cfg and hasattr(cfg, 'options'):
+            for opt_handler, args, kwargs in cfg.options:
+                self.parser.add_option(*args, **kwargs)
+                self.opt_handlers[kwargs['dest']] = opt_handler
+
+        opts, args = self.parser.parse_args(args=argv)
 
         if len(args)<1:
             print 'ERROR: No call-site information is provided in command line.'
@@ -595,13 +626,17 @@ class Config(object):
 
         # check if exists fpp or cpp
         output = ''
-        try: output = exec_cmd('which cpp', show_error_msg=False).strip()
+        try:
+            out, err, retcode = run_shcmd('which cpp', show_error_msg=False)
+            output = out.strip()
         except Exception as e: pass
         if output.endswith('cpp'):
             self.bin['pp'] = output
         else:
             output = ''
-            try: output = exec_cmd('which fpp', show_error_msg=False).strip()
+            try:
+                out, err, retcode = run_shcmd('which fpp', show_error_msg=False)
+                output = out.strip()
             except Exception as e: pass
             if output.endswith('fpp'):
                 self.bin['pp'] = output
@@ -883,7 +918,7 @@ class Test_kgen_utils(unittest.TestCase):
         pass
  
     def test_exec_cmd(self):
-        output = exec_cmd('echo "TestOK"')
+        output, err, retcode = run_shcmd('echo "TestOK"')
         self.assertEqual( output, "TestOK\n")
  
 

@@ -2,7 +2,7 @@
 
 import sys
 import os.path
-from kgen_utils import Logger, Config, traverse, UserException, show_tree
+from kgen_utils import Logger, Config, traverse, UserException, show_tree, run_shcmd
 from kgen_state import State
 from readfortran import FortranFileReader
 from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
@@ -26,7 +26,7 @@ def get_MPI_PARAM(node, bag, depth):
                     bag[bag['key']].append(str(item.items[1]).replace(' ', ''))
 
 def check_mode():
-    from kgen_utils import Config, exec_cmd
+    from kgen_utils import Config, run_shcmd
     from utils import module_file_extensions
     from api import parse, walk
     from statements import Comment
@@ -87,7 +87,7 @@ def check_mode():
         elif prep.endswith('cpp'): flags = Config.bin['cpp_flags']
         else: raise UserException('Preprocessor is not either fpp or cpp')
 
-        output = exec_cmd('%s %s %s %s %s' % (prep, flags, includes, macros, file))
+        output, err, retcode = run_shcmd('%s %s %s %s %s' % (prep, flags, includes, macros, file))
 
         # convert the preprocessed for fparser
         prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
@@ -253,10 +253,10 @@ def preprocess():
 
 def postprocess():
     # TODO: display summary for kernel generation
-    from kgen_utils import exec_cmd
+    from kgen_utils import run_shcmd
 
     # copy object files into kernel folder 
     if Config.include.has_key('import'):
         for path, import_type in Config.include['import'].iteritems():
             if 'object'==import_type:
-                exec_cmd('cp -f %s %s'%(path, Config.path['kernel']))
+                run_shcmd('cp -f %s %s'%(path, Config.path['kernel']))

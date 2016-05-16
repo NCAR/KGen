@@ -7,8 +7,10 @@ KGEN_COMPFLAG = '%s/../kgenapps/compflag_detector'%os.path.dirname(os.path.realp
 sys.path.insert(0, KGEN_COMPFLAG)
 
 if __name__ == "__main__":
-    from compflag_main import CompflagDetector
-    try:
-        compflag = CompflagDetector()
-    except:
-        sys.exit(-1)
+    from compflag_tool import CompFlagDetect
+
+    compflag = CompFlagDetect()
+    compflag.init()
+    compflag.main()
+    compflag.fini()
+

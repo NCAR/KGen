@@ -1,13 +1,10 @@
-# kgentest.py
-from __future__ import print_function
-
 import os
 import shutil
 import getpass
-from kext_func_test import KExtFuncTest
-from kgen_utils import run_shcmd
 
-class KExtFuncYSTest(KExtFuncTest):
+from kapp_func_test import KAppFuncTest
+
+class KAppFuncYSTest(KAppFuncTest):
 
     def mkworkdir(self, myname, result):
         if self.WORK_DIR is None:
@@ -68,11 +65,10 @@ class KExtFuncYSTest(KExtFuncTest):
         PRERUN = result['config_task']['PRERUN']
 
         passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
-            'calling_module:calling_subroutine:add', _D='ROW=4,COLUMN=4', _I=tmpsrc, \
+            'calling_module:calling_subroutine:add', \
+            '"cd %s; make clean; make build FC=%s FC_FLAGS=%s PRERUN=%s"'%(tmpsrc, FC, FC_FLAGS, PRERUN), \
+            '"cd %s; make run FC=%s FC_FLAGS=%s PRERUN=%s"'%(tmpsrc, FC, FC_FLAGS, PRERUN), \
             __invocation='0:0:0', \
-            __state_build='cmds="cd %s; make clean; make build"'%tmpsrc, \
-            __state_run='cmds="cd %s; make run"'%tmpsrc, \
-            __kernel_compile='FC="%s",FC_FLAGS="%s",PRERUN="%s"'%(FC, FC_FLAGS, PRERUN), \
             __outdir=workdir)
 
         result[myname]['stdout'] = out
@@ -86,36 +82,42 @@ class KExtFuncYSTest(KExtFuncTest):
             self.set_status(result, myname, self.FAILED, err)
         return result
 
-    def genstate(self, myname, result):
+#        outfiles = []
+#        for statefile in statefiles:
+#            outfile = os.path.join('%s/kernel'%workdir, statefile)
+#            if os.path.exists(outfile):
+#                outfiles.append(outfile)
 
-        workdir = result['mkdir_task']['workdir']
-        statefiles = result['generate_task']['statefiles']
-        FC = result['config_task']['FC']
-        FC_FLAGS = result['config_task']['FC_FLAGS']
-        PRERUN = result['config_task']['PRERUN']
-
-        out, err, retcode = run_shcmd('make FC="%s" FC_FLAGS="%s" PRERUN="%s"'%(FC, FC_FLAGS, PRERUN), cwd='%s/state'%workdir)
-        result[myname]['stdout'] = out 
-        result[myname]['stderr'] = err
-
-        if retcode != 0:
-            print (out, err, retcode)
-            self.set_status(result, myname, self.FAILED, err)
-            return result
-
-        outfiles = []
-        for statefile in statefiles:
-            outfile = os.path.join('%s/kernel'%workdir, statefile)
-            if os.path.exists(outfile):
-                outfiles.append(outfile)
-
-        result[myname]['outfiles'] = outfiles
-
-        if len(outfiles)==len(statefiles):
-            self.set_status(result, myname, self.PASSED)
-        else:
-            self.set_status(result, myname, self.FAILED, errmsg=str(outfiles))
-        return result
+#    def genstate(self, myname, result):
+#
+#        workdir = result['mkdir_task']['workdir']
+#        statefiles = result['generate_task']['statefiles']
+#        FC = result['config_task']['FC']
+#        FC_FLAGS = result['config_task']['FC_FLAGS']
+#        PRERUN = result['config_task']['PRERUN']
+#
+#        out, err, retcode = self.run_shcmd('make FC="%s" FC_FLAGS="%s" PRERUN="%s"'%(FC, FC_FLAGS, PRERUN), cwd='%s/state'%workdir)
+#        result[myname]['stdout'] = out 
+#        result[myname]['stderr'] = err
+#
+#        if retcode != 0:
+#            print (out, err, retcode)
+#            self.set_status(result, myname, self.FAILED, err)
+#            return result
+#
+#        outfiles = []
+#        for statefile in statefiles:
+#            outfile = os.path.join('%s/kernel'%workdir, statefile)
+#            if os.path.exists(outfile):
+#                outfiles.append(outfile)
+#
+#        result[myname]['outfiles'] = outfiles
+#
+#        if len(outfiles)==len(statefiles):
+#            self.set_status(result, myname, self.PASSED)
+#        else:
+#            self.set_status(result, myname, self.FAILED, errmsg=str(outfiles))
+#        return result
 
     def rmdir(self, myname, result):
         workdir = result['mkdir_task']['workdir']

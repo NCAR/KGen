@@ -8,25 +8,26 @@ KGEN_BASE = '%s/base'%KGEN_HOME
 
 sys.path.insert(0, KGEN_BASE)
 from api import parse
+from kgen_utils import run_shcmd
 
 flags = '-w -traditional'
 includes = ''
 macros = ''
-
-def exec_cmd(cmd, show_error_msg=True, input=None):
-    import subprocess
-
-    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
-    out, err = proc.communicate(input=input)
-
-    ret_code = proc.wait()
-    if ret_code != 0 and show_error_msg:
-        print '>> %s' % cmd
-        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n'
-
-    return out
-
+#
+#def exec_cmd(cmd, show_error_msg=True, input=None):
+#    import subprocess
+#
+#    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+#
+#    out, err = proc.communicate(input=input)
+#
+#    ret_code = proc.wait()
+#    if ret_code != 0 and show_error_msg:
+#        print '>> %s' % cmd
+#        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n'
+#
+#    return out
+#
 #def handle_include(self, lines):
 #    import re
 #    import os
@@ -61,7 +62,7 @@ def exec_cmd(cmd, show_error_msg=True, input=None):
 
 new_lines = []
 with open(sys.argv[1], 'r') as f:
-    output = exec_cmd('cpp %s %s %s' % (flags, includes, macros), input=f.read())
+    output,err, retcode = run_shcmd('cpp %s %s %s' % (flags, includes, macros), input=f.read())
     prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
     #new_lines = handle_include(prep)
 

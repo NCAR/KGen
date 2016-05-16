@@ -4,32 +4,38 @@ import os
 from kgen_test import KGenTest
 from kgen_utils import run_shcmd
 
-class KExtTest(KGenTest):
+class KAppTest(KGenTest):
 
     def extract_kernel(self, target, namepath, *args, **kwargs):
 
-        cmds = [ '%s/bin/kext'%self.KGEN_HOME ]
+        outdir = '.'
+        cmds = [ '%s/bin/kgen'%self.KGEN_HOME ]
         for kw, kwarg in kwargs.iteritems():
             flag = kw.replace('_', '-').replace('UNDERSCORE', '_')
             cmds.append('%s %s'%(flag, kwarg))
+            if flag=='--outdir':
+                outdir = kwarg
         if namepath:
             cmds.append('%s:%s'%(target, namepath))
         else:
             cmds.append(target)
 
-        out, err, retcode = run_shcmd(' '.join(cmds), cwd=self.TEST_DIR)
+        for arg in args:
+            cmds.append(arg)
+
+        out, err, retcode = run_shcmd(' '.join(cmds))
 
         # debug
         #print ' '.join(cmds)
         #print out
         if self.LEAVE_TEMP:
-            with open('%s/kgen_cmds.sh'%self.TEST_DIR, 'w') as f:
+            with open('%s/kgen_cmds.sh'%outdir, 'w') as f:
                 f.write('#!/bin/bash\n')
                 f.write('\n')
                 for cmd in cmds[:-1]:
                     f.write('    %s \\\n'%cmd)
                 f.write('    %s'%cmds[-1])
-            os.chmod('%s/kgen_cmds.sh'%self.TEST_DIR, 0755)
+            os.chmod('%s/kgen_cmds.sh'%outdir, 0755)
 
         if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err or retcode!=0:
             return False, out, err
