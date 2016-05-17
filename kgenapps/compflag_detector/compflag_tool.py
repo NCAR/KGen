@@ -29,8 +29,24 @@ import subprocess
 
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
+STR_UF = '<unfinished'
 TEMP_SH = '#!/bin/bash\n%s'
-SH = '%s/_kgen_temp.sh'
+SH = '%s/_kgen_compflag_cmdwrapper.sh'
+
+# Known compilers
+#Oracle: f77, f95, f90
+#PGI: pgf77, pgfortran, pghpf
+#PathScale: pathf90, pathf95
+#GNU: gfortran
+#Intel: ifort
+#Silverfrost: ftn77, ftn95
+#NAG: nagfor
+#IBM XL: xlf, xlf90, xlf95, xlf2003, and xlf2008
+
+known_compilers = [ 'f77', 'f95', 'f90', 'pgf77', 'pgfortran', 'pghpf', 'pathf90', 'pathf95', 'gfortran', 'ifort', \
+    'ftn77', 'ftn95', 'nagfor', 'xlf', 'xlf90', 'xlf95', 'xlf2003', 'xlf2008']
+known_mpicompiler_wrappers = [ 'mpief90', 'mpif77', 'mpif90', 'mpifc', 'mpiifort', 'mpipf77', 'mpipf90', 'mpiphpf', 'mpifort', 'mpfort']
+COMPILERS = known_compilers + known_mpicompiler_wrappers
 
 def _getpwd(env):
     for item in env:
@@ -78,26 +94,23 @@ class CompFlagDetect(KGenTool):
             while(line):
                 pos_execve = line.find(STR_EX)
                 if pos_execve >= 0:
-                    pos_enoent = line.find(STR_EN)
+                    pos_enoent = line.rfind(STR_EN)
                     if pos_enoent < 0:
-                        pos_lastparen = line.rfind(')')
-                        if pos_lastparen >=0:
-                            execve_args = line[pos_execve+len(STR_EX):pos_lastparen]
+                        pos_last = line.rfind(STR_UF)
+                        if pos_last < 0:
+                            pos_last = line.rfind(')')
+                        if pos_last >= 0:
                             try:
-                                exec('exepath, cmdlist, env = %s'%execve_args)
-                                # check compiler command line: vendor, version, sourcefile, -I, -D, openmp, mpi??
+                                exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):pos_last])
                                 if exepath and cmdlist and exepath.split('/')[-1]==cmdlist[0].split('/')[-1] and \
-                                    cmdlist[0].split('/')[-1] in [ 'ifort', 'gfortran', 'pgfortran' ]:
-                                    srcs, incs, macros = GenericFortranCompiler.parse_option(cmdlist, _getpwd(env))
-                                    if len(srcs)==1:
-                                        #if len(incs)>0 or len(macros)>0:
-                                        if srcs[0] in self.flags:
-                                            self.flags[srcs[0]].append((incs, macros))
-                                        else:
-                                            self.flags[srcs[0]] = [ (incs, macros) ]
-                                    elif len(srcs)>1:
-                                        raise
-                                    #import pdb; pdb.set_trace()
+                                    cmdlist[0].split('/')[-1] in COMPILERS:
+                                    srcs, incs, macros, openmp = GenericFortranCompiler.parse_option(cmdlist, _getpwd(env))
+                                    if len(srcs)>0:
+                                        for src in srcs:
+                                            if src in self.flags:
+                                                self.flags[src].append((exepath, incs, macros, openmp))
+                                            else:
+                                                self.flags[src] = [ (exepath, incs, macros, openmp) ]
                             except:
                                 pass
                 line = f.readline()
@@ -105,53 +118,43 @@ class CompFlagDetect(KGenTool):
     def fini(self):
         import ConfigParser
 
-        if self.config.strace['outfile']:
-            outfile = self.config.strace['outfile']
-        else:
-            outfile = 'include.ini'
-
         Config = ConfigParser.RawConfigParser()
         Config.optionxform = str
 
-#        if options.include:
-#            Config.add_section('include')
-#            for inc in options.include:
-#                Config.set('include', inc, '')
-#
-#        if options.macro:
-#            Config.add_section('macro')
-#            for macro in options.macro:
-#                splitmacro = macro.split('=')
-#                if len(splitmacro)==2:
-#                    Config.set('macro', splitmacro[0], splitmacro[1])
-#                elif len(splitmacro)==2:
-#                    Config.set('macro', macro, '')
-#                else: raise
-#
-#        if options.importobj:
-#            Config.add_section('import')
-#            for impobj in options.importobj:
-#                splitmacro = impobj.split('=')
-#                if len(splitmacro)==2:
-#                    Config.set('import', splitmacro[0], splitmacro[1])
-#                else: raise
+        if len(self.config.include)>0:
+            Config.add_section('include')
+            for inc in self.config.include.keys():
+                for i in inc.split(':'):
+                    Config.set('include', i, '')
+
+        if len(self.config.macro)>0:
+            Config.add_section('macro')
+            for key, value in self.config.macro.items():
+                Config.set('macro', key, value)
+
+        if len(self.config.object)>0:
+            Config.add_section('import')
+            for key, value in self.config.macro.items():
+                Config.set('import', key, value)
 
         for fname, incitems in self.flags.items():
-            if len(incitems)==1:
-                incs = incitems[0][0]
-                macros = incitems[0][1]
-            else:
-                # Use the first item found, for temporary
-                incs = incitems[0][0]
-                macros = incitems[0][1]
+            if len(incitems)>0:
+                # save the last compiler set
+                compiler = incitems[-1][0]
+                incs = incitems[-1][1]
+                macros = incitems[-1][2]
 
-            if Config.has_section(fname):
-                print 'Warning: %s section is dupulicated.' % fname
-            else:
-                Config.add_section(fname)
-                Config.set(fname,'include',':'.join(incs))
-                for name, value in macros:
-                    Config.set(fname, name, value)
+                if Config.has_section(fname):
+                    print 'Warning: %s section is dupulicated.' % fname
+                else:
+                    Config.add_section(fname)
+                    Config.set(fname,'compiler', compiler)
+                    Config.set(fname,'include',':'.join(incs))
+                    for name, value in macros:
+                        Config.set(fname, name, value)
+
+        outfile = self.config.strace['outfile']
+        if outfile is None: outfile = 'include.ini'
 
         incini = '%s/%s'%(self.config.build['cwd'], outfile)
         with open(incini,'w') as f:

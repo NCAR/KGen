@@ -24,13 +24,6 @@ class KAppTest(KGenTest):
         for arg in args:
             cmds.append(arg)
 
-        out, err, retcode = run_shcmd(' '.join(cmds))
-
-        # debug
-        #print 'CMDS: ', ' '.join(cmds)
-        #print 'STDOUT: ', out
-        #print 'STDERR: ', err
-        #print 'RETCODE: ', retcode
         if self.LEAVE_TEMP:
             with open('%s/kgen_cmds.sh'%outdir, 'w') as f:
                 f.write('#!/bin/bash\n')
@@ -39,6 +32,14 @@ class KAppTest(KGenTest):
                     f.write('    %s \\\n'%cmd)
                 f.write('    %s'%cmds[-1])
             os.chmod('%s/kgen_cmds.sh'%outdir, 0755)
+
+        out, err, retcode = run_shcmd(' '.join(cmds))
+
+        # debug
+        #print 'CMDS: ', ' '.join(cmds)
+        #print 'STDOUT: ', out
+        #print 'STDERR: ', err
+        #print 'RETCODE: ', retcode
 
         if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err or retcode!=0:
 

@@ -23,10 +23,12 @@ class GenericFortranCompiler(object):
     def parse_option(cls, options, pwd):
         incs = []
         macros = []
+        openmp = []
         srcs = []
         iflag = False
         dflag = False
         for item in options[1:]:
+
             if iflag:
                 for p in item.split(':'):
                     if p[0]=='/':
@@ -52,13 +54,19 @@ class GenericFortranCompiler(object):
                 if len(item)>2:
                     macros.append(cls._getmacro(item[2:]))
                 else: dflag = True
+            elif item in cls.OPENMP_FLAGS:
+                openmp.append(item)
             elif item.split('.')[-1] in cls.FORT_EXTS:
                 if item[0]=='/':
                     srcs.append(item)
                 else:
                     srcs.append(os.path.realpath('%s/%s'%(pwd,item)))
-            else: pass
-        return srcs, incs, macros 
+            else:
+                pass
+        if len(srcs)>0:
+            return (srcs, incs, macros, openmp)
+        else:
+            return ([], [], [], [])
 
 class IntelFortranCompiler(GenericFortranCompiler):
     # space: False-no space, True-space required, None - any

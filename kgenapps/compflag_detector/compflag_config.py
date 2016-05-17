@@ -33,13 +33,23 @@ class CompFlagConfig(object):
         self.attrs['build']['cwd'] = '.'
 
         self.attrs['ini'] = OrderedDict()
-        self.attrs['ini']['outpath'] = '.'
+        self.attrs['ini']['infile'] = None
+        self.attrs['ini']['outfile'] = 'include.ini'
+
+        self.attrs['macro'] = OrderedDict()
+
+        self.attrs['include'] = OrderedDict()
+
+        self.attrs['object'] = OrderedDict()
 
         parser = optparse.OptionParser()
 
         parser.add_option("-s", "--strace", dest="strace", action='append', type='string', default=None, help="strace options")
         parser.add_option("-b", "--build", dest="build", action='append', type='string', default=None, help="build options")
         parser.add_option("-i", "--ini", dest="ini", action='append', type='string', default=None, help="INI options")
+        parser.add_option("-D", dest="macro", action='append', type='string', default=None, help="Define macros in INI file")
+        parser.add_option("-I", dest="include", action='append', type='string', default=None, help="Add include paths in INI file")
+        parser.add_option("-J", dest="object", action='append', type='string', default=None, help="Add object paths in INI file")
 
         opts, args = parser.parse_args(args=argv)
 #        
@@ -61,6 +71,17 @@ class CompFlagConfig(object):
 
         if opts.ini:
             self._save_opt(opts.ini, self.attrs['ini'])
+
+        if self.attrs['ini']['infile'] and self.attrs['ini']['outfile'] and \
+            os.path.abspath(self.attrs['ini']['infile'])==os.path.abspath(self.attrs['ini']['outfile']):
+            print ('INI output file is renamed as ren_%s due to dupulicated with INI input file.'%self.attrs['ini']['outfile'])
+            self.attrs['ini']['outfile'] = 'ren_%s'%self.attrs['ini']['outfile']
+
+        if opts.macro:
+            self._save_opt(opts.macro, self.attrs['macro'])
+
+        if opts.include:
+            self._save_opt(opts.include, self.attrs['include'])
 
     def _save_opt(self, opt, attr):
         if isinstance(opt, str):

@@ -64,6 +64,7 @@ def main():
     parser.add_argument('-r', dest='rebuild', action='store_true', default=False, help='Rebuild target software.')
     parser.add_argument('-w', dest='work_dir', type=str, default=None, help='Set working directory.')
     parser.add_argument('-o', dest='user_options', type=str, default='', help='User-specific options.')
+    parser.add_argument('-s', dest='stop_at', type=str, default='', help='Stop test')
     parser.add_argument('--compiler', dest='compiler', type=str, default='ifort', help='Default compiler to be used for tests.')
     parser.add_argument('--compiler-flags', dest='compiler_flags', type=str, default='', help='Default compiler flgas to be used for tests.')
 
@@ -143,6 +144,7 @@ def main():
                     obj.COMPILER_FLAGS = args.compiler_flags
                     obj.LEAVE_TEMP = args.leavetemp
                     obj.REBUILD = args.rebuild
+                    obj.STOP_AT = args.stop_at
 
                     obj.OPTIONS = {}
                     if args.user_options:

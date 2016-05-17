@@ -71,6 +71,10 @@ class KGenTest(object):
                     result = self._finalize('_finalize_task', result)
                 break
 
+            if taskname==self.STOP_AT:
+                print ('Test is stopped at', taskname)
+                break
+
         return result
 
     def is_uptodate(self, taskname):

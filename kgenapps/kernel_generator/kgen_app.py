@@ -56,6 +56,7 @@ def main():
         parser.add_option("--openmp", dest="openmp", action='append', type='string', default=None, help="Specifying OpenMP options")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='append', type='string', default=None, help="Timing measurement information")
+        parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
 
         opts, args = parser.parse_args()
 
@@ -98,6 +99,9 @@ def main():
         if opts.timing:
             kext_argv.append('--timing')
             kext_argv.extend(opts.timing)
+        if opts.intrinsic:
+            kext_argv.append('--intrinsic')
+            kext_argv.extend(opts.intrinsic)
         kext_argv.append('--state-build')
         kext_argv.append('cmds=%s'%args[1])
         kext_argv.append('--state-run')
