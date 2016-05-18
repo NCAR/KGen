@@ -39,7 +39,7 @@ class KAppSysTest(KAppTest):
         kerneldir = '%s/kernel'%workdir
         statedir = '%s/state'%workdir
         kgenlog = os.path.join(self.TEST_DIR, 'kgen.log')
-        kgencmd = os.path.join(self.TEST_DIR, 'kgen_cmds.sh')
+        kgencmd = os.path.join(workdir, 'kgen_cmds.sh')
         inifile = os.path.join(workdir, 'include.ini')
         stracefile = os.path.join(workdir, 'strace.log')
 

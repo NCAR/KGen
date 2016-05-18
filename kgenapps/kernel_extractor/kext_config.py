@@ -15,7 +15,7 @@ class KExtConfig(object):
 
         # kgen parameters
         self.attrs['kgen'] = OrderedDict()
-        self.attrs['kgen']['version'] = [ 0, 6, '3' ]
+        self.attrs['kgen']['version'] = [ 0, 7, '0' ]
 
         # openmp parameters
         self.attrs['openmp'] = OrderedDict()
@@ -90,7 +90,7 @@ class KExtConfig(object):
 
         # parsing arguments
         self.usage = "usage: %prog [options] call-site"
-        self.version='KGEN version %d.%d.%s'%tuple(self.attrs['kgen']['version'])
+        self.version='KEXT version %d.%d.%s'%tuple(self.attrs['kgen']['version'])
 
     # parsing invocation parameters
     def opt_invocation(self, opt):

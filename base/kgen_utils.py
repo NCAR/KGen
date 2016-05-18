@@ -416,11 +416,15 @@ def process_include_option(include_option, incattrs):
             if not incattrs['file'].has_key(abspath):
                 incattrs['file'][abspath] = OrderedDict()
                 incattrs['file'][abspath]['path'] = ['.']
+                incattrs['file'][abspath]['compiler'] = None 
+                incattrs['file'][abspath]['compiler_options'] = None
                 incattrs['file'][abspath]['macro'] = OrderedDict()
             for option in Inc.options(section):
                 if option=='include':
                     pathlist = Inc.get(section, option).split(':')
                     incattrs['file'][abspath]['path'].extend(pathlist)
+                elif option in [ 'compiler', 'compiler_options' ]:
+                    incattrs['file'][abspath][option] = Inc.get(section, option)
                 else:
                     incattrs['file'][abspath]['macro'][option] = Inc.get(section, option)
         else:

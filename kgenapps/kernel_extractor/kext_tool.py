@@ -116,12 +116,16 @@ class KExtTool(KGenTool):
 
     def fini(self):
                
+        kernel_files = []
+        state_files = []
+
         # generate source files from each node of the tree
         for kfile, sfile, filepath in self.genfiles:
             filename = os.path.basename(filepath)
             self.set_indent('')
             klines = kfile.tostring()
             if klines is not None:
+                kernel_files.append(filename)
                 with open('%s/%s'%(Config.path['kernel'], filename), 'wb') as fd:
                     fd.write(klines)
 
@@ -129,17 +133,22 @@ class KExtTool(KGenTool):
                 self.set_indent('')
                 slines = sfile.tostring()
                 if slines is not None:
+                    state_files.append(filename)
                     with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
                         fd.write(slines)
 
+        kernel_files.append(self.kernel_name)
         with open('%s/%s.f90'%(Config.path['kernel'], self.kernel_name), 'wb') as fd:
             self.set_indent('')
             lines = self.driver.tostring()
             if lines is not None: fd.write(lines)
 
         # generate kgen_utils.f90 in kernel directory
+        kernel_files.append('kgen_utils.f90')
         self.generate_kgen_utils()
 
+        kernel_files.append('Makefile')
+        state_files.append('Makefile')
         generate_makefiles()
         Logger.info('Makefiles are generated', stdout=True)
  
@@ -147,6 +156,8 @@ class KExtTool(KGenTool):
         Logger.info('Post-processing is done', stdout=True)
 
         Logger.info('Completed.', stdout=True)
+
+        return { 'kernel_files': kernel_files, 'state_files': state_files }
 
     def generate_kgen_utils(self):
         from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \

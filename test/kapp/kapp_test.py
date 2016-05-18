@@ -55,7 +55,8 @@ class KAppTest(KGenTest):
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
 
-        if retcode != 0 or err:
+        #if retcode != 0 or err:
+        if retcode != 0:
             self.set_status(result, myname, self.FAILED, errmsg='kernel execution is failed: %s'%err)
         else:
             self.set_status(result, myname, self.PASSED)
@@ -70,3 +71,15 @@ class KAppTest(KGenTest):
         else:
             self.set_status(result, myname, self.PASSED)
         return result
+
+
+    def recover(self, myname, result):
+
+        workdir = result['mkdir_task']['workdir']
+
+        out, err, retcode = run_shcmd('make recover_from_locals', cwd='%s/state'%workdir)
+
+        self.set_status(result, myname, self.PASSED)
+
+        return result
+

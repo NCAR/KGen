@@ -26,9 +26,10 @@ class CompFlagConfig(object):
 
         self.attrs['strace'] = OrderedDict()
         self.attrs['strace']['infile'] = None
-        self.attrs['strace']['outfile'] = None
+        self.attrs['strace']['outfile'] = 'strace.log'
 
         self.attrs['build'] = OrderedDict()
+        self.attrs['build']['initcmd'] = ''
         self.attrs['build']['cmdline'] = ''
         self.attrs['build']['cwd'] = '.'
 
@@ -36,13 +37,15 @@ class CompFlagConfig(object):
         self.attrs['ini']['infile'] = None
         self.attrs['ini']['outfile'] = 'include.ini'
 
+        self.attrs['rebuild'] = OrderedDict()
+
         self.attrs['macro'] = OrderedDict()
 
         self.attrs['include'] = OrderedDict()
 
         self.attrs['object'] = OrderedDict()
 
-        parser = optparse.OptionParser()
+        parser = optparse.OptionParser(version='COMPFLAG version %d.%d.%s'%tuple(self.attrs['compflag']['version']))
 
         parser.add_option("-s", "--strace", dest="strace", action='append', type='string', default=None, help="strace options")
         parser.add_option("-b", "--build", dest="build", action='append', type='string', default=None, help="build options")
@@ -50,6 +53,7 @@ class CompFlagConfig(object):
         parser.add_option("-D", dest="macro", action='append', type='string', default=None, help="Define macros in INI file")
         parser.add_option("-I", dest="include", action='append', type='string', default=None, help="Add include paths in INI file")
         parser.add_option("-J", dest="object", action='append', type='string', default=None, help="Add object paths in INI file")
+        parser.add_option("--rebuild",  dest="rebuild", action='append', type='string', default=None, help="List of reusable files")
 
         opts, args = parser.parse_args(args=argv)
 #        
@@ -61,7 +65,10 @@ class CompFlagConfig(object):
 #        for arg in args:
 #            temp_arg = arg.strip('"')
 #            new_args.append(temp_arg.strip("'"))
-        self.attrs['build']['cmdline'] = ' '.join(args)
+        if len(args)>1:
+            self.attrs['build']['cmd'] = args[1]
+        if len(args)>0:
+            self.attrs['build']['initcmd'] = args[0]
 
         if opts.strace:
             self._save_opt(opts.strace, self.attrs['strace'])
@@ -72,18 +79,19 @@ class CompFlagConfig(object):
         if opts.ini:
             self._save_opt(opts.ini, self.attrs['ini'])
 
-        if self.attrs['ini']['infile'] and self.attrs['ini']['outfile'] and \
-            os.path.abspath(self.attrs['ini']['infile'])==os.path.abspath(self.attrs['ini']['outfile']):
-            print ('INI output file is renamed as ren_%s due to dupulicated with INI input file.'%self.attrs['ini']['outfile'])
-            self.attrs['ini']['outfile'] = 'ren_%s'%self.attrs['ini']['outfile']
-
         if opts.macro:
-            self._save_opt(opts.macro, self.attrs['macro'])
+            self._save_opt(opts.macro, self.attrs['macro'], append=True)
 
         if opts.include:
-            self._save_opt(opts.include, self.attrs['include'])
+            self._save_opt(opts.include, self.attrs['include'], append=True)
 
-    def _save_opt(self, opt, attr):
+        if opts.object:
+            self._save_opt(opts.object, self.attrs['object'], append=True)
+
+        if opts.rebuild:
+            self._save_opt(opts.rebuild, self.attrs['rebuild'], append=True)
+
+    def _save_opt(self, opt, attr, append=False):
         if isinstance(opt, str):
             opt = [ opt ]
 
@@ -95,9 +103,21 @@ class CompFlagConfig(object):
                         if subopt:
                             if subopt.find('=')>0:
                                 key, value = subopt.split('=', 1)
-                                attr[key] = value 
+                                if append:
+                                    if attr.has_key(key):
+                                        attr[key].append(value)
+                                    else:
+                                        attr[key] = [ value ]
+                                else:
+                                    attr[key] = value
                             else:
-                                attr[subopt] = True 
+                                if append:
+                                    if attr.has_key(subopt):
+                                        attr[subopt].append(True)
+                                    else:
+                                        attr[subopt] = [ True ]
+                                else:
+                                    attr[subopt] = True
                 else:
                     print 'UNKNOWN TYPE: %s'%o.__class__
                     sys.exit(-1)

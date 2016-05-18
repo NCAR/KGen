@@ -25,9 +25,18 @@ class GenericFortranCompiler(object):
         macros = []
         openmp = []
         srcs = []
+        flags = []
+
+        discard_flag = False
+
         iflag = False
         dflag = False
+
         for item in options[1:]:
+
+            if discard_flag:
+                discard_flag = False
+                continue
 
             if iflag:
                 for p in item.split(':'):
@@ -56,17 +65,26 @@ class GenericFortranCompiler(object):
                 else: dflag = True
             elif item in cls.OPENMP_FLAGS:
                 openmp.append(item)
+            elif item.startswith('-'):
+                if item in [ '-c' ]:
+                    pass
+                elif any( item.startswith(f) for f in [ '-o', '-l', '-L', '-W' ] ):
+                    if len(item)==2:
+                        discard_flag = True
+                else:
+                    flags.append(item)
             elif item.split('.')[-1] in cls.FORT_EXTS:
                 if item[0]=='/':
                     srcs.append(item)
                 else:
                     srcs.append(os.path.realpath('%s/%s'%(pwd,item)))
             else:
-                pass
+                flags.append(item)
+
         if len(srcs)>0:
-            return (srcs, incs, macros, openmp)
+            return (srcs, incs, macros, openmp, flags)
         else:
-            return ([], [], [], [])
+            return ([], [], [], [], [])
 
 class IntelFortranCompiler(GenericFortranCompiler):
     # space: False-no space, True-space required, None - any

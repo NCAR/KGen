@@ -30,7 +30,7 @@ import subprocess
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
 STR_UF = '<unfinished'
-TEMP_SH = '#!/bin/bash\n%s'
+TEMP_SH = '#!/bin/bash\n%s\n%s'
 SH = '%s/_kgen_compflag_cmdwrapper.sh'
 
 # Known compilers
@@ -57,28 +57,32 @@ def _getpwd(env):
 class CompFlagDetect(KGenTool):
 
     def init(self, argv=None):
-
+        print 'Starting CompFlag'
         self.config= CompFlagConfig(argv=argv)
 
     def main(self):
         
         if self.config.strace['infile']:
-            stracefile = self.config.strace['infile']
-        else:
+            pass
+        elif not os.path.exists(os.path.join(self.config.build['cwd'], self.config.strace['outfile'])) or \
+            'all' in self.config.rebuild or 'strace' in self.config.rebuild:
+
+            print 'Building application using command-line of "%s; %s"'%(self.config.build['initcmd'], self.config.build['cmdline'])
+
             with open(SH%self.config.build['cwd'], 'w') as f:
-                f.write(TEMP_SH%self.config.build['cmdline'])
+                f.write(TEMP_SH%(elf.config.build['initcmd'], self.config.build['cmdline']))
             st = os.stat(SH%self.config.build['cwd'])
             os.chmod(SH%self.config.build['cwd'], st.st_mode | stat.S_IEXEC)
 
-            shcmds = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s'%(SH%self.config.build['cwd'])
+            shcmds = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- %s'%\
+                (self.config.strace['outfile'], SH%self.config.build['cwd'])
 
-            print 'Building application using command-line of "%s"'%self.config.build['cmdline']
             out, err, retcode = run_shcmd(shcmds, cwd=self.config.build['cwd'])
 
             os.remove(SH%self.config.build['cwd'])
 
             if retcode==0:
-                stracefile = '%s/strace.log'%self.config.build['cwd']
+                self.config.strace['infile'] = self.config.strace['outfile']
             else:
                 print 'ERROR: Application build command is failed.'
 
@@ -88,77 +92,89 @@ class CompFlagDetect(KGenTool):
                 print 'STDERR: ', err
                 sys.exit(-1)
 
-        self.flags = {}
-        with open(stracefile, 'r') as f:
-            line = f.readline()
-            while(line):
-                pos_execve = line.find(STR_EX)
-                if pos_execve >= 0:
-                    pos_enoent = line.rfind(STR_EN)
-                    if pos_enoent < 0:
-                        pos_last = line.rfind(STR_UF)
-                        if pos_last < 0:
-                            pos_last = line.rfind(')')
-                        if pos_last >= 0:
-                            try:
-                                exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):pos_last])
-                                if exepath and cmdlist and exepath.split('/')[-1]==cmdlist[0].split('/')[-1] and \
-                                    cmdlist[0].split('/')[-1] in COMPILERS:
-                                    srcs, incs, macros, openmp = GenericFortranCompiler.parse_option(cmdlist, _getpwd(env))
-                                    if len(srcs)>0:
-                                        for src in srcs:
-                                            if src in self.flags:
-                                                self.flags[src].append((exepath, incs, macros, openmp))
-                                            else:
-                                                self.flags[src] = [ (exepath, incs, macros, openmp) ]
-                            except:
-                                pass
-                line = f.readline()
+        if os.path.exists(os.path.join(self.config.build['cwd'], self.config.strace['outfile'])) and \
+            self.config.strace['infile'] is None:
+            self.config.strace['infile'] = self.config.strace['outfile']
+             
 
     def fini(self):
         import ConfigParser
 
-        Config = ConfigParser.RawConfigParser()
-        Config.optionxform = str
+        incini = os.path.join(self.config.build['cwd'], self.config.ini['outfile'])
+        if not os.path.exists(incini) or 'all' in self.config.rebuild or 'include' in self.config.rebuild:
 
-        if len(self.config.include)>0:
-            Config.add_section('include')
-            for inc in self.config.include.keys():
-                for i in inc.split(':'):
-                    Config.set('include', i, '')
+            print 'Creating KGen include file'
 
-        if len(self.config.macro)>0:
-            Config.add_section('macro')
-            for key, value in self.config.macro.items():
-                Config.set('macro', key, value)
+            Config = ConfigParser.RawConfigParser()
+            Config.optionxform = str
 
-        if len(self.config.object)>0:
-            Config.add_section('import')
-            for key, value in self.config.macro.items():
-                Config.set('import', key, value)
+            if len(self.config.include)>0:
+                Config.add_section('include')
+                for inc in self.config.include.keys():
+                    for i in inc.split(':'):
+                        Config.set('include', i, '')
 
-        for fname, incitems in self.flags.items():
-            if len(incitems)>0:
-                # save the last compiler set
-                compiler = incitems[-1][0]
-                incs = incitems[-1][1]
-                macros = incitems[-1][2]
+            if len(self.config.macro)>0:
+                Config.add_section('macro')
+                for key, value in self.config.macro.items():
+                    Config.set('macro', key, value)
 
-                if Config.has_section(fname):
-                    print 'Warning: %s section is dupulicated.' % fname
-                else:
-                    Config.add_section(fname)
-                    Config.set(fname,'compiler', compiler)
-                    Config.set(fname,'include',':'.join(incs))
-                    for name, value in macros:
-                        Config.set(fname, name, value)
+            if len(self.config.object)>0:
+                Config.add_section('import')
+                for key, value in self.config.macro.items():
+                    Config.set('import', key, value)
 
-        outfile = self.config.strace['outfile']
-        if outfile is None: outfile = 'include.ini'
 
-        incini = '%s/%s'%(self.config.build['cwd'], outfile)
-        with open(incini,'w') as f:
-            Config.write(f)
+            if self.config.strace['infile']:
+                flags = {}
+                with open(os.path.join(self.config.build['cwd'], self.config.strace['infile']), 'r') as f:
+                    line = f.readline()
+                    while(line):
+                        pos_execve = line.find(STR_EX)
+                        if pos_execve >= 0:
+                            pos_enoent = line.rfind(STR_EN)
+                            if pos_enoent < 0:
+                                pos_last = line.rfind(STR_UF)
+                                if pos_last < 0:
+                                    pos_last = line.rfind(')')
+                                if pos_last >= 0:
+                                    try:
+                                        exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):pos_last])
+                                        if exepath and cmdlist and exepath.split('/')[-1]==cmdlist[0].split('/')[-1] and \
+                                            cmdlist[0].split('/')[-1] in COMPILERS:
+                                            srcs, incs, macros, openmp, options = GenericFortranCompiler.parse_option(cmdlist, _getpwd(env))
+                                            if len(srcs)>0:
+                                                for src in srcs:
+                                                    if src in flags:
+                                                        flags[src].append((exepath, incs, macros, openmp, options))
+                                                    else:
+                                                        flags[src] = [ (exepath, incs, macros, openmp, options) ]
+                                    except:
+                                        pass
+                        line = f.readline()
+
+
+                for fname, incitems in flags.items():
+                    if len(incitems)>0:
+                        # save the last compiler set
+                        compiler = incitems[-1][0]
+                        incs = incitems[-1][1]
+                        macros = incitems[-1][2]
+                        options = incitems[-1][4]
+
+                        if Config.has_section(fname):
+                            print 'Warning: %s section is dupulicated.' % fname
+                        else:
+                            Config.add_section(fname)
+                            Config.set(fname,'compiler', compiler)
+                            Config.set(fname,'compiler_options', ' '.join(options))
+                            Config.set(fname,'include',':'.join(incs))
+                            for name, value in macros:
+                                Config.set(fname, name, value)
+
+            if len(Config.sections())>0:
+                with open(incini, 'w') as f:
+                    Config.write(f)
 
         return { 'incini': incini }
 

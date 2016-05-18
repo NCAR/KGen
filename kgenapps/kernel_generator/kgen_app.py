@@ -2,6 +2,7 @@
 
 import sys
 import os
+import glob
 import optparse
 import subprocess
 
@@ -16,6 +17,7 @@ sys.path.insert(0, KEXT_TOOL)
 sys.path.insert(0, KGEN_APP)
 
 from kgen_utils import UserException, ProgramException, Logger, Config, run_shcmd
+from kgen_state import State
 
 def pack_arg(opt):
     if opt is None: return ''
@@ -40,12 +42,15 @@ def main():
     from compflag_tool import CompFlagDetect
     from kext_tool import KExtTool
 
+    version = [ 0, 0, '0' ]
+
     try:
         # option parser
-        parser = optparse.OptionParser()
+        parser = optparse.OptionParser(version='KGEN version %d.%d.%s'%tuple(version))
 
         # common options
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
+        parser.add_option("--rebuild", dest="rebuild", action='append', type='string', default=None, help="force to rebuild")
 
         # compflag options
         parser.add_option("--strace", dest="strace", action='append', type='string', default=None, help="strace options")
@@ -57,12 +62,13 @@ def main():
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='append', type='string', default=None, help="Timing measurement information")
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
+        parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', default=None, help="Specifying options for kernel compilation")
 
         opts, args = parser.parse_args()
 
-        if len(args)<3:
-            print 'ERROR: At least three arguments are required.'
-            print 'Usage: kgen <target file path[:namepath]> <target build commands> <target run commands>'
+        if len(args)<4:
+            print 'ERROR: At least four arguments are required.'
+            print 'Usage: kgen <target file path[:namepath]> <target initialize commands> <target build commands> <target run commands>'
             sys.exit(-1)
 
         kext_argv = []
@@ -84,7 +90,11 @@ def main():
         if opts.ini:
             compflag_argv.append('--ini')
             compflag_argv.extend(pack_arg(opts.ini))
+        if opts.rebuild:
+            compflag_argv.append('--rebuild')
+            compflag_argv.extend(pack_arg(opts.rebuild))
         compflag_argv.extend(pack_arg(args[1]))
+        compflag_argv.extend(pack_arg(args[2]))
 
         # collect kext options
         if opts.invocation:
@@ -102,10 +112,13 @@ def main():
         if opts.intrinsic:
             kext_argv.append('--intrinsic')
             kext_argv.extend(opts.intrinsic)
+        if opts.kernel_compile:
+            kext_argv.append('--kernel-compile')
+            kext_argv.extend(opts.kernel_compile)
         kext_argv.append('--state-build')
-        kext_argv.append('cmds=%s'%args[1])
-        kext_argv.append('--state-run')
         kext_argv.append('cmds=%s'%args[2])
+        kext_argv.append('--state-run')
+        kext_argv.append('cmds=%s'%args[3])
         kext_argv.append(args[0])
 
         # run compflag
@@ -120,12 +133,31 @@ def main():
         kext_argv.extend( [ '-i', flags['incini'] ] )
         Config.apply(argv=kext_argv)
         kext.main()
-        kext.fini()
+        extracts = kext.fini()
+        # extracts contain kernel files, state files
 
+        # parse rebuild option
+        is_rebuild = False
+        if opts.rebuild:
+            for r in opts.rebuild:
+                if isinstance(r, str):
+                    subopts = r.split(',')
+                    for subopt in subopts:
+                        if subopt in [ 'all', 'state' ]:
+                            is_rebuild = True
+                if is_rebuild: break
+                         
+        # check if state files exist
+        has_statefiles = False
+        if os.path.exists('%s/kernel'%outdir):
+            statefiles = glob.glob('%s/kernel/%s.*.*.*'%(outdir, State.kernel['name']))
+            if len(statefiles)>0:
+                has_statefiles = True
+                
         # generate state
-        out, err, retcode = run_shcmd('make', cwd='%s/state'%outdir)
-        #if retcode != 0:
-        #    print ('STATE GEN ERROR: ', out, err, retcode)
+        if is_rebuild or not has_statefiles:
+            out, err, retcode = run_shcmd('make', cwd='%s/state'%outdir)
+
         return 0
 
     except UserException as e:

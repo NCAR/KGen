@@ -22,14 +22,17 @@ class Test(KAppSysYSCesmIntelTest):
         namepath = 'micro_mg_cam:micro_mg_cam_tend:micro_mg_tend2_0'
 
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; ./%s.clean_build; ./%s.build"'%(casedir, casename, casename), \
+            '"cd %s; ./%s.clean_build all"'%(casedir, casename), \
+            '"cd %s; ./%s.build"'%(casedir, casename), \
             '"cd %s; ./%s.submit"'%(casedir, casename), \
             __invocation='0:0:10,0:0:50,0:0:100,100:0:10,100:0:50,100:0:100,300:0:10,300:0:50,300:0:100', \
             __timing='repeat=1', \
             __intrinsic='skip,except=shr_spfn_mod:shr_spfn_gamma_nonintrinsic_r8:sum', \
             __mpi='comm=mpicom,use="spmd_utils:mpicom"', \
+            __kernel_compile='PRERUN="module load intel/16.0.2"', \
             __openmp='enable', \
             __outdir=workdir)
+            #__rebuild='all',
 
             #__debug='printvar=:i,:j,:output',
 
@@ -48,20 +51,20 @@ class Test(KAppSysYSCesmIntelTest):
             self.set_status(result, myname, self.FAILED, 'STDOUT: %s\nSTDERR: %s'%(out, err))
 
         return result
-
-    def replace(self, myname, result):
-
-        workdir = result['mkdir_task']['workdir']
-        camsrcmods = result['generate_task']['camsrcmods']
-
-        out, err, retcode = self.run_shcmd('rm -f *', cwd=camsrcmods)
-
-        for instrumented in glob.glob('%s/state/*.F90'%workdir):
-            shutil.copy2(instrumented, camsrcmods)
-
-        self.set_status(result, myname, self.PASSED)
-
-        return result
+#
+#    def replace(self, myname, result):
+#
+#        workdir = result['mkdir_task']['workdir']
+#        camsrcmods = result['generate_task']['camsrcmods']
+#
+#        out, err, retcode = self.run_shcmd('rm -f *', cwd=camsrcmods)
+#
+#        for instrumented in glob.glob('%s/state/*.F90'%workdir):
+#            shutil.copy2(instrumented, camsrcmods)
+#
+#        self.set_status(result, myname, self.PASSED)
+#
+#        return result
 
 if __name__ == "__main__":
     # we may allow to run this test individually

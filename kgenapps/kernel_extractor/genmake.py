@@ -2,6 +2,7 @@
 import os
 from kgen_utils import Config
 from kgen_state import State
+from collections import OrderedDict
 
 def write(f, line, n=True, t=False):
     nl = ''
@@ -88,14 +89,41 @@ def generate_kernel_makefile():
             elif import_type=='object':
                 objects += ' %s'%os.path.basename(path)
 
+    # find fc flag sets
+    compilers = OrderedDict()
+    compiler_options = OrderedDict()
+    for path, kfile in Config.include['file'].items():
+
+        base = os.path.basename(path)
+        if base not in dep_bases: continue
+
+        if kfile.has_key('compiler'):
+            if kfile['compiler'] in compilers:
+                if base not in compilers[kfile['compiler']]:
+                    compilers[kfile['compiler']].append(base)
+            else:
+                compilers[kfile['compiler']] = [ base, kernel_driver_file ]
+        if kfile.has_key('compiler_options'):
+            if kfile['compiler_options'] in compiler_options:
+                if base not in compiler_options[kfile['compiler_options']]:
+                    compiler_options[kfile['compiler_options']].append(base)
+            else:
+                compiler_options[kfile['compiler_options']] = [ base, kernel_driver_file ]
+
     with open('%s/Makefile'%(Config.path['kernel']), 'wb') as f:
         write(f, '# Makefile for KGEN-generated kernel')
         write(f, '')
 
         write(f, 'FC := %s'%Config.kernel_compile['FC'])
+        for i, compiler in enumerate(compilers):
+            write(f, 'FC_SET_%d := %s'%(i, compiler))
+
         write(f, 'FC_FLAGS := %s'%Config.kernel_compile['FC_FLAGS'])
+        for i, options in enumerate(compiler_options):
+            write(f, 'FC_FLAGS_SET_%d := %s'%(i, options))
+
         write(f, 'PRERUN := %s'%Config.kernel_compile['PRERUN'])
-#	write(f, 'verboselevel = %d'%Config.verify['verboselevel'])
+
         write(f, '')
         write(f, 'ALL_OBJS := %s'%' '.join(all_objs))
         write(f, '')
@@ -108,20 +136,32 @@ def generate_kernel_makefile():
         write(f, '')
 
         write(f, 'build: ${ALL_OBJS}')
-        #if pre_cmds:
-        #    write(f, 'bash -i -c "%s; ${FC} ${FC_FLAGS} %s -o kernel.exe $^"'%(pre_cmds, link_flags), t=True)
-        #else:
-        #    write(f, '${FC} ${FC_FLAGS} %s -o kernel.exe $^'%link_flags, t=True)
-        write(f, '${PRERUN}; ${FC} ${FC_FLAGS} %s %s -o kernel.exe $^'%(link_flags, objects), t=True)
+
+        fc_str = 'FC'
+        fc_flags_str = 'FC_FLAGS'
+        if len(compilers)>0: fc_str += '_SET_0'
+        if len(compiler_options)>0: fc_flags_str += '_SET_0'
+
+        write(f, '${PRERUN}; ${%s} ${%s} %s %s -o kernel.exe $^'%(fc_str, fc_flags_str, link_flags, objects), t=True)
         write(f, '')
 
         for dep_base in dep_bases:
             write(f, '%s: %s %s' % (obj(dep_base), dep_base, depends[dep_base]))
-            write(f, '${PRERUN}; ${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
+
+            dfc_str = 'FC'
+            dfc_flags_str = 'FC_FLAGS'
+            for i, (compiler, files) in enumerate(compilers.items()):
+                if dep_base in files:
+                    dfc_str += '_SET_%d'%i
+            for i, (compiler_option, files) in enumerate(compiler_options.items()):
+                if dep_base in files:
+                    dfc_flags_str += '_SET_%d'%i
+
+            write(f, '${PRERUN}; ${%s} ${%s} -c -o $@ $<'%(dfc_str, dfc_flags_str), t=True)
             write(f, '')
 
         write(f, '%s: %s' % (obj(kgen_utils_file), kgen_utils_file))
-        write(f, '${PRERUN}; ${FC} ${FC_FLAGS} -c -o $@ $<', t=True)
+        write(f, '${PRERUN}; ${%s} ${%s} -c -o $@ $<'%(fc_str, fc_flags_str), t=True)
         write(f, '')
            
         write(f, 'clean:')
