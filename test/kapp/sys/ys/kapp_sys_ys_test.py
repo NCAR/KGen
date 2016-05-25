@@ -36,11 +36,13 @@ class KAppSysYSTest(KAppSysTest):
             shutil.rmtree('%s/state'%workdir)
         os.makedirs('%s/state'%workdir)
 
+        result[myname]['reuse_data'] = False
         if os.path.exists('%s/data'%workdir):
             src_files = os.listdir('%s/data'%workdir)
             for file_name in src_files:
                 full_file_name = os.path.join('%s/data'%workdir, file_name)
                 if (os.path.isfile(full_file_name)):
+                    result[myname]['reuse_data'] = True
                     shutil.copy(full_file_name, '%s/kernel'%workdir)
 
         result[myname]['sysdir'] = systestdir

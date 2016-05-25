@@ -218,6 +218,15 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     entity_decls.append(prefix+decl)
             return entity_decls
 
+        def get_enames(names, decls, prefix=''):
+            import re
+            entity_enames = []
+            for decl in decls:
+                ename = re.split('\(|\*|=', decl)[0].strip()
+                if ename in names:
+                    entity_enames.append(prefix+ename)
+            return entity_enames
+
         if len(argintype)>0:
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension', 'target'])
             attrspec.append('INTENT(INOUT)')
@@ -259,18 +268,26 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
         local_allocate = False
         if len(localouttype)>0:
-            attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension'])
-            if var.is_array() and (not var.is_explicit_shape_array()) and \
-                'allocatable' not in attrspec and 'pointer' not in attrspec:
-                local_allocate = True
-                attrspec.append('allocatable')
+            for localout_name, partid in localouttype:
+                attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable'])
+                var = stmt.get_variable(localout_name)
+                if var.is_array():
+                    if var.is_explicit_shape_array():
+                        attrspec.append('dimension(%s)'%','.join(var.shape))
+                    else:
+                        attrspec.append('dimension(%s)'%','.join([':']*var.rank))
+                        if  'allocatable' not in attrspec and 'pointer' not in attrspec:
+                            local_allocate = True
+                            attrspec.append('allocatable')
 
-            localout_names = [ localout_name for localout_name, pname in localouttype]
-            entity_decls = get_decls(localout_names, stmt.entity_decls, prefix='kgenref_')
+                #localout_names = [ localout_name for localout_name, pname in localouttype]
+                #entity_decls = get_decls(localout_names, stmt.entity_decls, prefix='kgenref_')
+                #entity_enames = get_enames(localout_names, stmt.entity_decls, prefix='kgenref_')
 
-            attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
-                'selector':stmt.selector, 'entity_decls': entity_decls}
-            part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
+                attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
+                    'selector':stmt.selector, 'entity_decls': [ 'kgenref_%s'%localout_name ]}
+                    #'selector':stmt.selector, 'entity_decls': entity_decls}
+                part_append_genknode(node.kgen_parent, DECL_PART, stmt.__class__, attrs=attrs)
 
         # for kernel - local variables
         is_class_derived = check_class_derived(stmt)

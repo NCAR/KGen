@@ -2,21 +2,21 @@ import os
 import sys
 import glob
 import shutil
-from kapp_sys_ys_cesm_intel_test import KAppSysYSCesmIntelTest
+from kapp_sys_ys_cesm_gnu_test import KAppSysYSCesmGnuTest
 
 
-class Test(KAppSysYSCesmIntelTest):
+class Test(KAppSysYSCesmGnuTest):
 
     def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['download_task']['tmpsrc']
-        srcmods = result['config_task']['srcmods']
+        #srcmods = result['config_task']['srcmods']
         casedir = result['config_task']['casedir']
         casename = result['config_task']['casename']
 
-        camsrcmods = '%s/src.cam'%srcmods
-        result[myname]['camsrcmods'] = camsrcmods
+        #camsrcmods = '%s/src.cam'%srcmods
+        #result[myname]['camsrcmods'] = camsrcmods
 
         srcfile = '%s/components/cam/src/physics/cam/micro_mg_cam.F90'%tmpsrc
         namepath = 'micro_mg_cam:micro_mg_cam_tend:micro_mg_tend2_0'
@@ -25,6 +25,7 @@ class Test(KAppSysYSCesmIntelTest):
             '"cd %s; ./%s.clean_build all"'%(casedir, casename), \
             '"cd %s; ./%s.build"'%(casedir, casename), \
             '"cd %s; ./%s.submit"'%(casedir, casename), \
+            __prerun='kernel_build="module swap intel gnu/6.1.0",kernel_run="module swap intel gnu/6.1.0"', \
             __invocation='0:0:10,0:0:50,0:0:100,100:0:10,100:0:50,100:0:100,300:0:10,300:0:50,300:0:100', \
             __timing='repeat=1', \
             __intrinsic='skip,except=shr_spfn_mod:shr_spfn_gamma_nonintrinsic_r8:sum', \
@@ -32,7 +33,7 @@ class Test(KAppSysYSCesmIntelTest):
             __openmp='enable', \
             __outdir=workdir)
             #__rebuild='all',
-            #__kernel_compile='PRERUN="module load intel/16.0.2"',
+
             #__debug='printvar=:i,:j,:output',
 
         result[myname]['stdout'] = out

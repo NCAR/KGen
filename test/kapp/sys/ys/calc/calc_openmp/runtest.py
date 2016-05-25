@@ -10,9 +10,9 @@ class Test(KAppSysYSCalcTest):
 
         srcfile = '%s/update_mod.F90'%tmpsrc
         namepath = 'update_mod:update:calc'
-        fc_flags = '-O3'
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; make clean; make build"'%tmpsrc, \
+            '"cd %s; make clean"'%tmpsrc, \
+            '"cd %s; make build"'%tmpsrc, \
             '"cd %s; make run"'%tmpsrc, \
             __invocation='0:0-1:1-2,0:2-3:3', \
             __timing='repeat=10', \

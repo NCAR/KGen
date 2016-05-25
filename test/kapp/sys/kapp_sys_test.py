@@ -55,12 +55,12 @@ class KAppSysTest(KAppTest):
 
             if os.path.exists(kgencmd):
                 os.remove(kgencmd)
-
-            if os.path.exists(inifile):
-                os.remove(inifile)
-
-            if os.path.exists(stracefile):
-                os.remove(stracefile)
+#
+#            if os.path.exists(inifile):
+#                os.remove(inifile)
+#
+#            if os.path.exists(stracefile):
+#                os.remove(stracefile)
 
         self.set_status(result, myname, self.PASSED)
 

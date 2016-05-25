@@ -43,6 +43,8 @@ def main():
     from kext_tool import KExtTool
 
     version = [ 0, 0, '0' ]
+    outdir = '.'
+    retval = 0
 
     try:
         # option parser
@@ -58,11 +60,12 @@ def main():
 
         # kext options
         parser.add_option("--invocation", dest="invocation", action='append', type='string', default=None, help="(process, thread, invocation) pairs of kernel for data collection")
+        parser.add_option("--exclude", dest="exclude", action='store', type='string', default=None, help="information excluded for analysis")
         parser.add_option("--openmp", dest="openmp", action='append', type='string', default=None, help="Specifying OpenMP options")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='append', type='string', default=None, help="Timing measurement information")
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
-        parser.add_option("--kernel-compile", dest="kernel_compile", action='append', type='string', default=None, help="Specifying options for kernel compilation")
+        parser.add_option("--prerun", dest="prerun", action='append', type='string', default=None, help="prerun commands")
 
         opts, args = parser.parse_args()
 
@@ -75,7 +78,6 @@ def main():
         compflag_argv = []
 
         # collect common options
-        outdir = '.'
         if opts.outdir:
             kext_argv.append('--outdir')
             kext_argv.append(opts.outdir)
@@ -100,6 +102,9 @@ def main():
         if opts.invocation:
             kext_argv.append('--invocation')
             kext_argv.extend(opts.invocation)
+        if opts.exclude:
+            kext_argv.append('--exclude-ini')
+            kext_argv.append(opts.exclude)
         if opts.mpi:
             kext_argv.append('--mpi')
             kext_argv.extend(opts.mpi)
@@ -112,9 +117,9 @@ def main():
         if opts.intrinsic:
             kext_argv.append('--intrinsic')
             kext_argv.extend(opts.intrinsic)
-        if opts.kernel_compile:
-            kext_argv.append('--kernel-compile')
-            kext_argv.extend(opts.kernel_compile)
+        if opts.prerun:
+            kext_argv.append('--prerun')
+            kext_argv.extend(opts.prerun)
         kext_argv.append('--state-build')
         kext_argv.append('cmds=%s'%args[2])
         kext_argv.append('--state-run')
@@ -156,21 +161,25 @@ def main():
                 
         # generate state
         if is_rebuild or not has_statefiles:
+            print 'Generating state data files.' 
             out, err, retcode = run_shcmd('make', cwd='%s/state'%outdir)
-
-        return 0
 
     except UserException as e:
         print 'ERROR: %s'%str(e)
         Logger.info(e)
         #Logger.critical(e)
-        return -1
+        retval = -1
     except ProgramException as e:
         Logger.critical(e)
-        return -1
+        retval = -1
     except Exception as e:
         Logger.critical(e)
-        return -1
+        retval = -1
+    finally:
+        if os.path.exists('%s/state/Makefile'%outdir):
+            out, err, retcode = run_shcmd('make recover_from_locals', cwd='%s/state'%outdir)
+
+    return retval
 
 if __name__ == '__main__':
     main()

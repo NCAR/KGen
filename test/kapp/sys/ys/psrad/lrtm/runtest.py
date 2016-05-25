@@ -1,35 +1,37 @@
+# runtest.py
+# 
+import os
 import sys
-from kapp_sys_ys_calc_test import KAppSysYSCalcTest
-import time
+import glob
+import shutil
+from kapp_sys_ys_psrad_test import KAppSysYSPsradTest
 
-class Test(KAppSysYSCalcTest):
+
+class Test(KAppSysYSPsradTest):
+
     def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['download_task']['tmpsrc']
-
-
-        srcfile = '%s/update_mod.F90'%tmpsrc
-        namepath = 'update_mod:update:calc'
+        
+        srcfile = '%s/src/mo_psrad_interface.f90'%tmpsrc
+        namepath = 'mo_psrad_interface:psrad_interface:lrtm'
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; make -f Makefile.mpirun clean"'%tmpsrc, \
-            '"cd %s; make -f Makefile.mpirun build"'%tmpsrc, \
-            '"cd %s; make -f Makefile.mpirun run"'%tmpsrc, \
-            __invocation='0-1:0-1:1,0-1:2-3:3', \
-            __timing='repeat=1', \
-            __mpi='enable', \
-            __openmp='enable', \
+            '"cd %s; make clean"'%tmpsrc, \
+            '"cd %s; make"'%tmpsrc, \
+            '"cd %s/work; ../PSrad.exe namelist"'%tmpsrc, \
+            __invocation='0:0:2,0:0:10', \
+            __timing='repeat=10', \
+            __intrinsic='skip,except="mo_lrtm_driver:planckfunction:index;mo_lrtm_driver:planckfunction:fraction"', \
             __outdir=workdir)
 
-            #__debug='printvar=:i,:j,:output',
 
+        result[myname]['datadir'] = datadir = '%s/data'%workdir
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
-        result[myname]['datadir'] = '%s/data'%workdir
 
         if passed:
-            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.0.1.1', 'calc.0.2.3', 'calc.0.3.3', \
-                'calc.1.0.1', 'calc.1.1.1', 'calc.1.2.3', 'calc.1.3.3']
+            result[myname]['statefiles'] = ['lrtm.0.0.2', 'lrtm.0.0.10']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

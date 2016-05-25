@@ -23,30 +23,15 @@ sys.path.insert(0, KGEN_COMPFLAG)
 
 from kgen_tool import KGenTool
 from kgen_utils import run_shcmd
-from kgen_compiler import GenericFortranCompiler
+from kgen_compiler import CompilerFactory
 from compflag_config import CompFlagConfig
 import subprocess
 
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
 STR_UF = '<unfinished'
-TEMP_SH = '#!/bin/bash\n%s\n%s'
+TEMP_SH = '#!/bin/bash\n%s\n%s\n'
 SH = '%s/_kgen_compflag_cmdwrapper.sh'
-
-# Known compilers
-#Oracle: f77, f95, f90
-#PGI: pgf77, pgfortran, pghpf
-#PathScale: pathf90, pathf95
-#GNU: gfortran
-#Intel: ifort
-#Silverfrost: ftn77, ftn95
-#NAG: nagfor
-#IBM XL: xlf, xlf90, xlf95, xlf2003, and xlf2008
-
-known_compilers = [ 'f77', 'f95', 'f90', 'pgf77', 'pgfortran', 'pghpf', 'pathf90', 'pathf95', 'gfortran', 'ifort', \
-    'ftn77', 'ftn95', 'nagfor', 'xlf', 'xlf90', 'xlf95', 'xlf2003', 'xlf2008']
-known_mpicompiler_wrappers = [ 'mpief90', 'mpif77', 'mpif90', 'mpifc', 'mpiifort', 'mpipf77', 'mpipf90', 'mpiphpf', 'mpifort', 'mpfort']
-COMPILERS = known_compilers + known_mpicompiler_wrappers
 
 def _getpwd(env):
     for item in env:
@@ -70,7 +55,7 @@ class CompFlagDetect(KGenTool):
             print 'Building application using command-line of "%s; %s"'%(self.config.build['initcmd'], self.config.build['cmdline'])
 
             with open(SH%self.config.build['cwd'], 'w') as f:
-                f.write(TEMP_SH%(elf.config.build['initcmd'], self.config.build['cmdline']))
+                f.write(TEMP_SH%(self.config.build['initcmd'], self.config.build['cmdline']))
             st = os.stat(SH%self.config.build['cwd'])
             os.chmod(SH%self.config.build['cwd'], st.st_mode | stat.S_IEXEC)
 
@@ -79,7 +64,7 @@ class CompFlagDetect(KGenTool):
 
             out, err, retcode = run_shcmd(shcmds, cwd=self.config.build['cwd'])
 
-            os.remove(SH%self.config.build['cwd'])
+            #os.remove(SH%self.config.build['cwd'])
 
             if retcode==0:
                 self.config.strace['infile'] = self.config.strace['outfile']
@@ -140,19 +125,20 @@ class CompFlagDetect(KGenTool):
                                 if pos_last >= 0:
                                     try:
                                         exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):pos_last])
-                                        if exepath and cmdlist and exepath.split('/')[-1]==cmdlist[0].split('/')[-1] and \
-                                            cmdlist[0].split('/')[-1] in COMPILERS:
-                                            srcs, incs, macros, openmp, options = GenericFortranCompiler.parse_option(cmdlist, _getpwd(env))
-                                            if len(srcs)>0:
-                                                for src in srcs:
-                                                    if src in flags:
-                                                        flags[src].append((exepath, incs, macros, openmp, options))
-                                                    else:
-                                                        flags[src] = [ (exepath, incs, macros, openmp, options) ]
+                                        compid = cmdlist[0].split('/')[-1]
+                                        if exepath and cmdlist and compid==cmdlist[0].split('/')[-1]:
+                                            compiler = CompilerFactory.createCompiler(compid)
+                                            if compiler:
+                                                srcs, incs, macros, openmp, options = compiler.parse_option(cmdlist, _getpwd(env))
+                                                if len(srcs)>0:
+                                                    for src in srcs:
+                                                        if src in flags:
+                                                            flags[src].append((exepath, incs, macros, openmp, options))
+                                                        else:
+                                                            flags[src] = [ (exepath, incs, macros, openmp, options) ]
                                     except:
                                         pass
                         line = f.readline()
-
 
                 for fname, incitems in flags.items():
                     if len(incitems)>0:

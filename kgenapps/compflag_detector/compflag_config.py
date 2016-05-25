@@ -66,7 +66,7 @@ class CompFlagConfig(object):
 #            temp_arg = arg.strip('"')
 #            new_args.append(temp_arg.strip("'"))
         if len(args)>1:
-            self.attrs['build']['cmd'] = args[1]
+            self.attrs['build']['cmdline'] = args[1]
         if len(args)>0:
             self.attrs['build']['initcmd'] = args[0]
 

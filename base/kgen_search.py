@@ -155,7 +155,9 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
             for pattern, actions in Config.exclude['namepath'].iteritems():
                 name = node.string.lower()
                 namepath = pack_innamepath(stmt, name) 
+                #Logger.info('%s and %s are being checked for exclusion'%(pattern, namepath))
                 if match_namepath(pattern, namepath):
+                    #Logger.info('%s and %s are mathched for exclusion'%(pattern, namepath))
                     if not hasattr(stmt, 'exclude_names'): stmt.exclude_names = OrderedDict()
                     if stmt.exclude_names.has_key(name):
                         stmt.exclude_names[name].extend(actions)

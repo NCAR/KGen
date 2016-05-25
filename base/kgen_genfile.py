@@ -807,6 +807,9 @@ class Gen_Statement(object):
                     else:
                         return
 
+                #if isinstance(self, GenK_Statement) and lines_str and lines_str.find('MPI_finalize')>0:
+                #    import pdb; pdb.set_trace()
+
                 if self.kgen_use_tokgen:
                     if isinstance(self.kgen_stmt, block_statements.BeginStatement) and \
                         not self.kgen_stmt.__class__ in [ block_statements.If ]:

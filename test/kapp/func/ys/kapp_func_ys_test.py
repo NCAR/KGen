@@ -62,14 +62,17 @@ class KAppFuncYSTest(KAppFuncTest):
         tmpsrc = result['mkdir_task']['tmpsrc']
         FC = result['config_task']['FC']
         FC_FLAGS = result['config_task']['FC_FLAGS']
-        PRERUN = result['config_task']['PRERUN']
+
 
         passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
             'calling_module:calling_subroutine:add', \
-            '"cd %s; make clean; make build FC=%s FC_FLAGS=%s PRERUN=%s"'%(tmpsrc, FC, FC_FLAGS, PRERUN), \
-            '"cd %s; make run FC=%s FC_FLAGS=%s PRERUN=%s"'%(tmpsrc, FC, FC_FLAGS, PRERUN), \
+            '"cd %s; make clean"'%tmpsrc, \
+            '"cd %s; make build"'%tmpsrc, \
+            '"cd %s; make run "'%tmpsrc, \
             __invocation='0:0:0', \
             __outdir=workdir)
+
+            #__prerun='kernel_build="%s",kernel_run="%s"'%(prerun_build, prerun_run), \
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err

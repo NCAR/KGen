@@ -4,28 +4,59 @@ import os
 import shutil
 import re
 import time
-from kgen_utils import run_shcmd
 from kapp_sys_ys_test import KAppSysYSTest
+from kgen_utils import run_shcmd
 
-class KAppSysYSCesmTest(KAppSysYSTest):
+job_script = \
+"""#!/bin/bash
+
+#BSUB -a poe
+#BSUB -P STDD0002
+#BSUB -q premium
+#BSUB -W 0:20
+#BSUB -x
+#BSUB -J KHOMME
+#BSUB -e homme.%%J.err
+#BSUB -o homme.%%J.out
+#BSUB -n %s
+#BSUB -R "span[ptile=%s]" 
+
+%s
+
+# Pure MPI test 1
+%s %s < %s
+"""
+
+class KAppSysYSHommeTest(KAppSysYSTest):
+
     def download(self, myname, result):
 
         systestdir = result['mkdir_task']['sysdir']
         workdir = result['mkdir_task']['workdir']
 
-        appsrc = '%s/cesm_ref'%systestdir
+        appsrc = '%s/homme_ref'%systestdir
         if not os.path.exists(appsrc):
             os.mkdir(appsrc)
 
-        # check if cesm exists in appsrc dir
+        # check if homme exists in appsrc dir
         out, err, retcode = run_shcmd('svn info | grep URL', cwd=appsrc)
         if retcode != 0 or not out or len(out)<3 or not out.startswith('URL'):
-            out, err, retcode = run_shcmd('svn checkout -r 76722 https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta06 .', cwd=appsrc)
+            out, err, retcode = run_shcmd('svn checkout -r 4971 https://svn-homme-model.cgd.ucar.edu/trunk/ .', cwd=appsrc)
 
-        # copy cesm src into test specific src dir
-        tmpsrc = '%s/cesm_work'%systestdir
+        # copy homme src into test specific src dir
+        tmpsrc = '%s/homme_work'%systestdir
+#        if os.path.exists(tmpsrc):
+#            shutil.rmtree(tmpsrc)
+#        shutil.copytree(appsrc, tmpsrc)
         if not os.path.exists(tmpsrc):
             shutil.copytree(appsrc, tmpsrc)
+        else:
+            for fname in os.listdir('%s/src'%tmpsrc):
+                if fname.endswith('.kgen'):
+                    shutil.copyfile(os.path.join('%s/src'%tmpsrc, fname), os.path.join('%s/src'%tmpsrc, fname[:-5]))
+            for fname in os.listdir('%s/src/share'%tmpsrc):
+                if fname.endswith('.kgen'):
+                    shutil.copyfile(os.path.join('%s/src/share'%tmpsrc, fname), os.path.join('%s/src/share'%tmpsrc, fname[:-5]))
 
         result[myname]['appsrc'] = appsrc
         result[myname]['tmpsrc'] = tmpsrc
@@ -36,8 +67,6 @@ class KAppSysYSCesmTest(KAppSysYSTest):
 
     def genstate(self, myname, result):
 
-        casedir = result['config_task']['casedir']
-        casename = result['config_task']['casename']
         workdir = result['mkdir_task']['workdir']
         reuse_data = result['mkdir_task']['reuse_data']
 
@@ -49,8 +78,8 @@ class KAppSysYSCesmTest(KAppSysYSTest):
                 out, err, retcode = run_shcmd('bjobs')
                 for line in out.split('\n'):
                     items = line.split()
-                    if any(item==casename for item in items):
-                    #if len(items)>6 and items[6].endswith(casename):
+                    if any(item=='KHOMME' for item in items):
+                    #if len(items)>6 and items[6].endswith('KHOMME'):
                         jobid = items[0]
                         break
                 if jobid: break
@@ -87,4 +116,3 @@ class KAppSysYSCesmTest(KAppSysYSTest):
             self.set_status(result, myname, self.PASSED)
 
         return result
-

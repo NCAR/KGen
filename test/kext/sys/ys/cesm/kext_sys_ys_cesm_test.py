@@ -97,7 +97,7 @@ class KExtSysYSCesmTest(KExtSysYSTest):
             out, err, retcode = self.run_shcmd('bjobs')
             for line in out.split('\n'):
                 items = line.split()
-                if len(items)>6 and items[6].endswith(casename):
+                if any(item==casename for item in items):
                     jobid = items[0]
                     break
             if jobid: break

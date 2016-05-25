@@ -50,7 +50,11 @@ class KExtConfig(object):
         self.attrs['kernel_compile'] = OrderedDict()
         self.attrs['kernel_compile']['FC'] = 'ifort'
         self.attrs['kernel_compile']['FC_FLAGS'] = ''
-        self.attrs['kernel_compile']['PRERUN'] = 'true'
+
+        # make prerun parameters
+        self.attrs['prerun'] = OrderedDict()
+        self.attrs['prerun']['kernel_build'] = None
+        self.attrs['prerun']['kernel_run'] = None
 
         # make state parameters
         self.attrs['state_build'] = OrderedDict()
@@ -81,7 +85,7 @@ class KExtConfig(object):
         self.options.append( (self.opt_openmp, ["--openmp"], {'dest':"openmp", 'action':'append', 'type':'string', 'default':None, 'help':"Specifying OpenMP options"}) )
         self.options.append( (self.opt_mpi, ["--mpi"], {'dest':"mpi", 'action':'append', 'type':'string', 'default':None, 'help':"MPI information for data collection"}) )
         self.options.append( (self.opt_timing, ["--timing"], {'dest':"timing", 'action':'store', 'type':'string', 'default':None, 'help':"Timing measurement information"}) )
-        self.options.append( (self.opt_kernel_compile, ["--kernel-compile"], {'dest':"kernel_compile", 'action':'append', 'type':'string', 'help':"Compile information to generate kernel makefile"}) )
+        self.options.append( (self.opt_prerun, ["--prerun"], {'dest':"prerun", 'action':'append', 'type':'string', 'help':"prerun commands"}) )
         self.options.append( (self.opt_state_switch, ["--state-switch"], {'dest':"state_switch", 'action':'append', 'type':'string', 'help':"Specifying how to switch orignal sources with instrumented ones."}) )
         self.options.append( (self.opt_state_build, ["--state-build"], {'dest':"state_build", 'action':'append', 'type':'string', 'help':"Build information to generate makefile"}) )
         self.options.append( (self.opt_state_run, ["--state-run"], {'dest':"state_run", 'action':'append', 'type':'string', 'help':"Run information to generate makefile"}) )
@@ -158,14 +162,14 @@ class KExtConfig(object):
                         raise UserException('Unknown MPI option: %s' % mpi)
 
     # parsing kernel makefile parameters
-    def opt_kernel_compile(self, opt):
+    def opt_prerun(self, opt):
         for line in opt:
             for comp in line.split(','):
                 key, value = comp.split('=', 1)
-                if key in [ 'FC', 'FC_FLAGS', 'PRERUN' ] :
-                    self.attrs['kernel_compile'][key] = value
+                if key in [ 'kernel_build', 'kernel_run' ] :
+                    self.attrs['prerun'][key] = value
                 else:
-                    raise UserException('Unknown kernel compile option: %s' % comp)
+                    raise UserException('Unknown prerun option: %s' % comp)
 
     def opt_state_build(self, opt):
         for line in opt:

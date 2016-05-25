@@ -122,7 +122,15 @@ def generate_kernel_makefile():
         for i, options in enumerate(compiler_options):
             write(f, 'FC_FLAGS_SET_%d := %s'%(i, options))
 
-        write(f, 'PRERUN := %s'%Config.kernel_compile['PRERUN'])
+        prerun_build_str = ''
+        if Config.prerun['kernel_build']:
+            write(f, 'PRERUN_BUILD := %s'%Config.prerun['kernel_build'])
+            prerun_build_str = '${PRERUN_BUILD}; '
+
+        prerun_run_str = ''
+        if Config.prerun['kernel_run']:
+            write(f, 'PRERUN_RUN := %s'%Config.prerun['kernel_run'])
+            prerun_run_str = '${PRERUN_RUN}; '
 
         write(f, '')
         write(f, 'ALL_OBJS := %s'%' '.join(all_objs))
@@ -130,9 +138,9 @@ def generate_kernel_makefile():
 
         write(f, 'run: build')
         if Config.add_mpi_frame['enabled']:
-            write(f, '${PRERUN}; %s -np %s ./kernel.exe'%(Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
+            write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
         else:
-            write(f, '${PRERUN}; ./kernel.exe', t=True)
+            write(f, '%s./kernel.exe'%prerun_run_str, t=True)
         write(f, '')
 
         write(f, 'build: ${ALL_OBJS}')
@@ -142,7 +150,7 @@ def generate_kernel_makefile():
         if len(compilers)>0: fc_str += '_SET_0'
         if len(compiler_options)>0: fc_flags_str += '_SET_0'
 
-        write(f, '${PRERUN}; ${%s} ${%s} %s %s -o kernel.exe $^'%(fc_str, fc_flags_str, link_flags, objects), t=True)
+        write(f, '%s${%s} ${%s} %s %s -o kernel.exe $^'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
         write(f, '')
 
         for dep_base in dep_bases:
@@ -153,15 +161,17 @@ def generate_kernel_makefile():
             for i, (compiler, files) in enumerate(compilers.items()):
                 if dep_base in files:
                     dfc_str += '_SET_%d'%i
+                    break
             for i, (compiler_option, files) in enumerate(compiler_options.items()):
                 if dep_base in files:
                     dfc_flags_str += '_SET_%d'%i
+                    break
 
-            write(f, '${PRERUN}; ${%s} ${%s} -c -o $@ $<'%(dfc_str, dfc_flags_str), t=True)
+            write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, dfc_str, dfc_flags_str), t=True)
             write(f, '')
 
         write(f, '%s: %s' % (obj(kgen_utils_file), kgen_utils_file))
-        write(f, '${PRERUN}; ${%s} ${%s} -c -o $@ $<'%(fc_str, fc_flags_str), t=True)
+        write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, fc_str, fc_flags_str), t=True)
         write(f, '')
            
         write(f, 'clean:')

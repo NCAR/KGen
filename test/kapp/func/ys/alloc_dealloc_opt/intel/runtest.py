@@ -5,7 +5,6 @@ class CustomTest(KAppFuncYSADOTest):
 
         result[myname]['FC'] = 'ifort'
         result[myname]['FC_FLAGS'] = ''
-        result[myname]['PRERUN'] = 'true'
 
         self.set_status(result, myname, self.PASSED)
 
