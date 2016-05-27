@@ -13,7 +13,7 @@ class KExtConfig(object):
 
         # kgen parameters
         self.attrs['kgen'] = OrderedDict()
-        self.attrs['kgen']['version'] = [ 0, 6, '3' ]
+        self.attrs['kgen']['version'] = [ 0, 6, '4' ]
 
         # openmp parameters
         self.attrs['openmp'] = OrderedDict()
