@@ -31,6 +31,8 @@ module calling_module
                 &ar3, &
                 &ar4, &
                 &ar5
+
+                integer i, j
         
 
                 ar1(:,:) = 1.0 + arg1
@@ -39,7 +41,13 @@ module calling_module
                 ar5(:,:) = 1.0
 
                 !$kgen begin_callsite add
-                call add(ar1, ar2, ar3, arg1, arg3, arg3_2, arg4, arg4_2, arg5)
+                do i=1,10
+                    do j=1,10
+                        arg3 = arg1 + arg2
+                        call add(ar1, ar2, ar3, arg1, arg3, arg3_2, arg4, arg4_2, arg5)
+                        arg5 = ar1 + ar2
+                    end do
+                end do
                 !$kgen end_callsite
 
                 arg3_1 = ar3 + ar1

@@ -140,50 +140,49 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
                     if hasattr(stmt, 'unknowns'):
                         for uname, req in stmt.unknowns.iteritems():
-
-                            if req.res_stmts[-1].__class__==statements.Use:
-                                checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==req.res_stmts[-1].name \
-                                    and ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
-                                if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
-                                    item_name = uname.firstpartname()
-                                    for new_name, old_name in req.res_stmts[-1].renames:
-                                        if new_name==item_name:
-                                            item_name = '%s => %s'%(new_name, old_name) 
-                                            break
-                                    if not (req.res_stmts[-1].name, item_name) in self.driver_created_uses:
-                                        attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
-                                        namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                        self.driver_created_uses.append((req.res_stmts[-1].name, item_name))
-
-                                    if stmt.is_derived() and stmt.name==uname.firstpartname():
-                                        readname = get_dtype_readname(req.res_stmts[0])
-                                        if not (req.res_stmts[-1].name, readname) in self.driver_created_uses:
-                                            attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[readname]}
-                                            namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                            self.driver_created_uses.append((req.res_stmts[-1].name, readname))
-
-                            else:
-                                if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
-                                    checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
-                                        ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                            if len(req.res_stmts)>0:
+                                if req.res_stmts[-1].__class__==statements.Use:
+                                    checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==req.res_stmts[-1].name \
+                                        and ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                                     if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
                                         item_name = uname.firstpartname()
                                         for new_name, old_name in req.res_stmts[-1].renames:
                                             if new_name==item_name:
                                                 item_name = '%s => %s'%(new_name, old_name) 
                                                 break
-                                        if not (get_topname(req.res_stmts[-1]), item_name) in self.driver_created_uses:
-                                            attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
+                                        if not (req.res_stmts[-1].name, item_name) in self.driver_created_uses:
+                                            attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[item_name]}
                                             namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                            self.driver_created_uses.append((get_topname(req.res_stmts[-1]), item_name))
+                                            self.driver_created_uses.append((req.res_stmts[-1].name, item_name))
 
                                         if stmt.is_derived() and stmt.name==uname.firstpartname():
-                                            readname = get_dtype_readname(req.res_stmts[-1])
-                                            if not (get_topname(req.res_stmts[-1]), readname) in self.driver_created_uses:
-                                                attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[readname]}
+                                            readname = get_dtype_readname(req.res_stmts[0])
+                                            if not (req.res_stmts[-1].name, readname) in self.driver_created_uses:
+                                                attrs = {'name':req.res_stmts[-1].name, 'isonly': True, 'items':[readname]}
                                                 namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
-                                                self.driver_created_uses.append((get_topname(req.res_stmts[-1]), readname))
+                                                self.driver_created_uses.append((req.res_stmts[-1].name, readname))
 
+                                else:
+                                    if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
+                                        checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
+                                            ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                                        if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
+                                            item_name = uname.firstpartname()
+                                            for new_name, old_name in req.res_stmts[-1].renames:
+                                                if new_name==item_name:
+                                                    item_name = '%s => %s'%(new_name, old_name) 
+                                                    break
+                                            if not (get_topname(req.res_stmts[-1]), item_name) in self.driver_created_uses:
+                                                attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
+                                                namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                                self.driver_created_uses.append((get_topname(req.res_stmts[-1]), item_name))
+
+                                            if stmt.is_derived() and stmt.name==uname.firstpartname():
+                                                readname = get_dtype_readname(req.res_stmts[-1])
+                                                if not (get_topname(req.res_stmts[-1]), readname) in self.driver_created_uses:
+                                                    attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[readname]}
+                                                    namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)
+                                                    self.driver_created_uses.append((get_topname(req.res_stmts[-1]), readname))
             elif (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype and (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         for uname, req in KGGenType.get_state_out(stmt.geninfo):
@@ -322,12 +321,17 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                         else:
                             subrname = None
                             for uname, req in stmt.unknowns.iteritems():
-                                if uname.firstpartname()==stmt.name:
+                                if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                     res = req.res_stmts[0]
                                     subrname = get_dtype_readname(res)
                                     break
-                            if subrname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
-                            self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
+                            if subrname is None:
+                                print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                                namedpart_append_comment(node.kgen_kernel_id, partid, \
+                                    'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
+                                    (stmt.name, stmt.name))
+                            else:
+                                self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var, ename_prefix=ename_prefix)
                     else: # intrinsic type
                         self.create_read_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var, ename_prefix=ename_prefix)
 
@@ -350,12 +354,17 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     else:
                         subrname = None
                         for uname, req in stmt.unknowns.iteritems():
-                            if uname.firstpartname()==stmt.name:
+                            if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                 res = req.res_stmts[0]
                                 subrname = get_dtype_readname(res)
                                 break
-                        if subrname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
-                        self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+                        if subrname is None:
+                            print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            namedpart_append_comment(node.kgen_kernel_id, partid, \
+                                'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
+                                (stmt.name, stmt.name))
+                        else:
+                            self.create_read_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                 else: # intrinsic type
                     self.create_read_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
 
@@ -431,12 +440,17 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                         else:
                             subrname = None
                             for uname, req in stmt.unknowns.iteritems():
-                                if uname.firstpartname()==stmt.name:
+                                if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                     res = req.res_stmts[0]
                                     subrname = get_dtype_writename(res)
                                     break
-                            if subrname is None: raise Exception('Can not find Type resolver for %s'%stmt.name)
-                            self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+                            if subrname is None:
+                                print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                                namedpart_append_comment(node.kgen_kernel_id, partid, \
+                                    'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
+                                    (stmt.name, stmt.name))
+                            else:
+                                self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
                     else: # intrinsic type
                         self.create_write_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
 

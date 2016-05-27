@@ -27,6 +27,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             callsite_stmts[0], None, self.create_callsite_parts1)
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.FINISH_PROCESS, \
+            getinfo('callsite_stmts')[0], None, self.invalid_kernel_stmts)
+
 #        if isinstance(callsite_stmts[-1], base_classes.EndStatement):
 #            self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
 #                callsite_stmts[-1].parent, None, self.create_callsite_parts2)
@@ -39,6 +42,13 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             getinfo('topblock_stmt'), None, self.create_topblock_parts)
+
+
+    def invalid_kernel_stmts(self, node):
+        kernel_stmts = getinfo('callsite_stmts')
+
+        for stmt in kernel_stmts:
+            stmt.genspair.kgen_forced_line = False
 
 
     def create_parentblock_parts(self, node):
@@ -543,8 +553,19 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_LOCALS, 'local input variables')
 
-        for stmt in getinfo('callsite_stmts'):
-            part_append_node(ifsave, EXEC_PART, stmt.genspair)
+        callsite_stmts = getinfo('callsite_stmts')
+
+        start = callsite_stmts[0].item.span[0]-1
+        end = callsite_stmts[-1].item.span[1]
+        lines = callsite_stmts[0].top.prep[start:end]
+        lines_str = '\n'.join(lines)
+        dummy_node = part_append_gensnode(ifsave, EXEC_PART, statements.Call)
+        dummy_node.kgen_stmt = getinfo('dummy_stmt')
+        dummy_node.kgen_forced_line = lines_str
+
+        #import pdb; pdb.set_trace()
+        #for stmt in getinfo('callsite_stmts'):
+        #    part_append_node(ifsave, EXEC_PART, stmt.genspair)
         
         namedpart_create_subpart(ifsave, STATE_PBLOCK_WRITE_OUT_EXTERNS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, '')

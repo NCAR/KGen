@@ -138,7 +138,7 @@ def is_param_zero(length, stmt):
 
     if hasattr(stmt, 'unknowns'):
         for uname, req in stmt.unknowns.iteritems():
-            if uname.firstpartname()==length:
+            if uname.firstpartname()==length and len(req.res_stmts)>0:
                 res_stmt = req.res_stmts[0]
                 if isinstance(res_stmt, typedecl_statements.Integer) and 'parameter' in res_stmt.attrspec:
                     for decl in res_stmt.entity_decls:
@@ -172,8 +172,8 @@ def check_class_derived(stmt):
     # check if the name of kind in unknows, and the last res of the unknown is derivied type
     dtypename = stmt.selector[1]
     if hasattr(stmt, 'unknowns'):
-        for uname, res in stmt.unknowns.items():
-            if uname.firstpartname()==dtypename:
-                if isinstance(res.res_stmts[0], (Type, TypeDecl)):
+        for uname, req in stmt.unknowns.items():
+            if uname.firstpartname()==dtypename and len(req.res_stmts)>0:
+                if isinstance(req.res_stmts[0], (Type, TypeDecl)):
                     return True
     return False

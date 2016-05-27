@@ -211,74 +211,76 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
 
             if stmt.is_derived() or is_class_derived:
 
-                callname = 'NOT_FOUND'
+                callname = None
                 for uname, req in stmt.unknowns.iteritems():
                     #if uname.firstpartname()==stmt.name:
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
-                        callname = get_dtype_verifyname(req.res_stmts[0])
-                        break
+                        if len(req.res_stmts)>0:
+                            callname = get_dtype_verifyname(req.res_stmts[0])
+                            break
 
                 attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'verboseLevel=check_status%verboseLevel']}
                 part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
-                pobj = topobj
-                doobjs = []
-                for d in range(var.rank):
-                    attrs = {'loopcontrol': ' idx%(d)d=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1}}
-                    doobj = part_append_genknode(pobj, EXEC_PART, block_statements.Do, attrs=attrs)
-                    doobjs.append(doobj)
-                    pobj = doobj 
+                if callname:
+                    pobj = topobj
+                    doobjs = []
+                    for d in range(var.rank):
+                        attrs = {'loopcontrol': ' idx%(d)d=LBOUND(var,%(d)d), UBOUND(var,%(d)d)'%{'d':d+1}}
+                        doobj = part_append_genknode(pobj, EXEC_PART, block_statements.Do, attrs=attrs)
+                        doobjs.append(doobj)
+                        pobj = doobj 
 
-                # call verify subr
-                indexes = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
-                attrs = {'designator': callname, 'items': ['trim(adjustl(varname))', 'comp_check_status', \
-                    'var(%s)'%indexes, 'kgenref_var(%s)'%indexes]}
-                part_append_genknode(doobjs[-1], EXEC_PART, statements.Call, attrs=attrs)
+                    # call verify subr
+                    indexes = ','.join([ 'idx%d'%(r+1) for r in range(var.rank)])
+                    attrs = {'designator': callname, 'items': ['trim(adjustl(varname))', 'comp_check_status', \
+                        'var(%s)'%indexes, 'kgenref_var(%s)'%indexes]}
+                    part_append_genknode(doobjs[-1], EXEC_PART, statements.Call, attrs=attrs)
 
-                attrs = {'expr': 'comp_check_status%numTotal == comp_check_status%numIdentical'}
-                ifidobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                    attrs = {'expr': 'comp_check_status%numTotal == comp_check_status%numIdentical'}
+                    ifidobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                attrs = {'variable': 'check_status%numIdentical', 'sign': '=', 'expr': 'check_status%numIdentical + 1'}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                    attrs = {'variable': 'check_status%numIdentical', 'sign': '=', 'expr': 'check_status%numIdentical + 1'}
+                    part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                attrs = {'expr': 'check_status%verboseLevel > 1'}
-                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
+                    ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                attrs = {'items': ['trim(adjustl(varname))','" is IDENTICAL."']}
-                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+                    attrs = {'items': ['trim(adjustl(varname))','" is IDENTICAL."']}
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
-                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                    attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
+                    part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                attrs = {'expr': 'comp_check_status%numOutTol > 0'}
-                part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+                    attrs = {'expr': 'comp_check_status%numOutTol > 0'}
+                    part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
 
-                attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                    attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
+                    part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                attrs = {'expr': 'check_status%verboseLevel > 0'}
-                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL(out of tolerance)."']}
-                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+                    attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL(out of tolerance)."']}
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
-                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                    attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
+                    part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                attrs = {'expr': 'comp_check_status%numInTol > 0'}
-                part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+                    attrs = {'expr': 'comp_check_status%numInTol > 0'}
+                    part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
 
-                attrs = {'variable': 'check_status%numInTol', 'sign': '=', 'expr': 'check_status%numInTol + 1'}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                    attrs = {'variable': 'check_status%numInTol', 'sign': '=', 'expr': 'check_status%numInTol + 1'}
+                    part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                attrs = {'expr': 'check_status%verboseLevel > 0'}
-                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL(within tolerance)."']}
-                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+                    attrs = {'items': ['trim(adjustl(varname))','" is NOT IDENTICAL(within tolerance)."']}
+                    part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
 
-                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
-                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+                    attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
+                    part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
             else: # intrinsic type
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['n']}
