@@ -228,6 +228,8 @@ def locate_callsite(cs_tree):
                         State.callsite['stmts'].append(next_fort_stmt)
                     else:
                         raise UserException('WARNING: callsite is not found')
+        elif 'callsite' in directs:
+            State.callsite['stmts'].append(stmt)
         else:
             if Config.callsite['namepath'] and stmt.__class__ in executable_construct:
                 names = []
