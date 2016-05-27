@@ -184,8 +184,9 @@ def traverse(node, func, bag, subnode='items', prerun=True, depth=0):
         ret = func(node, bag, depth)
         if ret is not None: return ret
 
-    if node and hasattr(node, subnode) and getattr(node, subnode):
-            exec('for child in node.%s: ret = traverse(child, func, bag, subnode=subnode, prerun=prerun, depth=depth+1)' % subnode)
+    if node and hasattr(node, subnode) and getattr(node, subnode) is not None:
+        for child in getattr(node, subnode):
+            ret = traverse(child, func, bag, subnode=subnode, prerun=prerun, depth=depth+1)
 
     if not prerun and func is not None:
         ret = func(node, bag, depth)
