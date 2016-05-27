@@ -19,25 +19,6 @@ sys.path.insert(0, KGEN_APP)
 from kgen_utils import UserException, ProgramException, Logger, Config, run_shcmd
 from kgen_state import State
 
-def pack_arg(opt):
-    if opt is None: return ''
-    if isinstance(opt, str):
-        opt = [ opt ]
-
-    args = []
-    for o in opt:
-        if o is None: args.append('')
-        elif isinstance(o, str):
-            args.append(o)
-#            if o.find('"')>=0:
-#                args.append(o)
-#            else:
-#                args.append('"%s"'%o)
-        else:
-            args.append(str(o))
-
-    return args
-
 def main():
     from compflag_tool import CompFlagDetect
     from kext_tool import KExtTool
@@ -53,6 +34,7 @@ def main():
         # common options
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
         parser.add_option("--rebuild", dest="rebuild", action='append', type='string', default=None, help="force to rebuild")
+        parser.add_option("--prerun", dest="prerun", action='append', type='string', default=None, help="prerun commands")
 
         # compflag options
         parser.add_option("--strace", dest="strace", action='append', type='string', default=None, help="strace options")
@@ -65,7 +47,6 @@ def main():
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='append', type='string', default=None, help="Timing measurement information")
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
-        parser.add_option("--prerun", dest="prerun", action='append', type='string', default=None, help="prerun commands")
 
         opts, args = parser.parse_args()
 
@@ -82,21 +63,28 @@ def main():
             kext_argv.append('--outdir')
             kext_argv.append(opts.outdir)
             compflag_argv.append('--build')
-            compflag_argv.append('cwd=%s'%opts.outdir)
+            compflag_argv.append('cwd="%s",clean="%s"'%(opts.outdir, args[1]))
             outdir = opts.outdir
+        if opts.prerun:
+            compflag_argv.append('--prerun')
+            compflag_argv.extend(opts.prerun)
+            kext_argv.append('--prerun')
+            kext_argv.extend(opts.prerun)
+        if opts.rebuild:
+            compflag_argv.append('--rebuild')
+            compflag_argv.extend(opts.rebuild)
+            kext_argv.append('--rebuild')
+            kext_argv.extend(opts.rebuild)
 
         # collect compflag options
         if opts.strace:
             compflag_argv.append('--strace')
-            compflag_argv.extend(pack_arg(opts.strace))
+            compflag_argv.extend(opts.strace)
         if opts.ini:
             compflag_argv.append('--ini')
-            compflag_argv.extend(pack_arg(opts.ini))
-        if opts.rebuild:
-            compflag_argv.append('--rebuild')
-            compflag_argv.extend(pack_arg(opts.rebuild))
-        compflag_argv.extend(pack_arg(args[1]))
-        compflag_argv.extend(pack_arg(args[2]))
+            compflag_argv.extend(opts.ini)
+
+        compflag_argv.append(args[2])
 
         # collect kext options
         if opts.invocation:
@@ -117,9 +105,8 @@ def main():
         if opts.intrinsic:
             kext_argv.append('--intrinsic')
             kext_argv.extend(opts.intrinsic)
-        if opts.prerun:
-            kext_argv.append('--prerun')
-            kext_argv.extend(opts.prerun)
+        kext_argv.append('--state-clean')
+        kext_argv.append('cmds=%s'%args[1])
         kext_argv.append('--state-build')
         kext_argv.append('cmds=%s'%args[2])
         kext_argv.append('--state-run')

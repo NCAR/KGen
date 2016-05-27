@@ -55,8 +55,16 @@ class KExtConfig(object):
         self.attrs['prerun'] = OrderedDict()
         self.attrs['prerun']['kernel_build'] = None
         self.attrs['prerun']['kernel_run'] = None
+        self.attrs['prerun']['clean'] = None
+        self.attrs['prerun']['build'] = None
+        self.attrs['prerun']['run'] = None
+
+        # make rebuild parameters
+        self.attrs['rebuild'] = OrderedDict()
 
         # make state parameters
+        self.attrs['state_clean'] = OrderedDict()
+        self.attrs['state_clean']['cmds'] = ''
         self.attrs['state_build'] = OrderedDict()
         self.attrs['state_build']['cmds'] = ''
         self.attrs['state_run'] = OrderedDict()
@@ -86,7 +94,9 @@ class KExtConfig(object):
         self.options.append( (self.opt_mpi, ["--mpi"], {'dest':"mpi", 'action':'append', 'type':'string', 'default':None, 'help':"MPI information for data collection"}) )
         self.options.append( (self.opt_timing, ["--timing"], {'dest':"timing", 'action':'store', 'type':'string', 'default':None, 'help':"Timing measurement information"}) )
         self.options.append( (self.opt_prerun, ["--prerun"], {'dest':"prerun", 'action':'append', 'type':'string', 'help':"prerun commands"}) )
+        self.options.append( (self.opt_rebuild, ["--rebuild"], {'dest':"rebuild", 'action':'append', 'type':'string', 'help':"rebuild controls"}) )
         self.options.append( (self.opt_state_switch, ["--state-switch"], {'dest':"state_switch", 'action':'append', 'type':'string', 'help':"Specifying how to switch orignal sources with instrumented ones."}) )
+        self.options.append( (self.opt_state_clean, ["--state-clean"], {'dest':"state_clean", 'action':'append', 'type':'string', 'help':"Clean information to generate makefile"}) )
         self.options.append( (self.opt_state_build, ["--state-build"], {'dest':"state_build", 'action':'append', 'type':'string', 'help':"Build information to generate makefile"}) )
         self.options.append( (self.opt_state_run, ["--state-run"], {'dest':"state_run", 'action':'append', 'type':'string', 'help':"Run information to generate makefile"}) )
         self.options.append( (self.opt_check, ["--check"], {'dest':"check", 'action':'append', 'type':'string', 'help':"Kernel correctness check information"}) )
@@ -166,10 +176,24 @@ class KExtConfig(object):
         for line in opt:
             for comp in line.split(','):
                 key, value = comp.split('=', 1)
-                if key in [ 'kernel_build', 'kernel_run' ] :
+                if key in [ 'clean', 'build', 'run', 'kernel_build', 'kernel_run' ] :
                     self.attrs['prerun'][key] = value
                 else:
                     raise UserException('Unknown prerun option: %s' % comp)
+
+    def opt_rebuild(self, opt):
+        for line in opt:
+            for comp in line.split(','):
+                self.attrs['rebuild'][comp] = True
+
+    def opt_state_clean(self, opt):
+        for line in opt:
+            for build in line.split(','):
+                key, value = build.split('=', 1)
+                if key in [ 'cmds' ] :
+                    self.attrs['state_clean'][key] = value
+                else:
+                    raise UserException('Unknown state-clean option: %s' % build)
 
     def opt_state_build(self, opt):
         for line in opt:

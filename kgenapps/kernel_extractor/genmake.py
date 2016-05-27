@@ -70,11 +70,6 @@ def generate_kernel_makefile():
         else:
             depends[basename] = ' '.join(dep)
 
-    # prerun commands
-    #pre_cmds = ''
-    #if Config.kernel_link['pre_cmds']:
-    #    pre_cmds = ';'.join(Config.kernel_link['pre_cmds'])
-
     # link flags and objects
     link_flags = ''
     objects = ''
@@ -116,7 +111,7 @@ def generate_kernel_makefile():
 
         write(f, 'FC := %s'%Config.kernel_compile['FC'])
         for i, compiler in enumerate(compilers):
-            write(f, 'FC_SET_%d := %s'%(i, compiler))
+            write(f, 'FC_%d := %s'%(i, compiler))
 
         write(f, 'FC_FLAGS := %s'%Config.kernel_compile['FC_FLAGS'])
         for i, options in enumerate(compiler_options):
@@ -126,10 +121,16 @@ def generate_kernel_makefile():
         if Config.prerun['kernel_build']:
             write(f, 'PRERUN_BUILD := %s'%Config.prerun['kernel_build'])
             prerun_build_str = '${PRERUN_BUILD}; '
+        elif Config.prerun['build']:
+            write(f, 'PRERUN_BUILD := %s'%Config.prerun['build'])
+            prerun_build_str = '${PRERUN_BUILD}; '
 
         prerun_run_str = ''
         if Config.prerun['kernel_run']:
             write(f, 'PRERUN_RUN := %s'%Config.prerun['kernel_run'])
+            prerun_run_str = '${PRERUN_RUN}; '
+        elif Config.prerun['run']:
+            write(f, 'PRERUN_RUN := %s'%Config.prerun['run'])
             prerun_run_str = '${PRERUN_RUN}; '
 
         write(f, '')
@@ -147,7 +148,7 @@ def generate_kernel_makefile():
 
         fc_str = 'FC'
         fc_flags_str = 'FC_FLAGS'
-        if len(compilers)>0: fc_str += '_SET_0'
+        if len(compilers)>0: fc_str += '_0'
         if len(compiler_options)>0: fc_flags_str += '_SET_0'
 
         write(f, '%s${%s} ${%s} %s %s -o kernel.exe $^'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
@@ -160,7 +161,7 @@ def generate_kernel_makefile():
             dfc_flags_str = 'FC_FLAGS'
             for i, (compiler, files) in enumerate(compilers.items()):
                 if dep_base in files:
-                    dfc_str += '_SET_%d'%i
+                    dfc_str += '_%d'%i
                     break
             for i, (compiler_option, files) in enumerate(compiler_options.items()):
                 if dep_base in files:
@@ -185,16 +186,37 @@ def generate_state_makefile():
         org_files.append(State.topblock['path'])
 
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
+
+        write(f, '# Makefile for KGEN-generated instrumentation')
+        write(f, '')
+
+        prerun_clean_str = ''
+        if Config.prerun['clean']:
+            write(f, 'PRERUN_CLEAN := %s'%Config.prerun['clean'])
+            prerun_clean_str = '${PRERUN_CLEAN}; '
+
+        prerun_build_str = ''
+        if Config.prerun['build']:
+            write(f, 'PRERUN_BUILD := %s'%Config.prerun['build'])
+            prerun_build_str = '${PRERUN_BUILD}; '
+
+        prerun_run_str = ''
+        if Config.prerun['run']:
+            write(f, 'PRERUN_RUN := %s'%Config.prerun['run'])
+            prerun_run_str = '${PRERUN_RUN}; '
+
+        write(f, '')
+
         if Config.state_run['cmds']>0:
             write(f, 'run: build')
-            write(f, Config.state_run['cmds'], t=True)
+            write(f, '%s%s'%(prerun_run_str, Config.state_run['cmds']), t=True)
         else:
             write(f, 'echo "No information is provided to run. Please specify run commands using \'state-run\' command line option"; exit -1', t=True)
         write(f, '')
 
         if Config.state_build['cmds']>0:
             write(f, 'build: %s'%Config.state_switch['type'])
-            write(f, Config.state_build['cmds'], t=True)
+            write(f, '%s%s'%(prerun_build_str, Config.state_build['cmds']), t=True)
             for org_file in org_files:
                 write(f, 'mv -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
         else:
@@ -230,5 +252,8 @@ def generate_state_makefile():
             write(f, 'if [ ! -f %(g)s.kgen_org ]; then cp -f %(f)s %(g)s.kgen_org; fi'%{'f':org_file, 'g':os.path.basename(org_file)}, t=True)
         write(f, '')
 
-        write(f, '#clean:')
-        write(f, '#rm -f kernel.exe *.mod *.o', t=True)
+        if Config.state_clean['cmds']>0:
+            write(f, 'clean:')
+            write(f, '%s%s'%(prerun_clean_str, Config.state_clean['cmds']), t=True)
+        write(f, '')
+

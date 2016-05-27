@@ -9,13 +9,19 @@ class KAppSysYSCalcTest(KAppSysYSTest):
         systestdir = result['mkdir_task']['sysdir']
         workdir = result['mkdir_task']['workdir']
 
-        appsrc = '%s/src'%self.TEST_DIR
+        appsrc = '%s/../src'%self.TEST_DIR
 
-        # copy cesm src into test specific src dir
+        # copy src into test specific src dir
         tmpsrc = '%s/src'%workdir
         if os.path.exists(tmpsrc):
             shutil.rmtree(tmpsrc)
         shutil.copytree(appsrc, tmpsrc)
+        if os.path.exists('%s/Makefile'%self.TEST_DIR):
+            shutil.copy('%s/Makefile'%self.TEST_DIR, tmpsrc)
+        if os.path.exists('%s/Makefile.mpirun'%self.TEST_DIR):
+            shutil.copy('%s/Makefile.mpirun'%self.TEST_DIR, tmpsrc)
+        if os.path.exists('%s/Makefile.lsf'%self.TEST_DIR):
+            shutil.copy('%s/Makefile.lsf'%self.TEST_DIR, tmpsrc)
 
         result[myname]['appsrc'] = appsrc
         result[myname]['tmpsrc'] = tmpsrc

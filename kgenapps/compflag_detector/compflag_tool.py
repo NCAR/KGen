@@ -30,7 +30,7 @@ import subprocess
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
 STR_UF = '<unfinished'
-TEMP_SH = '#!/bin/bash\n%s\n%s\n'
+TEMP_SH = '#!/bin/bash\n%s\n%s\n%s\n%s\n'
 SH = '%s/_kgen_compflag_cmdwrapper.sh'
 
 def _getpwd(env):
@@ -47,22 +47,25 @@ class CompFlagDetect(KGenTool):
 
     def main(self):
         
+        cwd = self.config.build['cwd']
+
         if self.config.strace['infile']:
             pass
-        elif not os.path.exists(os.path.join(self.config.build['cwd'], self.config.strace['outfile'])) or \
+        elif not os.path.exists(os.path.join(cwd, self.config.strace['outfile'])) or \
             'all' in self.config.rebuild or 'strace' in self.config.rebuild:
 
-            print 'Building application using command-line of "%s; %s"'%(self.config.build['initcmd'], self.config.build['cmdline'])
+            print 'Building application to collect compiler options'
 
-            with open(SH%self.config.build['cwd'], 'w') as f:
-                f.write(TEMP_SH%(self.config.build['initcmd'], self.config.build['cmdline']))
-            st = os.stat(SH%self.config.build['cwd'])
-            os.chmod(SH%self.config.build['cwd'], st.st_mode | stat.S_IEXEC)
+            with open(SH%cwd, 'w') as f:
+                f.write(TEMP_SH%(self.config.prerun['clean'], self.config.build['clean'], \
+                    self.config.prerun['build'], self.config.build['cmdline']))
+            st = os.stat(SH%cwd)
+            os.chmod(SH%cwd, st.st_mode | stat.S_IEXEC)
 
             shcmds = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- %s'%\
-                (self.config.strace['outfile'], SH%self.config.build['cwd'])
+                (self.config.strace['outfile'], SH%cwd)
 
-            out, err, retcode = run_shcmd(shcmds, cwd=self.config.build['cwd'])
+            out, err, retcode = run_shcmd(shcmds, cwd=cwd)
 
             #os.remove(SH%self.config.build['cwd'])
 
@@ -77,7 +80,7 @@ class CompFlagDetect(KGenTool):
                 print 'STDERR: ', err
                 sys.exit(-1)
 
-        if os.path.exists(os.path.join(self.config.build['cwd'], self.config.strace['outfile'])) and \
+        if os.path.exists(os.path.join(cwd, self.config.strace['outfile'])) and \
             self.config.strace['infile'] is None:
             self.config.strace['infile'] = self.config.strace['outfile']
              
@@ -85,7 +88,8 @@ class CompFlagDetect(KGenTool):
     def fini(self):
         import ConfigParser
 
-        incini = os.path.join(self.config.build['cwd'], self.config.ini['outfile'])
+        cwd = self.config.build['cwd']
+        incini = os.path.join(cwd, self.config.ini['outfile'])
         if not os.path.exists(incini) or 'all' in self.config.rebuild or 'include' in self.config.rebuild:
 
             print 'Creating KGen include file'
@@ -112,7 +116,7 @@ class CompFlagDetect(KGenTool):
 
             if self.config.strace['infile']:
                 flags = {}
-                with open(os.path.join(self.config.build['cwd'], self.config.strace['infile']), 'r') as f:
+                with open(os.path.join(cwd, self.config.strace['infile']), 'r') as f:
                     line = f.readline()
                     while(line):
                         pos_execve = line.find(STR_EX)

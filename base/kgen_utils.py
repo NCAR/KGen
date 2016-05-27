@@ -177,6 +177,10 @@ def run_shcmd(cmd, input=None, **kwargs):
 
     return out, err, proc.returncode
 
+def strip_quote(string):
+    if not string: return string
+    return string.strip('"\'')
+
 #def exec_cmd(cmd, show_error_msg=True, input=None):
 #    import subprocess
 #

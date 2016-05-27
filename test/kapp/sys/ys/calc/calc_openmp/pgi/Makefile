@@ -1,0 +1,25 @@
+ROW := 16
+COL := 16
+
+FC := pgfortran
+FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
+
+run: build
+	export OMP_NUM_THREADS=8; ./demo.exe
+
+build: demo.exe
+
+demo.exe: program.o update_mod.o calc_mod.o
+	${FC} -mp -o $@ $^
+
+program.o: program.F90 update_mod.o
+	${FC} -mp -c -o $@ $<
+
+update_mod.o: update_mod.F90 calc_mod.o
+	${FC} -mp ${FC_FLAGS} -c -o $@ $<
+
+calc_mod.o: calc_mod.F90
+	${FC} -mp -c -o $@ $<
+
+clean:
+	rm -f *.exe *.o *.mod

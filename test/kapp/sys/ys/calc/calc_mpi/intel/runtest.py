@@ -1,22 +1,26 @@
 import sys
-from kapp_sys_ys_calc_test import KAppSysYSCalcTest
+from kapp_sys_ys_calc_calc_mpi_test import KAppSysYSCalcCMPTest
+import time
 
-class Test(KAppSysYSCalcTest):
+class Test(KAppSysYSCalcCMPTest):
     def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['download_task']['tmpsrc']
 
-
         srcfile = '%s/update_mod.F90'%tmpsrc
         namepath = 'update_mod:update:calc'
+        prerun = 'module swap intel intel/16.0.1; module try-load impi/5.0.1.035'
+
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; make clean"'%tmpsrc, \
-            '"cd %s; make build"'%tmpsrc, \
-            '"cd %s; make run"'%tmpsrc, \
-            __invocation='0:0-1:1-2,0:2-3:3', \
-            __timing='repeat=10', \
-            __openmp='enable', \
+            '"cd %s; make -f Makefile.mpirun clean"'%tmpsrc, \
+            '"cd %s; make -f Makefile.mpirun build"'%tmpsrc, \
+            '"cd %s; make -f Makefile.mpirun run"'%tmpsrc, \
+            __invocation='0-1:0-1:1,0-1:2-3:3', \
+            __timing='repeat=1', \
+            __prerun='build="%s",run="%s"'%(prerun, prerun), \
+            __mpi='enable', \
+            __rebuild='all', \
             __outdir=workdir)
 
             #__debug='printvar=:i,:j,:output',
@@ -26,8 +30,8 @@ class Test(KAppSysYSCalcTest):
         result[myname]['datadir'] = '%s/data'%workdir
 
         if passed:
-            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.0.0.2', 'calc.0.1.1', 'calc.0.1.2', \
-                'calc.0.2.3', 'calc.0.3.3']
+            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.0.1.1', 'calc.0.2.3', 'calc.0.3.3', \
+                'calc.1.0.1', 'calc.1.1.1', 'calc.1.2.3', 'calc.1.3.3']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

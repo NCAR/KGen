@@ -85,7 +85,7 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
         result[myname]['prerun_config'] = self.get_prerun_cmds() + ['rm -rf CMakeFiles CMakeCache.txt']
         result[myname]['prerun_build'] = self.get_prerun_cmds()
         result[myname]['prerun_run'] = self.get_prerun_cmds() + ['export OMP_NUM_THREADS=2', \
-            'ulimit -s unlimited' ]
+            'ulimit -s unlimited', 'export LD_LIBRARY_PATH=${NETCDF}/lib:${LD_LIBRARY_PATH}' ]
         result[myname]['prerun_kernel'] = self.get_prerun_kernel_cmds()
         result[myname]['mpirun'] = 'mpirun'
             #'export LD_LIBRARY_PATH=$NETCDF/lib:/glade/apps/opt/hdf5/1.8.12/intel/12.1.5/lib:$LD_LIBRARY_PATH', 

@@ -43,6 +43,7 @@ class KAppFuncYSTest(KAppFuncTest):
         testfiles = [ os.path.join(srcdir,f) for f in os.listdir(srcdir) if \
             f!=self.TEST_SCRIPT and f!='%sc'%self.TEST_SCRIPT and \
             not f.startswith('.') and os.path.isfile(os.path.join(srcdir, f))]
+        testfiles.append(os.path.join(self.TEST_DIR, 'Makefile'))
 
         tmpsrc = result['mkdir_task']['tmpsrc']
 
@@ -60,15 +61,17 @@ class KAppFuncYSTest(KAppFuncTest):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['mkdir_task']['tmpsrc']
-        FC = result['config_task']['FC']
-        FC_FLAGS = result['config_task']['FC_FLAGS']
 
+        prerun_build = result['config_task']['prerun_build']
+        prerun_run = result['config_task']['prerun_run']
 
         passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
             'calling_module:calling_subroutine:add', \
             '"cd %s; make clean"'%tmpsrc, \
             '"cd %s; make build"'%tmpsrc, \
             '"cd %s; make run "'%tmpsrc, \
+            __rebuild='all', \
+            __prerun='build="%s",run="%s"'%(prerun_build, prerun_run), \
             __invocation='0:0:0', \
             __outdir=workdir)
 

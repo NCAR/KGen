@@ -9,6 +9,7 @@ import os
 import sys
 import optparse
 from collections import OrderedDict
+from kgen_utils import strip_quote
 
 # Python version check
 if sys.hexversion < 0x020700F0:
@@ -29,7 +30,7 @@ class CompFlagConfig(object):
         self.attrs['strace']['outfile'] = 'strace.log'
 
         self.attrs['build'] = OrderedDict()
-        self.attrs['build']['initcmd'] = ''
+        self.attrs['build']['clean'] = ''
         self.attrs['build']['cmdline'] = ''
         self.attrs['build']['cwd'] = '.'
 
@@ -38,6 +39,10 @@ class CompFlagConfig(object):
         self.attrs['ini']['outfile'] = 'include.ini'
 
         self.attrs['rebuild'] = OrderedDict()
+
+        self.attrs['prerun'] = OrderedDict()
+        self.attrs['prerun']['clean'] = ''
+        self.attrs['prerun']['build'] = ''
 
         self.attrs['macro'] = OrderedDict()
 
@@ -54,6 +59,7 @@ class CompFlagConfig(object):
         parser.add_option("-I", dest="include", action='append', type='string', default=None, help="Add include paths in INI file")
         parser.add_option("-J", dest="object", action='append', type='string', default=None, help="Add object paths in INI file")
         parser.add_option("--rebuild",  dest="rebuild", action='append', type='string', default=None, help="List of reusable files")
+        parser.add_option("--prerun",  dest="prerun", action='append', type='string', default=None, help="List of prerun commands")
 
         opts, args = parser.parse_args(args=argv)
 #        
@@ -61,14 +67,8 @@ class CompFlagConfig(object):
 #            print 'ERROR: At least one argument is required.'
 #            sys.exit(-1)
 #
-#        new_args = []
-#        for arg in args:
-#            temp_arg = arg.strip('"')
-#            new_args.append(temp_arg.strip("'"))
-        if len(args)>1:
-            self.attrs['build']['cmdline'] = args[1]
         if len(args)>0:
-            self.attrs['build']['initcmd'] = args[0]
+            self.attrs['build']['cmdline'] = args[0]
 
         if opts.strace:
             self._save_opt(opts.strace, self.attrs['strace'])
@@ -91,6 +91,9 @@ class CompFlagConfig(object):
         if opts.rebuild:
             self._save_opt(opts.rebuild, self.attrs['rebuild'], append=True)
 
+        if opts.prerun:
+            self._save_opt(opts.prerun, self.attrs['prerun'])
+
     def _save_opt(self, opt, attr, append=False):
         if isinstance(opt, str):
             opt = [ opt ]
@@ -105,11 +108,11 @@ class CompFlagConfig(object):
                                 key, value = subopt.split('=', 1)
                                 if append:
                                     if attr.has_key(key):
-                                        attr[key].append(value)
+                                        attr[key].append(strip_quote(value))
                                     else:
-                                        attr[key] = [ value ]
+                                        attr[key] = [ strip_quote(value) ]
                                 else:
-                                    attr[key] = value
+                                    attr[key] = strip_quote(value)
                             else:
                                 if append:
                                     if attr.has_key(subopt):

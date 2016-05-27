@@ -17,7 +17,7 @@ class Test(KAppSysYSHommeGnuTest):
         rundir = result['config_task']['rundir']
 
         srcfile = '%s/src/share/prim_advection_mod.F90'%tmpsrc
-        namepath = 'prim_advection_mod:euler_step:edgevpack'
+        namepath = 'prim_advection_mod:euler_step:edgevunpack'
         prerun_build = ';'.join(result['config_task']['prerun_kernel_build'])
         prerun_run = ';'.join(result['config_task']['prerun_kernel_run'])
         passed, out, err = self.extract_kernel(srcfile, namepath, \
@@ -37,8 +37,8 @@ class Test(KAppSysYSHommeGnuTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['edgevpack.0.0.10', 'edgevpack.0.0.50', 'edgevpack.0.1.10', 'edgevpack.0.1.50', \
-                'edgevpack.10.0.10', 'edgevpack.10.0.50', 'edgevpack.10.1.10', 'edgevpack.10.1.50']
+            result[myname]['statefiles'] = ['edgevunpack.0.0.10', 'edgevunpack.0.0.50', 'edgevunpack.0.1.10', 'edgevunpack.0.1.50', \
+                'edgevunpack.10.0.10', 'edgevunpack.10.0.50', 'edgevunpack.10.1.10', 'edgevunpack.10.1.50']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

@@ -126,10 +126,10 @@ class GnuFortranCompiler(GenericFortranCompiler):
     discard_opts_arg = [ '-J' ]
 
     def get_discard_opts_noarg(self):
-        return super(GnulFortranCompiler, self).get_discard_opts_noarg() + self.discard_opts_noarg
+        return super(GnuFortranCompiler, self).get_discard_opts_noarg() + self.discard_opts_noarg
 
     def get_discard_opts_arg(self):
-        return super(GnulFortranCompiler, self).get_discard_opts_arg() + self.discard_opts_arg
+        return super(GnuFortranCompiler, self).get_discard_opts_arg() + self.discard_opts_arg
 
 class PgiFortranCompiler(GenericFortranCompiler):
     compid = 'pgfortran'
