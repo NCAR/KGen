@@ -56,6 +56,8 @@ class KAppTest(KGenTest):
         result[myname]['stderr'] = err
 
         #if retcode != 0 or err:
+        #print 'STDOUT: ', out
+        #print 'STDERR: ', err
         if retcode != 0:
             self.set_status(result, myname, self.FAILED, errmsg='kernel execution is failed: %s'%err)
         else:

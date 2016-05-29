@@ -85,7 +85,7 @@ part_classes = {
 }
 
 def get_indent(line):
-    return re.match(r"\s*", line).group()
+    return re.match(r"[^\S\n]*", line).group()
 
 def get_entity_name(entity):
     from Fortran2003 import Entity_Decl
@@ -779,7 +779,9 @@ class Gen_Statement(object):
 
         if isinstance(self.kgen_stmt, statements.Comment):
             if self.kgen_stmt:
-                if not self.kgen_stmt.item.comment.startswith('!KGEN#'):
+                if hasattr(self, 'kgen_forced_line'):
+                    lines_str = self.kgen_forced_line
+                elif not self.kgen_stmt.item.comment.startswith('!KGEN#'):
                     start = self.kgen_stmt.item.span[0]-1
                     end = self.kgen_stmt.item.span[1]
                     lines = self.kgen_stmt.top.prep[start:end]

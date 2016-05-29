@@ -47,9 +47,14 @@ class KExtConfig(object):
         self.attrs['verify']['verboselevel'] = '1'
 
         # make kernel parameters
-        self.attrs['kernel_compile'] = OrderedDict()
-        self.attrs['kernel_compile']['FC'] = 'ifort'
-        self.attrs['kernel_compile']['FC_FLAGS'] = ''
+        self.attrs['kernel_option'] = OrderedDict()
+        self.attrs['kernel_option']['FC'] = None
+        self.attrs['kernel_option']['FC_FLAGS'] = None
+        self.attrs['kernel_option']['compiler'] = OrderedDict()
+        self.attrs['kernel_option']['compiler']['add'] = []
+        self.attrs['kernel_option']['compiler']['remove'] = []
+        self.attrs['kernel_option']['linker'] = OrderedDict()
+        self.attrs['kernel_option']['linker']['add'] = []
 
         # make prerun parameters
         self.attrs['prerun'] = OrderedDict()
@@ -99,6 +104,7 @@ class KExtConfig(object):
         self.options.append( (self.opt_state_clean, ["--state-clean"], {'dest':"state_clean", 'action':'append', 'type':'string', 'help':"Clean information to generate makefile"}) )
         self.options.append( (self.opt_state_build, ["--state-build"], {'dest':"state_build", 'action':'append', 'type':'string', 'help':"Build information to generate makefile"}) )
         self.options.append( (self.opt_state_run, ["--state-run"], {'dest':"state_run", 'action':'append', 'type':'string', 'help':"Run information to generate makefile"}) )
+        self.options.append( (self.opt_kernel_option, ["--kernel-option"], {'dest':"kernel_option", 'action':'append', 'type':'string', 'help':"Specifying kernel compiler and linker options."}) )
         self.options.append( (self.opt_check, ["--check"], {'dest':"check", 'action':'append', 'type':'string', 'help':"Kernel correctness check information"}) )
         self.options.append( (self.opt_verbose_level, ["--verbose"], {'dest':"verbose_level", 'action':'store', 'type':'int', 'help':'Set the verbose level for verification output'}) )
 
@@ -221,6 +227,22 @@ class KExtConfig(object):
                     self.attrs['state_switch'][key] = value
                 else:
                     raise UserException('Unknown state-switch option: %s' % run)
+
+    def opt_kernel_option(self, opt):
+        for line in opt:
+            for kopt in line.split(','):
+                split_kopt = kopt.split('=', 1)
+                if len(split_kopt)==1:
+                    self.attrs['kernel_option']['compiler']['add'][split_kopt[0]] = None
+                elif len(split_kopt)==2:
+                    if split_kopt[1] in [ 'FC', 'FC_FLAGS' ]:
+                        self.attrs['kernel_option'][split_kopt[1]] = split_kopt[0]
+                    elif split_kopt[1] in [ 'add', 'remove' ]:
+                        self.attrs['kernel_option']['compiler'][split_kopt[1]].append(split_kopt[0])
+                    elif split_kopt[1]=='link':
+                        self.attrs['kernel_option']['linker']['add'].append(split_kopt[0])
+                    else:
+                        raise UserException('Unknown state-switch option: %s' % run)
 
     def opt_timing(self, opt):
         for time in opt.split(','):

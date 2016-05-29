@@ -108,10 +108,10 @@ class Gen_K_Driver(Kgen_Plugin):
 
         part_append_comment(node, EXEC_PART, '')
 
-        attrs = {'variable': 'kgen_unit_list', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+        #attrs = {'variable': 'kgen_unit_list', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+        #part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
       
-        attrs = {'specs': ['UNIT=kgen_unit_list', 'FILE="kgen_statefile.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
+        attrs = {'specs': ['NEWUNIT=kgen_unit_list', 'FILE="kgen_statefile.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
         part_append_genknode(node, EXEC_PART, statements.Open, attrs=attrs)
 
         attrs = {'expr': 'kgen_ierr_list /= 0'}
@@ -123,7 +123,7 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'designator': 'SLEEP', 'items': ['1']}
         part_append_genknode(iflist, EXEC_PART, statements.Call, attrs=attrs)
 
-        attrs = {'specs': ['UNIT=kgen_unit_list', 'FILE="kgen_statefile.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
+        attrs = {'specs': ['NEWUNIT=kgen_unit_list', 'FILE="kgen_statefile.lst"', 'STATUS="OLD"', 'IOSTAT=kgen_ierr_list']}
         part_append_genknode(iflist, EXEC_PART, statements.Open, attrs=attrs)
 
         attrs = {'expr': 'kgen_ierr_list /= 0'}
@@ -146,10 +146,10 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'expr': 'kgen_ierr_list == 0'}
         ifread = part_append_genknode(doobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-        part_append_genknode(ifread, EXEC_PART, statements.Assignment, attrs=attrs)
+        #attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+        #part_append_genknode(ifread, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'specs': ['UNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath))', 'STATUS="OLD"', 'ACCESS="STREAM"', \
+        attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath))', 'STATUS="OLD"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_append_genknode(ifread, EXEC_PART, statements.Open, attrs=attrs)
 

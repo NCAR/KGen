@@ -71,7 +71,7 @@ def generate_kernel_makefile():
             depends[basename] = ' '.join(dep)
 
     # link flags and objects
-    link_flags = ''
+    link_flags = ' '.join(Config.kernel_option['linker']['add'])
     objects = ''
     if Config.include.has_key('import'):
         for path, import_type in Config.include['import'].iteritems():
@@ -109,13 +109,38 @@ def generate_kernel_makefile():
         write(f, '# Makefile for KGEN-generated kernel')
         write(f, '')
 
-        write(f, 'FC := %s'%Config.kernel_compile['FC'])
-        for i, compiler in enumerate(compilers):
-            write(f, 'FC_%d := %s'%(i, compiler))
+        if Config.kernel_option['FC']:
+            write(f, 'FC := %s'%Config.kernel_option['FC'])
+        else:
+            write(f, 'FC := ifort')
+            for i, compiler in enumerate(compilers):
+                write(f, 'FC_%d := %s'%(i, compiler))
 
-        write(f, 'FC_FLAGS := %s'%Config.kernel_compile['FC_FLAGS'])
-        for i, options in enumerate(compiler_options):
-            write(f, 'FC_FLAGS_SET_%d := %s'%(i, options))
+        if Config.kernel_option['FC_FLAGS']:
+            write(f, 'FC_FLAGS := %s'%Config.kernel_option['FC_FLAGS'])
+        else:
+            write(f, 'FC_FLAGS := ')
+            for i, options in enumerate(compiler_options):
+                opt_list = options.split()
+                L = len(opt_list)
+                new_options = []
+                if L>1:
+                    skip_next = False
+                    for opt in opt_list:
+                        if skip_next:
+                            skip_next = False
+                            continue
+                        if opt in Config.kernel_option['compiler']['remove']:
+                            pass
+                        elif '%s+'%opt in Config.kernel_option['compiler']['remove']:
+                            skip_next = True
+                        else:
+                            new_options.append(opt)
+
+                for add_opt in Config.kernel_option['compiler']['add']:
+                    if add_opt not in new_options:
+                        new_options.append(add_opt)
+                write(f, 'FC_FLAGS_SET_%d := %s'%(i, ' '.join(new_options)))
 
         prerun_build_str = ''
         if Config.prerun['kernel_build']:
@@ -148,8 +173,9 @@ def generate_kernel_makefile():
 
         fc_str = 'FC'
         fc_flags_str = 'FC_FLAGS'
-        if len(compilers)>0: fc_str += '_0'
-        if len(compiler_options)>0: fc_flags_str += '_SET_0'
+        
+        if len(compilers)>0 and Config.kernel_option['FC'] is None: fc_str += '_0'
+        if len(compiler_options)>0 and Config.kernel_option['FC_FLAGS'] is None: fc_flags_str += '_SET_0'
 
         write(f, '%s${%s} ${%s} %s %s -o kernel.exe $^'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
         write(f, '')
@@ -159,14 +185,17 @@ def generate_kernel_makefile():
 
             dfc_str = 'FC'
             dfc_flags_str = 'FC_FLAGS'
-            for i, (compiler, files) in enumerate(compilers.items()):
-                if dep_base in files:
-                    dfc_str += '_%d'%i
-                    break
-            for i, (compiler_option, files) in enumerate(compiler_options.items()):
-                if dep_base in files:
-                    dfc_flags_str += '_SET_%d'%i
-                    break
+
+            if Config.kernel_option['FC'] is None:
+                for i, (compiler, files) in enumerate(compilers.items()):
+                    if dep_base in files:
+                        dfc_str += '_%d'%i
+                        break
+            if Config.kernel_option['FC_FLAGS'] is None:
+                for i, (compiler_option, files) in enumerate(compiler_options.items()):
+                    if dep_base in files:
+                        dfc_flags_str += '_SET_%d'%i
+                        break
 
             write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, dfc_str, dfc_flags_str), t=True)
             write(f, '')

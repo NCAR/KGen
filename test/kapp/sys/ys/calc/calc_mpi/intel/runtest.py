@@ -16,11 +16,11 @@ class Test(KAppSysYSCalcCMPTest):
             '"cd %s; make -f Makefile.mpirun clean"'%tmpsrc, \
             '"cd %s; make -f Makefile.mpirun build"'%tmpsrc, \
             '"cd %s; make -f Makefile.mpirun run"'%tmpsrc, \
-            __invocation='0-1:0-1:1,0-1:2-3:3', \
+            __invocation='0-1:0:1,2-3:0:3', \
             __timing='repeat=1', \
             __prerun='build="%s",run="%s"'%(prerun, prerun), \
             __mpi='enable', \
-            __rebuild='all', \
+            __rebuild='state', \
             __outdir=workdir)
 
             #__debug='printvar=:i,:j,:output',
@@ -30,8 +30,7 @@ class Test(KAppSysYSCalcCMPTest):
         result[myname]['datadir'] = '%s/data'%workdir
 
         if passed:
-            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.0.1.1', 'calc.0.2.3', 'calc.0.3.3', \
-                'calc.1.0.1', 'calc.1.1.1', 'calc.1.2.3', 'calc.1.3.3']
+            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.1.0.1', 'calc.2.0.3', 'calc.3.0.3' ]
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

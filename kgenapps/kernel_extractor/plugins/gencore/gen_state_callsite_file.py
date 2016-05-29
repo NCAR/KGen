@@ -372,6 +372,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_NUM_THREADS', 'OMP_GET_THREAD_NUM']}
             namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
 
+            #attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['OMP_IN_PARALLEL']}
+            #namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
+
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_count']}
         namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
 
@@ -388,6 +391,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'START OF KGEN REGION')
 
         if getinfo('is_openmp_app'):
+
+            #attrs = {'expr': 'OMP_IN_PARALLEL()'}
+            #ifomp = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+            #part_append_comment(ifomp, EXEC_PART, 'CRITICAL (kgen_init)', style='openmp')
             namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'CRITICAL (kgen_init)', style='openmp')
 
         attrs = {'expr': '.NOT. ALLOCATED(kgen_isstop)'}
@@ -472,6 +479,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         # check save
         if getinfo('is_openmp_app'):
+
+            #attrs = {'expr': 'OMP_IN_PARALLEL()'}
+            #ifomp = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+            #part_append_comment(ifomp, EXEC_PART, 'END CRITICAL (kgen_init)', style='openmp')
             namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END CRITICAL (kgen_init)', style='openmp')
 
             attrs = {'variable': 'kgen_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
@@ -488,10 +499,15 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                     'kgen_issave', 'kgen_islast']}
                 namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Call, attrs=attrs)
 
+            #attrs = {'expr': 'OMP_IN_PARALLEL()'}
+            #ifomp = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+            #part_append_comment(ifomp, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
+            namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'CRITICAL (kgen_kernel)', style='openmp')
+
             attrs = {'expr': 'kgen_issave(OMP_GET_THREAD_NUM())'}
             ifsave = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
-            part_append_comment(ifsave, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
+            #part_append_comment(ifsave, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
 
             l = [ 'kgen_mymid', '"."', 'OMP_GET_THREAD_NUM()', '"."', 'kgen_invoke(OMP_GET_THREAD_NUM())']
             attrs = {'specs': ['kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())', 'FMT="(A,I0,A,I0,A,I0)"' ], \
@@ -559,55 +575,69 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         end = callsite_stmts[-1].item.span[1]
         lines = callsite_stmts[0].top.prep[start:end]
         lines_str = '\n'.join(lines)
-        dummy_node = part_append_gensnode(ifsave, EXEC_PART, statements.Call)
+        #dummy_node = part_append_gensnode(ifsave, EXEC_PART, statements.Call)
+        dummy_node = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Call)
         dummy_node.kgen_stmt = getinfo('dummy_stmt')
         dummy_node.kgen_forced_line = lines_str
+
+        if getinfo('is_openmp_app'):
+            attrs = {'expr': 'kgen_issave(OMP_GET_THREAD_NUM())'}
+        else:
+            attrs = {'expr': 'kgen_issave(0)'}
+        ifsave2 = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
         #import pdb; pdb.set_trace()
         #for stmt in getinfo('callsite_stmts'):
         #    part_append_node(ifsave, EXEC_PART, stmt.genspair)
         
-        namedpart_create_subpart(ifsave, STATE_PBLOCK_WRITE_OUT_EXTERNS, EXEC_PART)
+        namedpart_create_subpart(ifsave2, STATE_PBLOCK_WRITE_OUT_EXTERNS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, '')
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, 'extern output variables')
 
-        namedpart_create_subpart(ifsave, STATE_PBLOCK_WRITE_OUT_LOCALS, EXEC_PART)
+        namedpart_create_subpart(ifsave2, STATE_PBLOCK_WRITE_OUT_LOCALS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_LOCALS, 'local output variables')
 
         attrs = {'specs': [ 'UNIT=kgen_unit' ]}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Close, attrs=attrs)
+        part_append_gensnode(ifsave2, EXEC_PART, statements.Close, attrs=attrs)
 
         if getinfo('is_openmp_app'):
             attrs = {'items': ['"Collected Kernel Input/Ouput state from: "', 'kgen_mymid', 'OMP_GET_THREAD_NUM()', 'kgen_invoke(OMP_GET_THREAD_NUM())']}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+            part_append_gensnode(ifsave2, EXEC_PART, statements.Write, attrs=attrs)
 
-            part_append_comment(ifsave, EXEC_PART, 'END CRITICAL (kgen_kernel)', style='openmp')
+            #attrs = {'expr': 'OMP_IN_PARALLEL()'}
+            #ifomp = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+            #part_append_comment(ifomp, EXEC_PART, 'END CRITICAL (kgen_kernel)', style='openmp')
+            namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END CRITICAL (kgen_kernel)', style='openmp')
         else:
             attrs = {'items': ['"Collected Kernel Input/Ouput state from: "', 'kgen_mymid', '0', 'kgen_invoke(0)']}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+            part_append_gensnode(ifsave2, EXEC_PART, statements.Write, attrs=attrs)
 
+#
+#        part_append_gensnode(ifsave, EXEC_PART, statements.Else) 
+#
+#        if getinfo('is_openmp_app'):
+#            part_append_comment(ifsave, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
+#
+#        callsite_stmts = getinfo('callsite_stmts')
+#
+#        start = callsite_stmts[0].item.span[0]-1
+#        end = callsite_stmts[-1].item.span[1]
+#        lines = callsite_stmts[0].top.prep[start:end]
+#        lines_str = '\n'.join(lines)
+#        dummy_node = part_append_gensnode(ifsave, EXEC_PART, statements.Call)
+#        dummy_node.kgen_stmt = getinfo('dummy_stmt')
+#        dummy_node.kgen_forced_line = lines_str
 
-        part_append_gensnode(ifsave, EXEC_PART, statements.Else) 
-
-        if getinfo('is_openmp_app'):
-            part_append_comment(ifsave, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
-
-        callsite_stmts = getinfo('callsite_stmts')
-
-        start = callsite_stmts[0].item.span[0]-1
-        end = callsite_stmts[-1].item.span[1]
-        lines = callsite_stmts[0].top.prep[start:end]
-        lines_str = '\n'.join(lines)
-        dummy_node = part_append_gensnode(ifsave, EXEC_PART, statements.Call)
-        dummy_node.kgen_stmt = getinfo('dummy_stmt')
-        dummy_node.kgen_forced_line = lines_str
-
-        if getinfo('is_openmp_app'):
-            part_append_comment(ifsave, EXEC_PART, 'END CRITICAL (kgen_kernel)', style='openmp')
+#        if getinfo('is_openmp_app'):
+#            part_append_comment(ifsave, EXEC_PART, 'END CRITICAL (kgen_kernel)', style='openmp')
 
         # check stop
         if getinfo('is_openmp_app'):
+
+            #attrs = {'expr': 'OMP_IN_PARALLEL()'}
+            #ifomp = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+            #part_append_comment(ifomp, EXEC_PART, 'CRITICAL (kgen_fini)', style='openmp')
             namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'CRITICAL (kgen_fini)', style='openmp')
 
             #attrs = {'items': ['"DEBUG 1: "', 'kgen_ischecked', 'kgen_islast']}
@@ -692,6 +722,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'designator': 'SLEEP', 'items': ['INT(kgen_realnum * kgen_count * 3) + 1']}
             part_append_gensnode(iflst, EXEC_PART, statements.Call, attrs=attrs)
 
+            #attrs = {'expr': 'OMP_IN_PARALLEL()'}
+            #ifomp = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+            #part_append_comment(ifomp, EXEC_PART, 'END CRITICAL (kgen_fini)', style='openmp')
             namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END CRITICAL (kgen_fini)', style='openmp')
 
             attrs = {'variable': 'kgen_invoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': 'kgen_invoke(OMP_GET_THREAD_NUM()) + 1'}

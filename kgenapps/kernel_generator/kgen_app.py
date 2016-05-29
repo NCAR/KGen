@@ -35,6 +35,7 @@ def main():
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
         parser.add_option("--rebuild", dest="rebuild", action='append', type='string', default=None, help="force to rebuild")
         parser.add_option("--prerun", dest="prerun", action='append', type='string', default=None, help="prerun commands")
+        parser.add_option("--kernel-option", dest="kernel_option", action='append', type='string', default=None, help="compiler and linker options for Kgen-generated kernel")
 
         # compflag options
         parser.add_option("--strace", dest="strace", action='append', type='string', default=None, help="strace options")
@@ -105,6 +106,10 @@ def main():
         if opts.intrinsic:
             kext_argv.append('--intrinsic')
             kext_argv.extend(opts.intrinsic)
+        if opts.kernel_option:
+            kext_argv.append('--kernel-option')
+            kext_argv.extend(opts.kernel_option)
+
         kext_argv.append('--state-clean')
         kext_argv.append('cmds=%s'%args[1])
         kext_argv.append('--state-build')

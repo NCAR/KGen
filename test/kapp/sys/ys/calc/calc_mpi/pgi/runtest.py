@@ -1,9 +1,9 @@
 import sys
 import time
 from kgen_utils import run_shcmd
-from kapp_sys_ys_calc_calc_mpi_openmp_test import KAppSysYSCalcCMOTest
+from kapp_sys_ys_calc_calc_mpi_test import KAppSysYSCalcCMPTest
 
-class Test(KAppSysYSCalcCMOTest):
+class Test(KAppSysYSCalcCMPTest):
     def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
@@ -17,7 +17,7 @@ class Test(KAppSysYSCalcCMOTest):
             '"cd %s; make -f Makefile.lsf clean"'%tmpsrc, \
             '"cd %s; make -f Makefile.lsf build"'%tmpsrc, \
             '"cd %s; make -f Makefile.lsf run"'%tmpsrc, \
-            __invocation='0-1:0-1:1,0-1:2-3:3', \
+            __invocation='0-1:0:1,2-3:0:3', \
             __timing='repeat=1', \
             __prerun='build="%s",run="%s"'%(prerun, prerun), \
             __mpi='enable', \
@@ -31,8 +31,7 @@ class Test(KAppSysYSCalcCMOTest):
         result[myname]['datadir'] = '%s/data'%workdir
 
         if passed:
-            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.0.1.1', 'calc.0.2.3', 'calc.0.3.3', \
-                'calc.1.0.1', 'calc.1.1.1', 'calc.1.2.3', 'calc.1.3.3']
+            result[myname]['statefiles'] = ['calc.0.0.1', 'calc.1.0.1', 'calc.2.0.3', 'calc.3.0.3' ]
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []
