@@ -204,51 +204,25 @@ def preprocess():
                     spec = Specification_Part(reader)
 
                     bag = {}
-                    if Config.mpi['comm'] is None:
-                        bag['key'] = 'MPI_COMM_WORLD'
-                        bag[bag['key']] = []
-                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
-                        if bag.has_key(bag['key']):
-                            Config.mpi['comm'] = bag[bag['key']][-1]
-                        else:
-                            raise UserException('Can not find MPI_COMM_WORLD in mpif.h')
+                    config_name_mapping = [
+                        ('comm', 'MPI_COMM_WORLD'),
+                        ('logical', 'MPI_LOGICAL'),
+                        ('status_size', 'MPI_STATUS_SIZE'),
+                        ('any_source', 'MPI_ANY_SOURCE'),
+                        ('source', 'MPI_SOURCE'),
+                        ]
+                    for config_key, name in config_name_mapping:
+                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+                            bag['key'] = name
+                            bag[name] = []
+                            traverse(spec, get_MPI_PARAM, bag, subnode='content')
+                            if len(bag[name]) > 0:
+                                Config.mpi[config_key] = bag[name][-1]
+                            else:
+                                raise UserException('Can not find {name} in mpif.h'.format(name=name))
 
-                    if Config.mpi['logical'] is None:
-                        bag['key'] = 'MPI_LOGICAL'
-                        bag[bag['key']] = []
-                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
-                        if bag.has_key(bag['key']):
-                            Config.mpi['logical'] = bag[bag['key']][-1]
-                        else:
-                            raise UserException('Can not find MPI_LOGICAL in mpif.h')
-
-                    if Config.mpi['status_size'] is None:
-                        bag['key'] = 'MPI_STATUS_SIZE'
-                        bag[bag['key']] = []
-                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
-                        if bag.has_key(bag['key']):
-                            Config.mpi['status_size'] = bag[bag['key']][-1]
-                        else:
-                            raise UserException('Can not find MPI_STATUS_SIZE in mpif.h')
-
-                    if Config.mpi['any_source'] is None:
-                        bag['key'] = 'MPI_ANY_SOURCE'
-                        bag[bag['key']] = []
-                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
-                        if bag.has_key(bag['key']):
-                            Config.mpi['any_source'] =  bag[bag['key']][-1]
-                        else:
-                            raise UserException('Can not find MPI_ANY_SOURCE in mpif.h')
-
-                    if Config.mpi['source'] is None:
-                        bag['key'] = 'MPI_SOURCE'
-                        bag[bag['key']] = []
-                        traverse(spec, get_MPI_PARAM, bag, subnode='content')
-                        if bag.has_key(bag['key']):
-                            Config.mpi['source'] =  bag[bag['key']][-1]
-                        else:
-                            raise UserException('Can not find MPI_SOURCE in mpif.h')
-
+                except UserException:
+                    raise  # Reraise this exception rather than catching it below
                 except Exception as e:
                     raise UserException('Error occurred during reading %s.'%mpifpath)
             else:
