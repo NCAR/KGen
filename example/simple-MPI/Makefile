@@ -4,8 +4,6 @@ KGEN := ${KGEN_HOME}/bin/kgen
 SRC_DIR := ${PWD}/src
 SRC := ${SRC_DIR}/update_mod.F90
 CALLSITE := update_mod:update:calc
-#FC := mpiifort
-#MPI_INC := /ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include
 
 test:
 	${KGEN} \

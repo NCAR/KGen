@@ -23,9 +23,11 @@ def main():
     from compflag_tool import CompFlagDetect
     from kext_tool import KExtTool
 
-    version = [ 0, 0, '0' ]
+    version = [ 0, 7, '0' ]
     outdir = '.'
     retval = 0
+
+    Logger.info('Starting KGen', stdout=True)
 
     try:
         # option parser
@@ -35,21 +37,26 @@ def main():
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default=None, help="path to create outputs")
         parser.add_option("--rebuild", dest="rebuild", action='append', type='string', default=None, help="force to rebuild")
         parser.add_option("--prerun", dest="prerun", action='append', type='string', default=None, help="prerun commands")
-        parser.add_option("--kernel-option", dest="kernel_option", action='append', type='string', default=None, help="compiler and linker options for Kgen-generated kernel")
+        parser.add_option("-i", "--include-ini", dest="include_ini", action='store', type='string', default=None, help="INI options")
+        parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
+
 
         # compflag options
-        parser.add_option("--strace", dest="strace", action='append', type='string', default=None, help="strace options")
-        parser.add_option("-i", "--include", dest="include", action='append', type='string', default=None, help="INI options")
+        parser.add_option("--strace", dest="strace", action='store', type='string', default=None, help="strace options")
 
         # kext options
         parser.add_option("--invocation", dest="invocation", action='append', type='string', default=None, help="(process, thread, invocation) pairs of kernel for data collection")
-        parser.add_option("-e", "--exclude", dest="exclude", action='store', type='string', default=None, help="information excluded for analysis")
+        parser.add_option("-e", "--exclude-ini", dest="exclude_ini", action='store', type='string', default=None, help="information excluded for analysis")
+        parser.add_option("--kernel-option", dest="kernel_option", action='append', type='string', default=None, help="compiler and linker options for Kgen-generated kernel")
         parser.add_option("--openmp", dest="openmp", action='append', type='string', default=None, help="Specifying OpenMP options")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='append', type='string', default=None, help="Timing measurement information")
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         parser.add_option("--check", dest="check", action='append', type='string', default=None, help="Kernel correctness check information")
         parser.add_option("--verbose", dest="verbose", action='store', type='string', default=None, help="Set the verbose level for verification output")
+        parser.add_option("--add-mpi-frame", dest="add_mpi_frame", type='string', default=None, help='Add MPI frame codes in kernel_driver.')
+        parser.add_option("--source", dest="source", action='append', type='string', default=None, help="Setting source file related properties")
+        parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
 
         opts, args = parser.parse_args()
 
@@ -78,14 +85,21 @@ def main():
             compflag_argv.extend(opts.rebuild)
             kext_argv.append('--rebuild')
             kext_argv.extend(opts.rebuild)
+        if opts.include_ini:
+            compflag_argv.append('--include_ini')
+            compflag_argv.append(opts.include_ini)
+            kext_argv.append('--include-ini')
+            kext_argv.append(opts.include_ini)
+        if opts.debug:
+            compflag_argv.append('--debug')
+            compflag_argv.extend(opts.debug)
+            kext_argv.append('--debug')
+            kext_argv.extend(opts.debug)
 
         # collect compflag options
         if opts.strace:
             compflag_argv.append('--strace')
-            compflag_argv.extend(opts.strace)
-        if opts.include:
-            compflag_argv.append('--include')
-            compflag_argv.extend(opts.include)
+            compflag_argv.append(opts.strace)
 
         compflag_argv.append(args[2])
 
@@ -93,9 +107,12 @@ def main():
         if opts.invocation:
             kext_argv.append('--invocation')
             kext_argv.extend(opts.invocation)
-        if opts.exclude:
+        if opts.exclude_ini:
             kext_argv.append('--exclude-ini')
-            kext_argv.append(opts.exclude)
+            kext_argv.append(opts.exclude_ini)
+        if opts.source:
+            kext_argv.append('--source')
+            kext_argv.extend(opts.source)
         if opts.mpi:
             kext_argv.append('--mpi')
             kext_argv.extend(opts.mpi)
@@ -117,6 +134,12 @@ def main():
         if opts.verbose:
             kext_argv.append('--verbose')
             kext_argv.append(opts.verbose)
+        if opts.add_mpi_frame:
+            kext_argv.append('--add-mpi-frame')
+            kext_argv.append(opts.add_mpi_frame)
+        if opts.logging:
+            kext_argv.append('--logging')
+            kext_argv.extend(opts.logging)
 
         kext_argv.append('--state-clean')
         kext_argv.append('cmds=%s'%args[1])
@@ -161,8 +184,10 @@ def main():
                 
         # generate state
         if is_rebuild or not has_statefiles:
-            print 'Generating state data files.' 
+            Logger.info('Generating state data files at %s/state.'%outdir, stdout=True) 
             out, err, retcode = run_shcmd('make', cwd='%s/state'%outdir)
+        else:
+            Logger.info('Reusing state data files at %s/kernel'%outdir, stdout=True) 
 
     except UserException as e:
         print 'ERROR: %s'%str(e)
@@ -178,6 +203,8 @@ def main():
     finally:
         if os.path.exists('%s/state/Makefile'%outdir):
             out, err, retcode = run_shcmd('make recover_from_locals', cwd='%s/state'%outdir)
+
+    Logger.info('KGen is finished.', stdout=True)
 
     return retval
 

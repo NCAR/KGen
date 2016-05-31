@@ -25,18 +25,14 @@ class CompFlagConfig(object):
         self.attrs['compflag'] = OrderedDict()
         self.attrs['compflag']['version'] = [ 0, 1, '0' ]
 
-        self.attrs['strace'] = OrderedDict()
-        self.attrs['strace']['infile'] = None
-        self.attrs['strace']['outfile'] = 'strace.log'
+        self.attrs['strace'] = 'strace.log'
 
         self.attrs['build'] = OrderedDict()
         self.attrs['build']['clean'] = ''
         self.attrs['build']['cmdline'] = ''
         self.attrs['build']['cwd'] = '.'
 
-        self.attrs['ini'] = OrderedDict()
-        self.attrs['ini']['infile'] = None
-        self.attrs['ini']['outfile'] = 'include.ini'
+        self.attrs['ini'] = 'include.ini'
 
         self.attrs['rebuild'] = OrderedDict()
 
@@ -50,16 +46,19 @@ class CompFlagConfig(object):
 
         self.attrs['object'] = OrderedDict()
 
+        self.attrs['debug'] = OrderedDict()
+
         parser = optparse.OptionParser(version='COMPFLAG version %d.%d.%s'%tuple(self.attrs['compflag']['version']))
 
-        parser.add_option("-s", "--strace", dest="strace", action='append', type='string', default=None, help="strace options")
+        parser.add_option("-s", "--strace", dest="strace", action='store', type='string', default=None, help="strace options")
         parser.add_option("-b", "--build", dest="build", action='append', type='string', default=None, help="build options")
-        parser.add_option("-i", "--ini", dest="ini", action='append', type='string', default=None, help="INI options")
+        parser.add_option("-i", "--include-ini", dest="include_ini", action='store', type='string', default=None, help="INI options")
         parser.add_option("-D", dest="macro", action='append', type='string', default=None, help="Define macros in INI file")
         parser.add_option("-I", dest="include", action='append', type='string', default=None, help="Add include paths in INI file")
         parser.add_option("-J", dest="object", action='append', type='string', default=None, help="Add object paths in INI file")
         parser.add_option("--rebuild",  dest="rebuild", action='append', type='string', default=None, help="List of reusable files")
         parser.add_option("--prerun",  dest="prerun", action='append', type='string', default=None, help="List of prerun commands")
+        parser.add_option("--debug",  dest="debug", action='append', type='string', default=None, help=optparse.SUPPRESS_HELP)
 
         opts, args = parser.parse_args(args=argv)
 #        
@@ -73,11 +72,14 @@ class CompFlagConfig(object):
         if opts.strace:
             self._save_opt(opts.strace, self.attrs['strace'])
 
+        if opts.strace:
+            self.attrs['strace'] = opts.strace
+
         if opts.build:
             self._save_opt(opts.build, self.attrs['build'])
 
-        if opts.ini:
-            self._save_opt(opts.ini, self.attrs['ini'])
+        if opts.include_ini:
+            self.attrs['ini'] = opts.include_ini
 
         if opts.macro:
             self._save_opt(opts.macro, self.attrs['macro'], append=True)
@@ -93,6 +95,9 @@ class CompFlagConfig(object):
 
         if opts.prerun:
             self._save_opt(opts.prerun, self.attrs['prerun'])
+
+        if opts.debug:
+            self._save_opt(opts.debug, self.attrs['debug'], append=True)
 
     def _save_opt(self, opt, attr, append=False):
         if isinstance(opt, str):

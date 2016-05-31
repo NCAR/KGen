@@ -50,7 +50,7 @@ class KExtTool(KGenTool):
 
     def main(self):
 
-        print ''
+        Logger.info('Starting KExt', stdout=True)
 
         # create state directories
         if not os.path.exists(Config.path['state']):
@@ -114,6 +114,7 @@ class KExtTool(KGenTool):
             for tree in self._trees:
                 tree.flatten(KERNEL_ID_0, [plugin_name])
 
+
     def fini(self):
                
         kernel_files = []
@@ -143,6 +144,8 @@ class KExtTool(KGenTool):
             lines = self.driver.tostring()
             if lines is not None: fd.write(lines)
 
+        Logger.info('Kernel generation and instrumentation is completed.', stdout=True)
+
         # generate kgen_utils.f90 in kernel directory
         kernel_files.append('kgen_utils.f90')
         self.generate_kgen_utils()
@@ -155,7 +158,7 @@ class KExtTool(KGenTool):
         postprocess()
         Logger.info('Post-processing is done', stdout=True)
 
-        Logger.info('Completed.', stdout=True)
+        Logger.info('KExt is finished.', stdout=True)
 
         return { 'kernel_files': kernel_files, 'state_files': state_files }
 

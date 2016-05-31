@@ -29,10 +29,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             callsite_stmts[0], None, self.create_callsite_parts1)
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.FINISH_PROCESS, \
-            getinfo('callsite_stmts')[0], None, self.invalid_kernel_stmts)
+            callsite_stmts[0], None, self.invalid_kernel_stmts)
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            getinfo('callsite_stmts')[0], self.is_openmp, self.update_omp_directive)
+            callsite_stmts[0], self.is_openmp, self.update_omp_directive)
 
 #        if isinstance(callsite_stmts[-1], base_classes.EndStatement):
 #            self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
@@ -69,12 +69,14 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             for s in pstmt.content:
                 if isinstance(s, statements.Comment):
                     line = s.item.comment
-                    pmatch = re.match(r'^\s*!\$omp\s+parallel\b', line, re.I)
-                    if pmatch:
-                        omp_parallel = s
-                    smatch = re.match(r'^\s*!\$omp\s+\w[\s\w\(\)]+shared\s*\(\b', line, re.I)
-                    if smatch:
-                        omp_shared = s
+                    if omp_parallel is None:
+                        pmatch = re.match(r'^\s*!\$omp\s+parallel\b', line, re.I)
+                        if pmatch:
+                            omp_parallel = s
+                    if omp_shared is None:
+                        smatch = re.match(r'^\s*!\$omp\s+\w[\s\w\(\)]+shared\s*\(\b', line, re.I)
+                        if smatch:
+                            omp_shared = s
                     if omp_parallel and omp_shared:
                         break
                     if s is stmt:
@@ -97,6 +99,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                         raise  Exception('DEBUG: pos error')
                     omp_shared.genspair.kgen_forced_line = '\n'.join(new_line)
                 else:
+                    if pmatch is None: import pdb;pdb.set_trace()
                     new_line.append('%s &'%pmatch.group()) 
                     if len(kgen_vars)==1:
                         new_line.append('!$omp shared ( %s ) &'%','.join(kgen_vars[0]))

@@ -530,12 +530,6 @@ class Config(object):
         self._attrs['include']['import'] = OrderedDict()
         self._attrs['include']['file'] = OrderedDict()
 
-        # add mpi frame code in kernel driver
-        self._attrs['add_mpi_frame'] = OrderedDict()
-        self._attrs['add_mpi_frame']['enabled'] = False
-        self._attrs['add_mpi_frame']['np'] = '2'
-        self._attrs['add_mpi_frame']['mpiexec'] = 'mpiexec'
-
         # exclude parameters
         self._attrs['exclude'] = OrderedDict()
 
@@ -582,7 +576,6 @@ class Config(object):
         self.parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         self.parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
-        self.parser.add_option("--add-mpi-frame", dest="add_mpi_frame", type='string', default=None, help='Add MPI frame codes in kernel_driver.')
 
         #self.parser.set_usage(cfg.usage)
 
@@ -815,17 +808,6 @@ class Config(object):
                 for param in param_split[:-1]:
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
-
-        # mpi frame code in kernel driver
-        if opts.add_mpi_frame:
-            self._attrs['add_mpi_frame']['enabled'] = True
-            for checkparams in opts.add_mpi_frame.split(','):
-                key, value = checkparams.split('=')
-                key = key.lower()
-                if key in ['np', 'mpiexec']:
-                    self._attrs['add_mpi_frame'][key] = value
-                else:
-                    print 'WARNING: %s is not supported add_mpi_frame parameter'%key
 
         if opts.outdir:
             self._attrs['path']['outdir'] = opts.outdir

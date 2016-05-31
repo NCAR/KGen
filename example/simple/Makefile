@@ -4,7 +4,6 @@ KGEN := ${KGEN_HOME}/bin/kgen
 SRC_DIR := ${PWD}/src
 SRC := ${SRC_DIR}/update_mod.F90
 CALLSITE := update_mod:update:calc
-FC := gfortran
 
 test:
 	${KGEN} \

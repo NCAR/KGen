@@ -36,6 +36,11 @@ class KExtConfig(object):
         self.attrs['invocation'] = OrderedDict()
         self.attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
 
+        # add mpi frame code in kernel driver
+        self.attrs['add_mpi_frame'] = OrderedDict()
+        self.attrs['add_mpi_frame']['enabled'] = False
+        self.attrs['add_mpi_frame']['np'] = '2'
+        self.attrs['add_mpi_frame']['mpiexec'] = 'mpiexec'
 
         # timing parameters
         self.attrs['timing'] = OrderedDict()
@@ -107,6 +112,7 @@ class KExtConfig(object):
         self.options.append( (self.opt_kernel_option, ["--kernel-option"], {'dest':"kernel_option", 'action':'append', 'type':'string', 'help':"Specifying kernel compiler and linker options."}) )
         self.options.append( (self.opt_check, ["--check"], {'dest':"check", 'action':'append', 'type':'string', 'help':"Kernel correctness check information"}) )
         self.options.append( (self.opt_verbose_level, ["--verbose"], {'dest':"verbose_level", 'action':'store', 'type':'int', 'help':'Set the verbose level for verification output'}) )
+        self.options.append( (self.opt_mpi_frame, ["--add-mpi-frame"], {'dest':"add_mpi_frame", 'action':'store', 'type':'string', 'default':None, 'help':"Add MPI frame codes in kernel_driver."}) )
 
         # parsing arguments
         self.usage = "usage: %prog [options] call-site"
@@ -275,3 +281,13 @@ class KExtConfig(object):
     def opt_verbose_level(self, opt):
         self.attrs['verify']['verboselevel'] = str(opt)
 
+    # mpi frame code in kernel driver
+    def opt_mpi_frame(self, opt):
+        self.attrs['add_mpi_frame']['enabled'] = True
+        for checkparams in opt.split(','):
+            key, value = checkparams.split('=')
+            key = key.lower()
+            if key in ['np', 'mpiexec']:
+                self.attrs['add_mpi_frame'][key] = value
+            else:
+                print 'WARNING: %s is not supported add_mpi_frame parameter'%key

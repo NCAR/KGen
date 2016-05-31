@@ -3,81 +3,61 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 
 [ Prerequisites ]
 	1. Python Version >= 2.7
-	2. cpp or fpp preprocessor
+	2. cpp preprocessor
 	3. make
+	4. strace
 
 [ Kernel extraction steps ]
 
-	1. >> vi Makefile; # Modify FC if required
+	1. >> vi src/Makefile; # Modify FC if required
 
 	2. >> make; # extract a kernel
 
 	Once "make" is completed with success, you will see information similar to next lines on screen
 
 		../../bin/kgen \
-		-D ROW=4,COL=4 \
-		-I ${KGENHOME}/example/simple/src \
-		--timing repeat=1000 \
-		--invocation 0:0:1,0:0:2,0:0:3 \
-		--kernel-compile FC='gfortran' \
-		--state-build cmds="cd ${KGENHOME}/example/simple/src; make build FC='gfortran'" \
-		--state-run cmds="cd ${KGENHOME}/example/simple/src; make run" \
-		--check tolerance=1.0D-10 \
-		${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc
-
+				--timing repeat=10 \
+				--invocation 0:0:1,0:0:2,0:0:3 \
+				--check tolerance=1.0D-14 \
+				--rebuild all \
+				${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc \
+				"cd ${KGENHOME}/example/simple/src; make clean" \
+				"cd ${KGENHOME}/example/simple/src; make build" \
+				"cd ${KGENHOME}/example/simple/src; make run"
+		Starting KGen
+		Starting KOption
+		Building application to collect strace log file: ./strace.log
+		Creating KGen include file: ./include.ini
+		KOption is finished.
+		Starting KExt
 		Pre-processing is done
 		Reading ${KGENHOME}/example/simple/src/update_mod.F90
 		Reading ${KGENHOME}/example/simple/src/calc_mod.F90
 			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
 		Program is analyzed
+		Kernel generation and instrumentation is completed.
 		Makefiles are generated
 		Post-processing is done
-		Completed.
+		KExt is finished.
+		Generating state data files at ./state.
+		KGen is finished.
 
 	After this step, two subfolders(kernel and state) will be created under this folder.
+	Kernel files and state data files(calc.*.*.*) should be created in kernel folder.
+	In state folder, KGen-instrumented files are created.
 
-	3. >> cd state; # move to a directory for instrumentation files
+	3. >> cd ../kernel; # move to a kernel directory
 
-	4. >> make; # generate state data files
-
-	In this step, original application will be built/run again with instrumented files in state folder
-
-	Once "make" is completed with success, you will see information similar to next lines on screen
-
-		if [ ! -f ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org ]; then cp -f ${KGENHOME}/example/simple/src/update_mod.F90 ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org; fi
-		if [ ! -f update_mod.F90.kgen_org ]; then cp -f ${KGENHOME}/example/simple/src/update_mod.F90 update_mod.F90.kgen_org; fi
-		#rm -f kernel.exe *.mod *.o
-		cp -f update_mod.F90 ${KGENHOME}/example/simple/src/update_mod.F90
-		cd ${KGENHOME}/example/simple/src; make build
-		make[1]: Entering directory `${KGENHOME}/KGen/example/simple/src'
-		gfortran -c -o calc_mod.o calc_mod.F90
-		gfortran -DROW=4 -DCOL=4 -c -o update_mod.o update_mod.F90
-		gfortran -c -o program.o program.F90
-		gfortran -o demo.exe program.o update_mod.o calc_mod.o
-		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
-		mv -f ${KGENHOME}/example/simple/src/update_mod.F90.kgen_org ${KGENHOME}/example/simple/src/update_mod.F90
-		cd ${KGENHOME}/example/simple/src; make run
-		make[1]: Entering directory `${KGENHOME}/example/simple/src'
-		./demo.exe
-		 Collected Kernel Input/Ouput state from:            0           0           1
-		 Collected Kernel Input/Ouput state from:            0           0           2
-		 Collected Kernel Input/Ouput state from:            0           0           3
-		 Stopping application...
-		STOP 0
-		make[1]: Leaving directory `${KGENHOME}/example/simple/src'
-
-	5. >> cd ../kernel; # move to a kernel directory
-
-	6. >> make; # build and run a kernel
+	4. >> make; # build and run a kernel
 
 	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
 
-		true; gfortran  -c -o kgen_utils.o kgen_utils.f90
-		true; gfortran  -c -o calc_mod.o calc_mod.F90
-		true; gfortran  -c -o update_mod.o update_mod.F90
-		true; gfortran  -c -o kernel_driver.o kernel_driver.f90
-		true; gfortran    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
-		true; ./kernel.exe
+		ifort  -c -o kgen_utils.o kgen_utils.f90
+		ifort  -c -o calc_mod.o calc_mod.F90
+		ifort  -c -o update_mod.o update_mod.F90
+		ifort  -c -o kernel_driver.o kernel_driver.f90
+		ifort    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		./kernel.exe
 		 
 		 ***************** Verification against 'calc.0.0.1' *****************
 		 
@@ -85,11 +65,11 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:    1.0000000000000000E-014
+		 Tolerance:   1.000000000000000E-014
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   0.18840000033378601     
+		 calc : Time per call (usec):   0.100000001490116     
 		 
 		 ***************** Verification against 'calc.0.0.2' *****************
 		 
@@ -97,11 +77,11 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:    1.0000000000000000E-014
+		 Tolerance:   1.000000000000000E-014
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   0.13529999554157257     
+		 calc : Time per call (usec):   0.000000000000000E+000
 		 
 		 ***************** Verification against 'calc.0.0.3' *****************
 		 
@@ -109,20 +89,19 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
-		 Tolerance:    1.0000000000000000E-014
+		 Tolerance:   1.000000000000000E-014
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   0.12770000100135803     
+		 calc : Time per call (usec):   0.000000000000000E+000
 		 
 		****************************************************
-				  kernel execution summary: calc
+			kernel execution summary: calc
 		****************************************************
 			Total number of verification cases  :     3
 			Number of verification-passed cases :     3
 		 
-			Average call time (usec):  0.150E+00
-			Minimum call time (usec):  0.128E+00
-			Maximum call time (usec):  0.188E+00
+			Average call time (usec):  0.333E-01
+			Minimum call time (usec):  0.000E+00
+			Maximum call time (usec):  0.100E+00
 		****************************************************
-
