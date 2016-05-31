@@ -60,7 +60,7 @@ Instructions & Use
 	>> git clone https://github.com/NCAR/KGen.git
 
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
-	>> evince KGEN_Users_Guide_V0.6.3.pdf 
+	>> evince KGEN_Users_Guide_V0.7.0.pdf 
 
 3. Try a kernel generation example in "example/simple" directory
 
