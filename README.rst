@@ -13,6 +13,7 @@ Changes from KGEN ver. 0.6.3
 ----------------------------
 
 [ User Interface ]
+
 * Three mandatory arguments(clean, build and run of target application) are added in command line.
 * strace, rebuild, prerun options are added
 
