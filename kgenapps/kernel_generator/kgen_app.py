@@ -39,15 +39,17 @@ def main():
 
         # compflag options
         parser.add_option("--strace", dest="strace", action='append', type='string', default=None, help="strace options")
-        parser.add_option("--ini", dest="ini", action='append', type='string', default=None, help="INI options")
+        parser.add_option("-i", "--include", dest="include", action='append', type='string', default=None, help="INI options")
 
         # kext options
         parser.add_option("--invocation", dest="invocation", action='append', type='string', default=None, help="(process, thread, invocation) pairs of kernel for data collection")
-        parser.add_option("--exclude", dest="exclude", action='store', type='string', default=None, help="information excluded for analysis")
+        parser.add_option("-e", "--exclude", dest="exclude", action='store', type='string', default=None, help="information excluded for analysis")
         parser.add_option("--openmp", dest="openmp", action='append', type='string', default=None, help="Specifying OpenMP options")
         parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         parser.add_option("--timing", dest="timing", action='append', type='string', default=None, help="Timing measurement information")
         parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
+        parser.add_option("--check", dest="check", action='append', type='string', default=None, help="Kernel correctness check information")
+        parser.add_option("--verbose", dest="verbose", action='store', type='string', default=None, help="Set the verbose level for verification output")
 
         opts, args = parser.parse_args()
 
@@ -81,9 +83,9 @@ def main():
         if opts.strace:
             compflag_argv.append('--strace')
             compflag_argv.extend(opts.strace)
-        if opts.ini:
-            compflag_argv.append('--ini')
-            compflag_argv.extend(opts.ini)
+        if opts.include:
+            compflag_argv.append('--include')
+            compflag_argv.extend(opts.include)
 
         compflag_argv.append(args[2])
 
@@ -106,9 +108,15 @@ def main():
         if opts.intrinsic:
             kext_argv.append('--intrinsic')
             kext_argv.extend(opts.intrinsic)
+        if opts.check:
+            kext_argv.append('--check')
+            kext_argv.extend(opts.check)
         if opts.kernel_option:
             kext_argv.append('--kernel-option')
             kext_argv.extend(opts.kernel_option)
+        if opts.verbose:
+            kext_argv.append('--verbose')
+            kext_argv.append(opts.verbose)
 
         kext_argv.append('--state-clean')
         kext_argv.append('cmds=%s'%args[1])

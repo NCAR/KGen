@@ -92,18 +92,32 @@ def generate_kernel_makefile():
         base = os.path.basename(path)
         if base not in dep_bases: continue
 
+        comp = None
         if kfile.has_key('compiler'):
-            if kfile['compiler'] in compilers:
-                if base not in compilers[kfile['compiler']]:
-                    compilers[kfile['compiler']].append(base)
+            comp = kfile['compiler']
+        elif Config.include['compiler'].has_key('compiler'):
+            comp = Config.include['compiler']['compiler']
+
+        if comp:
+            if comp in compilers:
+                if base not in compilers[comp]:
+                    compilers[comp].append(base)
             else:
-                compilers[kfile['compiler']] = [ base, kernel_driver_file ]
+                compilers[comp] = [ base, kernel_driver_file ]
+
+        opts = ''
+        if Config.include['compiler'].has_key('compiler_options'):
+            opts += Config.include['compiler'].has_key('compiler_options')
+            
         if kfile.has_key('compiler_options'):
-            if kfile['compiler_options'] in compiler_options:
+            opts += kfile['compiler_options']
+
+        if len(opts)>0:
+            if opts in compiler_options:
                 if base not in compiler_options[kfile['compiler_options']]:
-                    compiler_options[kfile['compiler_options']].append(base)
+                    compiler_options[opts].append(base)
             else:
-                compiler_options[kfile['compiler_options']] = [ base, kernel_driver_file ]
+                compiler_options[opts] = [ base, kernel_driver_file ]
 
     with open('%s/Makefile'%(Config.path['kernel']), 'wb') as f:
         write(f, '# Makefile for KGEN-generated kernel')
@@ -112,7 +126,7 @@ def generate_kernel_makefile():
         if Config.kernel_option['FC']:
             write(f, 'FC := %s'%Config.kernel_option['FC'])
         else:
-            write(f, 'FC := ifort')
+            write(f, 'FC := ')
             for i, compiler in enumerate(compilers):
                 write(f, 'FC_%d := %s'%(i, compiler))
 

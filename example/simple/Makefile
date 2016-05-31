@@ -8,16 +8,15 @@ FC := gfortran
 
 test:
 	${KGEN} \
-		-D ROW=4,COL=4 \
-		-I ${SRC_DIR} \
 		--timing repeat=10 \
 		--invocation 0:0:1,0:0:2,0:0:3 \
-		--kernel-compile FC='${FC}' \
-		--state-build cmds="cd ${SRC_DIR}; make build FC='${FC}'" \
-		--state-run cmds="cd ${SRC_DIR}; make run FC='${FC}'" \
 		--check tolerance=1.0D-14 \
-		${SRC}:${CALLSITE}
+		--rebuild all \
+		${SRC}:${CALLSITE} \
+		"cd ${SRC_DIR}; make clean" \
+		"cd ${SRC_DIR}; make build" \
+		"cd ${SRC_DIR}; make run"
 
 clean:
 	${MAKE} clean -C src
-	rm -rf kernel state kgen.log
+	rm -rf kernel state kgen.log strace.log include.ini _kgen_compflag_cmdwrapper.sh

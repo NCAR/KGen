@@ -6,10 +6,11 @@ This example use KGEN directive to specify the region of kernel extraction.
 	1. Python Version >= 2.7
 	2. cpp or fpp preprocessor
 	3. make
+	3. strace
 
 [ Kernel extraction steps ]
 
-	1. >> vi Makefile; # Modify FC if required
+	1. >> vi src/Makefile; # Modify FC if required
 
 	2. >> make; # extract a kernel
 

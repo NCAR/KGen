@@ -1,7 +1,7 @@
 ROW := 4
 COL := 4
 
-FC ?= gfortran
+FC := ifort
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
 run: build

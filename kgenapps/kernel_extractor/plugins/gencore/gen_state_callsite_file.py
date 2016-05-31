@@ -1,5 +1,6 @@
 # gen_write_callsite_file.py
 
+import re
 import base_classes
 import statements
 import block_statements
@@ -30,6 +31,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.FINISH_PROCESS, \
             getinfo('callsite_stmts')[0], None, self.invalid_kernel_stmts)
 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
+            getinfo('callsite_stmts')[0], self.is_openmp, self.update_omp_directive)
+
 #        if isinstance(callsite_stmts[-1], base_classes.EndStatement):
 #            self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
 #                callsite_stmts[-1].parent, None, self.create_callsite_parts2)
@@ -44,12 +48,75 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             getinfo('topblock_stmt'), None, self.create_topblock_parts)
 
 
+    def is_openmp(self, node):
+        return  getinfo('is_openmp_app')
+
     def invalid_kernel_stmts(self, node):
         kernel_stmts = getinfo('callsite_stmts')
 
         for stmt in kernel_stmts:
             stmt.genspair.kgen_forced_line = False
 
+    def update_omp_directive(self, node):
+        stmt = node.kgen_stmt
+        pstmt = None
+        if hasattr(stmt, 'parent'):
+            pstmt = stmt.parent
+        omp_parallel = None
+        omp_shared = None
+
+        if pstmt:
+            for s in pstmt.content:
+                if isinstance(s, statements.Comment):
+                    line = s.item.comment
+                    pmatch = re.match(r'^\s*!\$omp\s+parallel\b', line, re.I)
+                    if pmatch:
+                        omp_parallel = s
+                    smatch = re.match(r'^\s*!\$omp\s+\w[\s\w\(\)]+shared\s*\(\b', line, re.I)
+                    if smatch:
+                        omp_shared = s
+                    if omp_parallel and omp_shared:
+                        break
+                    if s is stmt:
+                        break
+            if omp_parallel:
+                kgen_vars = []
+                kgen_vars.append( [ 'kgen_istrue', 'kgen_count', 'kgen_mymid', 'kgen_msize', 'kgen_osize' ] )
+                kgen_vars.append( [ 'kgen_unit', 'kgen_stopunit', 'kgen_ierr', 'kgen_array_sum', 'kgen_realnum' ] )
+                kgen_vars.append( [ 'kgen_isstop', 'kgen_filepath', 'kgen_lockpath', 'kgen_islast', 'kgen_issave' ] )
+                kgen_vars.append( [ 'kgen_ischecked', 'kgen_invoke', 'kgen_last_invoke' ] )
+                new_line = []
+                if omp_shared:
+                    new_line.append('%s &'%smatch.group()) 
+                    for kvars in kgen_vars:
+                        new_line.append('!$omp %s , &'%','.join(kvars))
+                    pos = omp_shared.item.comment.find(smatch.group())
+                    if pos>=0:
+                        new_line.append('!$omp %s'%omp_shared.item.comment[len(smatch.group())+pos:])
+                    else:
+                        raise  Exception('DEBUG: pos error')
+                    omp_shared.genspair.kgen_forced_line = '\n'.join(new_line)
+                else:
+                    new_line.append('%s &'%pmatch.group()) 
+                    if len(kgen_vars)==1:
+                        new_line.append('!$omp shared ( %s ) &'%','.join(kgen_vars[0]))
+                    else:
+                        new_line.append('!$omp shared ( %s , &'%','.join(kgen_vars[0]))
+                        if len(kgen_vars)==2:
+                            new_line.append('!$omp %s ) &'%','.join(kgen_vars[1]))
+                        else:
+                            for kvars in kgen_vars[1:-1]:
+                                new_line.append('!$omp %s , &'%','.join(kvars))
+                            new_line.append('!$omp %s ) &'%','.join(kgen_vars[-1]))
+                    new_line.append('!$omp shared ( %s ) &'%'test')
+                    pos = omp_parallel.item.comment.find(pmatch.group())
+                    if pos>=0:
+                        new_line.append('!$omp %s'%omp_parallel.item.comment[len(pmatch.group())+pos:])
+                    else:
+                        raise  Exception('DEBUG: pos error')
+                    omp_parallel.genspair.kgen_forced_line = '\n'.join(new_line)
+            elif stmt is not getinfo('parentblock_stmt'):
+                self.update_omp_directive(pstmt.genspair)
 
     def create_parentblock_parts(self, node):
 

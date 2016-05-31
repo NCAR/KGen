@@ -416,6 +416,9 @@ def process_include_option(include_option, incattrs):
         elif lsection=='include':
             for option in Inc.options(section):
                 incattrs['path'].append(option.strip())
+        elif lsection=='compiler':
+            for option in Inc.options(section):
+                incattrs[lsection][option] = Inc.get(section, option).strip()
         elif os.path.isfile(section):
             abspath = os.path.abspath(section)
             if not incattrs['file'].has_key(abspath):
@@ -523,6 +526,7 @@ class Config(object):
         self._attrs['include']['macro'] = OrderedDict()
         self._attrs['include']['path'] = ['.']
         self._attrs['include']['type'] = OrderedDict()
+        self._attrs['include']['compiler'] = OrderedDict()
         self._attrs['include']['import'] = OrderedDict()
         self._attrs['include']['file'] = OrderedDict()
 

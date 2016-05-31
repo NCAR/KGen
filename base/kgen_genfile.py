@@ -780,7 +780,13 @@ class Gen_Statement(object):
         if isinstance(self.kgen_stmt, statements.Comment):
             if self.kgen_stmt:
                 if hasattr(self, 'kgen_forced_line'):
-                    lines_str = self.kgen_forced_line
+                    if isinstance(self.kgen_forced_line, str):
+                        return self.kgen_forced_line
+                    elif isinstance(self.kgen_forced_line, bool) and not self.kgen_forced_line:
+                        return
+                    else:
+                        raise ProgramException('Wrong use of kgen_forced_line')
+
                 elif not self.kgen_stmt.item.comment.startswith('!KGEN#'):
                     start = self.kgen_stmt.item.span[0]-1
                     end = self.kgen_stmt.item.span[1]
