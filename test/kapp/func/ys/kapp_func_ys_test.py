@@ -46,11 +46,15 @@ class KAppFuncYSTest(KAppFuncTest):
         testfiles.append(os.path.join(self.TEST_DIR, 'Makefile'))
 
         tmpsrc = result['mkdir_task']['tmpsrc']
+        workdir = result['mkdir_task']['workdir']
 
         dest_files = []
         for testfile in testfiles:
             shutil.copy2(testfile, tmpsrc)
             dest_files.append(os.path.join(tmpsrc, os.path.basename(testfile)))
+
+        if os.path.exists(os.path.join(srcdir, 'exclude.ini')):
+            shutil.copy(os.path.join(srcdir, 'exclude.ini'), workdir)
 
         result[myname]['srcfiles'] = dest_files
 
