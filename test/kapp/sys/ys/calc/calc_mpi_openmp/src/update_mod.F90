@@ -12,7 +12,8 @@ CONTAINS
 
         output(:,:) = 0
 
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO &
+        !$OMP& shared(output)
         DO i=1, COL
             DO j=1, ROW
                 CALL calc(i, j, output)

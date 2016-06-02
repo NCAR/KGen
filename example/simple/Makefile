@@ -7,7 +7,7 @@ CALLSITE := update_mod:update:calc
 
 test:
 	${KGEN} \
-		--timing repeat=10 \
+		--timing repeat=100 \
 		--invocation 0:0:1,0:0:2,0:0:3 \
 		--check tolerance=1.0D-14 \
 		--rebuild all \
@@ -15,6 +15,7 @@ test:
 		"cd ${SRC_DIR}; make clean" \
 		"cd ${SRC_DIR}; make build" \
 		"cd ${SRC_DIR}; make run"
+		#--source alias=/path/a:path/b # add this option if your system requires alias paths
 
 clean:
 	${MAKE} clean -C src

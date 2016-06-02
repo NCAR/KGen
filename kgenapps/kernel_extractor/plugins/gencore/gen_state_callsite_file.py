@@ -70,11 +70,13 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                 if isinstance(s, statements.Comment):
                     line = s.item.comment
                     if omp_parallel is None:
-                        pmatch = re.match(r'^\s*!\$omp\s+parallel\b', line, re.I)
-                        if pmatch:
-                            omp_parallel = s
+                        for clause in [ r'do', r'for', r'sections', r'workshare', '' ]:
+                            pmatch = re.match(r'^\s*!\$omp\s+parallel\s+%s\b'%clause, line, re.I)
+                            if pmatch:
+                                omp_parallel = s
+                                break
                     if omp_shared is None:
-                        smatch = re.match(r'^\s*!\$omp\s+\w[\s\w\(\)]+shared\s*\(\b', line, re.I)
+                        smatch = re.match(r'^\s*!\$omp[&]*\s+[\s\w\(\)]*shared\s*\(\b', line, re.I)
                         if smatch:
                             omp_shared = s
                     if omp_parallel and omp_shared:
@@ -99,7 +101,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                         raise  Exception('DEBUG: pos error')
                     omp_shared.genspair.kgen_forced_line = '\n'.join(new_line)
                 else:
-                    if pmatch is None: import pdb;pdb.set_trace()
                     new_line.append('%s &'%pmatch.group()) 
                     if len(kgen_vars)==1:
                         new_line.append('!$omp shared ( %s ) &'%','.join(kgen_vars[0]))
@@ -111,10 +112,13 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                             for kvars in kgen_vars[1:-1]:
                                 new_line.append('!$omp %s , &'%','.join(kvars))
                             new_line.append('!$omp %s ) &'%','.join(kgen_vars[-1]))
-                    new_line.append('!$omp shared ( %s ) &'%'test')
                     pos = omp_parallel.item.comment.find(pmatch.group())
                     if pos>=0:
-                        new_line.append('!$omp %s'%omp_parallel.item.comment[len(pmatch.group())+pos:])
+                        remained = omp_parallel.item.comment[len(pmatch.group())+pos:].strip()
+                        if len(remained)==0: 
+                            new_line[-1] = new_line[-1][:-2]
+                        else:
+                            new_line.append('!$omp %s'%omp_parallel.item.comment[len(pmatch.group())+pos:])
                     else:
                         raise  Exception('DEBUG: pos error')
                     omp_parallel.genspair.kgen_forced_line = '\n'.join(new_line)

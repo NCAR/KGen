@@ -16,7 +16,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 	Once "make" is completed with success, you will see information similar to next lines on screen
 
 		../../bin/kgen \
-				--timing repeat=10 \
+				--timing repeat=100 \
 				--invocation 0:0:1,0:0:2,0:0:3 \
 				--check tolerance=1.0D-14 \
 				--rebuild all \
@@ -69,7 +69,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   0.100000001490116     
+		 calc : Time per call (usec):   1.999999955296516E-002
 		 
 		 ***************** Verification against 'calc.0.0.2' *****************
 		 
@@ -81,7 +81,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   0.000000000000000E+000
+		 calc : Time per call (usec):   1.999999955296516E-002
 		 
 		 ***************** Verification against 'calc.0.0.3' *****************
 		 
@@ -93,7 +93,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   0.000000000000000E+000
+		 calc : Time per call (usec):   1.999999955296516E-002
 		 
 		****************************************************
 			kernel execution summary: calc
@@ -101,7 +101,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 			Total number of verification cases  :     3
 			Number of verification-passed cases :     3
 		 
-			Average call time (usec):  0.333E-01
-			Minimum call time (usec):  0.000E+00
-			Maximum call time (usec):  0.100E+00
+			Average call time (usec):  0.200E-01
+			Minimum call time (usec):  0.200E-01
+			Maximum call time (usec):  0.200E-01
 		****************************************************

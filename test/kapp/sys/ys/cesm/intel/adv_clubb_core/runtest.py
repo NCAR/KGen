@@ -31,6 +31,7 @@ class Test(KAppSysYSCesmIntelTest):
             __kernel_option='-mkl=link', \
             __prerun='kernel_run="%s"'%prerun_krun, \
             __timing='repeat=1', \
+            _e='%s/exclude.ini'%workdir, \
             __mpi='comm=mpicom,use="spmd_utils:mpicom"', \
             __openmp='enable', \
             __outdir=workdir)

@@ -73,7 +73,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   6.200000178068876E-003
+		 calc : Time per call (usec):   9.999999776482582E-003
 		 
 		 ***************** Verification against 'calc.0.0.3' *****************
 		 
@@ -85,7 +85,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   5.400000140070915E-003
+		 calc : Time per call (usec):   9.999999776482582E-003
 		 
 		 ***************** Verification against 'calc.1.0.1' *****************
 		 
@@ -97,7 +97,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   5.299999844282866E-003
+		 calc : Time per call (usec):   9.999999776482582E-003
 		 
 		 ***************** Verification against 'calc.1.0.3' *****************
 		 
@@ -109,15 +109,15 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   5.499999970197678E-003
+		 calc : Time per call (usec):   0.000000000000000E+000
 		 
 		****************************************************
-				  kernel execution summary: calc
+			kernel execution summary: calc
 		****************************************************
 			Total number of verification cases  :     4
 			Number of verification-passed cases :     4
 		 
-			Average call time (usec):  0.560E-02
-			Minimum call time (usec):  0.530E-02
-			Maximum call time (usec):  0.620E-02
+			Average call time (usec):  0.750E-02
+			Minimum call time (usec):  0.000E+00
+			Maximum call time (usec):  0.100E-01
 		****************************************************

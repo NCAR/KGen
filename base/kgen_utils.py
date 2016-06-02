@@ -444,16 +444,19 @@ def process_exclude_option(exclude_option, excattrs):
     Exc = KgenConfigParser(allow_no_value=True)
     #Exc.optionxform = str
     Exc.read(exclude_option)
-    for section in Exc.sections():
-        lsection = section.lower().strip()
-        if lsection=='common':
-            print 'ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead'
-            sys.exit(-1)
+    if len(Exc.sections())>0:
+        for section in Exc.sections():
+            lsection = section.lower().strip()
+            if lsection=='common':
+                print 'ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead'
+                sys.exit(-1)
 
-        excattrs[lsection] = OrderedDict()
-        for option in Exc.options(section):
-            loption = option.lower().strip()
-            excattrs[lsection][loption] = Exc.get(section, option).strip().split('=')
+            excattrs[lsection] = OrderedDict()
+            for option in Exc.options(section):
+                loption = option.lower().strip()
+                excattrs[lsection][loption] = Exc.get(section, option).strip().split('=')
+    else:
+        UserException('Can not find exclude file: %s'%exclude_option)
 
 def get_exclude_actions( section_name, *args ):
     if section_name=='namepath':

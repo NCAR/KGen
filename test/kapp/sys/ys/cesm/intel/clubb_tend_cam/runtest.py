@@ -21,9 +21,6 @@ class Test(KAppSysYSCesmIntelTest):
             shutil.copy(srcfile, workdir)
             shutil.copyfile(os.path.join(self.TEST_DIR, 'clubb_intr.F90'), '%s/components/cam/src/physics/cam/clubb_intr.F90'%tmpsrc)
 
-        if os.path.exists(os.path.join(self.TEST_DIR, 'exclude.ini')):
-            shutil.copy(os.path.join(self.TEST_DIR, 'exclude.ini'), workdir)
-
         prerun_krun = 'export LD_LIBRARY_PATH=/ncar/opt/intel/psxe-2016_update1/compilers_and_libraries_2016.1.150/linux/mkl/lib/intel64_lin:/ncar/opt/intel/psxe-2016_update1/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64_lin:\${LD_LIBRARY_PATH}'
 
         passed, out, err = self.extract_kernel(srcfile, None, \
@@ -32,7 +29,7 @@ class Test(KAppSysYSCesmIntelTest):
             '"cd %s; ./%s.submit"'%(casedir, casename), \
             __invocation='100:0-1:10,100:0-1:50,300:0-1:10,300:0-1:50,500:0-1:10,500:0-1:50', \
             __kernel_option='-mkl=link', \
-            _e='exclude.ini', \
+            _e='%s/exclude.ini'%workdir, \
             __prerun='kernel_run="%s"'%prerun_krun, \
             __timing='repeat=1', \
             __mpi='comm=mpicom,use="spmd_utils:mpicom"', \

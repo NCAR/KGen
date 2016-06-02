@@ -30,6 +30,9 @@ class KAppSysYSCesmTest(KAppSysYSTest):
         result[myname]['appsrc'] = appsrc
         result[myname]['tmpsrc'] = tmpsrc
 
+        if os.path.exists(os.path.join(self.TEST_DIR, 'exclude.ini')):
+            shutil.copy(os.path.join(self.TEST_DIR, 'exclude.ini'), workdir)
+
         self.set_status(result, myname, self.PASSED)
 
         return result
