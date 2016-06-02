@@ -233,6 +233,8 @@ def generate_state_makefile():
         write(f, '# Makefile for KGEN-generated instrumentation')
         write(f, '')
 
+        cwd = os.path.abspath(os.getcwd())
+
         prerun_clean_str = ''
         if Config.prerun['clean']:
             write(f, 'PRERUN_CLEAN := %s'%Config.prerun['clean'])
@@ -252,14 +254,14 @@ def generate_state_makefile():
 
         if Config.state_run['cmds']>0:
             write(f, 'run: build')
-            write(f, '%s%s'%(prerun_run_str, Config.state_run['cmds']), t=True)
+            write(f, '%scd %s; %s'%(prerun_run_str, cwd, Config.state_run['cmds']), t=True)
         else:
             write(f, 'echo "No information is provided to run. Please specify run commands using \'state-run\' command line option"; exit -1', t=True)
         write(f, '')
 
         if Config.state_build['cmds']>0:
             write(f, 'build: %s'%Config.state_switch['type'])
-            write(f, '%s%s'%(prerun_build_str, Config.state_build['cmds']), t=True)
+            write(f, '%scd %s; %s'%(prerun_build_str, cwd, Config.state_build['cmds']), t=True)
             for org_file in org_files:
                 write(f, 'mv -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
         else:

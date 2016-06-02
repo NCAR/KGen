@@ -75,6 +75,13 @@ def main():
             compflag_argv.append('--build')
             compflag_argv.append('cwd="%s",clean="%s"'%(opts.outdir, args[1]))
             outdir = opts.outdir
+        else:
+            kext_argv.append('--outdir')
+            kext_argv.append(os.getcwd())
+            compflag_argv.append('--build')
+            compflag_argv.append('cwd="%s",clean="%s"'%(os.getcwd(), args[1]))
+            outdir = os.getcwd()
+
         if opts.prerun:
             compflag_argv.append('--prerun')
             compflag_argv.extend(opts.prerun)
