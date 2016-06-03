@@ -12,9 +12,9 @@ class Test(KAppSysYSCalcCOMTest):
         srcfile = '%s/update_mod.F90'%tmpsrc
         namepath = 'update_mod:update:calc'
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; make clean"'%tmpsrc, \
-            '"cd %s; make build"'%tmpsrc, \
-            '"cd %s; make run"'%tmpsrc, \
+            __cmd_clean='"cd %s; make clean"'%tmpsrc, \
+            __cmd_build='"cd %s; make build"'%tmpsrc, \
+            __cmd_run='"cd %s; make run"'%tmpsrc, \
             __invocation='0:0-1:1-2,0:2-3:3', \
             __timing='repeat=10', \
             __prerun='build="%s",run="%s"'%(prerun, prerun), \

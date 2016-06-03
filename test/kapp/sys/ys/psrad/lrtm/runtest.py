@@ -17,9 +17,9 @@ class Test(KAppSysYSPsradTest):
         srcfile = '%s/src/mo_psrad_interface.f90'%tmpsrc
         namepath = 'mo_psrad_interface:psrad_interface:lrtm'
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; make clean"'%tmpsrc, \
-            '"cd %s; make"'%tmpsrc, \
-            '"cd %s/work; ../PSrad.exe namelist"'%tmpsrc, \
+            __cmd_clean='"cd %s; make clean"'%tmpsrc, \
+            __cmd_build='"cd %s; make"'%tmpsrc, \
+            __cmd_run='"cd %s/work; ../PSrad.exe namelist"'%tmpsrc, \
             __invocation='0:0:2,0:0:10', \
             __timing='repeat=10', \
             __intrinsic='skip,except="mo_lrtm_driver:planckfunction:index;mo_lrtm_driver:planckfunction:fraction"', \

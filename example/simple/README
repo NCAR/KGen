@@ -20,10 +20,10 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 				--invocation 0:0:1,0:0:2,0:0:3 \
 				--check tolerance=1.0D-14 \
 				--rebuild all \
-				${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc \
-				"cd ${KGENHOME}/example/simple/src; make clean" \
-				"cd ${KGENHOME}/example/simple/src; make build" \
-				"cd ${KGENHOME}/example/simple/src; make run"
+				--cmd-clean "cd ${KGENHOME}/example/simple/src; make clean" \
+				--cmd-build "cd ${KGENHOME}/example/simple/src; make build" \
+				--cmd-run "cd ${KGENHOME}/example/simple/src; make run" \
+				${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc
 		Starting KGen
 		Starting KOption
 		Building application to collect strace log file: ./strace.log

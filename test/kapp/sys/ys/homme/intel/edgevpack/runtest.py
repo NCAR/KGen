@@ -21,9 +21,9 @@ class Test(KAppSysYSHommeIntelTest):
         prerun_build = ';'.join(result['config_task']['prerun_build'])
         prerun_run = ';'.join(result['config_task']['prerun_run'])
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; make clean"'%blddir, \
-            '"cd %s; %s; make -j 8 perfTest"'%(blddir, prerun_build), \
-            '"cd %s; bsub < homme.submit"'%rundir, \
+            __cmd_clean='"cd %s; make clean"'%blddir, \
+            __cmd_build='"cd %s; %s; make -j 8 perfTest"'%(blddir, prerun_build), \
+            __cmd_run='"cd %s; bsub < homme.submit"'%rundir, \
             __prerun='kernel_build="%s",kernel_run="%s"'%(prerun_build, prerun_run), \
             __exclude='%s/exclude.ini'%workdir, \
             __invocation='0:0-1:10,0:0-1:50,10:0-1:10,10:0-1:50', \

@@ -24,9 +24,9 @@ class Test(KAppSysYSCesmIntelTest):
         prerun_krun = 'export LD_LIBRARY_PATH=/ncar/opt/intel/psxe-2016_update1/compilers_and_libraries_2016.1.150/linux/mkl/lib/intel64_lin:/ncar/opt/intel/psxe-2016_update1/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64_lin:\${LD_LIBRARY_PATH}'
 
         passed, out, err = self.extract_kernel(srcfile, None, \
-            '"cd %s; ./%s.clean_build all"'%(casedir, casename), \
-            '"cd %s; ./%s.build"'%(casedir, casename), \
-            '"cd %s; ./%s.submit"'%(casedir, casename), \
+            __cmd_clean='"cd %s; ./%s.clean_build all"'%(casedir, casename), \
+            __cmd_build='"cd %s; ./%s.build"'%(casedir, casename), \
+            __cmd_run='"cd %s; ./%s.submit"'%(casedir, casename), \
             __invocation='100:0-1:10,100:0-1:50,300:0-1:10,300:0-1:50,500:0-1:10,500:0-1:50', \
             __kernel_option='-mkl=link', \
             _e='%s/exclude.ini'%workdir, \

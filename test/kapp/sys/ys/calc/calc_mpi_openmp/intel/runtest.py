@@ -13,9 +13,9 @@ class Test(KAppSysYSCalcCMOTest):
         prerun = 'module swap intel intel/16.0.1; module try-load impi/5.0.1.035'
 
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            '"cd %s; make -f Makefile.mpirun clean"'%tmpsrc, \
-            '"cd %s; make -f Makefile.mpirun build"'%tmpsrc, \
-            '"cd %s; make -f Makefile.mpirun run"'%tmpsrc, \
+            __cmd_clean='"cd %s; make -f Makefile.mpirun clean"'%tmpsrc, \
+            __cmd_build='"cd %s; make -f Makefile.mpirun build"'%tmpsrc, \
+            __cmd_run='"cd %s; make -f Makefile.mpirun run"'%tmpsrc, \
             __invocation='0-1:0-1:1,0-1:2-3:3', \
             __timing='repeat=1', \
             __prerun='build="%s",run="%s"'%(prerun, prerun), \

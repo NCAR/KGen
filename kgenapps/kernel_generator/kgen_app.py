@@ -41,6 +41,11 @@ def main():
         parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
 
 
+        # kapp options
+        parser.add_option("-c", "--cmd-clean", dest="cmd_clean", action='store', type='string', default=None, help="Linux command(s) to clean a target application build")
+        parser.add_option("-b", "--cmd-build", dest="cmd_build", action='store', type='string', default=None, help="Linux command(s) to build a target application")
+        parser.add_option("-r", "--cmd-run", dest="cmd_run", action='store', type='string', default=None, help="Linux command(s) to run a target application")
+
         # compflag options
         parser.add_option("--strace", dest="strace", action='store', type='string', default=None, help="strace options")
 
@@ -60,9 +65,24 @@ def main():
 
         opts, args = parser.parse_args()
 
-        if len(args)<4:
-            print 'ERROR: At least four arguments are required.'
-            print 'Usage: kgen <target file path[:namepath]> <target initialize commands> <target build commands> <target run commands>'
+        if len(args)<1:
+            print 'ERROR: Target source files is not provided.'
+            print 'Usage: kgen [options] <target file path[:namepath]> --cmd-clean <commands> --cmd-build <commands> --cmd-run <commands>'
+            sys.exit(-1)
+
+        if opts.cmd_clean is None:
+            print 'ERROR: No clean command is prvoided in command line. Please add --cmd-clean option.'
+            print 'Usage: kgen [options] <target file path[:namepath]> --cmd-clean <commands> --cmd-build <commands> --cmd-run <commands>'
+            sys.exit(-1)
+
+        if opts.cmd_build is None:
+            print 'ERROR: No build command is prvoided in command line. Please add --cmd-build option.'
+            print 'Usage: kgen [options] <target file path[:namepath]> --cmd-clean <commands> --cmd-build <commands> --cmd-run <commands>'
+            sys.exit(-1)
+
+        if opts.cmd_run is None:
+            print 'ERROR: No run command is prvoided in command line. Please add --cmd-run option.'
+            print 'Usage: kgen [options] <target file path[:namepath]> --cmd-clean <commands> --cmd-build <commands> --cmd-run <commands>'
             sys.exit(-1)
 
         kext_argv = []
@@ -73,13 +93,13 @@ def main():
             kext_argv.append('--outdir')
             kext_argv.append(opts.outdir)
             compflag_argv.append('--build')
-            compflag_argv.append('cwd="%s",clean="%s"'%(opts.outdir, args[1]))
+            compflag_argv.append('cwd="%s",clean="%s"'%(opts.outdir, opts.cmd_clean))
             outdir = opts.outdir
         else:
             kext_argv.append('--outdir')
             kext_argv.append(os.getcwd())
             compflag_argv.append('--build')
-            compflag_argv.append('cwd="%s",clean="%s"'%(os.getcwd(), args[1]))
+            compflag_argv.append('cwd="%s",clean="%s"'%(os.getcwd(), opts.cmd_clean))
             outdir = os.getcwd()
 
         if opts.prerun:
@@ -108,7 +128,7 @@ def main():
             compflag_argv.append('--strace')
             compflag_argv.append(opts.strace)
 
-        compflag_argv.append(args[2])
+        compflag_argv.append(opts.cmd_build)
 
         # collect kext options
         if opts.invocation:
@@ -149,11 +169,11 @@ def main():
             kext_argv.extend(opts.logging)
 
         kext_argv.append('--state-clean')
-        kext_argv.append('cmds=%s'%args[1])
+        kext_argv.append('cmds=%s'%opts.cmd_clean)
         kext_argv.append('--state-build')
-        kext_argv.append('cmds=%s'%args[2])
+        kext_argv.append('cmds=%s'%opts.cmd_build)
         kext_argv.append('--state-run')
-        kext_argv.append('cmds=%s'%args[3])
+        kext_argv.append('cmds=%s'%opts.cmd_run)
         kext_argv.append(args[0])
 
         # run compflag

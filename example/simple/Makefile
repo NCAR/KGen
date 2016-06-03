@@ -11,10 +11,10 @@ test:
 		--invocation 0:0:1,0:0:2,0:0:3 \
 		--check tolerance=1.0D-14 \
 		--rebuild all \
-		${SRC}:${CALLSITE} \
-		"cd ${SRC_DIR}; make clean" \
-		"cd ${SRC_DIR}; make build" \
-		"cd ${SRC_DIR}; make run"
+		--cmd-clean "cd ${SRC_DIR}; make clean" \
+		--cmd-build "cd ${SRC_DIR}; make build" \
+		--cmd-run "cd ${SRC_DIR}; make run" \
+		${SRC}:${CALLSITE} 
 		#--source alias=/path/a:path/b # add this option if your system requires alias paths
 
 clean:
