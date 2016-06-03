@@ -70,6 +70,6 @@ Instructions & Use
 
 	>> make;				# extract a kernel
 
-	>> cd ../kernel;		# move to a kernel directory
+	>> cd kernel;		# move to a kernel directory
 
 	>> make;				# build and run a kernel
