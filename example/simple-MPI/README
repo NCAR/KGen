@@ -50,7 +50,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
     Kernel files and state data files(calc.*.*.*) should be created in kernel folder.
     In state folder, KGen-instrumented files are created.
 
-	3. >> cd ../kernel; # move to a kernel directory
+	3. >> cd kernel; # move to a kernel directory
 
 	4. >> make; # build and run a kernel
 
