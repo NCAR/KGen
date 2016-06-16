@@ -2,7 +2,7 @@
 This example shows how to use KGEN to extract a kernel from a simple Fortran application.
 
 [ Prerequisites ]
-	1. Python Version >= 2.7
+	1. Python Version >= 2.7 and < 3.0
 	2. cpp preprocessor
 	3. make
 	4. strace
@@ -20,7 +20,7 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 				--invocation 0:0:1,0:0:2,0:0:3 \
 				--check tolerance=1.0D-14 \
 				--rebuild all \
-				${KGENHOME}/example/simple/src/update_mod.F90:update_mod:update:calc \
+				${KGENHOME}/example/simple/src/update_mod.F90 \
 				"cd ${KGENHOME}/example/simple/src; make clean" \
 				"cd ${KGENHOME}/example/simple/src; make build" \
 				"cd ${KGENHOME}/example/simple/src; make run"
