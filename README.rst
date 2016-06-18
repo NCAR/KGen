@@ -25,9 +25,9 @@ Changes from KGEN ver. 0.6.3
 Overview
 --------
 
-* KGEN extracts a Fortran subprogram as a stand-alone software out of a large software application
-* In addition, it generates instrumented files that save input & output data for the generated kernel
-* Correctness check and timing measurement are included in the generated kernel
+* KGEN extracts an arbitrary region of Fortran source code as a stand-alone executable software
+* In addition, it generates input & output data for executing and verifying the generated kernel
+* All KGEN-generated kernels include correctness check and timing measurement
 
 
 Dependencies
