@@ -46,6 +46,9 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 	Kernel files and state data files(calc.*.*.*) should be created in kernel folder.
 	In state folder, KGen-instrumented files are created.
 
+	NOTE: If compilation happens at different directory other than example/src folder, please add following KGen flag similar to following:
+		--source alias=/your/example/src:/somewhere/compilation/happens
+
 	3. >> cd kernel; # move to a kernel directory
 
 	4. >> make; # build and run a kernel
