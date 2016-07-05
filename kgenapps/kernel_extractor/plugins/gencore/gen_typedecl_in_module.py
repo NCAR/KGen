@@ -119,6 +119,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_dp', 'kgen_array_sumcheck']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
+        attrs = {'name':'tprof_mod', 'isonly': True, 'items':['tstart', 'tstop', 'tnull', 'tprnt']}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+
         #attrs = {'name':'IEEE_ARITHMETIC', 'nature': 'INTRINSIC', 'isonly': True, 'items':['ieee_is_normal']}
         #part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 

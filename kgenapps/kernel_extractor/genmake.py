@@ -32,6 +32,7 @@ def generate_kernel_makefile():
     # source files
     kgen_utils_file = 'kgen_utils.f90'
     kernel_driver_file = 'kernel_driver.f90'
+    tprof_file = 'tprof_mod.f90'
     callsite_file = State.topblock['stmt'].reader.id
 
     #basenames
@@ -41,17 +42,17 @@ def generate_kernel_makefile():
 
     # all object files
     all_objs_srcfiles = [ obj(dep_base_srcfile) for dep_base_srcfile in dep_base_srcfiles ]
-    all_objs = all_objs_srcfiles + [ obj(kernel_driver_file), obj(kgen_utils_file) ]
+    all_objs = all_objs_srcfiles + [ obj(kernel_driver_file), obj(kgen_utils_file), obj(tprof_file) ]
 
     # dependency
     depends = {}
 
     # dependency for kernel_driver.f90
-    depends[kernel_driver_file] = ' '.join(all_objs_srcfiles + [obj(kgen_utils_file) ])
+    depends[kernel_driver_file] = ' '.join(all_objs_srcfiles + [obj(kgen_utils_file), obj(tprof_file) ])
 
     # dependency for other files
     for abspath, (srcfile, mods_used, units_used) in State.used_srcfiles.iteritems():
-        dep = [ obj(kgen_utils_file) ] 
+        dep = [ obj(kgen_utils_file), obj(tprof_file) ] 
         for mod in mods_used:
             if mod.reader.id!=abspath and \
                 not obj(os.path.basename(mod.reader.id)) in dep:
@@ -217,7 +218,11 @@ def generate_kernel_makefile():
         write(f, '%s: %s' % (obj(kgen_utils_file), kgen_utils_file))
         write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, fc_str, fc_flags_str), t=True)
         write(f, '')
-           
+ 
+        write(f, '%s: %s' % (obj(tprof_file), tprof_file))
+        write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, fc_str, fc_flags_str), t=True)
+        write(f, '')
+          
         write(f, 'clean:')
         write(f, 'rm -f kernel.exe *.mod ${ALL_OBJS}', t=True)
     pass

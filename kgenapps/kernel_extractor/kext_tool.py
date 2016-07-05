@@ -8,6 +8,7 @@ Author: Youngsung Kim <youngsun@ucar.edu>
 '''
 import sys
 import os
+import shutil
 
 # NOTE:
 # to move tostring and kgenutils into this tool
@@ -22,6 +23,7 @@ if sys.hexversion < 0x020700F0:
 KGEN_EXTRACTOR = os.path.dirname(os.path.realpath(__file__))
 KGEN_HOME = '%s/../..'%KGEN_EXTRACTOR
 KGEN_BASE = '%s/base'%KGEN_HOME
+TPROF = 'tprof_mod.f90'
 
 sys.path.insert(0, KGEN_BASE)
 sys.path.insert(0, KGEN_EXTRACTOR)
@@ -149,6 +151,9 @@ class KExtTool(KGenTool):
         # generate kgen_utils.f90 in kernel directory
         kernel_files.append('kgen_utils.f90')
         self.generate_kgen_utils()
+
+        kernel_files.append(TPROF)
+        shutil.copyfile('%s/%s'%(KGEN_BASE, TPROF), '%s/%s'%(Config.path['kernel'], TPROF))
 
         kernel_files.append('Makefile')
         state_files.append('Makefile')
