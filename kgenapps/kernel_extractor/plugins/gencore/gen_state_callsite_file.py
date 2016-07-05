@@ -647,7 +647,14 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         start = callsite_stmts[0].item.span[0]-1
         end = callsite_stmts[-1].item.span[1]
-        lines = callsite_stmts[0].top.prep[start:end]
+        lines = []
+        for line in callsite_stmts[0].top.prep[start:end]:
+            match = re.match(r'^\s*!\$omp\s+barrier\b', line, re.I)
+            if match:
+                lines.append('!%s ! Removed by KGen'%line)
+            else:
+                lines.append(line)
+
         lines_str = '\n'.join(lines)
         #dummy_node = part_append_gensnode(ifsave, EXEC_PART, statements.Call)
         dummy_node = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Call)

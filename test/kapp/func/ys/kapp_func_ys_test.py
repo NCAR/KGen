@@ -43,7 +43,8 @@ class KAppFuncYSTest(KAppFuncTest):
         testfiles = [ os.path.join(srcdir,f) for f in os.listdir(srcdir) if \
             f!=self.TEST_SCRIPT and f!='%sc'%self.TEST_SCRIPT and \
             not f.startswith('.') and os.path.isfile(os.path.join(srcdir, f))]
-        testfiles.append(os.path.join(self.TEST_DIR, 'Makefile'))
+        if os.path.exists(os.path.join(self.TEST_DIR, 'Makefile')):
+            testfiles.append(os.path.join(self.TEST_DIR, 'Makefile'))
 
         tmpsrc = result['mkdir_task']['tmpsrc']
         workdir = result['mkdir_task']['workdir']

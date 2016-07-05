@@ -199,7 +199,7 @@ subroutine kgen_array_sumcheck(varname, sum1, sum2, finish)
                 print *, 'From file : ', sum1
                 print *, 'From array: ', sum2
                 print *, 'Difference: ', diff
-                print *, 'Relative difference: ', rel_diff
+                print *, 'Normalized difference: ', rel_diff
 
                 if ( present(finish) .AND. finish ) then
                     stop

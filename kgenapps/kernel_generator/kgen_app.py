@@ -23,7 +23,7 @@ def main():
     from compflag_tool import CompFlagDetect
     from kext_tool import KExtTool
 
-    version = [ 0, 7, '0' ]
+    version = [ 0, 7, '1' ]
     outdir = '.'
     retval = 0
 
