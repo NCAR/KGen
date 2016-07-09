@@ -148,7 +148,10 @@ def is_param_zero(length, stmt):
                                 intlen = int(value)
                                 if intlen == 0: return True
                             except:
-                                return is_param_zero(length, res_stmt)
+                                if stmt is res_stmt:
+                                    print ('WARNING: recursive size check of following statement\n%s'%str(res_stmt))                                
+                                else:
+                                    return is_param_zero(length, res_stmt)
     return False
 
 def is_zero_array(var, stmt):

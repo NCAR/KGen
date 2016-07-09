@@ -213,6 +213,8 @@ def main():
         if is_rebuild or not has_statefiles:
             Logger.info('Generating state data files at %s/state.'%outdir, stdout=True) 
             out, err, retcode = run_shcmd('make', cwd='%s/state'%outdir)
+            if retcode != 0:
+                Logger.info('FAILED: %s'%err, stdout=True) 
         else:
             Logger.info('Reusing state data files at %s/kernel'%outdir, stdout=True) 
 

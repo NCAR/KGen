@@ -128,6 +128,7 @@ class KExtTool(KGenTool):
             self.set_indent('')
             klines = kfile.tostring()
             if klines is not None:
+                klines = self.remove_multiblanklines(klines)
                 kernel_files.append(filename)
                 with open('%s/%s'%(Config.path['kernel'], filename), 'wb') as fd:
                     fd.write(klines)
@@ -136,6 +137,7 @@ class KExtTool(KGenTool):
                 self.set_indent('')
                 slines = sfile.tostring()
                 if slines is not None:
+                    slines = self.remove_multiblanklines(slines)
                     state_files.append(filename)
                     with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
                         fd.write(slines)
@@ -144,7 +146,9 @@ class KExtTool(KGenTool):
         with open('%s/%s.f90'%(Config.path['kernel'], self.kernel_name), 'wb') as fd:
             self.set_indent('')
             lines = self.driver.tostring()
-            if lines is not None: fd.write(lines)
+            if lines is not None:
+                lines = self.remove_multiblanklines(lines)
+                fd.write(lines)
 
         Logger.info('Kernel generation and instrumentation is completed.', stdout=True)
 
@@ -197,3 +201,19 @@ class KExtTool(KGenTool):
 
     def set_indent(self, indent):
         Gen_Statement.kgen_gen_attrs = {'indent': '', 'span': None}
+
+    def remove_multiblanklines(self, text):
+        MAXBLANKLINES = 3
+        lines = text.split('\n')
+        newlines = []
+        count = 0
+        for line in lines:
+            if len(line)>0:
+                newlines.append(line)
+                count = 0
+            else:
+                count += 1
+                if count < MAXBLANKLINES:
+                    newlines.append(line)
+
+        return '\n'.join(newlines)

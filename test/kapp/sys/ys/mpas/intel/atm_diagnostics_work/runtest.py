@@ -26,7 +26,7 @@ class Test(KAppSysYSMpasIntelTest):
             __cmd_clean='"cd %s; ./clean_core.sh"'%tmpsrc, \
             __cmd_build='"cd %s; ./build_core_intel.sh"'%tmpsrc, \
             __cmd_run='"cd %s; bsub < run_core_intel.sh"'%tmpsrc, \
-            __invocation='0:0:5,e/2:0:5,e:0:5', \
+            __invocation='0:0:5,e/2:0:5,e:0:5,0:0:10,e/2:0:10,e:0:10', \
             _e='%s/exclude.ini'%workdir, \
             __timing='repeat=1', \
             __mpi='enable', \
@@ -46,7 +46,9 @@ class Test(KAppSysYSMpasIntelTest):
             shutil.copyfile(os.path.join(workdir, 'mpas_atm_time_integration.F'), srcfile)
 
         if passed:
-            result[myname]['statefiles'] = ['atm_diagnostics_work.0.0.5', 'atm_diagnostics_work.31.0.5', 'atm_diagnostics_work.63.0.5']
+            result[myname]['statefiles'] = [ \
+				'atm_diagnostics_work.0.0.5', 'atm_diagnostics_work.31.0.5', 'atm_diagnostics_work.63.0.5', \
+				'atm_diagnostics_work.0.0.10', 'atm_diagnostics_work.31.0.10', 'atm_diagnostics_work.63.0.10']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

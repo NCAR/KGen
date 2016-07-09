@@ -198,6 +198,8 @@ def preprocess():
                         if mpifpath: break
 
             # collect required information
+            # TODO: FortranFileReader should be replaced with FortranStringReader after preprocessing
+            # TODO: include keyword should be handdled properly too.
             if mpifpath:
                 try:
                     reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
