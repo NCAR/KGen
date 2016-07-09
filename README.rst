@@ -4,7 +4,7 @@ KGEN: Fortran Kernel Generator
 A package for extracting a part of Fortran source codes out of a large Fortran application.
 
 :AUTHORS: Youngsung Kim and John Dennis
-:VERSION: 0.7.0
+:VERSION: 0.7.1
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
@@ -33,7 +33,7 @@ Overview
 Dependencies
 ------------
 
-* Python (>=2.7 and < 3.0) and Python standard library
+* Python (>=2.7 and < 3.0)
 * C Pre-Processor(cpp)
 * Make build tool(make)
 * System call trace tool(strace)
