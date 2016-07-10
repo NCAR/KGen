@@ -7,7 +7,7 @@ import time
 from kgen_utils import run_shcmd
 from kapp_sys_ys_mpas_test import KAppSysYSMpasTest
 
-class KAppSysYSMpasIntelTest(KAppSysYSMpasTest):
+class KAppSysYSMpasPgiTest(KAppSysYSMpasTest):
     def download(self, myname, result):
 
         systestdir = result['mkdir_task']['sysdir']
@@ -23,7 +23,7 @@ class KAppSysYSMpasIntelTest(KAppSysYSMpasTest):
         #    out, err, retcode = run_shcmd('svn checkout -r 76722 https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta06 .', cwd=appsrc)
 
         # copy mpas src into test specific src dir
-        tmpsrc = '%s/mpas_intel_work'%systestdir
+        tmpsrc = '%s/mpas_pgi_work'%systestdir
         if not os.path.exists(tmpsrc):
             shutil.copytree(appsrc, tmpsrc)
 
@@ -36,7 +36,6 @@ class KAppSysYSMpasIntelTest(KAppSysYSMpasTest):
         self.set_status(result, myname, self.PASSED)
 
         return result
-
 
     def config(self, myname, result):
 
