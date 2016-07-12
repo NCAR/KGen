@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !                                                      !
 !  tprof module for KGen timing measurement            !
-!  Author: Christopher Kerr(chris.kerr.llc@gmail.com)  !
+!  Author: Christopher Kerr                            !
 !                                                      !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
