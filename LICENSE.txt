@@ -35,3 +35,4 @@ THE POSSIBILITY OF SUCH DAMAGE.
 The Fortran Kernel Generator source code contains the following contribution:
 
 F2PY: Copyright © 1999-2008 Pearu Peterso (https://sysbio.ioc.ee/projects/f2py2e/)
+TPROF: Copyright © 2016 Christopher Kerr (chris.kerr.llc@gmail.com)
