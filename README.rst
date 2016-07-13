@@ -1,7 +1,7 @@
 KGEN: Fortran Kernel Generator
 ==============================
 
-A Python tool that extracts partial codes out of a large Fortran application and converts them as a standalone/verifiable/executable kernel 
+A Python tool that extracts partial codes out of a large Fortran application and converts them into a standalone/verifiable/executable kernel 
 
 :AUTHORS: Youngsung Kim and John Dennis
 :VERSION: 0.7.1
