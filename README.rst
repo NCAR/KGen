@@ -65,9 +65,9 @@ Instructions & Use
 2. Read Kgen documentation in "doc" directory under the top Kgen directory.
 	>> evince KGENUsersGuideVersion0.7.0.pdf 
 
-3. Try a kernel generation example in "example/simple" directory
+3. Try a kernel generation example in "examples/simple" directory
 
-	>> cd example/simple;	# move to an example directory
+	>> cd examples/simple;	# move to an example directory
 
 	>> vi src/Makefile;			# Modify FC if required
 

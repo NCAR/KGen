@@ -1,0 +1,23 @@
+<h3>Download</h3>
+{% if version.split('.')[-1].startswith('dev') %}
+<p>This documentation is for version <b>{{ version }}</b>, which is
+  not released yet.</p>
+<p>You can get the latest source from 
+  <a href="https://github.com/NCAR/KGen.git">https://github.com/NCAR/KGen.git</a> or look for
+  released versions in the <a href="http://pypi.python.org/pypi/kgen">Python
+    Package Index</a>.</p>
+{% else %}
+<p>Current version: <b>{{ version }}</b></p>
+<p>Get KGen from the <a href="http://pypi.python.org/pypi/kgen">Python Package
+Index</a>, or install it with:</p>
+<pre>easy_install kgen</pre>
+{% endif %}
+
+<h3>Questions? Suggestions?</h3>
+
+<p>Join the <a href="http://groups.google.com/group/kgen-discuss">Google group</a>:</p>
+<form action="http://groups.google.com/group/kgen-discuss/boxsubscribe"
+      style="padding-left: 1em">
+  <input type="text" name="email" value="your@email"/>
+  <input type="submit" name="sub" value="Subscribe" />
+</form>

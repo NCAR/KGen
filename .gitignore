@@ -1,3 +1,9 @@
 *.pyc
 *.swp
 kgen.log
+__pycache__
+*~
+.DS_Store
+doc/sphinx/build
+*.zip
+*.pdf

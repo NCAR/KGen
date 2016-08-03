@@ -24,10 +24,10 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 				--invocation 0:0:1,0:0:3,1:0:1,1:0:3 \
 				--timing repeat=10000 \
 				--rebuild all \
-				--cmd-clean "cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun clean" \
-				--cmd-build "cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun build" \
-				--cmd-run "cd ${KGENHOME}/example/simple-MPI/src; make -f Makefile.mpirun run"
-				${KGENHOME}/example/simple-MPI/src/update_mod.F90:update_mod:update:calc \
+				--cmd-clean "cd ${KGENHOME}/examples/simple-MPI/src; make -f Makefile.mpirun clean" \
+				--cmd-build "cd ${KGENHOME}/examples/simple-MPI/src; make -f Makefile.mpirun build" \
+				--cmd-run "cd ${KGENHOME}/examples/simple-MPI/src; make -f Makefile.mpirun run"
+				${KGENHOME}/examples/simple-MPI/src/update_mod.F90:update_mod:update:calc \
 		Starting KGen
 		Starting KOption
 		Building application to collect strace log file: ./strace.log
@@ -35,8 +35,8 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
 		KOption is finished.
 		Starting KExt
 		Pre-processing is done
-		Reading ${KGENHOME}/example/simple-MPI/src/update_mod.F90
-		Reading ${KGENHOME}/example/simple-MPI/src/calc_mod.F90
+		Reading ${KGENHOME}/examples/simple-MPI/src/update_mod.F90
+		Reading ${KGENHOME}/examples/simple-MPI/src/calc_mod.F90
 			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
 		Program is analyzed
 		Kernel generation and instrumentation is completed.
@@ -50,8 +50,8 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran MPI
     Kernel files and state data files(calc.*.*.*) should be created in kernel folder.
     In state folder, KGen-instrumented files are created.
 
-    NOTE: If compilation happens at different directory other than example/src folder, please add following KGen flag similar to following:
-        --source alias=/your/example/src:/somewhere/compilation/happens
+    NOTE: If compilation happens at different directory other than examples/src folder, please add following KGen flag similar to following:
+        --source alias=/your/examples/src:/somewhere/compilation/happens
 
 	3. >> cd kernel; # move to a kernel directory
 

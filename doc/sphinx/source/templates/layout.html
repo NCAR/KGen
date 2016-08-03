@@ -1,0 +1,25 @@
+{% extends "!layout.html" %}
+
+{% block rootrellink %}
+        <li><a href="http://kgen.github.io/">KGen Home </a> |&nbsp;</li>
+        <li><a href="http://kgen.github.io/documentation.html">Documentation </a>|&nbsp;</li>
+        <li><a href="http://kgen.github.io/download.html">Download </a> |&nbsp;</li>
+        <li><a href="http://github.com/kgen">Developer (Github)</a></li>
+
+
+{% endblock %}
+
+{% block relbar1 %}
+<div style="color: black;background-color: white; font-size: 3.2em; text-align: left; padding: 15px 10px 10px 15px">
+KGen
+</div>
+{{ super() }}
+{% if version.split('.')[-1].startswith('dev') %}
+<p>This documentation is for the development version <b>{{ version }}</b></p>
+{% endif %}
+{% endblock %}
+
+{# put the sidebar before the body #}
+{% block sidebar1 %}
+{{ sidebar() }}{% endblock %}
+{% block sidebar2 %}{% endblock %}

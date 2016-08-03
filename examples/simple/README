@@ -2,7 +2,7 @@
 This example shows how to use KGEN to extract a kernel from a simple Fortran application.
 
 [ Prerequisites ]
-	1. Python Version >= 2.7 and < 3.0
+	1. Python Version >= 2.7
 	2. cpp preprocessor
 	3. make
 	4. strace
@@ -20,10 +20,10 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 				--invocation 0:0:1,0:0:2,0:0:3 \
 				--check tolerance=1.0D-14 \
 				--rebuild all \
-				${KGENHOME}/example/simple/src/update_mod.F90 \
-				"cd ${KGENHOME}/example/simple/src; make clean" \
-				"cd ${KGENHOME}/example/simple/src; make build" \
-				"cd ${KGENHOME}/example/simple/src; make run"
+				--cmd-clean "cd ${KGENHOME}/examples/simple/src; make clean" \
+				--cmd-build "cd ${KGENHOME}/examples/simple/src; make build" \
+				--cmd-run "cd ${KGENHOME}/examples/simple/src; make run" \
+				${KGENHOME}/examples/simple/src/update_mod.F90:update_mod:update:calc
 		Starting KGen
 		Starting KOption
 		Building application to collect strace log file: ./strace.log
@@ -31,8 +31,8 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		KOption is finished.
 		Starting KExt
 		Pre-processing is done
-		Reading ${KGENHOME}/example/simple/src/update_mod.F90
-		Reading ${KGENHOME}/example/simple/src/calc_mod.F90
+		Reading ${KGENHOME}/examples/simple/src/update_mod.F90
+		Reading ${KGENHOME}/examples/simple/src/calc_mod.F90
 			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
 		Program is analyzed
 		Kernel generation and instrumentation is completed.
@@ -46,8 +46,8 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 	Kernel files and state data files(calc.*.*.*) should be created in kernel folder.
 	In state folder, KGen-instrumented files are created.
 
-    NOTE: If compilation happens at different directory other than example/src folder, please add following KGen flag similar to following:
-        --source alias=/your/example/src:/somewhere/compilation/happens
+	NOTE: If compilation happens at different directory other than examples/src folder, please add following KGen flag similar to following:
+		--source alias=/your/examples/src:/somewhere/compilation/happens
 
 	3. >> cd kernel; # move to a kernel directory
 
