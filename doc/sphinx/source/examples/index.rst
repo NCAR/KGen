@@ -12,3 +12,6 @@ KGen Examples
 .. toctree::
     :maxdepth: 2
 
+    simple
+    simple-region
+    simple-MPI

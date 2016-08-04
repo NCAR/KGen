@@ -1,8 +1,8 @@
-.. _developer:
+.. _user:
 
-Developer Guide
+User Guide
 ***************
 
 .. toctree::
    :maxdepth: 2
-
+   

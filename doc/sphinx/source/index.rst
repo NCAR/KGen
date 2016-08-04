@@ -14,14 +14,10 @@ KGen documentation
    :maxdepth: 2
 
    overview
-   download
-   install
+   getting-started
    tutorial/index
-   reference/index
-   test
+   user/index
    developer/index
-   reference/history
-   bibliography
    examples/index
 
 Indices and tables
