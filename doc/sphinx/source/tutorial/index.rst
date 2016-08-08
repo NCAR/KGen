@@ -4,6 +4,8 @@
 Tutorial
 ********
 
+This section explains common tasks on using KGen.
+
 .. toctree::
    :maxdepth: 2
 
@@ -12,10 +14,6 @@ Tutorial
 **What Next**
 
 
-Now that you have an idea of what the KGen package provides,
-you should investigate the parts of the package most useful for
-you.  
+:doc:`User Guide</user/index>` provides more formal details on using KGen.
 
-:doc:`Reference Section</reference/index>` provides details on KGen.
-
-:doc:`/examples/index` provides some example programs written using KGen.
+:doc:`/examples/index` provides some examples on using KGen.

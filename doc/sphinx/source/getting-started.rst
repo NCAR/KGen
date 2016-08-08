@@ -1,9 +1,22 @@
-**********
+===============
+Getting-started
+===============
+
+
+--------
+Download
+--------
+
+Source and binary releases: http://pypi.python.org/pypi/kgen/
+
+Github (latest development): https://github.com/kgen/kgen/
+
+----------
 Installing
-**********
+----------
 
 Installing with pip
-===================
+```````````````````
 Try to install it with
 
 ::
@@ -27,7 +40,7 @@ More download file options are at http://kgen.github.io/download.html.
 
 
 Installing from source
-======================
+``````````````````````
 
 You can install from source by downloading a source archive file
 (tar.gz or zip) or by checking out the source files from the
@@ -37,7 +50,7 @@ KGen is a pure Python package; you don't need a compiler to build
 or install it.
 
 Source archive file
--------------------
+~~~~~~~~~~~~~~~~~~~
 
   1. Download the source (tar.gz or zip file) from
      https://pypi.python.org/pypi/kgen/
@@ -54,7 +67,7 @@ Source archive file
 
 
 GitHub
-------
+~~~~~~
 
   1. Clone the kgen repository
      (see https://github.com/kgen/kgen/ for options)
@@ -99,9 +112,18 @@ See http://docs.python.org/2/install/index.html#search-path for further details.
 
 
 Requirements
-============
+````````````
 
 Python
-------
+~~~~~~
 
-To use KGen you need Python 2.7 or later.
+To use KGen you need Python 2.7 or later, but less than 3.0.
+
+----------------------------------
+First Kernel-generation using KGen
+----------------------------------
+
+----------------
+Further reading
+----------------
+
