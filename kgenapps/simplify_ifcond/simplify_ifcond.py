@@ -21,29 +21,16 @@ import api
 
 file_exts = ['f', 'f90', 'f95', 'f03', 'f08', '.ftn', 'F', 'F90', 'F95', 'F03', 'F08', '.FTN', '.inc']
 
-#def handle_ifcond(stmt, expr, varid):
-#    '''handle if condition
-#        check the complexity of if cond.
-#        add spec stmt
-#        modify ifstmt
-#        add assign stmt
-#    '''
-#    p = stmt.ancestors()[-1]
-#    #if not condvar in p.a.variable_names:
-#    #    pass
-#    #import pdb; pdb.set_trace()
-# 
-
-def ifcondcheck(condexpr):
+def ifcondcheck(condexpr, threshold):
     def get_nodes(node, bag, depth):
-        if node:
+        if node and not hasattr(node, 'items'):
             bag['nodes'].append(node)
 
     bag = {'nodes': []}
     traverse(condexpr, get_nodes, bag)
     nodes = bag['nodes']
 
-    if len(nodes) > 10:
+    if len(nodes) > threshold:
         return True
     else:
         return False
@@ -66,7 +53,8 @@ def add_specstmts(parstmt, numifstmts):
     # create decl stmt
     varstr = ', '.join([ 'ifcondvar%d'%num for num in range(numifstmts) ])
     declstmt = DummyStatement()
-    declstmt.forced_lines = [ 'LOGICAL %s'%varstr ]
+    #declstmt.forced_lines = [ 'LOGICAL %s'%varstr ]
+    declstmt.forced_lines = [ 'LOGICAL ifcondvar0']
 
     # add decl
     lastspecstmt, idx = get_lastspecstmt(parstmt)
@@ -77,12 +65,14 @@ def add_specstmts(parstmt, numifstmts):
 
 def simplify(ifstmt, condexpr, ifstmtid):
     # create assign stmt
-    assignstr = 'ifcondvar%d = %s'%(ifstmtid, condexpr.tofortran())
+    #assignstr = 'ifcondvar%d = %s'%(ifstmtid, condexpr.tofortran())
+    assignstr = 'ifcondvar0 = %s'%condexpr.tofortran()
     assignstmt = DummyStatement()
     assignstmt.forced_lines = [ assignstr ]
 
     # create simplified if stmt
-    ifstmt.expr = 'ifcondvar%d'%ifstmtid
+    #ifstmt.expr = 'ifcondvar%d'%ifstmtid
+    ifstmt.expr = 'ifcondvar0'
     ifstmt.forced_lines = [ ifstmt.tokgen() ]
 
     # add stmts
@@ -105,6 +95,7 @@ def main():
         # common options
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default='output', help="path to create outputs")
         parser.add_option("--add-ext", dest="ext", action='store', type='string', default=None, help="File extensions to parse")
+        parser.add_option("-t", "--threshold", dest="threshold", action='store', type='int', default=20, help="Max number of identifiers if condition before simplifying.")
 
         opts, args = parser.parse_args()
 
@@ -149,7 +140,7 @@ def main():
                                     if stmt.item.span[0] >= last_span[0] and stmt.item.span[1] <= last_span[1]:
                                         stmt.ignore = True
                                 elif isinstance(stmt, (IfThen, If, ElseIf)):
-                                    if ifcondcheck(stmt.f2003.items[0]):
+                                    if ifcondcheck(stmt.f2003.items[0], opts.threshold):
                                         p = stmt.ancestors()[-1]
                                         if p not in parstmts:
                                             parstmts.append(p)
