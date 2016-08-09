@@ -130,7 +130,7 @@ class SrcFile(object):
 
         return insert_lines
 
-    def __init__(self, srcpath):
+    def __init__(self, srcpath, preprocess=True):
         import os.path
         from kgen_utils import run_shcmd
         from statements import Comment
@@ -175,20 +175,24 @@ class SrcFile(object):
 
         # execute preprocessing
         Logger.info('Reading %s'%self.srcpath, stdout=True)
-        pp = Config.bin['pp']
-        if pp.endswith('fpp'):
-            if isfree: srcfmt = ' -free'
-            else: srcfmt = ' -fixed'
-            flags = Config.bin['fpp_flags'] + srcfmt
-        elif pp.endswith('cpp'):
-            flags = Config.bin['cpp_flags']
-        else: raise UserException('Preprocessor is not either fpp or cpp')
 
         new_lines = []
         with open(self.abspath, 'r') as f:
-            output, err, retcode = run_shcmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
-            prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
-            new_lines = self.handle_include(prep)
+            if preprocess:
+                pp = Config.bin['pp']
+                if pp.endswith('fpp'):
+                    if isfree: srcfmt = ' -free'
+                    else: srcfmt = ' -fixed'
+                    flags = Config.bin['fpp_flags'] + srcfmt
+                elif pp.endswith('cpp'):
+                    flags = Config.bin['cpp_flags']
+                else: raise UserException('Preprocessor is not either fpp or cpp')
+
+                output, err, retcode = run_shcmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
+                prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
+                new_lines = self.handle_include(prep)
+            else:
+                new_lines = f.read().split('\n')
 
         # add include paths
         if Config.include['file'].has_key(self.abspath) and Config.include['file'][self.abspath].has_key('path'):
