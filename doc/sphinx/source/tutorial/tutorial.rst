@@ -5,12 +5,12 @@
 Start here to begin working with KGen.
 
 
-Specifying a region of source code to be extracted
-----------------------------------------------------
+Specifying a kernel region
+--------------------------
 
 T.B.D.
 
-Letting KGen know how to clean/build/run application
-----------------------------------------------------
+Specifying how to clean/build/run an application
+------------------------------------------------
 
 T.B.D.
