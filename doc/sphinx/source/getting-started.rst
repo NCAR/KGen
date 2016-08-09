@@ -27,13 +27,15 @@ Current version does not need installation step. User can run KGen as following
 
     $KGEN/bin/kgen [options] <path to source file>
 
+------------
 Requirements
-````````````
+------------
 
-Python
-~~~~~~
-
-KGen requires Python 2.7 or later. It is not tested with Python 3.0 or later yet.
+- Linux OS
+- Python 2.7 or later but less than 3.0
+- Make building tool(make)
+- C Preprocessor(cpp)
+- System Call Tracer(strace)
 
 ----------------------------------
 First Kernel-generation using KGen
