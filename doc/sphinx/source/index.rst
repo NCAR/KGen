@@ -16,7 +16,7 @@ KGen documentation
    overview
    getting-started
    tutorial/index
-   user/index
+   user-guide
    developer/index
    examples/index
 
