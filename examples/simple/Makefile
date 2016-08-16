@@ -15,7 +15,7 @@ test:
 		--cmd-build "cd ${SRC_DIR}; make build" \
 		--cmd-run "cd ${SRC_DIR}; make run" \
 		${SRC}:${CALLSITE} 
-		#--source alias=/path/a:path/b # add this option if your system requires alias paths
+#--source alias=/path/a:path/b # add this option if your system requires alias paths
 
 clean:
 	${MAKE} clean -C src

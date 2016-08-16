@@ -18,6 +18,7 @@ KGen documentation
    tutorial/index
    user/index
    developer/index
+   reference/index
    examples/index
 
 Indices and tables

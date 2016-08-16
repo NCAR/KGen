@@ -230,3 +230,6 @@ trac_url = 'https://notdefined/trac/'
 mathjax_path = 'https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'
 
 numpydoc_show_class_members = False
+
+# add path for source code
+sys.path.insert(0, os.path.abspath('../../../base'))
