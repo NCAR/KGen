@@ -2,9 +2,8 @@
 
 import sys
 import os
-import glob
+import shutil
 import optparse
-import subprocess
 
 IFCOND_APP = os.path.dirname(os.path.realpath(__file__))
 KGEN_HOME = '%s/../..'%IFCOND_APP
@@ -21,29 +20,16 @@ import api
 
 file_exts = ['f', 'f90', 'f95', 'f03', 'f08', '.ftn', 'F', 'F90', 'F95', 'F03', 'F08', '.FTN', '.inc']
 
-#def handle_ifcond(stmt, expr, varid):
-#    '''handle if condition
-#        check the complexity of if cond.
-#        add spec stmt
-#        modify ifstmt
-#        add assign stmt
-#    '''
-#    p = stmt.ancestors()[-1]
-#    #if not condvar in p.a.variable_names:
-#    #    pass
-#    #import pdb; pdb.set_trace()
-# 
-
-def ifcondcheck(condexpr):
+def ifcondcheck(condexpr, threshold):
     def get_nodes(node, bag, depth):
-        if node:
+        if node and not hasattr(node, 'items'):
             bag['nodes'].append(node)
 
     bag = {'nodes': []}
     traverse(condexpr, get_nodes, bag)
     nodes = bag['nodes']
 
-    if len(nodes) > 10:
+    if len(nodes) > threshold:
         return True
     else:
         return False
@@ -51,7 +37,7 @@ def ifcondcheck(condexpr):
 def get_lastspecstmt(blockstmt):
     if not blockstmt: return None, None
     if not hasattr(blockstmt, 'content'): return None, None
-    if len(blockstmt.content) < 1: return None, None
+    if isinstance(blockstmt.content, str) or len(blockstmt.content) < 1: return None, None
 
     specstmt = blockstmt
     idx = 0
@@ -66,7 +52,8 @@ def add_specstmts(parstmt, numifstmts):
     # create decl stmt
     varstr = ', '.join([ 'ifcondvar%d'%num for num in range(numifstmts) ])
     declstmt = DummyStatement()
-    declstmt.forced_lines = [ 'LOGICAL %s'%varstr ]
+    #declstmt.forced_lines = [ 'LOGICAL %s'%varstr ]
+    declstmt.forced_lines = [ 'LOGICAL ifcondvar0']
 
     # add decl
     lastspecstmt, idx = get_lastspecstmt(parstmt)
@@ -77,12 +64,14 @@ def add_specstmts(parstmt, numifstmts):
 
 def simplify(ifstmt, condexpr, ifstmtid):
     # create assign stmt
-    assignstr = 'ifcondvar%d = %s'%(ifstmtid, condexpr.tofortran())
+    #assignstr = 'ifcondvar%d = %s'%(ifstmtid, condexpr.tofortran())
+    assignstr = 'ifcondvar0 = %s'%condexpr.tofortran()
     assignstmt = DummyStatement()
     assignstmt.forced_lines = [ assignstr ]
 
     # create simplified if stmt
-    ifstmt.expr = 'ifcondvar%d'%ifstmtid
+    #ifstmt.expr = 'ifcondvar%d'%ifstmtid
+    ifstmt.expr = 'ifcondvar0'
     ifstmt.forced_lines = [ ifstmt.tokgen() ]
 
     # add stmts
@@ -105,6 +94,7 @@ def main():
         # common options
         parser.add_option("--outdir", dest="outdir", action='store', type='string', default='output', help="path to create outputs")
         parser.add_option("--add-ext", dest="ext", action='store', type='string', default=None, help="File extensions to parse")
+        parser.add_option("-t", "--threshold", dest="threshold", action='store', type='int', default=20, help="Max number of identifiers if condition before simplifying.")
 
         opts, args = parser.parse_args()
 
@@ -118,8 +108,8 @@ def main():
         if not os.path.exists(outpath):
             os.makedirs(outpath)
         outsrcpath = '%s/src'%outpath
-        if not os.path.exists(outsrcpath):
-            os.makedirs(outsrcpath)
+        shutil.rmtree(outsrcpath)
+        os.makedirs(outsrcpath)
 
         # walk through source directory tree
         for srcdir in args:
@@ -127,7 +117,6 @@ def main():
 
             for dirName, subdirList, fileList in os.walk(abssrcpath):
                 relpath = os.path.relpath(dirName, start=abssrcpath)
-                #import pdb; pdb.set_trace()
 
                 outfilepath = '%s/%s'%(outsrcpath, relpath.replace('.', ''))
                 if not os.path.exists(outfilepath):
@@ -137,19 +126,19 @@ def main():
                     if any(srcfile.endswith(ext) for ext in file_exts):
                         try:
                             # read source file
-                            parsed = SrcFile(os.path.join(dirName, srcfile))
+                            parsed = SrcFile(os.path.join(dirName, srcfile), preprocess=False)
 
                             # create analysis container
                             parstmts = []
 
                             # anlyze
-                            last_span = ( -1, -1 )
+                            last_span = ( 1, 1 )
                             for stmt, depth in api.walk(parsed.tree):
                                 if isinstance(stmt, Comment):
                                     if stmt.item.span[0] >= last_span[0] and stmt.item.span[1] <= last_span[1]:
                                         stmt.ignore = True
                                 elif isinstance(stmt, (IfThen, If, ElseIf)):
-                                    if ifcondcheck(stmt.f2003.items[0]):
+                                    if ifcondcheck(stmt.f2003.items[0], opts.threshold):
                                         p = stmt.ancestors()[-1]
                                         if p not in parstmts:
                                             parstmts.append(p)
@@ -157,9 +146,7 @@ def main():
                                             p.simplify_ifstmts = []
                                         if stmt not in p.simplify_ifstmts:
                                             p.simplify_ifstmts.append(stmt)
-                                    last_span = stmt.item.span
-                                else:
-                                    last_span = stmt.item.span
+                                last_span = stmt.item.span
 
                             # modify
                             for parstmt in parstmts:
@@ -171,19 +158,26 @@ def main():
                                         simplify(ifstmt, ifstmt.f2003.items[0], i) 
 
                             # generate modified source files
-                            lines = []
-                            for stmt, depth in api.walk(parsed.tree):
-                                if hasattr(stmt, 'forced_lines'):
-                                    lines.extend(stmt.forced_lines)
-                                elif not stmt.ignore:
-                                    start = stmt.item.span[0]-1
-                                    end = stmt.item.span[1]
-                                    for line in stmt.top.prep[start:end]:
-                                        if not line.startswith('!KGEN# 1'):
+                            if len(parstmts) > 0:
+
+                                lines = []
+                                for stmt, depth in api.walk(parsed.tree):
+                                    if hasattr(stmt, 'forced_lines'):
+                                        lines.extend(stmt.forced_lines)
+                                    elif not stmt.ignore:
+                                        start = stmt.item.span[0]-1
+                                        end = stmt.item.span[1]
+                                        for line in stmt.top.prep[start:end]:
+                                            split = line.split()
+                                            if len(split) > 2 and split[0].startswith('!KGEN#') and split[1].isdigit():
+                                                continue
                                             lines.append(line)
+
                                 with open(os.path.join(outfilepath, srcfile), 'w') as f:
+                                    print 'Generating %s\n'%outfilepath
                                     f.write('\n'.join(lines))
                                     f.write('\n')
+
                         except Exception as e:
                             #import pdb; pdb.set_trace()
                             raise
@@ -211,4 +205,4 @@ def main():
     return retval
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

@@ -62,7 +62,7 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'expr': 'check_status%verboseLevel > 0'}
         ifstatobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'items': ['"Number of output-type variables: "','check_status%numTotal']}
+        attrs = {'items': ['"Number of output variables: "','check_status%numTotal']}
         part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Number of identical variables: "','check_status%numIdentical']}
