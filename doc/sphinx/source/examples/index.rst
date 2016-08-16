@@ -1,7 +1,7 @@
 .. _examples-index:
 
 *****************
-Examples
+KGen Examples
 *****************
 
 .. only:: html
