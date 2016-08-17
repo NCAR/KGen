@@ -1,15 +1,16 @@
 .. _classes:
 
-************
-KGen Classes
-************
+Classes
+*********
 
-KGen's kernel generation is based on features in several classes. In this document, main classes are explained.
+   :Release: |release|
+   :Date: |today|
 
 
-Overview
-========
+.. toctree::
+   :maxdepth: 2
 
-.. automodule:: api
-    :members:
+   kgen_search
 
+.. toctree::
+   :hidden:
