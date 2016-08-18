@@ -29,14 +29,13 @@ help:
 
 
 clean:
-	-rm -rf build/* source/reference/generated/* source/examples/* source/static/examples/* doc/source/*.pdf doc/source/*.zip 
-	-rm -rf ../examples/*/*.png
+	-rm -rf build/* source/reference/generated/* doc/source/*.pdf doc/source/*.zip 
 
 generate: build/generate-stamp
 build/generate-stamp: $(wildcard source/reference/*.rst)
 	mkdir -p build
 #	python make_gallery.py 
-	python make_examples_rst.py ../examples source
+#	python make_examples_rst.py ../examples source
 	touch build/generate-stamp
 
 

@@ -1,7 +1,7 @@
 .. _examples-index:
 
 *****************
-Examples
+KGen Examples
 *****************
 
 .. only:: html
@@ -12,3 +12,5 @@ Examples
 .. toctree::
     :maxdepth: 2
 
+    simple-region
+    simple-MPI
