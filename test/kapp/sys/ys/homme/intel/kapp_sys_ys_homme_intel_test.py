@@ -68,7 +68,7 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
         if not os.path.exists('%s/movies'%rundir):
             os.mkdir('%s/movies'%rundir)
         if os.path.exists('%s/vcoord'%rundir):
-            os.system('unlink %s/vcoord'%rundir)
+            os.system('rm -f %s/vcoord'%rundir)
         os.system('ln -s %s/test/vcoord %s/vcoord'%(tmpsrc, rundir))
 
         # create namelist
