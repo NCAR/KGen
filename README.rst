@@ -9,6 +9,9 @@ A Python tool that extracts partial codes out of a large Fortran application and
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
 
+Documentation
+   https://ncar.github.io/kgendocs
+
 Changes from KGEN ver. 0.6.3
 ----------------------------
 
