@@ -436,7 +436,8 @@ def process_include_option(include_option, incattrs):
                 else:
                     incattrs['file'][abspath]['macro'][option] = Inc.get(section, option)
         else:
-            print '%s is either not suppored keyword or can not be found. Ignored.' % section
+            pass
+            #print '%s is either not suppored keyword or can not be found. Ignored.' % section
 
 def process_exclude_option(exclude_option, excattrs):
 
