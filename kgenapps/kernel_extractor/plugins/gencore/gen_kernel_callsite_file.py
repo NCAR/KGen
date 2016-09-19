@@ -5,10 +5,14 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
+# TODO: place assoc construct into designated part
+# TODO: adjust in and out state of variables for verification
+
 from gencore_utils import KERNEL_PBLOCK_USE_PART, KERNEL_PBLOCK_DECL_PART, KERNEL_PBLOCK_EXEC_PART, \
     KERNEL_PBLOCK_CONTAINS_PART, KERNEL_PBLOCK_SUBP_PART, KERNEL_PBLOCK_READ_IN_LOCALS, \
     KERNEL_PBLOCK_READ_OUT_EXTERNS, KERNEL_PBLOCK_READ_OUT_LOCALS, KERNEL_TBLOCK_USE_PART, KERNEL_TBLOCK_DECL_PART, \
-    KERNEL_TBLOCK_CONTAINS_PART, KERNEL_TBLOCK_SUBP_PART, kernel_gencore_contains, KERNEL_PBLOCK_BEFORE_KERNEL, KERNEL_PBLOCK_AFTER_KERNEL
+    KERNEL_TBLOCK_CONTAINS_PART, KERNEL_TBLOCK_SUBP_PART, kernel_gencore_contains, KERNEL_PBLOCK_BEFORE_KERNEL, KERNEL_PBLOCK_AFTER_KERNEL, \
+    KERNEL_PBLOCK_ASSOC_BLOCK, KERNEL_PBLOCK_ENDASSOC_BLOCK
 
 class Gen_K_Callsite_File(Kgen_Plugin):
     def __init__(self):
@@ -42,6 +46,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         node.kgen_end_obj.tosubr = True
         node.kgen_end_obj.kgen_use_tokgen = True
+
+    def add_assoc_stmt(self, ):
+        pass
 
     def create_parentblock_parts(self, node):
 
@@ -137,24 +144,32 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_BEFORE_KERNEL, EXEC_PART, index=index+3)
         self.plugin_common[node.kgen_kernel_id]['ext.gencore']['blocks']['before_kernel'] = KERNEL_PBLOCK_BEFORE_KERNEL
 
-        part_insert_comment(node.kgen_parent, EXEC_PART, index+4, '')
-        part_insert_comment(node.kgen_parent, EXEC_PART, index+5, 'call to kgen kernel')
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_ASSOC_BLOCK, EXEC_PART, index=index+4)
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_ASSOC_BLOCK, '')
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_ASSOC_BLOCK, 'association construct block')
+
+        part_insert_comment(node.kgen_parent, EXEC_PART, index+5, '')
+        part_insert_comment(node.kgen_parent, EXEC_PART, index+6, 'call to kgen kernel')
 
         kernel_stmts = getinfo('callsite_stmts')
         if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
             attrs = {'designator': 'kgen_kernel'}
-            part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, attrs=attrs, index=index+6)
+            part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, attrs=attrs, index=index+7)
         else:
             start = node.kgen_stmt.item.span[0]-1
             end = node.kgen_stmt.item.span[1]
             lines = node.kgen_stmt.top.prep[start:end]
             lines_str = '\n'.join(lines)
-            dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+6)
+            dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+7)
             dummy_node.kgen_stmt = node.kgen_stmt
             dummy_node.kgen_forced_line = lines_str
 
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_ENDASSOC_BLOCK, EXEC_PART, index=index+8)
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_ENDASSOC_BLOCK, '')
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_ENDASSOC_BLOCK, 'end association construct block')
 
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_AFTER_KERNEL, EXEC_PART, index=index+7)
+
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_AFTER_KERNEL, EXEC_PART, index=index+9)
         self.plugin_common[node.kgen_kernel_id]['ext.gencore']['blocks']['after_kernel'] = KERNEL_PBLOCK_AFTER_KERNEL
 
     def invalid_kernel_stmts(self, node):
