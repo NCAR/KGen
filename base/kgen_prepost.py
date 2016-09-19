@@ -4,7 +4,7 @@ import sys
 import os.path
 from kgen_utils import Logger, Config, traverse, UserException, show_tree, run_shcmd
 from kgen_state import State
-from readfortran import FortranFileReader
+from readfortran import FortranFileReader, FortranStringReader
 from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
     NoMatchError, Module_Stmt, Program_Stmt, Named_Constant_Def_List
 
@@ -24,6 +24,32 @@ def get_MPI_PARAM(node, bag, depth):
             for item in node.items[1].items:
                 if isinstance(item, Named_Constant_Def) and item.items[0].string.upper()==bag['key']:
                     bag[bag['key']].append(str(item.items[1]).replace(' ', ''))
+
+def handle_include(mpifdir, lines):
+    import re
+    import os
+
+    insert_lines = []
+    for i, line in enumerate(lines):
+        match = re.match(r'^\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
+        if match:
+            include_dirs = [mpifdir]+Config.include['path']
+            filename = match.group(1)[1:-1].strip()
+            path = filename
+            for incl_dir in include_dirs:
+                path = os.path.join(incl_dir, filename)
+                if os.path.exists(path):
+                    break
+            if os.path.isfile(path):
+                with open(path, 'r') as f:
+                    included_lines = f.read()
+                    insert_lines.extend(handle_include(mpifdir, included_lines.split('\n')))
+            else:
+                raise UserException('Can not find %s in include paths.'%path)
+        else:
+            insert_lines.append(line)
+
+    return insert_lines
 
 def check_mode():
     from kgen_utils import Config, run_shcmd
@@ -198,11 +224,10 @@ def preprocess():
                         if mpifpath: break
 
             # collect required information
-            # TODO: FortranFileReader should be replaced with FortranStringReader after preprocessing
-            # TODO: include keyword should be handdled properly too.
             if mpifpath:
                 try:
-                    reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
+                    with open(mpifpath, 'r') as f:
+                        reader = FortranStringReader('\n'.join(handle_include(os.path.dirname(mpifpath), f.read().split('\n'))))
                     spec = Specification_Part(reader)
 
                     bag = {}
