@@ -44,7 +44,7 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
         prerun_cmds.append('module try-load impi/5.0.1.035')
         prerun_cmds.append('module try-load netcdf/4.3.0')
         prerun_cmds.append('module try-load pnetcdf/1.4.1')
-        prerun_cmds.append('module try-load cmake/2.8.10.2')
+        prerun_cmds.append('module try-load cmake/2.8.12.2')
 
         return prerun_cmds
 
@@ -72,9 +72,12 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
         os.system('ln -s %s/test/vcoord %s/vcoord'%(tmpsrc, rundir))
 
         # create namelist
-        if os.path.exists('%s/camBench.nl'%rundir):
-            os.remove('%s/camBench.nl'%rundir)
-        shutil.copy('%s/test/perftest/camBench.nl'%tmpsrc, rundir)
+        if os.path.exists('%s/perfTestWACCM.nl'%rundir):
+            os.remove('%s/perfTestWACCM.nl'%rundir)
+        shutil.copy('%s/test/reg_test/namelists/perfTestWACCM.nl'%tmpsrc, rundir)
+        #if os.path.exists('%s/camBench.nl'%rundir):
+        #    os.remove('%s/camBench.nl'%rundir)
+        #shutil.copy('%s/test/perftest/camBench.nl'%tmpsrc, rundir)
 
         # copy exclude.ini
         if os.path.exists('%s/exclude.ini'%workdir):
@@ -92,7 +95,8 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
 
         # create job submit script
         with open('%s/homme.submit'%rundir, 'w') as fd:
-            fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTest/perfTest'%blddir, '%s/camBench.nl'%rundir))
+            #fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTest/perfTest'%blddir, '%s/camBench.nl'%rundir))
+            fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTestWACCM/perfTestWACCM'%blddir, '%s/perfTestWACCM.nl'%rundir))
 
 
         if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))])==0:

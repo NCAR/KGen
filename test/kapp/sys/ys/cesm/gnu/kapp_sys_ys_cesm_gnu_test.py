@@ -20,7 +20,8 @@ class KAppSysYSCesmGnuTest(KAppSysYSCesmTest):
         datadir = '%s/data'%workdir
 
         # NOTE: svn co https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta07/ systestdir/cesm_ref
-        if self.REBUILD or not os.path.exists(datadir) or len([name for name in os.listdir(datadir) if os.path.isfile(os.path.join(datadir, name))])==0:
+        if self.REBUILD or not os.path.exists(datadir) or len([name for name in os.listdir(datadir) if os.path.isfile(os.path.join(datadir, name))])==0 or \
+            not os.path.exists(casedir):
 
             # check if project option exists
             if 'project' not in self.OPTIONS:
