@@ -159,6 +159,7 @@ class SrcFile(object):
         macros_src = []
         if Config.include['file'].has_key(self.abspath):
             path_src = Config.include['file'][self.abspath]['path']+[os.path.dirname(self.abspath)]
+            path_src = [ path for path in path_src if len(path)>0 ]
             for k, v in Config.include['file'][self.abspath]['macro'].iteritems():
                 if v:
                     macros_src.append('-D%s=%s'%(k,v))
