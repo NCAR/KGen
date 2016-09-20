@@ -211,7 +211,9 @@ def generate_kernel_makefile():
                     if dep_base in files:
                         dfc_flags_str += '_SET_%d'%i
                         break
-
+            if dfc_str == 'FC': dfc_str = 'FC_0'
+            if dfc_flags_str == 'FC_FLAGS': dfc_flags_str = 'FC_FLAGS_SET_0'
+ 
             write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, dfc_str, dfc_flags_str), t=True)
             write(f, '')
 
