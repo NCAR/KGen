@@ -5,6 +5,8 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
+# TODO: adjust in and out state of variables for verification
+
 from gencore_utils import KERNEL_PBLOCK_USE_PART, KERNEL_PBLOCK_DECL_PART, KERNEL_PBLOCK_EXEC_PART, \
     KERNEL_PBLOCK_CONTAINS_PART, KERNEL_PBLOCK_SUBP_PART, KERNEL_PBLOCK_READ_IN_LOCALS, \
     KERNEL_PBLOCK_READ_OUT_EXTERNS, KERNEL_PBLOCK_READ_OUT_LOCALS, KERNEL_TBLOCK_USE_PART, KERNEL_TBLOCK_DECL_PART, \
@@ -75,29 +77,41 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         part_append_comment(node, DECL_PART, '')
 
-        kernel_stmts = getinfo('callsite_stmts')
-        if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
-            # ensure contains
-            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
-            if not node in kernel_gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
-                part_append_comment(node, CONTAINS_PART, '')
-                part_append_genknode(node, CONTAINS_PART, statements.Contains)
-                part_append_comment(node, CONTAINS_PART, '')
-                kernel_gencore_contains.append(node)
+        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_IN_LOCALS, EXEC_PART, index=0)
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, '')
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, 'local input variables')
 
+        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_OUT_EXTERNS, EXEC_PART, index=1)
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, '')
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, 'extern output variables')
 
-            part_append_comment(node, SUBP_PART, 'kgen kernel subroutine')
-            attrs = {'name': 'kgen_kernel'}
-            subrobj = part_append_genknode(node, SUBP_PART, block_statements.Subroutine, attrs=attrs)
-            part_append_comment(node, SUBP_PART, '')
+        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_OUT_LOCALS, EXEC_PART, index=2)
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, '')
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, 'local output variables')
 
-            start = kernel_stmts[0].item.span[0]-1
-            end = kernel_stmts[-1].item.span[1]
-            lines = kernel_stmts[0].top.prep[start:end]
-            lines_str = '\n'.join(lines)
-            dummy_node = part_append_genknode(subrobj, EXEC_PART, statements.Call)
-            dummy_node.kgen_stmt = getinfo('dummy_stmt')
-            dummy_node.kgen_forced_line = lines_str
+#        kernel_stmts = getinfo('callsite_stmts')
+#        if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
+#            # ensure contains
+#            checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Contains
+#            if not node in kernel_gencore_contains and not part_has_node(node, CONTAINS_PART, checks):
+#                part_append_comment(node, CONTAINS_PART, '')
+#                part_append_genknode(node, CONTAINS_PART, statements.Contains)
+#                part_append_comment(node, CONTAINS_PART, '')
+#                kernel_gencore_contains.append(node)
+#
+#
+#            part_append_comment(node, SUBP_PART, 'kgen kernel subroutine')
+#            attrs = {'name': 'kgen_kernel'}
+#            subrobj = part_append_genknode(node, SUBP_PART, block_statements.Subroutine, attrs=attrs)
+#            part_append_comment(node, SUBP_PART, '')
+#
+#            start = kernel_stmts[0].item.span[0]-1
+#            end = kernel_stmts[-1].item.span[1]
+#            lines = kernel_stmts[0].top.prep[start:end]
+#            lines_str = '\n'.join(lines)
+#            dummy_node = part_append_genknode(subrobj, EXEC_PART, statements.Call)
+#            dummy_node.kgen_stmt = getinfo('dummy_stmt')
+#            dummy_node.kgen_forced_line = lines_str
         # debug
 #        attrs = {'variable': 'kgen_region_started', 'sign': '=', 'expr': '.TRUE.'}
 #        part_insert_gensnode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=0)
@@ -122,39 +136,47 @@ class Gen_K_Callsite_File(Kgen_Plugin):
     def create_callsite_parts(self, node):
         index, partname, part = get_part_index(node)
 
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_IN_LOCALS, EXEC_PART, index=index)
-        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, '')
-        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, 'local input variables')
+#        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_IN_LOCALS, EXEC_PART, index=index)
+#        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, '')
+#        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, 'local input variables')
+#
+#        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_EXTERNS, EXEC_PART, index=index+1)
+#        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, '')
+#        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, 'extern output variables')
+#
+#        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_LOCALS, EXEC_PART, index=index+2)
+#        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, '')
+#        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, 'local output variables')
 
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_EXTERNS, EXEC_PART, index=index+1)
-        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, '')
-        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, 'extern output variables')
-
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_READ_OUT_LOCALS, EXEC_PART, index=index+2)
-        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, '')
-        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, 'local output variables')
-
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_BEFORE_KERNEL, EXEC_PART, index=index+3)
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_BEFORE_KERNEL, EXEC_PART, index=index)
         self.plugin_common[node.kgen_kernel_id]['ext.gencore']['blocks']['before_kernel'] = KERNEL_PBLOCK_BEFORE_KERNEL
 
-        part_insert_comment(node.kgen_parent, EXEC_PART, index+4, '')
-        part_insert_comment(node.kgen_parent, EXEC_PART, index+5, 'call to kgen kernel')
+        part_insert_comment(node.kgen_parent, EXEC_PART, index+1, '')
+        part_insert_comment(node.kgen_parent, EXEC_PART, index+2, 'call to kgen kernel')
+#
+#        kernel_stmts = getinfo('callsite_stmts')
+#        if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
+#            attrs = {'designator': 'kgen_kernel'}
+#            part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, attrs=attrs, index=index+3)
+#        else:
+#            start = node.kgen_stmt.item.span[0]-1
+#            end = node.kgen_stmt.item.span[1]
+#            lines = node.kgen_stmt.top.prep[start:end]
+#            lines_str = '\n'.join(lines)
+#            dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+3)
+#            dummy_node.kgen_stmt = node.kgen_stmt
+#            dummy_node.kgen_forced_line = lines_str
 
         kernel_stmts = getinfo('callsite_stmts')
-        if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
-            attrs = {'designator': 'kgen_kernel'}
-            part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, attrs=attrs, index=index+6)
-        else:
-            start = node.kgen_stmt.item.span[0]-1
-            end = node.kgen_stmt.item.span[1]
-            lines = node.kgen_stmt.top.prep[start:end]
-            lines_str = '\n'.join(lines)
-            dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+6)
-            dummy_node.kgen_stmt = node.kgen_stmt
-            dummy_node.kgen_forced_line = lines_str
+        start = kernel_stmts[0].item.span[0]-1
+        end = kernel_stmts[-1].item.span[1]
+        lines = kernel_stmts[0].top.prep[start:end]
+        lines_str = '\n'.join(lines)
+        dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+3)
+        dummy_node.kgen_stmt = getinfo('dummy_stmt')
+        dummy_node.kgen_forced_line = lines_str
 
-
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_AFTER_KERNEL, EXEC_PART, index=index+7)
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_AFTER_KERNEL, EXEC_PART, index=index+4)
         self.plugin_common[node.kgen_kernel_id]['ext.gencore']['blocks']['after_kernel'] = KERNEL_PBLOCK_AFTER_KERNEL
 
     def invalid_kernel_stmts(self, node):

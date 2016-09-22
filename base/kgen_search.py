@@ -9,7 +9,7 @@ Module content
 from kgen_utils import Config, Logger, show_tree, KGGenType
 import Fortran2003
 from typedecl_statements import TypeDeclarationStatement, TypeStmt
-from block_statements import Type, TypeDecl, Function, Subroutine, Interface, execution_part
+from block_statements import Type, TypeDecl, Function, Subroutine, Interface, execution_part, Associate
 from statements import External, Common, SpecificBinding
 from kgen_extra import Intrinsic_Procedures
 from ordereddict import OrderedDict
@@ -19,9 +19,10 @@ res_external = [ External ]
 res_typedecl = [ TypeDeclarationStatement ]
 res_typestmt = [ TypeStmt ]
 res_derivedtype = [ Type, TypeDecl ] 
+res_associate = [ Associate ] 
 res_kind = [ TypeDeclarationStatement ] + res_derivedtype
 res_typespec = [ TypeDeclarationStatement ] + res_derivedtype
-res_value = [ TypeDeclarationStatement, Function, Interface ] + res_external
+res_value = [ TypeDeclarationStatement, Function, Interface ] + res_external + res_associate
 res_subroutine = [ Subroutine, Interface ] + res_external
 res_function = [ Function, Interface ] + res_external
 res_subprogram = [ Subroutine, Function, Interface ] + res_external
@@ -494,10 +495,11 @@ def search_Case_Selector(stmt, node, gentype=None):
 def search_Call_Stmt(stmt, node, gentype=None): 
     """ Identifying a name in Call_Stmt node"""
     get_name_or_defer(stmt, node.items[0], res_subroutine)
-    if isinstance(node.items[1], Fortran2003.Name):
-        get_name_or_defer(stmt, node.items[1], res_value)
-    else:
-        defer(stmt, node.items[1])
+    #if isinstance(node.items[1], Fortran2003.Name):
+    #    get_name_or_defer(stmt, node.items[1], res_value)
+    #else:
+    #    defer(stmt, node.items[1])
+    get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Char_Literal_Constant(stmt, node, gentype=None): 
     """ Identifying a name in Char_Literal_Constant node"""

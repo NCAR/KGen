@@ -6,6 +6,7 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
+KERNEL_PBLOCK_TIMING = 'KPBTIM'
 
 class Simple_Timing(Kgen_Plugin):
     def __init__(self):
@@ -16,10 +17,20 @@ class Simple_Timing(Kgen_Plugin):
         self.frame_msg = msg
 
         # register event per function 
-        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
-            getinfo('parentblock_stmt'), None, self.add_simple_timing) 
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
+            getinfo('parentblock_stmt'), None, self.add_execblock) 
 
-    def add_simple_timing(self, node):
+
+    def add_execblock(self, node):
+        def ispstmt(stmt, cmpstmt, limitstmt):
+            if stmt == cmpstmt:
+                return True
+            elif stmt == limitstmt:
+                return False
+            elif hasattr(stmt, 'parent'):
+                return ispstmt(stmt.parent, cmpstmt, limitstmt)
+            else:
+                return False
 
         attrs = {'type_spec': 'INTEGER', 'selector': ('8', None), \
             'entity_decls': ['kgen_intvar', 'kgen_start_clock', 'kgen_stop_clock', 'kgen_rate_clock']}
@@ -28,30 +39,21 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['kgen_maxiter = %s'%getinfo('repeat_count')]}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
-        #attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': ['kgen_elapsed_time']}
-        #part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
-
-        part_append_comment(node, EXEC_PART, '')
-        part_append_comment(node, EXEC_PART, 'Measuring elapsed time. Please increase the value of kgen_maxiter to get improve timing measurment resolution.')
-
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 
         attrs = {'loopcontrol': 'kgen_intvar = 1, kgen_maxiter'}
         doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
+           
+        execpart = get_part(node, EXEC_PART)
+        namedpart_create_subpart(doobj, KERNEL_PBLOCK_TIMING, EXEC_PART)
 
-        kernel_stmts = getinfo('callsite_stmts')
-        if len(kernel_stmts)==1 and isinstance(kernel_stmts[0], statements.Call):
-            start = kernel_stmts[0].item.span[0]-1
-            end = kernel_stmts[0].item.span[1]
-            lines = kernel_stmts[0].top.prep[start:end]
-            lines_str = '\n'.join(lines)
-            dummy_node = part_append_genknode(doobj, EXEC_PART, statements.Call)
-            dummy_node.kgen_stmt = kernel_stmts[0]
-            dummy_node.kgen_forced_line = lines_str
-        else:
-            attrs = {'designator': 'kgen_kernel'}
-            part_append_genknode(doobj, EXEC_PART, statements.Call, attrs=attrs)
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, 'TEST!!!!')
+
+        for elem in execpart:
+            if hasattr(elem, 'kgen_stmt') and ispstmt(getinfo('callsite_stmts')[0], elem.kgen_stmt, node.kgen_stmt):
+                namedpart_append_node(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, elem)
+
         
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
@@ -61,7 +63,3 @@ class Simple_Timing(Kgen_Plugin):
 
         attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_elapsed_time']}
         part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
-
-        #attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_elapsed_time'}
-        #part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
- 

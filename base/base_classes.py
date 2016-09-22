@@ -27,7 +27,7 @@ from utils import classes
 logger = logging.getLogger('kgen')
 
 import Fortran2003
-from kgen_utils import KGName, Logger, ProgramException
+from kgen_utils import KGName, Logger, ProgramException, traverse
 
 class ImplicitRule_Resolver(object):
     def __init__(self, name):
@@ -1071,7 +1071,7 @@ class BeginStatement(Statement):
         from kgen_state import ResState
         from kgen_search import f2003_search_unknowns
         from kgen_utils import pack_exnamepath
-        from block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine, Interface
+        from block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine, Interface, Associate
         from typedecl_statements import TypeDeclarationStatement
         from statements import External, Use, SpecificBinding
         from api import walk
@@ -1088,6 +1088,7 @@ class BeginStatement(Statement):
 
         # check if stmt is either subprogram, module, interface
         if isinstance(self, HasUseStmt):
+
             # NOTE: check if the resolver is in the file or in other file
             # check if internal a subprogram can resolve
             if request.state != ResState.RESOLVED:
@@ -1119,6 +1120,7 @@ class BeginStatement(Statement):
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
 
+            # check if self is a subprogram and it can resolve
             if request.state != ResState.RESOLVED:
                 subp = None
                 if isinstance(self, SubProgramStatement) and request.uname.firstpartname()==self.name:
@@ -1374,6 +1376,43 @@ class BeginStatement(Statement):
                                 for unk, req in _stmt.unknowns.iteritems():
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
+
+        elif isinstance(self, Associate):
+            def get_name(node, bag, depth):
+                if isinstance(node, Fortran2003.Association):
+                    bag[node.items[0].string] = node.items[2]
+
+            # check if associate construct can resolve
+            assocnames = {}
+            traverse(self.f2003, get_name, assocnames)
+
+            if request.state != ResState.RESOLVED and request.uname.firstpartname() in assocnames:
+                assoc_stmt  = self
+                if any( isinstance(assoc_stmt, resolver) for resolver in request.resolvers ):
+                    Logger.info('The request is being resolved by a association construct', name=request.uname, stmt=self)
+                    request.res_stmts.append(assoc_stmt)
+                    request.state = ResState.RESOLVED
+                    assoc_stmt.add_geninfo(request.uname, request)
+                    Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=assoc_stmt)
+
+                    #if self not in request.originator.ancestors():
+                    if not hasattr(assoc_stmt, 'unknowns'):
+                        f2003_search_unknowns(assoc_stmt, assocnames[request.uname.firstpartname()])
+
+                    if hasattr(assoc_stmt, 'unknowns'):
+                        if not hasattr(assoc_stmt, 'assoc_map'):
+                            assoc_stmt.assoc_map = {}
+                        for unk, req in assoc_stmt.unknowns.iteritems():
+
+                            if unk in assoc_stmt.assoc_map:
+                                if request.uname not in assoc_stmt.assoc_map[unk]:
+                                    assoc_stmt.assoc_map[unk].append(request.uname)
+                            else:
+                                assoc_stmt.assoc_map[unk] = [ request.uname ]
+
+                            if req.state != ResState.RESOLVED:
+                                assoc_stmt.resolve(req) 
+
         # defer to super
         if request.state != ResState.RESOLVED:
             super(BeginStatement, self).resolve(request)

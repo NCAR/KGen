@@ -100,6 +100,23 @@ class Verify_Type(Kgen_Plugin):
             attrs = {'items': ['""']}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
 
+        def print_dtype_detail(parent, entity_name):
+
+            attrs = {'items': [ '"    number of components       : "', 'comp_check_status%numtotal']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': [ '"    identical                  : "', 'comp_check_status%numidentical']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': [ '"    not identical - out of tol.: "', 'comp_check_status%numouttol']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': [ '"    not identical - within tol.: "', 'comp_check_status%numintol']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['""']}
+            part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
+
         def print_num_detail(parent, entity_name):
             attrs = {'items': ['"Difference is "', 'diff_%s'%entity_name]}
             part_append_genknode(parent, EXEC_PART, statements.Write, attrs=attrs)
@@ -404,7 +421,68 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
                     else: # scalar
-                        if not stmt.is_derived():
+                        if stmt.is_derived():
+
+                            callname = None
+                            for uname, req in stmt.unknowns.iteritems():
+                                if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
+                                    callname = get_dtype_verifyname(req.res_stmts[0])
+                                    break
+                            #import pdb; pdb.set_trace()
+                            if callname:
+
+                                attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'verboseLevel=check_status%verboseLevel']}
+                                part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
+
+                                attrs = {'designator': callname, 'items': ['"%s"'%entity_name, 'comp_check_status', 'var%%%s'%entity_name, 'kgenref_var%%%s'%entity_name]}
+                                part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
+
+                                attrs = {'expr': 'comp_check_status%numTotal == comp_check_status%numIdentical'}
+                                ifidobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                                attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                attrs = {'expr': 'check_status%verboseLevel > 2'}
+                                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                                attrs = {'items': ['trim(adjustl(varname))//"%%%s"'%entity_name,'" is IDENTICAL."']}
+                                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IDENTICAL'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                attrs = {'expr': 'comp_check_status%numOutTol > 0'}
+                                part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+                                attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(out of tolerance)."'%entity_name]}
+                                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_OUT_TOL'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                attrs = {'expr': 'comp_check_status%numInTol > 0'}
+                                part_append_genknode(ifidobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
+
+                                attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                                attrs = {'items': ['trim(adjustl(varname))','"%%%s is NOT IDENTICAL(within tolerance)."'%entity_name]}
+                                part_append_genknode(ifvlobj, EXEC_PART, statements.Write, attrs=attrs)
+
+                                attrs = {'variable': 'check_result', 'sign': '=', 'expr': 'CHECK_IN_TOL'}
+                                part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                        else:
                             # diff
                             attrs = {'type_spec': stmt.name, 'selector':stmt.selector, 'entity_decls': ['diff_%s'%entity_name]}
                             part_append_genknode(subrobj, DECL_PART, stmt.__class__, attrs=attrs)
@@ -488,7 +566,7 @@ class Verify_Type(Kgen_Plugin):
                                 pass
                     else:
                         if stmt.is_derived():
-                            pass
+                            print_detail = print_dtype_detail
                         else:
                             if stmt.is_numeric():
                                 print_detail = print_num_detail
@@ -497,6 +575,8 @@ class Verify_Type(Kgen_Plugin):
 
                     attrs = {'expr': 'check_result == CHECK_IDENTICAL'}
                     ifchkobj = part_append_genknode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                    part_append_genknode(ifchkobj, EXEC_PART, statements.Continue)
 
 #                    attrs = {'expr': 'check_status%verboseLevel > 2'}
 #                    iflevel3obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
