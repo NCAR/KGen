@@ -1398,8 +1398,18 @@ class BeginStatement(Statement):
                     #if self not in request.originator.ancestors():
                     if not hasattr(assoc_stmt, 'unknowns'):
                         f2003_search_unknowns(assoc_stmt, assocnames[request.uname.firstpartname()])
+
                     if hasattr(assoc_stmt, 'unknowns'):
+                        if not hasattr(assoc_stmt, 'assoc_map'):
+                            assoc_stmt.assoc_map = {}
                         for unk, req in assoc_stmt.unknowns.iteritems():
+
+                            if unk in assoc_stmt.assoc_map:
+                                if request.uname not in assoc_stmt.assoc_map[unk]:
+                                    assoc_stmt.assoc_map[unk].append(request.uname)
+                            else:
+                                assoc_stmt.assoc_map[unk] = [ request.uname ]
+
                             if req.state != ResState.RESOLVED:
                                 assoc_stmt.resolve(req) 
 

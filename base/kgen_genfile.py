@@ -615,7 +615,7 @@ def part_insert_genknode(pnode, name, clsobj, index, attrs=None, is_partname=Non
 def part_insert_gensnode(pnode, name, clsobj, index, attrs=None, is_partname=None):
     return part_insert_gennode(gensobj, pnode, name, clsobj, index, attrs=attrs, is_partname=is_partname)
 
-def part_remove_node(pnode, name, node):
+def part_remove_node(pnode, name, node, is_partname=None):
     part = get_part(pnode, name, is_partname=is_partname)
     part.remove(node)
     return node

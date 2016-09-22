@@ -8,7 +8,7 @@ from Fortran2003 import Name, Call_Stmt, Function_Reference, Part_Ref, Interface
     Section_Subscript_List, Actual_Arg_Spec, Structure_Constructor_2
 from ordereddict import OrderedDict
 from typedecl_statements import TypeDeclarationStatement
-from block_statements import SubProgramStatement
+from block_statements import SubProgramStatement, Associate
 from api import walk
 
 def update_state_info(parent):
@@ -29,82 +29,93 @@ def update_state_info(parent):
                 any(len(v)>0 for v in stmt.geninfo.values()):
                 for uname, req in KGGenType.get_state_in(stmt.geninfo):
                     if KGGenType.has_uname_out(uname, stmt.geninfo): continue
+                    # select names for searching
+                    respairs = []
+                    if req.originator in State.callsite['stmts']:
+                        respairs.append((uname, req.originator))
+                    elif isinstance(req.originator, Associate):
+                        if uname in req.originator.assoc_map:
+                            for auname in req.originator.assoc_map[uname]:
+                                for aruname, arreq in KGGenType.get_state_in(req.originator.geninfo):
+                                    if auname == aruname:
+                                        respairs.append((auname, arreq.originator))
 
-                    org = req.originator
-                    if org in State.callsite['stmts']:
-                        bag = {'name': uname.firstpartname(), 'lineage': [] }
-                        traverse(org.f2003, get_nodes, bag)
-                        for lineage in bag['lineage']:
-                            copied = False
-                            for lidx, anc in enumerate(lineage):
-                                # get callname
-                                callname = None
-                                if anc.__class__ in [ Call_Stmt, Function_Reference ]:
-                                    callname = anc.items[0].string
-                                elif anc.__class__ == Part_Ref:
-                                    callname = anc.items[0].string
-                                elif anc.__class__ == Interface_Stmt:
-                                    callname = anc.items[0].string
-
-                                # get caller and callee objects
-                                callobj = None
-                                subpobj = None
-                                if callname:
-                                    for org_uname, org_req in org.unknowns.iteritems():
-                                        if org_uname.firstpartname()==callname:
-                                            if isinstance(org_req.res_stmts[0], SubProgramStatement):
-                                                callobj = anc
-                                                subpobj = org_req.res_stmts[0]
-                                            break
-                                    
-                                # get argument index
-                                argidx = -1
-                                is_keyword = False
-                                if callobj and subpobj:
-                                    if callobj.__class__ in [ Call_Stmt, Function_Reference ]:
-                                        arglist = callobj.items[1]
-                                        if arglist is None: pass
-                                        elif isinstance(arglist, Actual_Arg_Spec):
-                                            argobj = lineage[lidx+1]
-                                            kword = argobj.items[0].string
-                                            argidx = subpobj.args.index(kword)
-                                        elif isinstance(arglist, Actual_Arg_Spec_List):
-                                            #if len(lineage)<(lidx+3): import pdb; pdb.set_trace()
-                                            argobj = lineage[lidx+2]
-                                            argidx = arglist.items.index(argobj)
-                                            if isinstance(argobj, Actual_Arg_Spec):
-                                                kword = argobj.items[0].string
-                                                argidx = subpobj.args.index(kword)
-                                        else:
-                                            argidx = 0
+                    if len(respairs) > 0:
+                        copied = False
+                        for varname, org in respairs:
+                            bag = {'name': varname.firstpartname(), 'lineage': [] }
+                            traverse(org.f2003, get_nodes, bag)
+                            for lineage in bag['lineage']:
+                                for lidx, anc in enumerate(lineage):
+                                    # get callname
+                                    callname = None
+                                    if anc.__class__ in [ Call_Stmt, Function_Reference ]:
+                                        callname = anc.items[0].string
                                     elif anc.__class__ == Part_Ref:
-                                        arglist = callobj.items[1]
-                                        if arglist is None: pass
-                                        elif isinstance(arglist, Structure_Constructor_2):
-                                            argobj = lineage[lidx+1]
-                                            kword = argobj.items[0].string
-                                            argidx = subpobj.args.index(kword)
-                                        elif isinstance(arglist, Section_Subscript_List):
-                                            #if len(lineage)<(lidx+3): import pdb; pdb.set_trace()
-                                            argobj = lineage[lidx+2]
-                                            argidx = arglist.items.index(argobj)
-                                            if isinstance(argobj, Structure_Constructor_2):
+                                        callname = anc.items[0].string
+                                    elif anc.__class__ == Interface_Stmt:
+                                        callname = anc.items[0].string
+
+                                    # get caller and callee objects
+                                    callobj = None
+                                    subpobj = None
+                                    if callname:
+                                        for org_uname, org_req in org.unknowns.iteritems():
+                                            if org_uname.firstpartname()==callname:
+                                                if isinstance(org_req.res_stmts[0], SubProgramStatement):
+                                                    callobj = anc
+                                                    subpobj = org_req.res_stmts[0]
+                                                break
+                                        
+                                    # get argument index
+                                    argidx = -1
+                                    is_keyword = False
+                                    if callobj and subpobj:
+                                        if callobj.__class__ in [ Call_Stmt, Function_Reference ]:
+                                            arglist = callobj.items[1]
+                                            if arglist is None: pass
+                                            elif isinstance(arglist, Actual_Arg_Spec):
+                                                argobj = lineage[lidx+1]
                                                 kword = argobj.items[0].string
                                                 argidx = subpobj.args.index(kword)
-                                        else:
-                                            argidx = 0
-                                    elif anc.__class__ == Interface_Stmt:
-                                        import pdb; pdb.set_trace()
+                                            elif isinstance(arglist, Actual_Arg_Spec_List):
+                                                #if len(lineage)<(lidx+3): import pdb; pdb.set_trace()
+                                                argobj = lineage[lidx+2]
+                                                argidx = arglist.items.index(argobj)
+                                                if isinstance(argobj, Actual_Arg_Spec):
+                                                    kword = argobj.items[0].string
+                                                    argidx = subpobj.args.index(kword)
+                                            else:
+                                                argidx = 0
+                                        elif anc.__class__ == Part_Ref:
+                                            arglist = callobj.items[1]
+                                            if arglist is None: pass
+                                            elif isinstance(arglist, Structure_Constructor_2):
+                                                argobj = lineage[lidx+1]
+                                                kword = argobj.items[0].string
+                                                argidx = subpobj.args.index(kword)
+                                            elif isinstance(arglist, Section_Subscript_List):
+                                                #if len(lineage)<(lidx+3): import pdb; pdb.set_trace()
+                                                argobj = lineage[lidx+2]
+                                                argidx = arglist.items.index(argobj)
+                                                if isinstance(argobj, Structure_Constructor_2):
+                                                    kword = argobj.items[0].string
+                                                    argidx = subpobj.args.index(kword)
+                                            else:
+                                                argidx = 0
+                                        elif anc.__class__ == Interface_Stmt:
+                                            import pdb; pdb.set_trace()
 
-                                # get intent
-                                if argidx>=0:
-                                    argname = subpobj.args[argidx]
-                                    var = subpobj.a.variables[subpobj.args[argidx]]
-                                    if var.is_intent_out() or var.is_intent_inout():
-                                        req.gentype = KGGenType.STATE_OUT
-                                        stmt.add_geninfo(uname, req)
-                                        copied = True
-                                        break
+                                    # get intent
+                                    if argidx>=0:
+                                        argname = subpobj.args[argidx]
+                                        var = subpobj.a.variables[subpobj.args[argidx]]
+                                        if var.is_intent_out() or var.is_intent_inout():
+                                            req.gentype = KGGenType.STATE_OUT
+                                            stmt.add_geninfo(uname, req)
+                                            copied = True
+                                            break
+                                if copied: break
                             if copied: break
 
     if hasattr(parent, 'parent'):
