@@ -44,7 +44,7 @@ class KAppSysYSHommeGnuTest(KAppSysYSHommeTest):
         #prerun_cmds.append('module try-load impi/5.0.1.035')
         prerun_cmds.append('module try-load netcdf/4.3.0')
         prerun_cmds.append('module try-load pnetcdf/1.4.1')
-        prerun_cmds.append('module try-load cmake/2.8.10.2')
+        prerun_cmds.append('module try-load cmake/3.0.2')
 
         return prerun_cmds
 
@@ -113,6 +113,7 @@ class KAppSysYSHommeGnuTest(KAppSysYSHommeTest):
             cmake_cmd.append('-DNETCDF_DIR:PATH=$NETCDF')
             cmake_cmd.append('-DPNETCDF_DIR:PATH=$PNETCDF')
             cmake_cmd.append('-DHDF5_DIR:PATH=/glade/apps/opt/hdf5/1.8.12/gnu/4.8.2')
+            cmake_cmd.append('-DSZIP_DIR:PATH=/glade/apps/opt/szip/2.1/intel/12.1.5')
             cmake_cmd.append(tmpsrc)
 
             if self.LEAVE_TEMP:
