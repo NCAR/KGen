@@ -110,11 +110,22 @@ def update_state_info(parent):
                                     if argidx>=0:
                                         argname = subpobj.args[argidx]
                                         var = subpobj.a.variables[subpobj.args[argidx]]
-                                        if var.is_intent_out() or var.is_intent_inout():
+                                        if var.is_intent_inout():
                                             req.gentype = KGGenType.STATE_OUT
                                             stmt.add_geninfo(uname, req)
                                             copied = True
-                                            break
+                                        elif var.is_intent_out():
+                                            req.gentype = KGGenType.STATE_OUT
+                                            stmt.add_geninfo(uname, req)
+                                            idx = -1
+                                            for i, (guname, greq) in enumerate(stmt.geninfo[KGGenType.STATE_IN]):
+                                                if guname == uname and greq == req:
+                                                    idx = i
+                                                    break
+                                            if idx >= 0:
+                                                stmt.geninfo[KGGenType.STATE_IN].pop(idx)
+                                            copied = True
+                                        break
                                 if copied: break
                             if copied: break
 
