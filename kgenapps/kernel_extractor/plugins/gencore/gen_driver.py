@@ -74,7 +74,7 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
-        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        part_append_genknode(node, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': \
             ['kgen_elapsed_time', 'kgen_total_time', 'kgen_min_time', 'kgen_max_time'], }

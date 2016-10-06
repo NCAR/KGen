@@ -123,6 +123,12 @@ def update_state_info(parent):
 
 
 def analyze():
+
+    analyze_callsite()
+
+    analyze_stateuser()
+
+def analyze_callsite():
     from block_statements import EndStatement, Subroutine, Function, Interface
     from statements import SpecificBinding
     from kgen_search import f2003_search_unknowns
@@ -130,7 +136,10 @@ def analyze():
     # read source file that contains callsite stmt
     cs_file = SrcFile(Config.callsite['filepath'])
 
-    locate_callsite(cs_file.tree)
+    process_directive(cs_file.tree)
+
+    if len(State.callsite['stmts'])==0:
+        raise UserException('Can not find callsite')
 
     # ancestors of callsite stmt
     ancs = State.callsite['stmts'][0].ancestors()
@@ -157,14 +166,9 @@ def analyze():
 
     # populate parent block parameters
     State.parentblock['stmt'] = ancs[-1]
-    #State.parentblock['expr'] = State.parentblock['stmt'].f2003
-    #collect_args_from_subpstmt(State.parentblock['stmt'], State.parentblock['dummy_arg'])
 
     # populate top block parameters
-    #State.topblock['file'] = cs_file
-    #State.topblock['path'] = cs_file.abspath
     State.topblock['stmt'] = ancs[0]
-    #State.topblock['expr'] = State.topblock['stmt'].f2003
 
     for cs_stmt in State.callsite['stmts']:
         #resolve cs_stmt
@@ -184,7 +188,16 @@ def analyze():
         if modstmt != State.topblock['stmt']:
             update_state_info(moddict['stmt'])
 
-def locate_callsite(cs_tree):
+def analyze_stateuser():
+    for su_path in Config.source['state']:
+        su_file = None
+        if su_path in State.srcfiles:
+            su_file = State.srcfiles[su_path][0]
+        else:
+            su_file = SrcFile(su_path)
+        process_directive(su_file.tree)
+
+def process_directive(tree):
     from statements import Comment
     from block_statements import executable_construct
     import re
@@ -208,7 +221,7 @@ def locate_callsite(cs_tree):
        
     # collect directives
     directs = []
-    for stmt, depth in walk(cs_tree):
+    for stmt, depth in walk(tree):
         if isinstance(stmt, Comment):
             line = stmt.item.comment.strip()
             match = re.match(r'^[c!*]\$kgen\s+(.+)$', line, re.IGNORECASE)
@@ -239,6 +252,9 @@ def locate_callsite(cs_tree):
                         State.callsite['stmts'].append(next_fort_stmt)
                     else:
                         raise UserException('WARNING: callsite is not found')
+                elif dname=='write':
+                    if clause:
+                        stmt.write_state = clause.split(',')
             elif 'callsite' in directs:
                 State.callsite['stmts'].append(stmt)
         elif 'callsite' in directs:
@@ -255,6 +271,3 @@ def locate_callsite(cs_tree):
                         return
             elif len(directs)>0 and directs[-1]=='callsite':
                 State.callsite['stmts'].append(stmt)
-
-    if len(State.callsite['stmts'])==0:
-        raise UserException('Can not find callsite')

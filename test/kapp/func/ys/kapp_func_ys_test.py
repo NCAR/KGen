@@ -93,43 +93,6 @@ class KAppFuncYSTest(KAppFuncTest):
             self.set_status(result, myname, self.FAILED, err)
         return result
 
-#        outfiles = []
-#        for statefile in statefiles:
-#            outfile = os.path.join('%s/kernel'%workdir, statefile)
-#            if os.path.exists(outfile):
-#                outfiles.append(outfile)
-
-#    def genstate(self, myname, result):
-#
-#        workdir = result['mkdir_task']['workdir']
-#        statefiles = result['generate_task']['statefiles']
-#        FC = result['config_task']['FC']
-#        FC_FLAGS = result['config_task']['FC_FLAGS']
-#        PRERUN = result['config_task']['PRERUN']
-#
-#        out, err, retcode = self.run_shcmd('make FC="%s" FC_FLAGS="%s" PRERUN="%s"'%(FC, FC_FLAGS, PRERUN), cwd='%s/state'%workdir)
-#        result[myname]['stdout'] = out 
-#        result[myname]['stderr'] = err
-#
-#        if retcode != 0:
-#            print (out, err, retcode)
-#            self.set_status(result, myname, self.FAILED, err)
-#            return result
-#
-#        outfiles = []
-#        for statefile in statefiles:
-#            outfile = os.path.join('%s/kernel'%workdir, statefile)
-#            if os.path.exists(outfile):
-#                outfiles.append(outfile)
-#
-#        result[myname]['outfiles'] = outfiles
-#
-#        if len(outfiles)==len(statefiles):
-#            self.set_status(result, myname, self.PASSED)
-#        else:
-#            self.set_status(result, myname, self.FAILED, errmsg=str(outfiles))
-#        return result
-
     def rmdir(self, myname, result):
         workdir = result['mkdir_task']['workdir']
 

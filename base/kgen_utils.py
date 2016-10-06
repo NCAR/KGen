@@ -524,6 +524,7 @@ class Config(object):
         self._attrs['source']['isstrict'] = None
         self._attrs['source']['alias'] = OrderedDict()
         self._attrs['source']['file'] = OrderedDict()
+        self._attrs['source']['state'] = []
 
         # include parameters
         self._attrs['include'] = OrderedDict()
@@ -714,7 +715,7 @@ class Config(object):
         if opts.source:
             for line in opts.source:
                 flags = OrderedDict()
-                for subflag in line.lower().split(','):
+                for subflag in line.split(','):
                     if subflag.find('=')>0:
                         key, value = subflag.split('=')
                         if key=='file':
@@ -724,6 +725,13 @@ class Config(object):
                             if p1.endswith('/'): p1 = p1[:-1]
                             if p2.endswith('/'): p2 = p2[:-1]
                             self._attrs['source']['alias'][p1] = p2
+                        elif key=='state':
+                            for path in value.split(':'):
+                                if os.path.exists(path):
+                                    abspath = os.path.abspath(path)
+                                    self._attrs['source'][key].append(abspath)
+                                else:
+                                    raise UserException('%s does not exist.'%os.path.abspath(path))
                         else:
                             flags[key] = value 
                     else:
