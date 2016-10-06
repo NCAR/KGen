@@ -27,10 +27,15 @@ class Gen_Write_In_Module(Kgen_Plugin):
         index, partname, part = get_part_index(node)
         pstmt = node.kgen_stmt.ancestors()[-1]
         pnode = pstmt.genspair
+        node.kgen_stmt.top.used4genstate = True
 
         if 'kgen_write_unit' not in pstmt.a.variable_names:
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_write_unit', 'kgen_ierr']}
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_write_unit']}
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
             pstmt.a.variable_names.append('kgen_write_unit')
 
         if 'kgen_write_invoke' not in pstmt.a.variable_names:
@@ -53,7 +58,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
         lineno = node.kgen_stmt.item.span[0]
 
         # file open
-        attrs = {'specs': ['UNIT=kgen_write_unit', 'FILE="%s/%s.L%d." // TRIM(ADJUSTL(kgen_write_invoke_str))'%\
+        attrs = {'specs': ['NEWUNIT=kgen_write_unit', 'FILE="%s/%s.L%d." // TRIM(ADJUSTL(kgen_write_invoke_str))'%\
             (getinfo('kernel_path'), filename,lineno), 'STATUS="NEW"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Open, attrs=attrs, index=idx)
@@ -82,8 +87,12 @@ class Gen_Write_In_Module(Kgen_Plugin):
         pnode = pstmt.genkpair
 
         if 'kgen_read_unit' not in pstmt.a.variable_names:
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_read_unit', 'kgen_ierr']}
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_read_unit']}
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
             pstmt.a.variable_names.append('kgen_read_unit')
 
         if 'kgen_read_invoke' not in pstmt.a.variable_names:
@@ -106,7 +115,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
         lineno = node.kgen_stmt.item.span[0]
 
         # file open
-        attrs = {'specs': ['UNIT=kgen_read_unit', 'FILE="%s.L%d." // TRIM(ADJUSTL(kgen_read_invoke_str))'%(filename,lineno), 'STATUS="OLD"', 'ACCESS="STREAM"', \
+        attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE="%s.L%d." // TRIM(ADJUSTL(kgen_read_invoke_str))'%(filename,lineno), 'STATUS="OLD"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Open, attrs=attrs, index=idx)
         idx += 1
