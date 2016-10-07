@@ -5,7 +5,7 @@ FC := mpiifort
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
 run: build
-	export OMP_NUM_THREADS=8; mpirun -n 4 ./demo.exe
+	mpirun -n 4 ./demo.exe
 
 build: demo.exe
 
