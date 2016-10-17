@@ -173,6 +173,8 @@ def _genobj_from_cls(file_type, parent, node, kernel_id, attrs=None):
                 end_obj.kgen_parent = obj
                 if node.__name__.lower()=='ifthen':
                     end_obj.blocktype = 'if'
+                elif node.__name__.lower()=='blockdata':
+                    end_obj.blocktype = 'block data'
                 else:
                     end_obj.blocktype = node.__name__.lower()
         elif issubclass(node, base_classes.Statement):
@@ -807,7 +809,7 @@ class Gen_Statement(object):
 
                 if hasattr(self, 'kgen_forced_line'):
                     lines_str = self.kgen_forced_line
-                elif hasattr(self.kgen_stmt.item, 'span'):
+                elif hasattr(self.kgen_stmt, 'item') and hasattr(self.kgen_stmt.item, 'span'):
                     if not self.kgen_stmt.item.span is self.kgen_gen_attrs['span']:
                         start = self.kgen_stmt.item.span[0]-1
                         end = self.kgen_stmt.item.span[1]

@@ -36,6 +36,9 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_write_unit']}
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
+            attrs = {'items': [ ( 'state', ('kgen_my_mpi_rank', 'kgen_openmp_issave(1024)') ) ]}
+            part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
+
             pstmt.a.variable_names.append('kgen_write_unit')
 
         if 'kgen_write_invoke' not in pstmt.a.variable_names:
