@@ -34,13 +34,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
             callsite_stmts[0], self.is_openmp, self.update_omp_directive)
 
-#        if isinstance(callsite_stmts[-1], base_classes.EndStatement):
-#            self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-#                callsite_stmts[-1].parent, None, self.create_callsite_parts2)
-#        else:
-#            self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-#                callsite_stmts[-1], None, self.create_callsite_parts2)
-
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
 

@@ -48,31 +48,17 @@ class GExtTest(KGenTest):
         return True, out, err
 
     def runkernel(self, myname, result):
-        workdir = result['mkdir_task']['workdir']
-
-        out, err, retcode = run_shcmd('make clean; make', cwd='%s/kernel'%workdir)
-
-        result[myname]['stdout'] = out
-        result[myname]['stderr'] = err
-
-        #if retcode != 0 or err:
-        #print 'STDOUT: ', out
-        #print 'STDERR: ', err
-        if retcode != 0:
-            self.set_status(result, myname, self.FAILED, errmsg='kernel execution is failed: %s'%err)
-        else:
-            self.set_status(result, myname, self.PASSED)
-
-        return result
+        pass
 
     def verify(self, myname, result):
-        outcome = result['runkernel_task']['stdout']
-
-        if not outcome or outcome.find('FAILED')>0 or outcome.find('ERROR')>0 or outcome.find('PASSED')<0:
-            self.set_status(result, myname, self.FAILED, outcome)
-        else:
-            self.set_status(result, myname, self.PASSED)
-        return result
+        pass
+#        outcome = result['runkernel_task']['stdout']
+#
+#        if not outcome or outcome.find('FAILED')>0 or outcome.find('ERROR')>0 or outcome.find('PASSED')<0:
+#            self.set_status(result, myname, self.FAILED, outcome)
+#        else:
+#            self.set_status(result, myname, self.PASSED)
+#        return result
 
 
     def recover(self, myname, result):

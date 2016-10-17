@@ -78,35 +78,30 @@ class GExtTool(KGenTool):
         # construct a generation tree
         for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
             if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
-                kfile = genkobj(None, srcobj.tree, KERNEL_ID_0)
                 sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
-                if kfile is None or sfile is None:
+                if sfile is None:
                     raise ProgramException('Kernel source file is not generated for %s.'%filepath)
-                self.genfiles.append((kfile, sfile, filepath))
+                self.genfiles.append((sfile, filepath))
                 State.used_srcfiles[filepath] = (srcobj, mods_used, units_used)
 
         # process each nodes in the tree
         for plugin_name in event_register.keys():
-            for kfile, sfile, filepath in self.genfiles:
-                kfile.created([plugin_name])
+            for sfile, filepath in self.genfiles:
                 sfile.created([plugin_name])
             for tree in self._trees:
                 tree.created([plugin_name])
 
-            for kfile, sfile, filepath in self.genfiles:
-                kfile.process([plugin_name])
+            for sfile, filepath in self.genfiles:
                 sfile.process([plugin_name])
             for tree in self._trees:
                 tree.process([plugin_name])
 
-            for kfile, sfile, filepath in self.genfiles:
-                kfile.finalize([plugin_name])
+            for sfile, filepath in self.genfiles:
                 sfile.finalize([plugin_name])
             for tree in self._trees:
                 tree.finalize([plugin_name])
 
-            for kfile, sfile, filepath in self.genfiles:
-                kfile.flatten(KERNEL_ID_0, [plugin_name])
+            for sfile, filepath in self.genfiles:
                 sfile.flatten(KERNEL_ID_0, [plugin_name])
             for tree in self._trees:
                 tree.flatten(KERNEL_ID_0, [plugin_name])
@@ -114,21 +109,12 @@ class GExtTool(KGenTool):
 
     def fini(self):
                
-        kernel_files = []
         state_files = []
 
         # generate source files from each node of the tree
-        for kfile, sfile, filepath in self.genfiles:
-            filename = os.path.basename(filepath)
-            self.set_indent('')
-            klines = kfile.tostring()
-            if klines is not None:
-                klines = self.remove_multiblanklines(klines)
-                kernel_files.append(filename)
-                with open('%s/%s'%(Config.path['kernel'], filename), 'wb') as fd:
-                    fd.write(klines)
-
+        for sfile, filepath in self.genfiles:
             if sfile.kgen_stmt.used4genstate:
+                filename = os.path.basename(filepath)
                 self.set_indent('')
                 slines = sfile.tostring()
                 if slines is not None:
@@ -137,24 +123,8 @@ class GExtTool(KGenTool):
                     with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
                         fd.write(slines)
 
-        kernel_files.append(self.kernel_name)
-        with open('%s/%s.f90'%(Config.path['kernel'], self.kernel_name), 'wb') as fd:
-            self.set_indent('')
-            lines = self.driver.tostring()
-            if lines is not None:
-                lines = self.remove_multiblanklines(lines)
-                fd.write(lines)
-
         Logger.info('Global variable information generation and instrumentation is completed.', stdout=True)
 
-        # generate kgen_utils.f90 in kernel directory
-        kernel_files.append('kgen_utils.f90')
-        self.generate_kgen_utils()
-
-        kernel_files.append(TPROF)
-        shutil.copyfile('%s/%s'%(KGEN_BASE, TPROF), '%s/%s'%(Config.path['kernel'], TPROF))
-
-        kernel_files.append('Makefile')
         state_files.append('Makefile')
         generate_makefiles()
         Logger.info('Makefiles are generated', stdout=True)
@@ -164,24 +134,7 @@ class GExtTool(KGenTool):
 
         Logger.info('GExt is finished.', stdout=True)
 
-        return { 'kernel_files': kernel_files, 'state_files': state_files }
-
-    def generate_kgen_utils(self):
-        from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \
-            kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr, kgen_utils_array_sumcheck
-
-        with open('%s/kgen_utils.f90'%Config.path['kernel'], 'wb') as f:
-            f.write('MODULE kgen_utils_mod')
-            f.write(kgen_utils_file_head)
-            f.write('\n')
-            f.write('CONTAINS')
-            f.write('\n')
-            f.write(kgen_utils_array_sumcheck)
-            f.write(kgen_utils_file_tostr)
-            f.write(kgen_utils_file_checksubr)
-            f.write(kgen_get_newunit)
-            f.write(kgen_error_stop)
-            f.write('END MODULE kgen_utils_mod\n')
+        return { 'state_files': state_files }
 
     def create_tree(self):
         tree = genkobj(None, block_statements.BeginSource, KERNEL_ID_0)

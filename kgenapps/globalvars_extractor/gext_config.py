@@ -95,9 +95,6 @@ class GExtConfig(object):
         self.attrs['plugin']['priority'] = OrderedDict()
 
         self.attrs['plugin']['priority']['ext.gencore'] = '%s/plugins/gencore'%GEXT
-        self.attrs['plugin']['priority']['ext.verification'] = '%s/plugins/verification'%GEXT
-        self.attrs['plugin']['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%GEXT
-        self.attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%GEXT
 
         self.options.append( (self.opt_invocation, ["--invocation"], {'dest':"invocation", 'action':'append', 'type':'string', 'default':None, 'help':"(process, thread, invocation) pairs of kernel for data collection"}) )
         self.options.append( (self.opt_openmp, ["--openmp"], {'dest':"openmp", 'action':'append', 'type':'string', 'default':None, 'help':"Specifying OpenMP options"}) )
