@@ -1416,6 +1416,10 @@ class BeginStatement(Statement):
         # defer to super
         if request.state != ResState.RESOLVED:
             super(BeginStatement, self).resolve(request)
+            if isinstance(self, SubProgramStatement) and request.state == ResState.RESOLVED and isinstance(request.res_stmts[0], TypeDeclarationStatement):
+                if not hasattr(self, 'globalvars'):
+                    self.globalvars = {}
+                self.globalvars[tuple(request.uname.namelist)] = ( request.originator, request.res_stmts[0])
 
     def tokgen(self):
         construct_name = self.construct_name
