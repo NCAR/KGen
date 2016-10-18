@@ -173,7 +173,8 @@ class KExtTool(KGenTool):
 
     def generate_kgen_utils(self):
         from kgen_extra import kgen_utils_file_head, kgen_utils_file_checksubr, \
-            kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr, kgen_utils_array_sumcheck
+            kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr, kgen_utils_array_sumcheck, \
+            kgen_rankthread
 
         with open('%s/kgen_utils.f90'%Config.path['kernel'], 'wb') as f:
             f.write('MODULE kgen_utils_mod')
@@ -186,6 +187,7 @@ class KExtTool(KGenTool):
             f.write(kgen_utils_file_checksubr)
             f.write(kgen_get_newunit)
             f.write(kgen_error_stop)
+            f.write(kgen_rankthread)
             f.write('END MODULE kgen_utils_mod\n')
 
     def create_tree(self):

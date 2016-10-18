@@ -29,6 +29,8 @@ module calling_module
 
                 call add(atype(1), value + testvalue, kvalue)
 
+                call add(atype(2), value + testvalue, kvalue)
+
                 print *, "C =", atype(1)%c
 
 

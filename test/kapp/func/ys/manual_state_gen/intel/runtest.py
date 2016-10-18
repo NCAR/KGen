@@ -26,7 +26,7 @@ class CustomTest(KAppFuncYSMSGTest):
             __cmd_build='"cd %s; make build"'%tmpsrc, \
             __cmd_run='"cd %s; make run "'%tmpsrc, \
             __prerun='build="%s",run="%s"'%(prerun_build, prerun_run), \
-            __invocation='0:0:0', \
+            __invocation='0:0:0,0:0:2', \
             __source='state=%s/kernel.F90'%tmpsrc, \
             __outdir=workdir)
 
@@ -37,7 +37,7 @@ class CustomTest(KAppFuncYSMSGTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['add.0.0.0']
+            result[myname]['statefiles'] = ['add.0.0.0', 'add.0.0.2']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

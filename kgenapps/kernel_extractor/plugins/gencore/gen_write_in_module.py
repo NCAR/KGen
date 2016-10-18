@@ -2,6 +2,7 @@
 
 import os 
 import statements
+import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
@@ -36,7 +37,13 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_write_unit']}
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'items': [ ( 'state', ('kgen_my_mpi_rank', 'kgen_openmp_issave(1024)') ) ]}
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank']}
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave') ) ]}
             part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
             pstmt.a.variable_names.append('kgen_write_unit')
@@ -46,43 +53,48 @@ class Gen_Write_In_Module(Kgen_Plugin):
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
             pstmt.a.variable_names.append('kgen_write_invoke')
 
-            attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_write_invoke_str'], 'selector':('16', None)}
+            attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_write_filepath'], 'selector':('1024', None)}
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         part_append_comment(pnode, DECL_PART, '')
 
         idx = index + 1
 
-        attrs = {'specs': ['kgen_write_invoke_str', '"(I16)"'], 'items': [ 'kgen_write_invoke' ]}
-        part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Write, attrs=attrs, index=idx)
-        idx += 1
+        if getinfo('is_openmp_app'):
+            attrs = {'expr': 'kgen_openmp_issave(OMP_GET_THREAD_NUM())'}
+            l = [ 'kgen_mpirank', '"."', 'OMP_GET_THREAD_NUM()', '"."', 'kgen_write_invoke']
+        else:
+            attrs = {'expr': 'kgen_openmp_issave(0)'}
+            l = [ 'kgen_mpirank', '"."', '0', '"."', 'kgen_write_invoke']
+        ifsave = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
+
+        attrs = {'specs': ['kgen_invoke_str', '"(I16)"'], 'items': [ 'kgen_write_invoke' ]}
+        part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
         filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
         lineno = node.kgen_stmt.item.span[0]
 
         # file open
-        attrs = {'specs': ['NEWUNIT=kgen_write_unit', 'FILE="%s/%s.L%d." // TRIM(ADJUSTL(kgen_write_invoke_str))'%\
-            (getinfo('kernel_path'), filename,lineno), 'STATUS="NEW"', 'ACCESS="STREAM"', \
+        attrs = {'specs': ['kgen_write_filepath', 'FMT="(A,I0,A,I0,A,I0)"' ], 'items': [ '"%s/%s.L%d."'%(getinfo('kernel_path'), filename, lineno) ] + l}
+        part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'specs': ['NEWUNIT=kgen_write_unit', 'FILE=kgen_write_filepath', 'STATUS="NEW"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-        part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Open, attrs=attrs, index=idx)
-        idx += 1
+        part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
 
         # write var
         for var in node.kgen_stmt.write_state:
             attrs = {'specs': ['UNIT=kgen_write_unit'], 'items': [var]}
-            part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Write, attrs=attrs, index=idx)
-            idx += 1
+            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
         # file close
         attrs = {'specs': ['UNIT=kgen_write_unit']}
-        part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Close, attrs=attrs, index=idx)
-        idx += 1
+        part_append_gensnode(ifsave, EXEC_PART, statements.Close, attrs=attrs)
 
         attrs = {'variable': 'kgen_write_invoke', 'sign': '=', 'expr': 'kgen_write_invoke + 1'}
-        part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Assignment, attrs=attrs,index=idx)
-        idx += 1
+        part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        part_insert_comment(node.kgen_parent, EXEC_PART, idx, '')
+        part_insert_comment(node.kgen_parent, EXEC_PART, idx+1, '')
 
     def read_state(self, node):
         index, partname, part = get_part_index(node)
@@ -106,19 +118,46 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_read_invoke_str'], 'selector':('16', None)}
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid']}
+        part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
+        part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_resetinvoke') ) ]}
+        part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
+
         part_append_comment(pnode, DECL_PART, '')
 
         idx = index + 1
 
-        attrs = {'specs': ['kgen_read_invoke_str', '"(I16)"'], 'items': [ 'kgen_read_invoke' ]}
-        part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Write, attrs=attrs, index=idx)
+        attrs = {'expr': 'kgen_resetinvoke'}
+        ifreset = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
+
+        attrs = {'variable': 'kgen_read_invoke', 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
         filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
         lineno = node.kgen_stmt.item.span[0]
 
+        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_read_invoke']
+        attrs = {'specs': ['kgen_read_invoke_str', 'FMT="(A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
+        part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Write, attrs=attrs, index=idx)
+        idx += 1
+
+        #attrs = {'specs': ['kgen_read_invoke_str', '"(I16)"'], 'items': [ 'kgen_read_invoke' ]}
+        #part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Write, attrs=attrs, index=idx)
+
+        TODO: might have a bug in kgen_rankthread
+        TODO: need to add invoke in addition to rank and thread when write state invoked
+
         # file open
-        attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE="%s.L%d." // TRIM(ADJUSTL(kgen_read_invoke_str))'%(filename,lineno), 'STATUS="OLD"', 'ACCESS="STREAM"', \
+        attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_invoke_str', 'STATUS="OLD"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Open, attrs=attrs, index=idx)
         idx += 1
