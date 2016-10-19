@@ -75,6 +75,15 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
+        part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
+        part_append_gensnode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_resetinvoke') ) ]}
+        part_append_gensnode(node, DECL_PART, statements.Common, attrs=attrs)
+
         part_append_comment(node, DECL_PART, '')
 
         namedpart_create_subpart(node, KERNEL_PBLOCK_READ_IN_LOCALS, EXEC_PART, index=0)
@@ -153,6 +162,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         part_insert_comment(node.kgen_parent, EXEC_PART, index+1, '')
         part_insert_comment(node.kgen_parent, EXEC_PART, index+2, 'call to kgen kernel')
+
+        attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.TRUE.'}
+        part_insert_gensnode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=index+3)
 #
 #        kernel_stmts = getinfo('callsite_stmts')
 #        if len(kernel_stmts)!=1 or not isinstance(kernel_stmts[0], statements.Call):
@@ -172,11 +184,11 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         end = kernel_stmts[-1].item.span[1]
         lines = kernel_stmts[0].top.prep[start:end]
         lines_str = '\n'.join(lines)
-        dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+3)
+        dummy_node = part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Call, index=index+4)
         dummy_node.kgen_stmt = getinfo('dummy_stmt')
         dummy_node.kgen_forced_line = lines_str
 
-        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_AFTER_KERNEL, EXEC_PART, index=index+4)
+        namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_AFTER_KERNEL, EXEC_PART, index=index+5)
         self.plugin_common[node.kgen_kernel_id]['ext.gencore']['blocks']['after_kernel'] = KERNEL_PBLOCK_AFTER_KERNEL
 
     def invalid_kernel_stmts(self, node):

@@ -46,6 +46,10 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
                 attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
                 part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
             else:
                 attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
                 part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)

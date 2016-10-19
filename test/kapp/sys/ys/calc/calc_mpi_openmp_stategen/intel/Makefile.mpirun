@@ -1,11 +1,11 @@
 ROW := 16
 COL := 16
 
-FC := mpiifort
+FC := mpiifort -openmp
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
 run:
-	mpirun -n 4 ./demo.exe
+	export OMP_NUM_THREADS=8; mpirun -n 4 ./demo.exe
 
 build: demo.exe
 

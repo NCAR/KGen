@@ -1,11 +1,11 @@
 ROW := 16
 COL := 16
 
-FC := mpiifort
+FC := mpiifort -openmp
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
-run:
-	mpirun -n 4 ./demo.exe
+run: build
+	bsub < ./job.lsf
 
 build: demo.exe
 
@@ -25,4 +25,4 @@ calc_mod.o: calc_mod.F90
 	${FC} -c -o $@ $<
 
 clean:
-	rm -f *.exe *.o *.mod
+	rm -f *.exe *.o *.mod *.err *.out
