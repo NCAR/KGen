@@ -515,31 +515,36 @@ END SUBROUTINE
 
 kgen_rankthread = \
 """
-SUBROUTINE kgen_rankthread( str, rank, thread )
+SUBROUTINE kgen_rankthreadinvoke( str, rank, thread, invoke )
     CHARACTER(*), INTENT(IN) :: str
-    INTEGER, INTENT(OUT) :: rank, thread
-    INTEGER :: invoke = -1, pos1 = 1, pos2, i, e
+    INTEGER, INTENT(OUT) :: rank, thread, invoke
+    INTEGER :: pos1, pos2, i, e
+
+    pos1 = 1
 
     rank = -1
     thread = -1
+    invoke = -1
 
     DO
         pos2 = INDEX(str(pos1:), ".")
         IF (pos2 == 0) THEN
-            rank = thread
-            thread = invoke
             READ(str(pos1:),*,IOSTAT=e) i
             IF ( e == 0 ) THEN
+                rank = thread
+                thread = invoke
                 READ(str(pos1:), "(I)") invoke
             END IF
             EXIT
         END IF
-        rank = thread
-        thread = invoke
+
         READ(str(pos1:pos1+pos2-2),*,IOSTAT=e) i
         IF ( e == 0 ) THEN
+            rank = thread
+            thread = invoke
             READ(str(pos1:pos1+pos2-2), "(I)") invoke
         END IF 
+
         pos1 = pos2+pos1
     END DO
 END SUBROUTINE
