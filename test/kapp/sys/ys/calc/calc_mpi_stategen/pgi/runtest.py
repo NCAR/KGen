@@ -3,7 +3,7 @@ import time
 from kgen_utils import run_shcmd
 from kapp_sys_ys_calc_calc_mpi_stategen_test import KAppSysYSCalcCMSTest
 
-class Test(KAppSysYSCalcCMPTest):
+class Test(KAppSysYSCalcCMSTest):
     def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']

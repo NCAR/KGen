@@ -4,7 +4,7 @@ COL := 16
 FC := mpif90
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
-run: build
+run:
 	mpirun -n 4 ./demo.exe
 
 build: demo.exe

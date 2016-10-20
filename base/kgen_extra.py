@@ -533,7 +533,7 @@ SUBROUTINE kgen_rankthreadinvoke( str, rank, thread, invoke )
             IF ( e == 0 ) THEN
                 rank = thread
                 thread = invoke
-                READ(str(pos1:), "(I)") invoke
+                READ(str(pos1:), *) invoke
             END IF
             EXIT
         END IF
@@ -542,7 +542,7 @@ SUBROUTINE kgen_rankthreadinvoke( str, rank, thread, invoke )
         IF ( e == 0 ) THEN
             rank = thread
             thread = invoke
-            READ(str(pos1:pos1+pos2-2), "(I)") invoke
+            READ(str(pos1:pos1+pos2-2), *) invoke
         END IF 
 
         pos1 = pos2+pos1
