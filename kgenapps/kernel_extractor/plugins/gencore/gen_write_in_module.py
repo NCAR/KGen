@@ -155,24 +155,21 @@ class Gen_Write_In_Module(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
         part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_warmupstage', 'kgen_mainstage']}
         part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_resetinvoke') ) ]}
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
         part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
         part_append_comment(pnode, DECL_PART, '')
 
         idx = index + 1
 
-        attrs = {'expr': 'kgen_resetinvoke'}
+        attrs = {'expr': 'kgen_warmupstage'}
         ifreset = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
         attrs = {'variable': 'kgen_readsubp_invoke', 'sign': '=', 'expr': '0'}
-        part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
         part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
         filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
