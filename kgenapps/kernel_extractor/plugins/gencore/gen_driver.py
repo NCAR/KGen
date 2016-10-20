@@ -96,10 +96,10 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
         part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke', 'kgen_initialize']}
         part_append_gensnode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_resetinvoke') ) ]}
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_resetinvoke', 'kgen_initialize') ) ]}
         part_append_gensnode(node, DECL_PART, statements.Common, attrs=attrs)
 
         part_append_comment(node, DECL_PART, '')
@@ -163,6 +163,10 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_genknode(iflist2, EXEC_PART, statements.Stop)
 
         # warm up
+
+        attrs = {'variable': 'kgen_initialize', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
         attrs = {'variable': 'kgen_ierr', 'sign': '=', 'expr': '0'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
@@ -214,6 +218,9 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_genknode(node, EXEC_PART, statements.Rewind, attrs=attrs)
 
         # main
+        attrs = {'variable': 'kgen_initialize', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
         attrs = {'variable': 'kgen_ierr', 'sign': '=', 'expr': '0'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
@@ -358,9 +365,9 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank = 0', 'kgen_openmptid = 0', 'kgen_kernelinvoke = 0']}
         part_append_gensnode(cblock, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke = .TRUE.']}
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke = .TRUE.', 'kgen_initialize = .TRUE.']}
         part_append_gensnode(cblock, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_resetinvoke') ) ]}
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_resetinvoke', 'kgen_initialize') ) ]}
         part_append_gensnode(cblock, DECL_PART, statements.Common, attrs=attrs)
 
