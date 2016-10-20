@@ -298,33 +298,48 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
                                                 cbfunc(node)
 
 
+plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kernel_driver_name', 'kernel_driver_callsite_args', \
+    'is_openmp_app', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
+    'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'repeat_count', 'dummy_stmt', \
+    'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts' ]
+
 def getinfo(name):
-    if name=='kernel_name': return State.kernel['name']
-    elif name=='kgen_version': return '%d.%d.%s'%tuple(Config.kgen['version'])
-    elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
-    elif name=='kernel_driver_name': return State.kernel_driver['name']
-    elif name=='kernel_driver_callsite_args': return State.kernel_driver['callsite_args']
-    elif name=='is_openmp_app': return Config.openmp['enabled']
-    elif name=='is_mpi_app': return Config.mpi['enabled']
-    elif name=='mpi_comm': return Config.mpi['comm']
-    elif name=='mpi_logical': return Config.mpi['logical']
-    elif name=='mpi_status_size': return Config.mpi['status_size']
-    elif name=='mpi_use': return Config.mpi['use_stmts']
-    elif name=='invocations': return Config.invocation['triples']
-    elif name=='print_var_names': return Config.debug['printvar']
-    elif name=='callsite_file_path': return Config.callsite['filepath']
-    elif name=='callsite_stmts': return State.callsite['stmts']
-    elif name=='parentblock_stmt': return State.parentblock['stmt']
-    elif name=='topblock_stmt': return State.topblock['stmt']
-    elif name=='verbose_level': return Config.verify['verboselevel']
-    elif name=='repeat_count': return Config.timing['repeat']
-    elif name=='dummy_stmt': return statements.DummyStatement()
-    elif name=='add_mpi_frame': return Config.add_mpi_frame['enabled']
-    elif name=='mpi_frame_np': return Config.add_mpi_frame['np']
-    elif name=='mpi_frame_mpiexec': return Config.add_mpi_frame['mpiexec']
-    elif name=='verify_tol': return Config.verify['tolerance']
-    elif name=='walk_stmts': return api.walk
-    else: raise ProgramException('No information for %s'%name)
+    if name in plugin_default_infolist: 
+        if name=='kernel_name': return State.kernel['name']
+        elif name=='kgen_version': return '%d.%d.%s'%tuple(Config.kgen['version'])
+        elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
+        elif name=='kernel_driver_name': return State.kernel_driver['name']
+        elif name=='kernel_driver_callsite_args': return State.kernel_driver['callsite_args']
+        elif name=='is_openmp_app': return Config.openmp['enabled']
+        elif name=='is_mpi_app': return Config.mpi['enabled']
+        elif name=='mpi_comm': return Config.mpi['comm']
+        elif name=='mpi_logical': return Config.mpi['logical']
+        elif name=='mpi_status_size': return Config.mpi['status_size']
+        elif name=='mpi_use': return Config.mpi['use_stmts']
+        elif name=='invocations': return Config.invocation['triples']
+        elif name=='print_var_names': return Config.debug['printvar']
+        elif name=='callsite_file_path': return Config.callsite['filepath']
+        elif name=='callsite_stmts': return State.callsite['stmts']
+        elif name=='parentblock_stmt': return State.parentblock['stmt']
+        elif name=='topblock_stmt': return State.topblock['stmt']
+        elif name=='verbose_level': return Config.verify['verboselevel']
+        elif name=='repeat_count': return Config.timing['repeat']
+        elif name=='dummy_stmt': return statements.DummyStatement()
+        elif name=='add_mpi_frame': return Config.add_mpi_frame['enabled']
+        elif name=='mpi_frame_np': return Config.add_mpi_frame['np']
+        elif name=='mpi_frame_mpiexec': return Config.add_mpi_frame['mpiexec']
+        elif name=='verify_tol': return Config.verify['tolerance']
+        elif name=='walk_stmts': return api.walk
+    elif State.plugindb.has_key(name):
+        return State.plugindb[name]
+    else:
+        raise ProgramException('No information for %s'%name)
+
+def setinfo(name, info):
+    if name in plugin_default_infolist:
+        raise ProgramException('Given name is already defined as a KGen internal information name: %s'%name)
+    else:
+        State.plugindb[name] = info
 
 def set_plugin_env(mod):
 
@@ -333,6 +348,8 @@ def set_plugin_env(mod):
     mod.KGGenType = KGGenType
 
     mod.getinfo =  getinfo
+    mod.setinfo =  setinfo
+
     mod.get_entity_name = get_entity_name
     mod.pack_exnamepath = pack_exnamepath
     mod.match_namepath = match_namepath

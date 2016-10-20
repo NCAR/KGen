@@ -58,10 +58,13 @@ class State(object):
         # kernel_driver attributes
         self._attrs['kernel_driver'] = OrderedDict()
         self._attrs['kernel_driver']['name'] = 'kernel_driver'
-        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_elapsed_time', 'kgen_isverified']
+        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_iswarmup', 'kgen_elapsed_time', 'kgen_isverified']
 
         # program units
         self._attrs['program_units'] = OrderedDict()
+
+        # plugin database
+        self._attrs['plugindb'] = OrderedDict()
 
     def __getattr__(self, name):
         return self._attrs[name]
