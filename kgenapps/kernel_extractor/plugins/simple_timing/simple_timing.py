@@ -39,7 +39,7 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['kgen_maxiter = %s'%getinfo('repeat_count')]}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
-        prenode = getinfo('blocknode_aftercallsite_nowarmup')
+        prenode = getinfo('blocknode_aftercallsite_main')
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
             prenode, None, self.add_execblock)
 

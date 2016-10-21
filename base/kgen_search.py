@@ -361,7 +361,10 @@ def search_Subroutine_Stmt(stmt, node, gentype=None):
 
 def search_Comment(stmt, node, gentype=None): 
     """ Identifying a name in Comment node"""
-    pass
+    if hasattr(stmt, 'write_state'):
+        for var in stmt.write_state:
+            f2003obj = Fortran2003.Variable(var)
+            get_name_or_defer(stmt, f2003obj, res_typedecl)
 
 def search_Nonlabel_Do_Stmt(stmt, node, gentype=None): 
     """ Identifying a name in Nonlabel_Do_Stmt node"""

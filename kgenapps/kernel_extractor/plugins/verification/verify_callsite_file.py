@@ -29,7 +29,7 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
-        prenode = getinfo('blocknode_aftercallsite_nowarmup')
+        prenode = getinfo('blocknode_aftercallsite_main')
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
             prenode, None, self.create_verification_parts)
 
