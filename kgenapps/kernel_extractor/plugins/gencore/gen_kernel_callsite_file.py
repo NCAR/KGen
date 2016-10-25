@@ -78,10 +78,10 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
         part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_warmupstage', 'kgen_mainstage']}
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage']}
         part_append_gensnode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
         part_append_gensnode(node, DECL_PART, statements.Common, attrs=attrs)
 
         part_append_comment(node, DECL_PART, '')

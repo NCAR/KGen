@@ -8,7 +8,10 @@ from kgen_plugin import Kgen_Plugin
 from gencore_utils import DRIVER_USE_PART, DRIVER_READ_IN_ARGS, DRIVER_CALLSITE_PART, DRIVER_DECL_PART, \
     DRIVER_EXEC_PART, DRIVER_CONTAINS_PART, DRIVER_SUBP_PART, DRIVER_ALLOC_PART, DRIVER_DEALLOC_PART, \
     shared_objects, DRIVER_READ_IN_EXTERNS, DRIVER_WARMUP_ALLOC_PART, DRIVER_WARMUP_READ_IN_ARGS, \
-    DRIVER_WARMUP_READ_IN_EXTERNS, DRIVER_WARMUP_CALLSITE_PART, DRIVER_WARMUP_DEALLOC_PART
+    DRIVER_WARMUP_READ_IN_EXTERNS, DRIVER_WARMUP_CALLSITE_PART, DRIVER_WARMUP_DEALLOC_PART, \
+    DRIVER_EVAL_ALLOC_PART, DRIVER_EVAL_READ_IN_ARGS, \
+    DRIVER_EVAL_READ_IN_EXTERNS, DRIVER_EVAL_CALLSITE_PART, DRIVER_EVAL_DEALLOC_PART
+
 
 class Gen_K_Driver(Kgen_Plugin):
     def __init__(self):
@@ -41,6 +44,13 @@ class Gen_K_Driver(Kgen_Plugin):
             pnode, rawname, named_part =  get_namedpart(node.kgen_kernel_id, partname)
             for item in named_part:
                 namedpart_append_node(node.kgen_kernel_id, wpartname, item)
+
+        for partname, epartname in [ (DRIVER_ALLOC_PART, DRIVER_EVAL_ALLOC_PART), (DRIVER_READ_IN_ARGS, DRIVER_EVAL_READ_IN_ARGS), \
+            (DRIVER_READ_IN_EXTERNS, DRIVER_EVAL_READ_IN_EXTERNS), (DRIVER_CALLSITE_PART, DRIVER_EVAL_CALLSITE_PART), \
+            (DRIVER_DEALLOC_PART, DRIVER_EVAL_DEALLOC_PART) ]:
+            pnode, rawname, named_part =  get_namedpart(node.kgen_kernel_id, partname)
+            for item in named_part:
+                namedpart_append_node(node.kgen_kernel_id, epartname, item)
 
     #  process after node creation
     def create_kernel_driver_parts(self, node):
@@ -200,11 +210,11 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_comment(ifopen_warmup, EXEC_PART, '')
 
         # register gencore parts
-        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_ALLOC_PART, EXEC_PART)
-        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_READ_IN_ARGS, EXEC_PART)
-        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_READ_IN_EXTERNS, EXEC_PART)
-        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_CALLSITE_PART, EXEC_PART)
-        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_DEALLOC_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_ALLOC_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_READ_IN_ARGS, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_READ_IN_EXTERNS, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_CALLSITE_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_DEALLOC_PART, EXEC_PART)
 
         attrs = {'specs': ['UNIT=kgen_unit']}
         part_append_genknode(ifopen_warmup, EXEC_PART, statements.Close, attrs=attrs)

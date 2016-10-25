@@ -6,6 +6,7 @@ import statements
 import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
+from gencore_utils import is_zero_array, check_class_derived
 
 class Gen_Write_In_Module(Kgen_Plugin):
     def __init__(self):
@@ -35,42 +36,42 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         if not hasattr(node, '__write_commonpart_statewrite'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_write_unit']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             if getinfo('is_openmp_app'):
                 attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_resetinvoke']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             else:
                 attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_openmp_issave']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave', 'kgen_resetinvoke') ) ]}
-            part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
+            part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
             part_append_comment(pnode, DECL_PART, '')
             node.__write_commonpart_statewrite = True
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
-        part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_write_filepath_L%d'%lineno], 'selector':('1024', None)}
-        part_append_gensnode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
+        part_append_genknode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         idx = index + 1
 
@@ -105,25 +106,70 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         # file open
         attrs = {'specs': ['kgen_write_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s/%s.L%d."'%(getinfo('kernel_path'), filename, lineno) ] + l}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['NEWUNIT=kgen_write_unit', 'FILE=kgen_write_filepath_L%d'%lineno, 'STATUS="NEW"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
+        part_append_genknode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
 
         # write var
-        for var in node.kgen_stmt.write_state:
-            attrs = {'specs': ['UNIT=kgen_write_unit'], 'items': [var]}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+        #for varstr in node.kgen_stmt.write_state:
+        #    attrs = {'specs': ['UNIT=kgen_write_unit'], 'items': [varstr]}
+        #    part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
+
+        varstmts = []
+        for varstr in node.kgen_stmt.write_state:
+            parts = varstr.split('%')
+            if len(parts) > 1:
+                # search through use stmts until the leaf stmt
+                part = parts[-1]
+                raise Exception('Derived type is not supported for manual state generation yet.')
+            else:
+                part = varstr
+
+            match = re.match(r'\w+[^\w]*', part.strip()) 
+            if match:
+                varname = match.group(0)
+                for unknown, res in node.kgen_stmt.unknowns.items():
+                    if unknown.firstpartname() == varname: 
+                        res_stmt = res.res_stmts[0]
+                        var = res_stmt.get_variable(varname)
+                        varstmts.append((var, res_stmt))
+                        break
+
+        #import pdb ;pdb.set_trace()
+        for var, stmt in varstmts:
+            is_class_derived = check_class_derived(stmt)
+            if var.is_array():
+                if is_zero_array(var, stmt): continue
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    if var.is_explicit_shape_array():
+                        attrs = {'items': [var.name], 'specs': ['UNIT = kgen_write_unit']}
+                        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+                    else: # implicit array
+                        pass
+                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+            else: # scalar
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    attrs = {'items': [var.name], 'specs': ['UNIT = kgen_write_unit']}
+                    part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
 
         # file close
         attrs = {'specs': ['UNIT=kgen_write_unit']}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Close, attrs=attrs)
+        part_append_genknode(ifsave, EXEC_PART, statements.Close, attrs=attrs)
 
         attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_writesubp_invoke_L%d + 1'%lineno}
-        part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
+        part_append_genknode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
 
         part_insert_comment(node.kgen_parent, EXEC_PART, idx+1, '')
+
+TODO: one more layer is needed to handle mpi, openmp, invoke and repeat on lineno
 
     def read_state(self, node):
         index, partname, part = get_part_index(node)
@@ -141,13 +187,13 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
 
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
             attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
-            part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
+            part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
             node.__write_commonpart_stateread = True
 
@@ -157,6 +203,56 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_read_filepath_L%d'%lineno], 'selector':('128', None)}
         part_append_genknode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
+
+        # collect variables for manual state generation
+        varstmts = []
+        for varstr in node.kgen_stmt.write_state:
+            parts = varstr.split('%')
+            if len(parts) > 1:
+                # search through use stmts until the leaf stmt
+                part = parts[-1]
+                raise Exception('Derived type is not supported for manual state generation yet.')
+            else:
+                part = varstr
+
+            match = re.match(r'\w+[^\w]*', part.strip()) 
+            if match:
+                varname = match.group(0)
+                for unknown, res in node.kgen_stmt.unknowns.items():
+                    if unknown.firstpartname() == varname: 
+                        res_stmt = res.res_stmts[0]
+                        var = res_stmt.get_variable(varname)
+                        varstmts.append((var, res_stmt))
+                        break
+
+        # create typedecls for array of variable pointer
+        for var, stmt in varstmts:
+            is_class_derived = check_class_derived(stmt)
+            if var.is_array():
+                if is_zero_array(var, stmt): continue
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    if var.is_explicit_shape_array():
+                        attrs = {'items': [var.name], 'specs': ['UNIT = kgen_write_unit']}
+                        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+                    else: # implicit array
+                        pass
+                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+            else: # scalar
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    #import pdb; pdb.set_trace()
+                    type_spec = stmt.name.upper()
+                    attrspec = list(stmt.attrspec)
+                    attrspec.extend([ 'SAVE', 'DIMENSION(:)' ])
+                    if 'allocatable' not in attrspec and 'pointer' not in attrspec:
+                        attrspec.append('ALLOCATABLE')
+                    selector = tuple(stmt.selector)
+                    entity_decls = [ 'kgen_arr_%s_L%d'%(var.name, lineno) ]
+                    attrs = {'type_spec': type_spec, 'attrspec': attrspec, 'selector': selector, 'entity_decls': entity_decls}
+                    part_append_genknode(pnode, DECL_PART, stmt.__class__, attrs=attrs)
 
         idx = index + 1
 
@@ -169,84 +265,119 @@ class Gen_Write_In_Module(Kgen_Plugin):
         attrs = {'variable': 'kgen_readsubp_maxinvoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_maxinvoke_L%d + 1'%lineno}
         part_append_genknode(ifeval, EXEC_PART, statements.Assignment, attrs=attrs)
 
+        for var, stmt in varstmts:
+            is_class_derived = check_class_derived(stmt)
+            if var.is_array():
+                if is_zero_array(var, stmt): continue
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    if var.is_explicit_shape_array():
+                        pass
+                    else: # implicit array
+                        pass
+                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+            else: # scalar
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    pass
+
         # if warmup stage
         # - allocate an array of pointers to data variable
         attrs = {'expr': '.NOT. kgen_evalstage .AND. kgen_warmupstage .AND. .NOT. kgen_mainstage'}
         ifwarmup = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
-        # use predefined types r, integer, ...
-        # use a seperate module to interface, dtype and implementaqtion .... 
-        # allocate read data
-        # assign to a pointer
-        # copy from pointer to variable
-        # if used array, all content of the array should be saved and read
-        for var in node.kgen_stmt.write_state:
-            parts = var.split('%')
-            if len(parts) > 1:
-                # search through use stmts until the leaf stmt
-                part = parts[-1]
-                pass
-            else:
-                part = var
+        attrs = {'expr': '.NOT. ALLOCATED(kgen_arr_%s_L%d)'%(var.name, lineno) }
+        ifalloc = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            match = re.match(r'\w+[^\w]*', part.strip()) 
-            if match:
-                varname = match.group(0)
-                for unknown, res in node.kgen_stmt.unknowns.items():
-                    if unknown.firstpartname() == varname and part ......:
-                        import pdb; pdb.set_trace()
-        # write var
-#        for var in node.kgen_stmt.write_state:
-#            attrs = {'specs': ['UNIT=kgen_read_unit'], 'items': [var]}
-#            part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Read, attrs=attrs, index=idx)
-#            idx += 1
-#
-#        attrs = {'items': ['var']}
-#        part_append_gensnode(ifwarmup, EXEC_PART, statements.Allocate, attrs=attrs)
+        attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d)'%(var.name, lineno, lineno)]}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
 
-        # if main stage
-        # - copy data from array to data variable
-
-        attrs = {'expr': 'kgen_warmupstage'}
-        ifreset = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
-        idx += 1
-
-        attrs = {'variable': 'kgen_readsubp_invoke', 'sign': '=', 'expr': '0'}
-        part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
+        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Assignment, attrs=attrs)
 
         filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
         lineno = node.kgen_stmt.item.span[0]
 
-        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invoke']
-        attrs = {'specs': ['kgen_read_filepath', 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
-        part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Write, attrs=attrs, index=idx)
-        idx += 1
-
-        #attrs = {'specs': ['kgen_read_filepath', '"(I16)"'], 'items': [ 'kgen_subp_invoke' ]}
-        #part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Write, attrs=attrs, index=idx)
-
-        #TODO: might have a bug in kgen_rankthread
+        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invoke_L%d'%lineno]
+        attrs = {'specs': ['kgen_read_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
+        part_append_gensnode(ifwarmup, EXEC_PART, statements.Write, attrs=attrs)
 
         # file open
-        attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_filepath', 'STATUS="OLD"', 'ACCESS="STREAM"', \
+        attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_filepath_L%d'%lineno, 'STATUS="OLD"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-        part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Open, attrs=attrs, index=idx)
-        idx += 1
+        part_append_genknode(ifwarmup, EXEC_PART, statements.Open, attrs=attrs)
 
-        # write var
-        for var in node.kgen_stmt.write_state:
-            attrs = {'specs': ['UNIT=kgen_read_unit'], 'items': [var]}
-            part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Read, attrs=attrs, index=idx)
-            idx += 1
+        for var, stmt in varstmts:
+            is_class_derived = check_class_derived(stmt)
+            if var.is_array():
+                if is_zero_array(var, stmt): continue
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    if var.is_explicit_shape_array():
+                        pass
+                    else: # implicit array
+                        pass
+                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+            else: # scalar
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    attrs = {'specs': ['UNIT=kgen_read_unit'], 'items': [ var.name ]}
+                    part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
+
+            attrs = {'variable': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1)'%(var.name, lineno, lineno), 'sign': '=', 'expr': var.name}
+            part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
+
 
         # file close
         attrs = {'specs': ['UNIT=kgen_read_unit']}
-        part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Close, attrs=attrs, index=idx)
+        part_append_genknode(ifwarmup, EXEC_PART, statements.Close, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invoke_L%d + 1'%lineno}
+        part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'expr': 'kgen_readsubp_invoke_L%d .EQ. kgen_readsubp_maxinvoke_L%d'%(lineno,lineno) }
+        ifmax = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifmax, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_maxinvoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifmax, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        # if main stage
+        # - copy data from array to data variable
+
+        attrs = {'expr': '.NOT. kgen_evalstage .AND. .NOT. kgen_warmupstage .AND. kgen_mainstage'}
+        ifmain = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
-        attrs = {'variable': 'kgen_readsubp_invoke', 'sign': '=', 'expr': 'kgen_readsubp_invoke + 1'}
-        part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Assignment, attrs=attrs,index=idx)
-        idx += 1
+        for var, stmt in varstmts:
+            is_class_derived = check_class_derived(stmt)
+            if var.is_array():
+                if is_zero_array(var, stmt): continue
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    if var.is_explicit_shape_array():
+                        pass
+                    else: # implicit array
+                        pass
+                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+            else: # scalar
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    pass
+
+            attrs = {'variable': var.name, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d)'%(var.name, lineno, lineno)}
+            part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invoke_L%d + 1'%lineno}
+        part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
 
         part_insert_comment(node.kgen_parent, EXEC_PART, idx, '')
