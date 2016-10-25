@@ -169,8 +169,6 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         part_insert_comment(node.kgen_parent, EXEC_PART, idx+1, '')
 
-TODO: one more layer is needed to handle mpi, openmp, invoke and repeat on lineno
-
     def read_state(self, node):
         index, partname, part = get_part_index(node)
         pstmt = node.kgen_stmt.ancestors()[-1]
@@ -289,14 +287,15 @@ TODO: one more layer is needed to handle mpi, openmp, invoke and repeat on linen
         ifwarmup = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
+        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
+
         attrs = {'expr': '.NOT. ALLOCATED(kgen_arr_%s_L%d)'%(var.name, lineno) }
         ifalloc = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d)'%(var.name, lineno, lineno)]}
         part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
 
-        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-        part_append_genknode(ifalloc, EXEC_PART, statements.Assignment, attrs=attrs)
 
         filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
         lineno = node.kgen_stmt.item.span[0]
