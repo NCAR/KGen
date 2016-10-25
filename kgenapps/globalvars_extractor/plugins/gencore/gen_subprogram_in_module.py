@@ -24,5 +24,6 @@ class Gen_SubProgram_In_Module(Kgen_Plugin):
         return False
 
     def create_globalvar_status(self, node):
-        import pdb; pdb.set_trace()
-        # 
+        for namelist, res in node.kgen_stmt.globalvars.items():
+            attrs = {'items': ['"%s"'%str(namelist)] }
+            part_insert_gensnode(node, EXEC_PART, statements.Write, attrs=attrs, index=0)
