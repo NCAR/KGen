@@ -26,6 +26,23 @@ class Gen_Write_In_Module(Kgen_Plugin):
     def is_write_directive(self, node):
         return hasattr(node.kgen_stmt, 'write_state')
 
+    def get_orgstmt(self, parts, stmt):
+
+        if len(parts) == 0:
+            raise Exception('Wrong number of parts.')
+
+        match = re.match(r'\w+[^\w]*', parts[0]) 
+        if match:
+            varname = match.group(0)
+            for unknown, res in stmt.unknowns.items():
+                if unknown.firstpartname() == stmt.name and isinstance(res.res_stmts[0], block_statements.Type):
+                    res_stmt = res.res_stmts[0]
+                    if len(parts) == 1:
+                        return res_stmt.a.variables[varname]
+                    else:
+                        return self.get_orgstmt(parts[1:], res_stmt)
+        raise Exception('No matched statment is found.')
+
     def write_state(self, node):
         index, partname, part = get_part_index(node)
         pstmt = node.kgen_stmt.ancestors()[-1]
@@ -117,29 +134,37 @@ class Gen_Write_In_Module(Kgen_Plugin):
         #    attrs = {'specs': ['UNIT=kgen_write_unit'], 'items': [varstr]}
         #    part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
-
-        varstmts = []
+        vars = []
         for varstr in node.kgen_stmt.write_state:
             parts = varstr.split('%')
             if len(parts) > 1:
                 # search through use stmts until the leaf stmt
-                part = parts[-1]
-                raise Exception('Derived type is not supported for manual state generation yet.')
-            else:
-                part = varstr
+                partstmt = node.kgen_stmt
 
-            match = re.match(r'\w+[^\w]*', part.strip()) 
-            if match:
-                varname = match.group(0)
-                for unknown, res in node.kgen_stmt.unknowns.items():
-                    if unknown.firstpartname() == varname: 
-                        res_stmt = res.res_stmts[0]
-                        var = res_stmt.get_variable(varname)
-                        varstmts.append((var, res_stmt))
-                        break
+                match = re.match(r'\w+[^\w]*', parts[0]) 
+                if match:
+                    varname = match.group(0)
+                    for unknown, res in partstmt.unknowns.items():
+                        if unknown.firstpartname() == varname and res.res_stmts[0].is_derived():
+                            partstmt = res.res_stmts[0]
+                            break
+
+                var = self.get_orgstmt(parts[1:], partstmt)
+                vars.append((varstr, var))
+            else:
+                match = re.match(r'\w+[^\w]*', varstr.strip()) 
+                if match:
+                    varname = match.group(0)
+                    for unknown, res in node.kgen_stmt.unknowns.items():
+                        if unknown.firstpartname() == varname: 
+                            res_stmt = res.res_stmts[0]
+                            var = res_stmt.get_variable(varname)
+                            vars.append((varstr, var))
+                            break
 
         #import pdb ;pdb.set_trace()
-        for var, stmt in varstmts:
+        for varstr, var in vars:
+            stmt = var.parent
             is_class_derived = check_class_derived(stmt)
             if var.is_array():
                 if is_zero_array(var, stmt): continue
@@ -150,8 +175,20 @@ class Gen_Write_In_Module(Kgen_Plugin):
                         attrs = {'items': [var.name], 'specs': ['UNIT = kgen_write_unit']}
                         part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
                     else: # implicit array
-                        pass
-                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+
+                        parts = varstr.split('%')
+                        parts[-1] = var.name
+                        newvarstr = '%'.join(parts)
+
+                        for rank in range(var.rank):
+                            attrs = {'items': [ 'LBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
+                            part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
+                            attrs = {'items': [ 'UBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
+                            part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
+                        attrs = {'items': [ newvarstr ] , 'specs': ['UNIT = kgen_write_unit']}
+                        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
@@ -193,6 +230,15 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
             part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ldim1', 'kgen_udim1', 'kgen_ldim2', 'kgen_udim2', \
+                'kgen_ldim3', 'kgen_udim3', 'kgen_ldim4', 'kgen_udim4', 'kgen_ldim5', 'kgen_udim5' ]}
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], \
+                'entity_decls': ['kgen_mindim1 = HUGE(0)', 'kgen_maxdim1 = 0', 'kgen_mindim2 = HUGE(0)', 'kgen_maxdim2 = 0', \
+                'kgen_mindim3 = HUGE(0)', 'kgen_maxdim3 = 0', 'kgen_mindim4 = HUGE(0)', 'kgen_maxdim4 = 0', 'kgen_mindim5 = HUGE(0)', 'kgen_maxdim5 = 0' ]}
+            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
             node.__write_commonpart_stateread = True
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_readsubp_invoke_L%d = 0'%lineno, \
@@ -203,54 +249,73 @@ class Gen_Write_In_Module(Kgen_Plugin):
         part_append_genknode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         # collect variables for manual state generation
-        varstmts = []
+        vars = []
         for varstr in node.kgen_stmt.write_state:
             parts = varstr.split('%')
             if len(parts) > 1:
                 # search through use stmts until the leaf stmt
-                part = parts[-1]
-                raise Exception('Derived type is not supported for manual state generation yet.')
-            else:
-                part = varstr
+                partstmt = node.kgen_stmt
 
-            match = re.match(r'\w+[^\w]*', part.strip()) 
-            if match:
-                varname = match.group(0)
-                for unknown, res in node.kgen_stmt.unknowns.items():
-                    if unknown.firstpartname() == varname: 
-                        res_stmt = res.res_stmts[0]
-                        var = res_stmt.get_variable(varname)
-                        varstmts.append((var, res_stmt))
-                        break
+                match = re.match(r'\w+[^\w]*', parts[0]) 
+                if match:
+                    varname = match.group(0)
+                    for unknown, res in partstmt.unknowns.items():
+                        if unknown.firstpartname() == varname and res.res_stmts[0].is_derived():
+                            partstmt = res.res_stmts[0]
+                            break
+
+                var = self.get_orgstmt(parts[1:], partstmt)
+                vars.append((varstr, var))
+            else:
+                match = re.match(r'\w+[^\w]*', varstr.strip()) 
+                if match:
+                    varname = match.group(0)
+                    for unknown, res in node.kgen_stmt.unknowns.items():
+                        if unknown.firstpartname() == varname: 
+                            res_stmt = res.res_stmts[0]
+                            var = res_stmt.get_variable(varname)
+                            vars.append((varstr, var))
+                            break
 
         # create typedecls for array of variable pointer
-        for var, stmt in varstmts:
+        for varstr, var in vars:
+            stmt = var.parent
             is_class_derived = check_class_derived(stmt)
+
+            type_spec = stmt.name.upper()
+            attrspec = list(stmt.attrspec)
+            if 'save' not in attrspec:
+                attrspec.append('SAVE')
+            if 'allocatable' not in attrspec:
+                attrspec.append('ALLOCATABLE')
+            excludes = []
+            for spec in attrspec:
+                if spec.startswith('dimension'):
+                    excludes.append(spec)
+                if spec.startswith('pointer'):
+                    excludes.append(spec)
+            for exclude in excludes:
+                attrspec.remove(exclude)
+            selector = tuple(stmt.selector)
+            entity_decls = [ 'kgen_arr_%s_L%d'%(var.name, lineno) ]
+
             if var.is_array():
                 if is_zero_array(var, stmt): continue
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
                     if var.is_explicit_shape_array():
-                        attrs = {'items': [var.name], 'specs': ['UNIT = kgen_write_unit']}
-                        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+                        attrspec.append('DIMENSION(%s)'%(', '.join([':']*(var.rank+1))))
                     else: # implicit array
-                        pass
-                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+                        attrspec.append('DIMENSION(%s)'%(', '.join([':']*(var.rank+1))))
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
-                    #import pdb; pdb.set_trace()
-                    type_spec = stmt.name.upper()
-                    attrspec = list(stmt.attrspec)
-                    attrspec.extend([ 'SAVE', 'DIMENSION(:)' ])
-                    if 'allocatable' not in attrspec and 'pointer' not in attrspec:
-                        attrspec.append('ALLOCATABLE')
-                    selector = tuple(stmt.selector)
-                    entity_decls = [ 'kgen_arr_%s_L%d'%(var.name, lineno) ]
-                    attrs = {'type_spec': type_spec, 'attrspec': attrspec, 'selector': selector, 'entity_decls': entity_decls}
-                    part_append_genknode(pnode, DECL_PART, stmt.__class__, attrs=attrs)
+                    attrspec.append('DIMENSION(:)')
+
+            attrs = {'type_spec': type_spec, 'attrspec': attrspec, 'selector': selector, 'entity_decls': entity_decls}
+            part_append_genknode(pnode, DECL_PART, stmt.__class__, attrs=attrs)
 
         idx = index + 1
 
@@ -269,7 +334,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
             'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_append_genknode(ifeval, EXEC_PART, statements.Open, attrs=attrs)
 
-        for var, stmt in varstmts:
+        for varstr, var in vars:
+            stmt = var.parent
             is_class_derived = check_class_derived(stmt)
             if var.is_array():
                 if is_zero_array(var, stmt): continue
@@ -279,8 +345,35 @@ class Gen_Write_In_Module(Kgen_Plugin):
                     if var.is_explicit_shape_array():
                         pass
                     else: # implicit array
-                        pass
-                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+
+                        parts = varstr.split('%')
+                        parts[-1] = var.name
+                        newvarstr = '%'.join(parts)
+
+                        bounds = []
+                        for rank in range(var.rank):
+                            attrs = {'items': [ 'kgen_ldim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
+                            part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
+
+                            attrs = {'expr': 'kgen_ldim%d .LT. kgen_mindim%d'%(rank+1, rank+1) }
+                            ifmindim = part_append_gensnode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                            attrs = {'variable': 'kgen_mindim%d'%(rank+1), 'sign': '=', 'expr': 'kgen_ldim%d'%(rank+1)}
+                            part_append_genknode(ifmindim, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                            attrs = {'items': [ 'kgen_udim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
+                            part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
+                            bounds.append('kgen_ldim%d:kgen_udim%d'%(rank+1, rank+1))
+
+                            attrs = {'expr': 'kgen_udim%d .GT. kgen_maxdim%d'%(rank+1, rank+1) }
+                            ifmaxdim = part_append_gensnode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                            attrs = {'variable': 'kgen_maxdim%d'%(rank+1), 'sign': '=', 'expr': 'kgen_udim%d'%(rank+1)}
+                            part_append_genknode(ifmaxdim, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                        attrs = {'items': [ '%s(%s)'%(newvarstr, ', '.join(bounds)) ] , 'specs': ['UNIT = kgen_read_unit']}
+                        part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
+
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
@@ -306,8 +399,37 @@ class Gen_Write_In_Module(Kgen_Plugin):
         attrs = {'expr': '.NOT. ALLOCATED(kgen_arr_%s_L%d)'%(var.name, lineno) }
         ifalloc = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d)'%(var.name, lineno, lineno)]}
-        part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
+        for varstr, var in vars:
+            stmt = var.parent
+            is_class_derived = check_class_derived(stmt)
+            if var.is_array():
+                if is_zero_array(var, stmt): continue
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    if var.is_explicit_shape_array():
+                        pass
+                    else: # implicit array
+
+                        parts = varstr.split('%')
+                        parts[-1] = var.name
+                        newvarstr = '%'.join(parts)
+
+                        bounds = []
+                        for rank in range(var.rank):
+                            bounds.append('kgen_mindim%d:kgen_maxdim%d'%(rank+1, rank+1))
+
+                        attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d, %s)'%(var.name, lineno, lineno, ', '.join(bounds))]}
+                        part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
+            else: # scalar
+                if stmt.is_derived() or is_class_derived:
+                    raise Exception('Derived type is not supported for manual state generation yet.')
+                else: # intrinsic type
+                    pass
+                attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d)'%(var.name, lineno, lineno)]}
+                part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
+
+
 
         attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
         part_append_genknode(ifalloc, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -321,7 +443,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
             'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_append_genknode(ifwarmup, EXEC_PART, statements.Open, attrs=attrs)
 
-        for var, stmt in varstmts:
+        for varstr, var in vars:
+            stmt = var.parent
             is_class_derived = check_class_derived(stmt)
             if var.is_array():
                 if is_zero_array(var, stmt): continue
@@ -331,8 +454,27 @@ class Gen_Write_In_Module(Kgen_Plugin):
                     if var.is_explicit_shape_array():
                         pass
                     else: # implicit array
-                        pass
-                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+
+                        parts = varstr.split('%')
+                        parts[-1] = var.name
+                        newvarstr = '%'.join(parts)
+
+                        bounds = []
+                        for rank in range(var.rank):
+                            attrs = {'items': [ 'kgen_ldim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
+                            part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
+
+                            attrs = {'items': [ 'kgen_udim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
+                            part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
+                            bounds.append('kgen_ldim%d:kgen_udim%d'%(rank+1, rank+1))
+
+                        attrs = {'items': [ '%s(%s)'%(newvarstr, ', '.join(bounds)) ] , 'specs': ['UNIT = kgen_read_unit']}
+                        part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
+
+                    attrs = {'variable': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1, %s)'%(var.name, lineno, lineno, ', '.join(bounds)), \
+                        'sign': '=', 'expr': '%s( %s )'%(newvarstr, ', '.join(bounds)) }
+                    part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
+
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
@@ -340,8 +482,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
                     attrs = {'specs': ['UNIT=kgen_read_unit'], 'items': [ var.name ]}
                     part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
 
-            attrs = {'variable': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1)'%(var.name, lineno, lineno), 'sign': '=', 'expr': var.name}
-            part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
+                attrs = {'variable': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1)'%(var.name, lineno, lineno), 'sign': '=', 'expr': var.name}
+                part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
 
 
         # file close
@@ -364,26 +506,36 @@ class Gen_Write_In_Module(Kgen_Plugin):
         ifmain = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
-        for var, stmt in varstmts:
+        for varstr, var in vars:
+            stmt = var.parent
             is_class_derived = check_class_derived(stmt)
             if var.is_array():
                 if is_zero_array(var, stmt): continue
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
+
                     if var.is_explicit_shape_array():
                         pass
                     else: # implicit array
-                        pass
-                        #self.create_write_call(self.state_externs_subrs[node.kgen_parent][0], subrname, entity_name, stmt, var)
+                        parts = varstr.split('%')
+                        parts[-1] = var.name
+                        newvarstr = '%'.join(parts)
+
+                        bounds = []
+                        for rank in range(var.rank):
+                            bounds.append('LBOUND(%s, %d):UBOUND(%s, %d)'%(newvarstr, rank+1, newvarstr, rank+1))
+
+                        attrs = {'variable': newvarstr, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d, %s)'%(var.name, lineno, lineno, ', '.join(bounds))}
+                        part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
                     pass
 
-            attrs = {'variable': var.name, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d)'%(var.name, lineno, lineno)}
-            part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
+                attrs = {'variable': var.name, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d)'%(var.name, lineno, lineno)}
+                part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invoke_L%d + 1'%lineno}
         part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)

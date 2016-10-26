@@ -23,7 +23,7 @@ module kernel
                         atype%c(i,j) = atype%a(i,j) + atype%b(i,j)
                     end do
                 end do
-                !$kgen write save_value
+                !$kgen write atype%c
                 save_value = atype%c(1,1)
         end subroutine add
 
