@@ -526,7 +526,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
                         for rank in range(var.rank):
                             bounds.append('LBOUND(%s, %d):UBOUND(%s, %d)'%(newvarstr, rank+1, newvarstr, rank+1))
 
-                        attrs = {'variable': newvarstr, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d, %s)'%(var.name, lineno, lineno, ', '.join(bounds))}
+                        attrs = {'variable': newvarstr, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1, %s)'%(var.name, lineno, lineno, ', '.join(bounds))}
                         part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
