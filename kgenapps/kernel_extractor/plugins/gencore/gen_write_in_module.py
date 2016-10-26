@@ -80,8 +80,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
             ifreset = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
             idx += 1
 
-            attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-            part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
+            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
             part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -93,8 +93,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
             ifreset = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
             idx += 1
 
-            attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-            part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
+            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
             part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -260,8 +260,14 @@ class Gen_Write_In_Module(Kgen_Plugin):
         ifeval = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
-        attrs = {'variable': 'kgen_readsubp_maxinvoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_maxinvoke_L%d + 1'%lineno}
-        part_append_genknode(ifeval, EXEC_PART, statements.Assignment, attrs=attrs)
+        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invoke_L%d'%lineno]
+        attrs = {'specs': ['kgen_read_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
+        part_append_gensnode(ifeval, EXEC_PART, statements.Write, attrs=attrs)
+
+        # file open
+        attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_filepath_L%d'%lineno, 'STATUS="OLD"', 'ACCESS="STREAM"', \
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+        part_append_genknode(ifeval, EXEC_PART, statements.Open, attrs=attrs)
 
         for var, stmt in varstmts:
             is_class_derived = check_class_derived(stmt)
@@ -279,7 +285,17 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
-                    pass
+                    attrs = {'specs': ['UNIT=kgen_read_unit'], 'items': [ var.name ]}
+                    part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=kgen_read_unit']}
+        part_append_genknode(ifeval, EXEC_PART, statements.Close, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invoke_L%d + 1'%lineno}
+        part_append_genknode(ifeval, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_maxinvoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_maxinvoke_L%d + 1'%lineno}
+        part_append_genknode(ifeval, EXEC_PART, statements.Assignment, attrs=attrs)
 
         # if warmup stage
         # - allocate an array of pointers to data variable
@@ -287,18 +303,14 @@ class Gen_Write_In_Module(Kgen_Plugin):
         ifwarmup = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
-        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-        part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
-
         attrs = {'expr': '.NOT. ALLOCATED(kgen_arr_%s_L%d)'%(var.name, lineno) }
         ifalloc = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d)'%(var.name, lineno, lineno)]}
         part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
 
-
-        filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
-        lineno = node.kgen_stmt.item.span[0]
+        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Assignment, attrs=attrs)
 
         l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invoke_L%d'%lineno]
         attrs = {'specs': ['kgen_read_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
@@ -343,9 +355,6 @@ class Gen_Write_In_Module(Kgen_Plugin):
         ifmax = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-        part_append_genknode(ifmax, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'variable': 'kgen_readsubp_maxinvoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
         part_append_genknode(ifmax, EXEC_PART, statements.Assignment, attrs=attrs)
 
         # if main stage
