@@ -18,7 +18,7 @@ module calling_module
                 do i=1,2
                     allocate(atype(i)%a(np,np))
                     allocate(atype(i)%b(np,np))
-                    allocate(atype(i)%c(np,np))
+                    !allocate(atype(i)%c(np,np))
                     do j=1,np
                         do k=1,np
                             atype(i)%a(j,k) = 1.0
@@ -36,10 +36,10 @@ module calling_module
 
                 deallocate(atype(1)%a)
                 deallocate(atype(1)%b)
-                deallocate(atype(1)%c)
+                !deallocate(atype(1)%c)
                 deallocate(atype(2)%a)
                 deallocate(atype(2)%b)
-                deallocate(atype(2)%c)
+                !deallocate(atype(2)%c)
 
                 deallocate(atype)
 

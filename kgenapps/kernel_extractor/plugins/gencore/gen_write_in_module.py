@@ -43,6 +43,9 @@ class Gen_Write_In_Module(Kgen_Plugin):
                         return self.get_orgstmt(parts[1:], res_stmt)
         raise Exception('No matched statment is found.')
 
+    def add_useonlyname(self, ancs, unk, res_stmts):
+        raise Exception('TODO: support for importing selector')
+
     def write_state(self, node):
         index, partname, part = get_part_index(node)
         pstmt = node.kgen_stmt.ancestors()[-1]
@@ -100,8 +103,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
             #attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
             #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
-            part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
+            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'expr': 'kgen_openmp_issave(OMP_GET_THREAD_NUM()) .GE. 0'}
             l = [ 'kgen_mpirank', '"."', 'OMP_GET_THREAD_NUM()', '"."', 'kgen_openmp_issave(OMP_GET_THREAD_NUM())', '"."', 'kgen_writesubp_invoke_L%d'%lineno]
@@ -113,8 +116,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
             #attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
             #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
-            part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
+            #attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
+            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'expr': 'kgen_openmp_issave .GE. 0'}
             l = [ 'kgen_mpirank', '"."', '0', '"."', 'kgen_openmp_issave', '"."', 'kgen_writesubp_invoke_L%d'%lineno]
@@ -171,24 +174,19 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
-                    if var.is_explicit_shape_array():
-                        attrs = {'items': [var.name], 'specs': ['UNIT = kgen_write_unit']}
+                    parts = varstr.split('%')
+                    parts[-1] = var.name
+                    newvarstr = '%'.join(parts)
+
+                    for rank in range(var.rank):
+                        attrs = {'items': [ 'LBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
                         part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
-                    else: # implicit array
 
-                        parts = varstr.split('%')
-                        parts[-1] = var.name
-                        newvarstr = '%'.join(parts)
-
-                        for rank in range(var.rank):
-                            attrs = {'items': [ 'LBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
-                            part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
-
-                            attrs = {'items': [ 'UBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
-                            part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
-
-                        attrs = {'items': [ newvarstr ] , 'specs': ['UNIT = kgen_write_unit']}
+                        attrs = {'items': [ 'UBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
                         part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
+                    attrs = {'items': [ newvarstr ] , 'specs': ['UNIT = kgen_write_unit']}
+                    part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
@@ -208,7 +206,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
     def read_state(self, node):
         index, partname, part = get_part_index(node)
-        pstmt = node.kgen_stmt.ancestors()[-1]
+        ancs = node.kgen_stmt.ancestors()
+        pstmt = ancs[-1]
         pnode = pstmt.genkpair
         filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
         lineno = node.kgen_stmt.item.span[0]
@@ -217,7 +216,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_read_unit']}
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_read_unit = -1', 'cur_mpirank = -1', 'cur_openmptid = -1', 'cur_kernelinvoke = -1']}
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
 
@@ -241,8 +240,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
             node.__write_commonpart_stateread = True
 
-        attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_readsubp_invoke_L%d = 0'%lineno, \
-            'kgen_readsubp_maxinvoke_L%d = 0'%lineno ]}
+        attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_readsubp_invokepath_L%d = 0'%lineno, \
+            'kgen_readsubp_invoke_L%d = 0'%lineno, 'kgen_readsubp_maxinvoke_L%d = 0'%lineno ]}
         part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_read_filepath_L%d'%lineno], 'selector':('128', None)}
@@ -314,6 +313,15 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 else: # intrinsic type
                     attrspec.append('DIMENSION(:)')
 
+            if hasattr(stmt, 'unknowns'):
+                for unk, res in stmt.unknowns.items():
+                    res_parent_stmt = res.res_stmts[0].ancestors()[-1]
+                    if res_parent_stmt not in ancs:
+                        if unk.firstpartname() == selector[0]:
+                            self.add_useonlyname(ancs, unk, res.res_stmts)
+                        elif unk.firstpartname() == selector[1]:
+                            self.add_useonlyname(ancs, unk, res.res_stmts)
+
             attrs = {'type_spec': type_spec, 'attrspec': attrspec, 'selector': selector, 'entity_decls': entity_decls}
             part_append_genknode(pnode, DECL_PART, stmt.__class__, attrs=attrs)
 
@@ -322,12 +330,33 @@ class Gen_Write_In_Module(Kgen_Plugin):
         # if eval stage
         # - count max number of local invocations
         attrs = {'expr': 'kgen_evalstage .AND. .NOT. kgen_warmupstage .AND. .NOT. kgen_mainstage'}
-        ifeval = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
+        ifeval = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
-        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invoke_L%d'%lineno]
+        attrs = {'expr': 'kgen_mpirank .NE. cur_mpirank .OR. kgen_openmptid .NE. cur_openmptid .OR. kgen_kernelinvoke .NE. cur_kernelinvoke'}
+        ifnewstate = part_append_genknode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'cur_mpirank', 'sign': '=', 'expr': 'kgen_mpirank'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'cur_openmptid', 'sign': '=', 'expr': 'kgen_openmptid'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'cur_kernelinvoke', 'sign': '=', 'expr': 'kgen_kernelinvoke'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_invokepath_L%d'%lineno, 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'expr': 'ALLOCATED(kgen_arr_%s_L%d)'%(var.name, lineno) }
+        ifalloc = part_append_genknode(ifnewstate, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['kgen_arr_%s_L%d'%(var.name, lineno)]}
+        part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
+
+        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invokepath_L%d'%lineno]
         attrs = {'specs': ['kgen_read_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
-        part_append_gensnode(ifeval, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifeval, EXEC_PART, statements.Write, attrs=attrs)
 
         # file open
         attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_filepath_L%d'%lineno, 'STATUS="OLD"', 'ACCESS="STREAM"', \
@@ -342,37 +371,33 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
-                    if var.is_explicit_shape_array():
-                        pass
-                    else: # implicit array
+                    parts = varstr.split('%')
+                    parts[-1] = var.name
+                    newvarstr = '%'.join(parts)
 
-                        parts = varstr.split('%')
-                        parts[-1] = var.name
-                        newvarstr = '%'.join(parts)
-
-                        bounds = []
-                        for rank in range(var.rank):
-                            attrs = {'items': [ 'kgen_ldim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
-                            part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
-
-                            attrs = {'expr': 'kgen_ldim%d .LT. kgen_mindim%d'%(rank+1, rank+1) }
-                            ifmindim = part_append_gensnode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-                            attrs = {'variable': 'kgen_mindim%d'%(rank+1), 'sign': '=', 'expr': 'kgen_ldim%d'%(rank+1)}
-                            part_append_genknode(ifmindim, EXEC_PART, statements.Assignment, attrs=attrs)
-
-                            attrs = {'items': [ 'kgen_udim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
-                            part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
-                            bounds.append('kgen_ldim%d:kgen_udim%d'%(rank+1, rank+1))
-
-                            attrs = {'expr': 'kgen_udim%d .GT. kgen_maxdim%d'%(rank+1, rank+1) }
-                            ifmaxdim = part_append_gensnode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-                            attrs = {'variable': 'kgen_maxdim%d'%(rank+1), 'sign': '=', 'expr': 'kgen_udim%d'%(rank+1)}
-                            part_append_genknode(ifmaxdim, EXEC_PART, statements.Assignment, attrs=attrs)
-
-                        attrs = {'items': [ '%s(%s)'%(newvarstr, ', '.join(bounds)) ] , 'specs': ['UNIT = kgen_read_unit']}
+                    bounds = []
+                    for rank in range(var.rank):
+                        attrs = {'items': [ 'kgen_ldim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
                         part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
+
+                        attrs = {'expr': 'kgen_ldim%d .LT. kgen_mindim%d'%(rank+1, rank+1) }
+                        ifmindim = part_append_genknode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                        attrs = {'variable': 'kgen_mindim%d'%(rank+1), 'sign': '=', 'expr': 'kgen_ldim%d'%(rank+1)}
+                        part_append_genknode(ifmindim, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                        attrs = {'items': [ 'kgen_udim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
+                        part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
+                        bounds.append('kgen_ldim%d:kgen_udim%d'%(rank+1, rank+1))
+
+                        attrs = {'expr': 'kgen_udim%d .GT. kgen_maxdim%d'%(rank+1, rank+1) }
+                        ifmaxdim = part_append_genknode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                        attrs = {'variable': 'kgen_maxdim%d'%(rank+1), 'sign': '=', 'expr': 'kgen_udim%d'%(rank+1)}
+                        part_append_genknode(ifmaxdim, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                    attrs = {'items': [ '%s(%s)'%(newvarstr, ', '.join(bounds)) ] , 'specs': ['UNIT = kgen_read_unit']}
+                    part_append_genknode(ifeval, EXEC_PART, statements.Read, attrs=attrs)
 
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
@@ -384,20 +409,20 @@ class Gen_Write_In_Module(Kgen_Plugin):
         attrs = {'specs': ['UNIT=kgen_read_unit']}
         part_append_genknode(ifeval, EXEC_PART, statements.Close, attrs=attrs)
 
-        attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invoke_L%d + 1'%lineno}
+        attrs = {'variable': 'kgen_readsubp_invokepath_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invokepath_L%d + 1'%lineno}
         part_append_genknode(ifeval, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'variable': 'kgen_readsubp_maxinvoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_maxinvoke_L%d + 1'%lineno}
         part_append_genknode(ifeval, EXEC_PART, statements.Assignment, attrs=attrs)
 
         # if warmup stage
-        # - allocate an array of pointers to data variable
+        # - allocate an array and save data variable into the array
         attrs = {'expr': '.NOT. kgen_evalstage .AND. kgen_warmupstage .AND. .NOT. kgen_mainstage'}
-        ifwarmup = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
+        ifwarmup = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
         attrs = {'expr': '.NOT. ALLOCATED(kgen_arr_%s_L%d)'%(var.name, lineno) }
-        ifalloc = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        ifnoalloc = part_append_genknode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         for varstr, var in vars:
             stmt = var.parent
@@ -407,36 +432,55 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
-                    if var.is_explicit_shape_array():
-                        pass
-                    else: # implicit array
+                    parts = varstr.split('%')
+                    parts[-1] = var.name
+                    newvarstr = '%'.join(parts)
 
-                        parts = varstr.split('%')
-                        parts[-1] = var.name
-                        newvarstr = '%'.join(parts)
+                    bounds = []
+                    for rank in range(var.rank):
+                        bounds.append('kgen_mindim%d:kgen_maxdim%d'%(rank+1, rank+1))
 
-                        bounds = []
-                        for rank in range(var.rank):
-                            bounds.append('kgen_mindim%d:kgen_maxdim%d'%(rank+1, rank+1))
-
-                        attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d, %s)'%(var.name, lineno, lineno, ', '.join(bounds))]}
-                        part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
+                    attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d, %s)'%(var.name, lineno, lineno, ', '.join(bounds))]}
+                    part_append_genknode(ifnoalloc, EXEC_PART, statements.Allocate, attrs=attrs)
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
                     pass
                 attrs = {'items': ['kgen_arr_%s_L%d(kgen_readsubp_maxinvoke_L%d)'%(var.name, lineno, lineno)]}
-                part_append_genknode(ifalloc, EXEC_PART, statements.Allocate, attrs=attrs)
+                part_append_genknode(ifnoalloc, EXEC_PART, statements.Allocate, attrs=attrs)
 
 
+        attrs = {'variable': 'cur_mpirank', 'sign': '=', 'expr': '-1'}
+        part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'cur_openmptid', 'sign': '=', 'expr': '-1'}
+        part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'cur_kernelinvoke', 'sign': '=', 'expr': '-1'}
+        part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-        part_append_genknode(ifalloc, EXEC_PART, statements.Assignment, attrs=attrs)
+        part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invoke_L%d'%lineno]
+        attrs = {'expr': 'kgen_mpirank .NE. cur_mpirank .OR. kgen_openmptid .NE. cur_openmptid .OR. kgen_kernelinvoke .NE. cur_kernelinvoke'}
+        ifnewstate = part_append_genknode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'cur_mpirank', 'sign': '=', 'expr': 'kgen_mpirank'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'cur_openmptid', 'sign': '=', 'expr': 'kgen_openmptid'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'cur_kernelinvoke', 'sign': '=', 'expr': 'kgen_kernelinvoke'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_readsubp_invokepath_L%d'%lineno, 'sign': '=', 'expr': '0'}
+        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_invokepath_L%d'%lineno]
         attrs = {'specs': ['kgen_read_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
-        part_append_gensnode(ifwarmup, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifwarmup, EXEC_PART, statements.Write, attrs=attrs)
 
         # file open
         attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_filepath_L%d'%lineno, 'STATUS="OLD"', 'ACCESS="STREAM"', \
@@ -451,25 +495,21 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
-                    if var.is_explicit_shape_array():
-                        pass
-                    else: # implicit array
+                    parts = varstr.split('%')
+                    parts[-1] = var.name
+                    newvarstr = '%'.join(parts)
 
-                        parts = varstr.split('%')
-                        parts[-1] = var.name
-                        newvarstr = '%'.join(parts)
-
-                        bounds = []
-                        for rank in range(var.rank):
-                            attrs = {'items': [ 'kgen_ldim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
-                            part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
-
-                            attrs = {'items': [ 'kgen_udim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
-                            part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
-                            bounds.append('kgen_ldim%d:kgen_udim%d'%(rank+1, rank+1))
-
-                        attrs = {'items': [ '%s(%s)'%(newvarstr, ', '.join(bounds)) ] , 'specs': ['UNIT = kgen_read_unit']}
+                    bounds = []
+                    for rank in range(var.rank):
+                        attrs = {'items': [ 'kgen_ldim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
                         part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
+
+                        attrs = {'items': [ 'kgen_udim%d'%(rank+1) ], 'specs': ['UNIT = kgen_read_unit']}
+                        part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
+                        bounds.append('kgen_ldim%d:kgen_udim%d'%(rank+1, rank+1))
+
+                    attrs = {'items': [ '%s(%s)'%(newvarstr, ', '.join(bounds)) ] , 'specs': ['UNIT = kgen_read_unit']}
+                    part_append_genknode(ifwarmup, EXEC_PART, statements.Read, attrs=attrs)
 
                     attrs = {'variable': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1, %s)'%(var.name, lineno, lineno, ', '.join(bounds)), \
                         'sign': '=', 'expr': '%s( %s )'%(newvarstr, ', '.join(bounds)) }
@@ -490,11 +530,14 @@ class Gen_Write_In_Module(Kgen_Plugin):
         attrs = {'specs': ['UNIT=kgen_read_unit']}
         part_append_genknode(ifwarmup, EXEC_PART, statements.Close, attrs=attrs)
 
+        attrs = {'variable': 'kgen_readsubp_invokepath_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invokepath_L%d + 1'%lineno}
+        part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
+
         attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_readsubp_invoke_L%d + 1'%lineno}
         part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'expr': 'kgen_readsubp_invoke_L%d .EQ. kgen_readsubp_maxinvoke_L%d'%(lineno,lineno) }
-        ifmax = part_append_gensnode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        ifmax = part_append_genknode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
         part_append_genknode(ifmax, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -503,7 +546,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
         # - copy data from array to data variable
 
         attrs = {'expr': '.NOT. kgen_evalstage .AND. .NOT. kgen_warmupstage .AND. kgen_mainstage'}
-        ifmain = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
+        ifmain = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
         for varstr, var in vars:
@@ -514,20 +557,16 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
+                    parts = varstr.split('%')
+                    parts[-1] = var.name
+                    newvarstr = '%'.join(parts)
 
-                    if var.is_explicit_shape_array():
-                        pass
-                    else: # implicit array
-                        parts = varstr.split('%')
-                        parts[-1] = var.name
-                        newvarstr = '%'.join(parts)
+                    bounds = []
+                    for rank in range(var.rank):
+                        bounds.append('LBOUND(%s, %d):UBOUND(%s, %d)'%(newvarstr, rank+1, newvarstr, rank+1))
 
-                        bounds = []
-                        for rank in range(var.rank):
-                            bounds.append('LBOUND(%s, %d):UBOUND(%s, %d)'%(newvarstr, rank+1, newvarstr, rank+1))
-
-                        attrs = {'variable': newvarstr, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1, %s)'%(var.name, lineno, lineno, ', '.join(bounds))}
-                        part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
+                    attrs = {'variable': newvarstr, 'sign': '=', 'expr': 'kgen_arr_%s_L%d(kgen_readsubp_invoke_L%d + 1, %s)'%(var.name, lineno, lineno, ', '.join(bounds))}
+                    part_append_genknode(ifmain, EXEC_PART, statements.Assignment, attrs=attrs)
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')

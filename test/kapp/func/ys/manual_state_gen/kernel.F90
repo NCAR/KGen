@@ -7,7 +7,8 @@ module kernel
 
         type typeA
             ! test comment 1
-            real(kind=real_kind), pointer, dimension(:, :) :: a, b, c ! test comment 2
+            real(kind=real_kind), pointer, dimension(:, :) :: a, b ! test comment 2
+            real(kind=real_kind), dimension(np, np) :: c ! test comment 2
         end type        
 
         public add, typeA, save_array, save_value

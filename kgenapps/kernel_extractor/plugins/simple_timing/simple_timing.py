@@ -56,8 +56,8 @@ class Simple_Timing(Kgen_Plugin):
 
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, 'TEST!!!!')
 
-        attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.TRUE.'}
-        namedpart_append_gensnode(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, statements.Assignment, attrs=attrs)
+        #attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.TRUE.'}
+        #namedpart_append_gensnode(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, statements.Assignment, attrs=attrs)
 
         for elem in execpart:
             if hasattr(elem, 'kgen_stmt') and self.ispstmt(getinfo('callsite_stmts')[0], elem.kgen_stmt, node.kgen_stmt):
