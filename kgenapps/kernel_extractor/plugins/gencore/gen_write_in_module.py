@@ -100,24 +100,12 @@ class Gen_Write_In_Module(Kgen_Plugin):
             ifreset = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
             idx += 1
 
-            #attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            #attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
-            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
-
             attrs = {'expr': 'kgen_openmp_issave(OMP_GET_THREAD_NUM()) .GE. 0'}
             l = [ 'kgen_mpirank', '"."', 'OMP_GET_THREAD_NUM()', '"."', 'kgen_openmp_issave(OMP_GET_THREAD_NUM())', '"."', 'kgen_writesubp_invoke_L%d'%lineno]
         else:
             attrs = {'expr': 'kgen_resetinvoke'}
             ifreset = part_insert_gensnode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
             idx += 1
-
-            #attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
-            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            #attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
-            #part_append_genknode(ifreset, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'expr': 'kgen_openmp_issave .GE. 0'}
             l = [ 'kgen_mpirank', '"."', '0', '"."', 'kgen_openmp_issave', '"."', 'kgen_writesubp_invoke_L%d'%lineno]
@@ -132,10 +120,6 @@ class Gen_Write_In_Module(Kgen_Plugin):
             'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
         part_append_genknode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
 
-        # write var
-        #for varstr in node.kgen_stmt.write_state:
-        #    attrs = {'specs': ['UNIT=kgen_write_unit'], 'items': [varstr]}
-        #    part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
         vars = []
         for varstr in node.kgen_stmt.write_state:
@@ -165,7 +149,6 @@ class Gen_Write_In_Module(Kgen_Plugin):
                             vars.append((varstr, var))
                             break
 
-        #import pdb ;pdb.set_trace()
         for varstr, var in vars:
             stmt = var.parent
             is_class_derived = check_class_derived(stmt)
@@ -216,7 +199,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_read_unit = -1', 'cur_mpirank = -1', 'cur_openmptid = -1', 'cur_kernelinvoke = -1']}
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_read_unit = -1', 'cur_mpirank = -1']}
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
 
@@ -333,16 +316,10 @@ class Gen_Write_In_Module(Kgen_Plugin):
         ifeval = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         idx += 1
 
-        attrs = {'expr': 'kgen_mpirank .NE. cur_mpirank .OR. kgen_openmptid .NE. cur_openmptid .OR. kgen_kernelinvoke .NE. cur_kernelinvoke'}
+        attrs = {'expr': 'kgen_mpirank .NE. cur_mpirank' }
         ifnewstate = part_append_genknode(ifeval, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'variable': 'cur_mpirank', 'sign': '=', 'expr': 'kgen_mpirank'}
-        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'variable': 'cur_openmptid', 'sign': '=', 'expr': 'kgen_openmptid'}
-        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'variable': 'cur_kernelinvoke', 'sign': '=', 'expr': 'kgen_kernelinvoke'}
         part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'variable': 'kgen_readsubp_invokepath_L%d'%lineno, 'sign': '=', 'expr': '0'}
@@ -454,25 +431,13 @@ class Gen_Write_In_Module(Kgen_Plugin):
         attrs = {'variable': 'cur_mpirank', 'sign': '=', 'expr': '-1'}
         part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'cur_openmptid', 'sign': '=', 'expr': '-1'}
-        part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'variable': 'cur_kernelinvoke', 'sign': '=', 'expr': '-1'}
-        part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
-
         attrs = {'variable': 'kgen_readsubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
         part_append_genknode(ifnoalloc, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'expr': 'kgen_mpirank .NE. cur_mpirank .OR. kgen_openmptid .NE. cur_openmptid .OR. kgen_kernelinvoke .NE. cur_kernelinvoke'}
+        attrs = {'expr': 'kgen_mpirank .NE. cur_mpirank' }
         ifnewstate = part_append_genknode(ifwarmup, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'variable': 'cur_mpirank', 'sign': '=', 'expr': 'kgen_mpirank'}
-        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'variable': 'cur_openmptid', 'sign': '=', 'expr': 'kgen_openmptid'}
-        part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
-
-        attrs = {'variable': 'cur_kernelinvoke', 'sign': '=', 'expr': 'kgen_kernelinvoke'}
         part_append_genknode(ifnewstate, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'variable': 'kgen_readsubp_invokepath_L%d'%lineno, 'sign': '=', 'expr': '0'}
