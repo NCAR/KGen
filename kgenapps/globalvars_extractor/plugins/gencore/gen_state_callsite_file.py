@@ -40,8 +40,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             getinfo('topblock_stmt'), None, self.create_topblock_parts)
 
-TODO: need to create call to derived type or array type from each subroutine
-
 
 #    def is_openmp(self, node):
 #        return  getinfo('is_openmp_app')
