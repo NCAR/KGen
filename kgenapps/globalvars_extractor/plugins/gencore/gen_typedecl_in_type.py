@@ -5,7 +5,7 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
-from gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
+from gencore_utils import get_dtype_printname, get_typedecl_printname, state_gencore_contains, \
     gen_write_istrue, is_zero_array, is_excluded, is_remove_state
 
 class Gen_Typedecl_In_Type(Kgen_Plugin):
@@ -114,7 +114,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     for uname, req in stmt.unknowns.iteritems():
                         if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                             res = req.res_stmts[0]
-                            callname = get_dtype_writename(res)
+                            callname = get_dtype_printname(res)
                             break
                     if callname is None:
                         print 'WARNING: Can not find Type resolver for %s'%stmt.name
@@ -166,7 +166,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     for uname, req in stmt.unknowns.iteritems():
                         if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                             res = req.res_stmts[0]
-                            callname = get_dtype_writename(res)
+                            callname = get_dtype_printname(res)
                             break
                     if callname is None:
                         print 'WARNING: Can not find Type resolver for %s'%stmt.name
@@ -207,7 +207,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             var = stmt.get_variable(entity_name)
-            subrname = get_typedecl_writename(stmt, entity_name)
+            subrname = get_typedecl_printname(stmt, entity_name)
             if subrname is None: raise Exception('Can not get subroutinename')
 
             if var.is_array():

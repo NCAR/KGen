@@ -3,7 +3,7 @@
 import statements
 import block_statements
 import typedecl_statements
-from gencore_utils import state_gencore_contains, get_dtype_writename, gen_write_istrue, check_class_derived
+from gencore_utils import state_gencore_contains, get_dtype_printname, gen_write_istrue, check_class_derived
 
 
 def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
@@ -92,7 +92,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                     #if uname.firstpartname()==stmt.name:
                         if len(req.res_stmts)>0:
                             res = req.res_stmts[0]
-                            callname = get_dtype_writename(res)
+                            callname = get_dtype_printname(res)
                             break
                 if callname is None:
                     print 'WARNING: Can not find Type resolver for %s'%stmt.name
@@ -133,7 +133,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                     #if uname.firstpartname()==stmt.name:
                         if len(req.res_stmts)>0:
                             res = req.res_stmts[0]
-                            callname = get_dtype_writename(res)
+                            callname = get_dtype_printname(res)
                             break
                 if callname is None:
                     print 'WARNING: Can not find Type resolver for %s'%stmt.name

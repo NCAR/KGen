@@ -77,7 +77,8 @@ class GExtTool(KGenTool):
 
         # construct a generation tree
         for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
-            if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
+            #if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
+            if hasattr(srcobj.tree, 'globalvars'):
                 sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
                 if sfile is None:
                     raise ProgramException('Kernel source file is not generated for %s.'%filepath)

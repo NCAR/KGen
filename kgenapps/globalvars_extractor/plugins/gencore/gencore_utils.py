@@ -89,6 +89,7 @@ KERNEL_TBLOCK_SUBP_PART = 'KTBSP'
 rprefix = 'kr'
 wprefix = 'kw'
 vprefix = 'kv'
+pprefix = 'kp'
 
 MAXLEN_SUBPNAME = 50
 
@@ -138,10 +139,10 @@ def get_typedecl_subpname(stmt, entity_name):
             get_typedecl_subpname.kgen_subpname_cache[subpname] = subpindex
             return 'kgen_subpname_%d'%subpindex
 
-def get_dtype_writename(typestmt):
+def get_dtype_printname(typestmt):
     if typestmt is None: return
     subpname = get_dtype_subpname(typestmt)
-    if subpname: return '%s_%s'%(wprefix, subpname)
+    if subpname: return '%s_%s'%(pprefix, subpname)
 
 def get_dtype_readname(typestmt):
     if typestmt is None: return
@@ -164,10 +165,10 @@ def get_module_out_readname(modstmt):
     if modstmt is None: return
     return '%s_externs_out_%s'%(rprefix, modstmt.name)
 
-def get_typedecl_writename(typestmt, entity_name):
+def get_typedecl_printname(typestmt, entity_name):
     if typestmt is None: return
     subpname = get_typedecl_subpname(typestmt, entity_name)
-    if subpname: return '%s_%s'%(wprefix, subpname)
+    if subpname: return '%s_%s'%(pprefix, subpname)
 
 def get_typedecl_readname(typestmt, entity_name):
     if typestmt is None: return

@@ -19,8 +19,8 @@ def generate_makefiles():
 def generate_state_makefile():
 
     org_files = [ filepath for filepath, (srcfile, mods_used, units_used) in State.used_srcfiles.iteritems() if srcfile.tree.used4genstate ] 
-    if not State.topblock['stmt'].reader.id in org_files:
-        org_files.append(State.topblock['path'])
+    #if not State.topblock['stmt'].reader.id in org_files:
+    #    org_files.append(State.topblock['path'])
 
     with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
 

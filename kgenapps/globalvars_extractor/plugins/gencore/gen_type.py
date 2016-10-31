@@ -5,7 +5,7 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
-from gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
+from gencore_utils import get_dtype_printname, get_typedecl_printname, state_gencore_contains, \
     gen_write_istrue, is_remove_state
 
 class Gen_Type(Kgen_Plugin):
@@ -45,7 +45,7 @@ class Gen_Type(Kgen_Plugin):
         for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
             for uname, req in reqlist:
                 if len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type):
-                    subrname = get_dtype_writename(req.res_stmts[0])
+                    subrname = get_dtype_printname(req.res_stmts[0])
                     checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
                         subrname in n.kgen_stmt.items
                     if (id(parent),subrname) not in self.state_created_use_items and not part_has_node(parent, USE_PART, checks):
@@ -107,7 +107,7 @@ class Gen_Type(Kgen_Plugin):
     def create_dtype_write_subr(self, node):
         assert node.kgen_stmt, 'None kgen statement'
 
-        subrname = get_dtype_writename(node.kgen_stmt)
+        subrname = get_dtype_printname(node.kgen_stmt)
         if subrname is None: return
 
         parent = node.kgen_parent
@@ -163,7 +163,7 @@ class Gen_Type(Kgen_Plugin):
                     node.kgen_stmt.top.used4genstate = True
 
                     var = stmt.get_variable(entity_name)
-                    callname = get_typedecl_writename(stmt, entity_name)
+                    callname = get_typedecl_printname(stmt, entity_name)
 
                     if var.is_array():
                         if stmt.is_derived():
@@ -182,7 +182,7 @@ class Gen_Type(Kgen_Plugin):
                                 for uname, req in stmt.unknowns.iteritems():
                                     if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                         res = req.res_stmts[0]
-                                        callname = get_dtype_writename(res)
+                                        callname = get_dtype_printname(res)
                                         break
                                 if callname is None:
                                     print 'WARNING: Can not find Type resolver for %s'%stmt.name

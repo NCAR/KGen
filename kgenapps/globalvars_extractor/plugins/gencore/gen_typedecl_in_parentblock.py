@@ -5,7 +5,7 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS,\
-    get_typedecl_writename, get_dtype_writename, is_zero_array, is_remove_state, namedgen_write_istrue, check_class_derived 
+    get_typedecl_printname, get_dtype_printname, is_zero_array, is_remove_state, namedgen_write_istrue, check_class_derived 
 from gencore_subr import create_write_subr
 
 #class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
@@ -137,7 +137,7 @@ from gencore_subr import create_write_subr
 #                            for uname, req in stmt.unknowns.iteritems():
 #                                if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
 #                                    res = req.res_stmts[0]
-#                                    subrname = get_dtype_writename(res)
+#                                    subrname = get_dtype_printname(res)
 #                                    break
 #                            if subrname is None:
 #                                print 'WARNING: Can not find Type resolver for %s'%stmt.name

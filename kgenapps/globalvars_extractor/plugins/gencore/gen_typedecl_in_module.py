@@ -5,7 +5,7 @@ import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
-from gencore_utils import get_typedecl_writename, get_dtype_writename, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
+from gencore_utils import get_typedecl_printname, get_dtype_printname, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
     STATE_PBLOCK_USE_PART, state_gencore_contains, get_module_out_writename, \
     STATE_PBLOCK_WRITE_OUT_EXTERNS, gen_write_istrue, \
     is_remove_state, is_zero_array, check_class_derived
@@ -179,7 +179,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             self.state_extern_writes.append(node.kgen_parent.name+entity_name)
 
             var = stmt.get_variable(entity_name)
-            subrname = get_typedecl_writename(stmt, entity_name)
+            subrname = get_typedecl_printname(stmt, entity_name)
 
             if var.is_array():
                 if is_zero_array(var, stmt): continue
@@ -218,7 +218,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                             #if uname.firstpartname()==stmt.name:
                                 if len(req.res_stmts)>0:
                                     res = req.res_stmts[0]
-                                    subrname = get_dtype_writename(res)
+                                    subrname = get_dtype_printname(res)
                                     break
                         if subrname is None:
                             print 'WARNING: Can not find Type resolver for %s'%stmt.name
