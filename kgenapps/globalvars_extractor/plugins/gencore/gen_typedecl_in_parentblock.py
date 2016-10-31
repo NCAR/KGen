@@ -1,12 +1,12 @@
-# gen_write_typedecl_in_parentblock.py
+# gen_print_typedecl_in_parentblock.py
  
 import statements
 import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS,\
-    get_typedecl_printname, get_dtype_printname, is_zero_array, is_remove_state, namedgen_write_istrue, check_class_derived 
-from gencore_subr import create_write_subr
+    get_typedecl_printname, get_dtype_printname, is_zero_array, is_remove_state, namedgen_print_istrue, check_class_derived 
+from gencore_subr import create_print_subr
 
 #class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 #    def __init__(self):
@@ -24,10 +24,10 @@ from gencore_subr import create_write_subr
 #        self.frame_msg = msg
 #
 #        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-#            typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.create_subr_write_typedecl_in_parentblock) 
+#            typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.create_subr_print_typedecl_in_parentblock) 
 #
 #        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-#            getinfo('parentblock_stmt'), self.has_implicit_rule_resolver, self.create_write_implicit_rule_in_parentblock) 
+#            getinfo('parentblock_stmt'), self.has_implicit_rule_resolver, self.create_print_implicit_rule_in_parentblock) 
 #
 #        #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
 #        #    typedecl_statements.TypeDeclarationStatement, self.typedecl_has_state_parentblock, self.remove_read_typedecl_in_parentblock) 
@@ -37,7 +37,7 @@ from gencore_subr import create_write_subr
 #            return True
 #        else: return False
 # 
-#    def create_write_implicit_rule_in_parentblock(self, node):
+#    def create_print_implicit_rule_in_parentblock(self, node):
 #        for resolver in node.kgen_stmt.implicit_rule_resolvers:
 #            if resolver.name in node.kgen_stmt.args:
 #                partid = STATE_PBLOCK_WRITE_IN_ARGS
@@ -63,7 +63,7 @@ from gencore_subr import create_write_subr
 #                    return True
 #        return False
 #
-#    def create_subr_write_typedecl_in_parentblock(self, node):
+#    def create_subr_print_typedecl_in_parentblock(self, node):
 #        stmt = node.kgen_stmt
 #
 #        argintype = []
@@ -103,34 +103,34 @@ from gencore_subr import create_write_subr
 #        for vartypename, vartype in vartypes.iteritems():
 #            for entity_name, partid in vartype:
 #                var = stmt.get_variable(entity_name)
-#                subrname = get_typedecl_writename(stmt, entity_name)
+#                subrname = get_typedecl_printname(stmt, entity_name)
 #                if var.is_array():
 #                    if is_zero_array(var, stmt): continue
 #                    if stmt.is_derived() or is_class_derived:
-#                        self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+#                        self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
 #                        if subrname not in self.state_created_subrs:
-#                            create_write_subr(subrname, entity_name, node.kgen_parent, var, stmt)
+#                            create_print_subr(subrname, entity_name, node.kgen_parent, var, stmt)
 #                            self.state_created_subrs.append(subrname)
 #                    else: # intrinsic type
 #                        if var.is_explicit_shape_array():
 #                            if vartypename=='argintype' or var.is_pointer():
-#                                self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+#                                self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
 #                                if subrname not in self.state_created_subrs:
-#                                    create_write_subr(subrname, entity_name, node.kgen_parent, var, stmt)
+#                                    create_print_subr(subrname, entity_name, node.kgen_parent, var, stmt)
 #                                    self.state_created_subrs.append(subrname)
 #                            else:
-#                                self.create_write_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
+#                                self.create_print_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
 #                        else: # implicit array
-#                            self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+#                            self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
 #                            if subrname not in self.state_created_subrs:
-#                                create_write_subr(subrname, entity_name, node.kgen_parent, var, stmt)
+#                                create_print_subr(subrname, entity_name, node.kgen_parent, var, stmt)
 #                                self.state_created_subrs.append(subrname)
 #                else: # scalar
 #                    if stmt.is_derived() or is_class_derived or var.is_pointer():
 #                        if var.is_allocatable() or var.is_pointer() or var.is_pointer():
-#                            self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+#                            self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
 #                            if subrname not in self.state_created_subrs:
-#                                create_write_subr(subrname, entity_name, node.kgen_parent, var, stmt)
+#                                create_print_subr(subrname, entity_name, node.kgen_parent, var, stmt)
 #                                self.state_created_subrs.append(subrname)
 #                        else:
 #                            subrname = None
@@ -142,16 +142,16 @@ from gencore_subr import create_write_subr
 #                            if subrname is None:
 #                                print 'WARNING: Can not find Type resolver for %s'%stmt.name
 #                                namedpart_append_comment(node.kgen_kernel_id, partid, \
-#                                    'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
+#                                    'ERROR: "%s" is not resolved. Call statements to print "%s" is not created here.'%\
 #                                    (stmt.name, stmt.name))
 #                            else:
-#                                self.create_write_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
+#                                self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, stmt, var)
 #                    else: # intrinsic type
-#                        self.create_write_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
+#                        self.create_print_intrinsic(node.kgen_kernel_id, partid, entity_name, stmt, var)
 #
-#    def create_write_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
+#    def create_print_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
 #
-#        pobj = namedgen_write_istrue(kernel_id, partid, var, entity_name)
+#        pobj = namedgen_print_istrue(kernel_id, partid, var, entity_name)
 #
 #        if pobj:
 #            attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
@@ -173,7 +173,7 @@ from gencore_subr import create_write_subr
 #                namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 #
 #
-#    def create_write_call(self, kernel_id, partid, callname, entity_name, stmt, var):
+#    def create_print_call(self, kernel_id, partid, callname, entity_name, stmt, var):
 #        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
 #            attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%entity_name]}
 #            namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)

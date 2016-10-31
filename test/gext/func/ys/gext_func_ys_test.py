@@ -67,20 +67,39 @@ class GExtFuncYSTest(GExtFuncTest):
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['mkdir_task']['tmpsrc']
 
+        fc = result['config_task']['FC']
         prerun_build = result['config_task']['prerun_build']
         prerun_run = result['config_task']['prerun_run']
+
+#        workdir = result['mkdir_task']['workdir']
+#        tmpsrc = result['mkdir_task']['tmpsrc']
+#        FC = result['config_task']['FC']
+#        FC_FLAGS = result['config_task']['FC_FLAGS']
+#        PRERUN = result['config_task']['PRERUN']
+#
+#        passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
+#            'calling_module:calling_subroutine:add', _D='ROW=4,COLUMN=4', _I=tmpsrc, \
+#            __invocation='0:0:0', \
+#            __state_build='cmds="cd %s; make clean; make build"'%tmpsrc, \
+#            __state_run='cmds="cd %s; make run"'%tmpsrc, \
+#            __kernel_compile='FC="%s",FC_FLAGS="%s",PRERUN="%s"'%(FC, FC_FLAGS, PRERUN), \
+#            __outdir=workdir)
+#
+#        result[myname]['stdout'] = out
+#        result[myname]['stderr'] = err
+
 
         passed, out, err = self.extract_kernel(os.path.join(tmpsrc, 'calling_module.F90'), \
             'calling_module:calling_subroutine:add', \
             __cmd_clean='"cd %s; make clean"'%tmpsrc, \
             __cmd_build='"cd %s; make build"'%tmpsrc, \
             __cmd_run='"cd %s; make run "'%tmpsrc, \
-            __rebuild='all', \
             __prerun='build="%s",run="%s"'%(prerun_build, prerun_run), \
             __invocation='0:0:0', \
             __outdir=workdir)
 
             #__prerun='kernel_build="%s",kernel_run="%s"'%(prerun_build, prerun_run), \
+            #__rebuild='all', \
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err

@@ -48,7 +48,7 @@ class GExtTest(KGenTest):
         return True, out, err
 
     def runkernel(self, myname, result):
-        pass
+        return result
 
     def verify(self, myname, result):
         pass
@@ -58,7 +58,7 @@ class GExtTest(KGenTest):
 #            self.set_status(result, myname, self.FAILED, outcome)
 #        else:
 #            self.set_status(result, myname, self.PASSED)
-#        return result
+        return result
 
 
     def recover(self, myname, result):

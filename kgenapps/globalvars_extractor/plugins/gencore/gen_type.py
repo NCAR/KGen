@@ -1,4 +1,4 @@
-# gen_write_type.py
+# gen_print_type.py
  
 import statements
 import block_statements
@@ -6,7 +6,7 @@ import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import get_dtype_printname, get_typedecl_printname, state_gencore_contains, \
-    gen_write_istrue, is_remove_state
+    gen_print_istrue, is_remove_state
 
 class Gen_Type(Kgen_Plugin):
     def __init__(self):
@@ -21,13 +21,14 @@ class Gen_Type(Kgen_Plugin):
 
         # register initial events
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            block_statements.Type, self.has_state_info, self.create_dtype_write_subr) 
+            block_statements.Type, self.has_state_info, self.create_dtype_print_subr) 
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            statements.Use, self.has_dtype_res_path, self.add_writenames_in_use_public) 
+            statements.Use, self.has_dtype_res_path, self.add_printnames_in_use_public) 
 
     def has_state_info(self, node):
         if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0:
+            #print node
             return True
         else: return False
 
@@ -39,7 +40,7 @@ class Gen_Type(Kgen_Plugin):
                     return True
         return False
 
-    def add_writenames_in_use_public(self, node):
+    def add_printnames_in_use_public(self, node):
         parent = node.kgen_parent
 
         for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
@@ -62,49 +63,58 @@ class Gen_Type(Kgen_Plugin):
                         self.state_created_public_items.append((id(parent),subrname))
                         parent.kgen_stmt.top.used4genstate = True
 
-    def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
+    #def create_print_intrinsic(self, namelist, subpnode, var):
+    def create_print_intrinsic(self, subrobj, namelist, stmt, var):
 
-        pobj = gen_write_istrue(subrobj, var, 'var%%%s'%entity_name)
+        entity_name = namelist[-1]
+        resstmt = var.parent
 
-        attrs = {'items': ['var%%%s'%entity_name], 'specs': ['UNIT = kgen_unit']}
-        part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
+        pobj = gen_print_istrue(subrobj, var, 'var%%%s'%entity_name)
 
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"** KGEN DEBUG: REAL(SUM(" // printvar // "%%%s), 8) **"'%entity_name, 'REAL(SUM(var%%%s), 8)'%entity_name]}
-            else:
-                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
-            part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'items': ['"Component variable: %s"'%entity_name]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"   used at %s"'%str(namelist)]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
+
+
+        if hasattr(resstmt, 'name'):
+            resnamelist = [ a.name.lower() for a in resstmt.ancestors() ] + [ resstmt.name ]
         else:
-            attrs = {'expr': 'PRESENT( printvar )'}
-            ifobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+            resnamelist = [ a.name.lower() for a in resstmt.ancestors() ]
 
-            if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"** KGEN DEBUG: REAL(SUM(" // printvar // "%%%s), 8) **"'%entity_name, 'REAL(SUM(var%%%s), 8)'%entity_name]}
-            else:
-                attrs = {'items': ['"** KGEN DEBUG: " // printvar // "%%%s **" // NEW_LINE("A")'%entity_name, 'var%%%s'%entity_name]}
-            part_append_gensnode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'items': ['"   declared at %s"'%str(resnamelist)]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
 
-
-    def create_write_call(self, subrobj, callname, entity_name, stmt, var):
-
-        attrs = {'expr': 'PRESENT( printvar )'}
-        ifobj = part_append_gensnode(subrobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit', 'printvar // "%%%s"'%entity_name]}
-        part_append_gensnode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
-
-        part_append_gensnode(ifobj, EXEC_PART, statements.Else)
-
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit', '"%%%s"'%entity_name]}
-            part_append_gensnode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
+        if resstmt.is_numeric() and var.is_array():
+            attrs = {'items': ['"   REAL(SUM(%s), 8) = "'%entity_name, 'kgen_array_sum' ]}
         else:
-            attrs = {'designator': callname, 'items': ['var%%%s'%entity_name, 'kgen_unit']}
-            part_append_gensnode(ifobj, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'items': ['"   value = ", var%%%s'%entity_name]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
+
+    def create_print_call(self, subrobj, callname, namelist, stmt, resstmt):
+
+        entity_name = namelist[-1]
+
+        attrs = {'items': ['"Derivedtype variable: %s"'%entity_name]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"   used at %s"'%str(namelist)]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        if hasattr(resstmt, 'name'):
+            resnamelist = [ a.name.lower() for a in resstmt.ancestors() ] + [ resstmt.name ]
+        else:
+            resnamelist = [ a.name.lower() for a in resstmt.ancestors() ]
+
+        attrs = {'items': ['"   declared at %s"'%str(resnamelist)]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'designator': callname, 'items': ['var%%%s'%entity_name]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 
     # process function
-    def create_dtype_write_subr(self, node):
+    def create_dtype_print_subr(self, node):
         assert node.kgen_stmt, 'None kgen statement'
 
         subrname = get_dtype_printname(node.kgen_stmt)
@@ -122,21 +132,13 @@ class Gen_Type(Kgen_Plugin):
                 state_gencore_contains.append(parent)
 
             part_append_comment(parent, SUBP_PART, 'read state subroutine for %s'%subrname)
-            attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['var', 'kgen_unit', 'printvar']}
+            attrs = {'prefix': 'RECURSIVE', 'name': subrname, 'args': ['var']}
             subrobj = part_append_gensnode(parent, SUBP_PART, block_statements.Subroutine, attrs=attrs)
             part_append_comment(parent, SUBP_PART, '')
 
             # variable
             attrs = {'type_spec': 'TYPE', 'attrspec': ['INTENT(IN)'], 'selector':(None, node.name), 'entity_decls': ['var']}
             part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Type, attrs=attrs)
-
-            # kgen_unit
-            attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
-            part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            # printvar
-            attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(IN)', 'OPTIONAL'], 'selector':('*', None), 'entity_decls': ['printvar']}
-            part_append_gensnode(subrobj, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
             # kgen_istrue
             attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
@@ -154,8 +156,8 @@ class Gen_Type(Kgen_Plugin):
                 if not isinstance(item.kgen_stmt, typedecl_statements.TypeDeclarationStatement): continue
 
                 stmt = item.kgen_stmt
+                ancs = [ a.name for a in stmt.ancestors() ]
                 entity_names = [ get_entity_name(decl) for decl in stmt.entity_decls ]
-
                 for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
 
                     if is_remove_state(entity_name, stmt): continue
@@ -164,19 +166,28 @@ class Gen_Type(Kgen_Plugin):
 
                     var = stmt.get_variable(entity_name)
                     callname = get_typedecl_printname(stmt, entity_name)
-
+                    namelist = ancs + [ entity_name ]
                     if var.is_array():
                         if stmt.is_derived():
-                            self.create_write_call(subrobj, callname, entity_name, stmt, var)
+                            resstmt = None
+                            for un, res in stmt.unknowns.items():
+                                if stmt.name == un.firstpartname():
+                                    resstmt = res.res_stmts[0]
+                            self.create_print_call(subrobj, callname, namelist, stmt, resstmt)
                         else: # intrinsic type
                             if var.is_explicit_shape_array():
-                                self.create_write_intrinsic(subrobj, entity_name, stmt, var)
+                                self.create_print_intrinsic(subrobj, namelist, stmt, var)
                             else: # implicit array
-                                self.create_write_call(subrobj, callname, entity_name, stmt, var)
+                                self.create_print_call(subrobj, callname, namelist, stmt, stmt)
                     else: # scalar
                         if stmt.is_derived():
+                            resstmt = None
+                            for un, res in stmt.unknowns.items():
+                                if stmt.name == un.firstpartname():
+                                    resstmt = res.res_stmts[0]
+
                             if var.is_allocatable() or var.is_pointer():
-                                self.create_write_call(subrobj, callname, entity_name, stmt, var)
+                                self.create_print_call(subrobj, callname, namelist, stmt, resstmt)
                             else:
                                 callname = None
                                 for uname, req in stmt.unknowns.iteritems():
@@ -187,12 +198,12 @@ class Gen_Type(Kgen_Plugin):
                                 if callname is None:
                                     print 'WARNING: Can not find Type resolver for %s'%stmt.name
                                     part_append_comment(subrobj, EXEC_PART, \
-                                        'ERROR: "%s" is not resolved. Call statement to write "%s" is not created here.'%\
+                                        'ERROR: "%s" is not resolved. Call statement to print "%s" is not created here.'%\
                                         (stmt.name, stmt.name))
                                 else:
-                                    self.create_write_call(subrobj, callname, entity_name, stmt, var)
+                                    self.create_print_call(subrobj, callname, namelist, stmt, resstmt)
                         else: # intrinsic type
-                            self.create_write_intrinsic(subrobj, entity_name, stmt, var)
+                            self.create_print_intrinsic(subrobj, namelist, stmt, var)
 
                 part_append_comment(subrobj, EXEC_PART, '')
 

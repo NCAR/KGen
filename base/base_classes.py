@@ -1417,8 +1417,9 @@ class BeginStatement(Statement):
         if request.state != ResState.RESOLVED:
             super(BeginStatement, self).resolve(request)
             if isinstance(self, SubProgramStatement) and request.state == ResState.RESOLVED and isinstance(request.res_stmts[0], TypeDeclarationStatement):
-                if not hasattr(self, 'globalvars'):
-                    self.globalvars = {}
+                if not hasattr(self, 'globalvars'): self.globalvars = {}
+                if not hasattr(self.top, 'globalvars'): self.top.globalvars = {}
+                if not hasattr(request.res_stmts[0].top, 'globalvars'): request.res_stmts[0].top.globalvars = {}
                 self.globalvars[tuple(request.uname.namelist)] = ( request.originator, request.res_stmts[0])
 
     def tokgen(self):

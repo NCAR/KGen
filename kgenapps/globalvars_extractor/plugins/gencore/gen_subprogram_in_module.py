@@ -1,14 +1,16 @@
-# gen_write_typedecl_in_module.py
+# gen_print_typedecl_in_module.py
  
 import statements
 import block_statements
 import typedecl_statements
 from kgen_plugin import Kgen_Plugin
 from gencore_utils import check_class_derived, get_typedecl_printname, get_dtype_printname
+from gencore_subr import create_print_subr
 
 class Gen_SubProgram_In_Module(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
+        self.state_created_subrs = []
 
     # registration
     def register(self, msg):
@@ -53,21 +55,54 @@ class Gen_SubProgram_In_Module(Kgen_Plugin):
                         usestmts.append(s)
         return usestmts
 
-    def update_usestmt(self, ustmts, ostmt):
-        pass
+    def update_usestmt(self, subrname, ostmt, restop):
+        def add_import(pstmt):
+            if restop.name in pstmt.use_stmts:
+                if len(pstmt.use_stmts[restop.name]) == 0:
+                    raise Exception('Blank use_stmts')
+                for us in pstmt.use_stmts[restop.name]:
+                    if us.isonly:
+                        us.items.append(subrname)
+                    return True
+            return False
+
+        def add_or_create_import(pstmt):
+            if not add_import(pstmt):
+                attrs = {'name':restop.name, 'isonly': True, 'items':[subrname]}
+                part_append_gensnode(pstmt, USE_PART, statements.Use, attrs=attrs)
+
+        ancs = ostmt.ancestors()
+
+        if len(ancs) == 0:
+            raise Exception('Statement should not be in top block.')
+        else:
+            for anc in ancs[:-1]:
+                if add_import(anc): return
+            add_or_create_import(ancs[-1])
 
     def create_print_call(self, namelist, subrname,  subpnode, respair, var):
 
         orgstmt = respair[0]
         resstmt = respair[1]
 
-        usestmts = get_usestmts(var, orgstmt)
-        import pdb; pdb.set_trace()
-        if usestmts:
-            update_usestmt(usestmts, orgstmt):
+        self.update_usestmt(subrname, orgstmt, resstmt.ancestors()[0])
 
-        attrs = {'designator': subrname, 'items': [var.name, '"%s"'%(var.name)]}
-        part_insert_gensnode(subpnode, EXEC_PART, statements.Call, attrs=attrs, index=0)
+        attrs = {'items': ['"Global variable: %s"'%namelist[-1]]}
+        part_insert_gensnode(subpnode, EXEC_PART, statements.Write, attrs=attrs, index=0)
+
+        attrs = {'items': ['"   used at %s"'%str(namelist)]}
+        part_insert_gensnode(subpnode, EXEC_PART, statements.Write, attrs=attrs, index=1)
+
+        if hasattr(resstmt, 'name'):
+            resnamelist = [ a.name.lower() for a in resstmt.ancestors() ] + [ resstmt.name ]
+        else:
+            resnamelist = [ a.name.lower() for a in resstmt.ancestors() ]
+        attrs = {'items': ['"   declared at %s"'%str(resnamelist)]}
+        part_insert_gensnode(subpnode, EXEC_PART, statements.Write, attrs=attrs, index=2)
+
+        attrs = {'designator': subrname, 'items': [var.name]}
+        part_insert_gensnode(subpnode, EXEC_PART, statements.Call, attrs=attrs, index=3)
+
 
     def create_globalvar_status(self, node):
         node.kgen_stmt.top.used4genstate = True
@@ -85,46 +120,41 @@ class Gen_SubProgram_In_Module(Kgen_Plugin):
             if var.is_array():
                 pass
                 if resstmt.is_derived() or is_class_derived:
-                    pass
-#                    self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, resstmt, var)
-#                    if subrname not in self.state_created_subrs:
-#                        create_write_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
-#                        self.state_created_subrs.append(subrname)
+                    self.create_print_call(namelist, subrname, node, res, var)
+                    if subrname not in self.state_created_subrs:
+                        create_print_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
+                        self.state_created_subrs.append(subrname)
                 else: # intrinsic type
                     if var.is_explicit_shape_array():
                         if var.is_pointer():
-                            pass
-#                            self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, resstmt, var)
-#                            if subrname not in self.state_created_subrs:
-#                                create_write_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
-#                                self.state_created_subrs.append(subrname)
+                            self.create_print_call(namelist, subrname, node, res, var)
+                            if subrname not in self.state_created_subrs:
+                                create_print_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
+                                self.state_created_subrs.append(subrname)
                         else:
                             self.create_print_intrinsic(namelist, node, var)
                     else: # implicit array
-                        pass
-#                        self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, resstmt, var)
-#                        if subrname not in self.state_created_subrs:
-#                            create_write_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
-#                            self.state_created_subrs.append(subrname)
+                        self.create_print_call(namelist, subrname, node, res, var)
+                        if subrname not in self.state_created_subrs:
+                            create_print_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
+                            self.state_created_subrs.append(subrname)
             else: # scalar
                 if resstmt.is_derived() or is_class_derived or var.is_pointer():
                     if var.is_allocatable() or var.is_pointer() or var.is_pointer():
-                        pass
-#                        self.create_print_call(node.kgen_kernel_id, partid, subrname, entity_name, resstmt, var)
-#                        if subrname not in self.state_created_subrs:
-#                            create_write_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
-#                            self.state_created_subrs.append(subrname)
+                        self.create_print_call(namelist, subrname, node, res, var)
+                        if subrname not in self.state_created_subrs:
+                            create_print_subr(subrname, entity_name, node.kgen_parent, var, resstmt)
+                            self.state_created_subrs.append(subrname)
                     else:
                         subrname = None
                         for uname, req in resstmt.unknowns.iteritems():
                             if uname.firstpartname()==resstmt.name and len(req.res_stmts)>0:
-                                res = req.res_stmts[0]
-                                subrname = get_dtype_printname(res)
+                                subrname = get_dtype_printname(req.res_stmts[0])
                                 break
                         if subrname is None:
                             print 'WARNING: Can not find Type resolver for %s'%resstmt.name
                             namedpart_append_comment(node.kgen_kernel_id, partid, \
-                                'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
+                                'ERROR: "%s" is not resolved. Call statements to print "%s" is not created here.'%\
                                 (resstmt.name, resstmt.name))
                         else:
                             self.create_print_call(namelist, subrname, node, res, var)

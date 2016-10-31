@@ -149,11 +149,11 @@ def get_dtype_readname(typestmt):
     subpname = get_dtype_subpname(typestmt)
     if subpname: return '%s_%s'%(rprefix, subpname)
 
-def get_module_in_writename(modstmt):
+def get_module_in_printname(modstmt):
     if modstmt is None: return
     return '%s_externs_in_%s'%(wprefix, modstmt.name)
 
-def get_module_out_writename(modstmt):
+def get_module_out_printname(modstmt):
     if modstmt is None: return
     return '%s_externs_out_%s'%(wprefix, modstmt.name)
 
@@ -209,7 +209,7 @@ def process_spec_stmts(stmt):
             pass
             # maybe specific handling per classes
 
-def gen_write_istrue(pobj, var, ename):
+def gen_print_istrue(pobj, var, ename):
 
     # if isarray
 
@@ -267,9 +267,6 @@ def gen_write_istrue(pobj, var, ename):
 
     if var.is_array() or var.is_allocatable() or var.is_pointer():
 
-        attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-        part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
-
         attrs = {'expr': 'kgen_istrue'}
         iftrueobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
@@ -282,13 +279,10 @@ def gen_write_istrue(pobj, var, ename):
             attrs = {'variable': 'kgen_array_sum', 'sign': '=', 'expr': 'REAL(SUM(%s), 8)'%ename}
         part_append_gensnode(pobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'items': ['kgen_array_sum'], 'specs': ['UNIT = kgen_unit']}
-        part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
-    
     return pobj
 
 
-def namedgen_write_istrue(kernel_id, partid, var, entity_name):
+def namedgen_print_istrue(kernel_id, partid, var, entity_name):
 
     pobj = None
 
