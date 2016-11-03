@@ -68,13 +68,18 @@ class KAppSysYSHommePgiTest(KAppSysYSHommeTest):
         if not os.path.exists('%s/movies'%rundir):
             os.mkdir('%s/movies'%rundir)
         if os.path.exists('%s/vcoord'%rundir):
-            os.system('unlink %s/vcoord'%rundir)
-        os.system('ln -s %s/test/vcoord %s/vcoord'%(tmpsrc, rundir))
+            os.system('rm -f %s/vcoord'%rundir)
+        #os.system('ln -s %s/test/vcoord %s/vcoord'%(tmpsrc, rundir))
+        os.system('ln -s %s/../../config/perfTestWACCM_64_1_4/vcoord %s/vcoord'%(self.TEST_DIR, rundir))
 
         # create namelist
-        if os.path.exists('%s/camBench.nl'%rundir):
-            os.remove('%s/camBench.nl'%rundir)
-        shutil.copy('%s/test/perftest/camBench.nl'%tmpsrc, rundir)
+        if os.path.exists('%s/perfTestWACCM.nl'%rundir):
+            os.remove('%s/perfTestWACCM.nl'%rundir)
+        #shutil.copy('%s/test/reg_test/namelists/perfTestWACCM.nl'%tmpsrc, rundir)
+        shutil.copy('%s/../../config/perfTestWACCM_64_1_4/perfTestWACCM-ne8.nl'%self.TEST_DIR, rundir)
+        #if os.path.exists('%s/camBench.nl'%rundir):
+        #    os.remove('%s/camBench.nl'%rundir)
+        #shutil.copy('%s/test/perftest/camBench.nl'%tmpsrc, rundir)
 
         # copy exclude.ini
         if os.path.exists('%s/exclude.ini'%workdir):
@@ -88,12 +93,12 @@ class KAppSysYSHommePgiTest(KAppSysYSHommeTest):
             'ulimit -s unlimited', 'export LD_LIBRARY_PATH=${NETCDF}/lib:${LD_LIBRARY_PATH}' ]
         result[myname]['prerun_kernel'] = self.get_prerun_kernel_cmds()
         result[myname]['mpirun'] = 'mpirun.lsf'
-            #'export LD_LIBRARY_PATH=$NETCDF/lib:/glade/apps/opt/hdf5/1.8.12/gnu/4.8.12/lib:$LD_LIBRARY_PATH',
+            #'export LD_LIBRARY_PATH=$NETCDF/lib:/glade/apps/opt/hdf5/1.8.12/intel/12.1.5/lib:$LD_LIBRARY_PATH', 
 
         # create job submit script
         with open('%s/homme.submit'%rundir, 'w') as fd:
-            fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTest/perfTest'%blddir, '%s/camBench.nl'%rundir))
-
+            #fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTest/perfTest'%blddir, '%s/camBench.nl'%rundir))
+            fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTestWACCM/perfTestWACCM'%blddir, '%s/perfTestWACCM-ne8.nl'%rundir))
 
         if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))])==0:
 

@@ -4,10 +4,10 @@ import os
 import sys
 import glob
 import shutil
-from kapp_sys_ys_homme_gnu_test import KAppSysYSHommeGnuTest
+from kapp_sys_ys_homme_intel_test import KAppSysYSHommeIntelTest
 
 
-class Test(KAppSysYSHommeGnuTest):
+class Test(KAppSysYSHommeIntelTest):
 
     def generate(self, myname, result):
 
@@ -17,9 +17,9 @@ class Test(KAppSysYSHommeGnuTest):
         rundir = result['config_task']['rundir']
 
         srcfile = '%s/src/share/prim_advection_mod.F90'%tmpsrc
-        namepath = 'prim_advection_mod:euler_step:edgevpack'
-        prerun_build = ';'.join(result['config_task']['prerun_kernel_build'])
-        prerun_run = ';'.join(result['config_task']['prerun_kernel_run'])
+        namepath = 'prim_advection_mod:euler_step_driver:euler_step'
+        prerun_build = ';'.join(result['config_task']['prerun_build'])
+        prerun_run = ';'.join(result['config_task']['prerun_run'])
         passed, out, err = self.extract_kernel(srcfile, namepath, \
             __cmd_clean='"cd %s; make clean"'%blddir, \
             __cmd_build='"cd %s; %s; make -j 8 perfTestWACCM"'%(blddir, prerun_build), \
@@ -32,13 +32,15 @@ class Test(KAppSysYSHommeGnuTest):
             __openmp='enable', \
             __outdir=workdir)
 
+            #__cmd_build='"cd %s; %s; make -j 8 perfTest"'%(blddir, prerun_build), \
+
         result[myname]['datadir'] = '%s/data'%workdir
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['edgevpack.0.0.10', 'edgevpack.0.0.50', 'edgevpack.0.1.10', 'edgevpack.0.1.50', \
-                'edgevpack.10.0.10', 'edgevpack.10.0.50', 'edgevpack.10.1.10', 'edgevpack.10.1.50']
+            result[myname]['statefiles'] = ['euler_step.0.0.10', 'euler_step.0.0.50', 'euler_step.0.1.10', 'euler_step.0.1.50', \
+                'euler_step.10.0.10', 'euler_step.10.0.50', 'euler_step.10.1.10', 'euler_step.10.1.50']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []
