@@ -2,6 +2,7 @@
 
 import sys
 import os.path
+from api import parse, walk
 from kgen_utils import Logger, Config, traverse, UserException, show_tree, run_shcmd
 from kgen_state import State
 from readfortran import FortranFileReader, FortranStringReader
@@ -227,9 +228,15 @@ def preprocess():
             if mpifpath:
                 try:
                     with open(mpifpath, 'r') as f:
-                        reader = FortranStringReader('\n'.join(handle_include(os.path.dirname(mpifpath), f.read().split('\n'))))
-                    spec = Specification_Part(reader)
+                        filelines = f.read().split('\n')
+                        lines = '\n'.join(handle_include(os.path.dirname(mpifpath), filelines))
+                        #reader = FortranStringReader(lines)
+                    tree = parse(lines, ignore_comments=True, analyze=False, isfree=True, isstrict=False, include_dirs=None, source_only=None )
+                    for stmt, depth in walk(tree, -1):
+                        stmt.parse_f2003()
 
+                    #import pdb; pdb.set_trace()
+                    #spec = Specification_Part(reader)
                     bag = {}
                     config_name_mapping = [
                         ('comm', 'MPI_COMM_WORLD'),
@@ -240,13 +247,18 @@ def preprocess():
                         ]
                     for config_key, name in config_name_mapping:
                         if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
-                            bag['key'] = name
-                            bag[name] = []
-                            traverse(spec, get_MPI_PARAM, bag, subnode='content')
-                            if len(bag[name]) > 0:
-                                Config.mpi[config_key] = bag[name][-1]
-                            else:
-                                raise UserException('Can not find {name} in mpif.h'.format(name=name))
+                            for stmt, depth in walk(tree, -1):
+                                bag['key'] = name
+                                bag[name] = []
+                                if hasattr(stmt, 'f2003'):
+                                    traverse(stmt.f2003, get_MPI_PARAM, bag, subnode='content')
+                                    if len(bag[name]) > 0:
+                                        Config.mpi[config_key] = bag[name][-1]
+                                        break
+
+                    for config_key, name in config_name_mapping:
+                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+                            raise UserException('Can not find {name} in mpif.h'.format(name=name))
 
                 except UserException:
                     raise  # Reraise this exception rather than catching it below
