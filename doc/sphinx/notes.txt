@@ -1,0 +1,6 @@
+* How to publish
+1. update source
+2. run make html to check
+3. copy changes to kgendocs repo.(gh-pages branch)
+4. check web pages
+5. commit and upload to https://ncar.github.io/kgendocs

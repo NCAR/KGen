@@ -13,14 +13,15 @@ class KAppSysYSCesmTest(KAppSysYSTest):
         systestdir = result['mkdir_task']['sysdir']
         workdir = result['mkdir_task']['workdir']
 
-        appsrc = '%s/cesm_ref'%systestdir
+        #appsrc = '%s/cesm_ref'%systestdir
+        appsrc = '/glade/u/home/youngsun/apps/cesm/cesm1_5_beta07'
         if not os.path.exists(appsrc):
             os.mkdir(appsrc)
 
         # check if cesm exists in appsrc dir
         out, err, retcode = run_shcmd('svn info | grep URL', cwd=appsrc)
         if retcode != 0 or not out or len(out)<3 or not out.startswith('URL'):
-            out, err, retcode = run_shcmd('svn checkout -r 76722 https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_4_beta06 .', cwd=appsrc)
+            out, err, retcode = run_shcmd('svn checkout -r 82434 https://svn-ccsm-models.cgd.ucar.edu/cesm1/tags/cesm1_5_beta07 .', cwd=appsrc)
 
         # copy cesm src into test specific src dir
         tmpsrc = '%s/cesm_work'%systestdir
