@@ -119,6 +119,37 @@ meaning: begin_callsite and end_callsite directives specify a region of Fortran 
             !$kgen end_callsite calc
 
 
+write directive
+
+::
+
+    syntax: !$kgen write variable[,variable,...]
+
+meaning: write directive specifies variables whose content will be saved in state data files and will be read by a generated kernel. By using this directive, user can manually force KGen to save state data at arbitrary points of source code. Multiple variables can be specified by using comma in-between. Variable can be a member of derived type. One restriction of specifying variable is that it can not be an element of array but array itself. For example if A%B is an array it can not be specified as A%B[index].
+
+The directive can be located anywhere within executable part of source code.
+
+::
+
+    example: 
+                !$kgen write i,j
+                CALL calc(i, j, output)
+
+exclude directive
+
+::
+
+    syntax: !$kgen exclude
+
+meaning: exclude directive specifies that next statement will be excluded during kernel generation. The main purpose of this directive is to support MPI "receiving" routines such as "recv" within generated kernel together with "write" directive. For example, user can use "write" directive to force KGen to read/write a variable and "exclude" MPI receiving routine.
+
+::
+
+    example: 
+                !$kgen write data
+                !$kgen exclude
+                CALL MPI_RECV(data, count, MPI_DOUBLE_PRECISION, from, tag, MPI_COMM_WORLD, status, ierr )
+
 2.3.2 KGen command-line user interface
 ---------------------------------------
 
