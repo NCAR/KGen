@@ -102,7 +102,7 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
             fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTestWACCM/perfTestWACCM'%blddir, '%s/perfTestWACCM-ne8.nl'%rundir))
 
 
-        if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))])==0:
+        if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))]) < 3:
 
             # prepare prerun command
             prerun_cmds = result[myname]['prerun_config']

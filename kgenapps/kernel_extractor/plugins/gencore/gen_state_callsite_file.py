@@ -629,6 +629,21 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'expr': 'kgen_issave(OMP_GET_THREAD_NUM())'}
             ifsave = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
+            l = [ 'kgen_mymid', '"."', 'OMP_GET_THREAD_NUM()', '"."', 'kgen_invoke(OMP_GET_THREAD_NUM())']
+            attrs = {'specs': ['kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())', 'FMT="(A,I0,A,I0,A,I0)"' ], \
+                'items': [ '"%s/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
+            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
+            #attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+            #part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())))', \
+                'STATUS="REPLACE"', 'ACCESS="STREAM"', 'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+            part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
+
+            attrs = {'designator': 'kgen_error_stop', 'items': ['kgen_ierr', '"File open error: " // TRIM(ADJUSTL(kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())))']}
+            part_append_gensnode(ifsave, EXEC_PART, statements.Call, attrs=attrs)
+
             attrs = {'expr': 'kgen_issave(OMP_GET_THREAD_NUM())'}
             ifsave2 = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
@@ -646,22 +661,8 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            #part_append_comment(ifsave, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
+            namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'END CRITICAL (kgen_kernel)', style='openmp')
 
-            l = [ 'kgen_mymid', '"."', 'OMP_GET_THREAD_NUM()', '"."', 'kgen_invoke(OMP_GET_THREAD_NUM())']
-            attrs = {'specs': ['kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())', 'FMT="(A,I0,A,I0,A,I0)"' ], \
-                'items': [ '"%s/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
-
-            #attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-            #part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())))', \
-                'STATUS="REPLACE"', 'ACCESS="STREAM"', 'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
-
-            attrs = {'designator': 'kgen_error_stop', 'items': ['kgen_ierr', '"File open error: " // TRIM(ADJUSTL(kgen_filepath(kgen_mymid, OMP_GET_THREAD_NUM())))']}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Call, attrs=attrs)
         else:
             attrs = {'variable': 'kgen_issave(0)', 'sign': '=', 'expr': '.FALSE.'}
             namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
@@ -680,6 +681,21 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'expr': 'kgen_issave(0)'}
             ifsave = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
+            l = [ 'kgen_mymid', '"."', '0', '"."', 'kgen_invoke(0)']
+            attrs = {'specs': ['kgen_filepath(kgen_mymid, 0)', 'FMT="(A,I0,A,I0,A,I0)"' ], \
+                'items': [ '"%s/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
+            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+
+            #attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+            #part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, 0)))', \
+                'STATUS="REPLACE"', 'ACCESS="STREAM"', 'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+            part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
+
+            attrs = {'designator': 'kgen_error_stop', 'items': ['kgen_ierr', '"File open error: " // TRIM(ADJUSTL(kgen_filepath(kgen_mymid, 0)))']}
+            part_append_gensnode(ifsave, EXEC_PART, statements.Call, attrs=attrs)
+
             attrs = {'expr': 'kgen_issave(0)'}
             ifsave2 = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
@@ -696,21 +712,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
             attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            l = [ 'kgen_mymid', '"."', '0', '"."', 'kgen_invoke(0)']
-            attrs = {'specs': ['kgen_filepath(kgen_mymid, 0)', 'FMT="(A,I0,A,I0,A,I0)"' ], \
-                'items': [ '"%s/%s."'%(getinfo('kernel_path'), getinfo('kernel_name')) ] + l}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
-
-            #attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-            #part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'specs': ['NEWUNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath(kgen_mymid, 0)))', \
-                'STATUS="REPLACE"', 'ACCESS="STREAM"', 'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
-
-            attrs = {'designator': 'kgen_error_stop', 'items': ['kgen_ierr', '"File open error: " // TRIM(ADJUSTL(kgen_filepath(kgen_mymid, 0)))']}
-            part_append_gensnode(ifsave, EXEC_PART, statements.Call, attrs=attrs)
 
         namedpart_create_subpart(ifsave, STATE_PBLOCK_WRITE_IN_ARGS, EXEC_PART)
         namedpart_append_comment(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_ARGS, '')
@@ -742,7 +743,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         dummy_node.kgen_stmt = getinfo('dummy_stmt')
         dummy_node.kgen_forced_line = lines_str
 
+
         if getinfo('is_openmp_app'):
+            namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'CRITICAL (kgen_kernel)', style='openmp')
+
             attrs = {'variable': 'kgen_openmp_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '-1'}
             namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 

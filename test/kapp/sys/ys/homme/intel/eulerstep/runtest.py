@@ -26,7 +26,7 @@ class Test(KAppSysYSHommeIntelTest):
             __cmd_run='"cd %s; bsub < homme.submit"'%rundir, \
             __prerun='kernel_build="%s",kernel_run="%s"'%(prerun_build, prerun_run), \
             __exclude='%s/exclude.ini'%workdir, \
-            __invocation='0:0-1:10,0:0-1:50,10:0-1:10,10:0-1:50', \
+            __invocation='0:0:10,0:0:50,10:0:10,10:0:50', \
             __timing='repeat=1', \
             __mpi='enable', \
             __openmp='enable', \
@@ -39,8 +39,8 @@ class Test(KAppSysYSHommeIntelTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = ['euler_step.0.0.10', 'euler_step.0.0.50', 'euler_step.0.1.10', 'euler_step.0.1.50', \
-                'euler_step.10.0.10', 'euler_step.10.0.50', 'euler_step.10.1.10', 'euler_step.10.1.50']
+            result[myname]['statefiles'] = ['euler_step.0.0.10', 'euler_step.0.0.50', \
+                'euler_step.10.0.10', 'euler_step.10.0.50']
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []
