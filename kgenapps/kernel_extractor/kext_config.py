@@ -20,6 +20,7 @@ class KExtConfig(object):
         # openmp parameters
         self.attrs['openmp'] = OrderedDict()
         self.attrs['openmp']['enabled'] = False
+        self.attrs['openmp']['critical'] = True
 
         # mpi parameters
         self.attrs['mpi'] = OrderedDict()
@@ -153,11 +154,12 @@ class KExtConfig(object):
                 if openmp=='enable':
                     pass
                 else:
-#                    key, value = openmp.split('=')
-#                    if key=='enabled':
-#                        pass
-#                    else:
-                     raise UserException('Unknown OpenMP option: %s' % openmp)
+                    key, value = openmp.split('=')
+                    if key=='kernel-in-critical-region':
+                        if value=='no':
+                            self.attrs['openmp']['critical'] = False
+                    else:
+                        raise UserException('Unknown OpenMP option: %s' % openmp)
 
     # parsing MPI parameters
     def opt_mpi(self, opt):

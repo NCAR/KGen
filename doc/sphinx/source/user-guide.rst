@@ -400,7 +400,8 @@ Use 0 for "non MPI application" and use 0 for "non OpenMP application" in the fi
 [--openmp]
 ::
 
-    meaning : Turns on OpenMP supports in KGen. There is one sub-option: enable.  enable specifies that KGen extracts a kernel from OpenMP application. This is a mandatory for OpenMP application.
+    meaning : Turns on OpenMP supports in KGen. There is two sub-options: "enable" and "kernel-in-critical-region".  "enable" specifies that KGen extracts a kernel from OpenMP application. This is a mandatory for OpenMP application. "kernel-in-critical-region" can has one of two values: "yes" or "no". If "kernel-in-critical-region" is set to "yes", kernel region is encompassed by OpenMP Critical region, which improves correctness of generated state data. However, this may cause deadlock if OpenMP Barrier is used within the kernel.
+    example) --openmp kernel-in-critical-region=yes
 
 [--intrinsic]
 ::

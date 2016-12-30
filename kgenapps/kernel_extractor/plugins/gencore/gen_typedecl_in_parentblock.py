@@ -70,6 +70,8 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 namedpart_append_genknode(node.kgen_kernel_id, partid, statements.Read, attrs=attrs)
  
     def create_write_implicit_rule_in_parentblock(self, node):
+        kgenunit = 'UNIT = kgen_unit'
+
         for resolver in node.kgen_stmt.implicit_rule_resolvers:
             if resolver.name in node.kgen_stmt.args:
                 partid = STATE_PBLOCK_WRITE_IN_ARGS
@@ -77,13 +79,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 partid = STATE_PBLOCK_WRITE_IN_LOCALS
 
             if KGGenType.has_state_out(resolver.geninfo):
-                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                attrs = {'items': [resolver.name], 'specs': [kgenunit]}
                 namedpart_append_gensnode(node.kgen_kernel_id, partid, statements.Write, attrs=attrs)
 
-                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                attrs = {'items': [resolver.name], 'specs': [kgenunit]}
                 namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_LOCALS, statements.Write, attrs=attrs)
             else:
-                attrs = {'items': [resolver.name], 'specs': ['UNIT = kgen_unit']}
+                attrs = {'items': [resolver.name], 'specs': [kgenunit]}
                 namedpart_append_gensnode(node.kgen_kernel_id, partid, statements.Write, attrs=attrs)
            
     def process_specstmts_in_upperblocks(self, node):
@@ -528,6 +530,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 namedpart_append_genknode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
+        kgenunit = 'UNIT = kgen_unit'
 
         pobj = namedgen_write_istrue(kernel_id, partid, var, entity_name)
 
@@ -586,8 +589,8 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 #
 #            pobj = iftrueobj
 
+        attrs = {'items': [entity_name], 'specs': [kgenunit]}
         if pobj:
-            attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
@@ -596,7 +599,6 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
                 part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
-            attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
@@ -615,9 +617,11 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
 
     def create_write_call(self, kernel_id, partid, callname, entity_name, stmt, var):
+        kgenunit = 'kgen_unit'
+
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%entity_name]}
+            attrs = {'designator': callname, 'items': [entity_name, kgenunit, '"%s"'%entity_name]}
             namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)
         else:
-            attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit']}
+            attrs = {'designator': callname, 'items': [entity_name, kgenunit]}
             namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)

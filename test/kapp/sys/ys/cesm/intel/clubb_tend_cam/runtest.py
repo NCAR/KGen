@@ -32,12 +32,13 @@ class Test(KAppSysYSCesmIntelTest):
             _e='%s/exclude.ini'%workdir, \
             __prerun='kernel_run="%s"'%prerun_krun, \
             __timing='repeat=1', \
-            __mpi='comm=mpicom,use="spmd_utils:mpicom",header="/ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include/mpif.h"', \
+            __mpi='comm=mpicom,use="spmd_utils:mpicom"', \
             __openmp='enable', \
             __outdir=workdir)
             #__rebuild='all',
             #__kernel_compile='PRERUN="module load intel/16.0.2"',
             #__debug='printvar=:i,:j,:output',
+            #__mpi='comm=mpicom,use="spmd_utils:mpicom",header="/ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include/mpif.h"', \
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err

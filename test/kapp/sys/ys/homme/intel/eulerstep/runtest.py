@@ -29,7 +29,7 @@ class Test(KAppSysYSHommeIntelTest):
             __invocation='0:0:10,0:0:50,10:0:10,10:0:50', \
             __timing='repeat=1', \
             __mpi='enable', \
-            __openmp='enable', \
+            __openmp='enable,kernel-in-critical-region=no', \
             __outdir=workdir)
 
             #__cmd_build='"cd %s; %s; make -j 8 perfTest"'%(blddir, prerun_build), \
