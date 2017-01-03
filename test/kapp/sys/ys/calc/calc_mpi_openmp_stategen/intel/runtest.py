@@ -19,7 +19,7 @@ class Test(KAppSysYSCalcCOSTest):
             __timing='repeat=1', \
             __prerun='build="%s",run="%s"'%(prerun, prerun), \
             __mpi='enable', \
-            __openmp='enable', \
+            __openmp='enable,omp_num_threads=10', \
             __rebuild='state', \
             __outdir=workdir)
 

@@ -65,10 +65,10 @@ class Gen_Write_In_Module(Kgen_Plugin):
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             if getinfo('is_openmp_app'):
-                attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_resetinvoke']}
+                attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:%d)'%(getinfo('openmp_maxthreads')-1) ], 'entity_decls': ['kgen_resetinvoke']}
                 part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
+                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d)'%(getinfo('openmp_maxthreads')-1) ], 'entity_decls': ['kgen_openmp_issave']}
                 part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}

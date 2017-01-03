@@ -21,6 +21,7 @@ class KExtConfig(object):
         self.attrs['openmp'] = OrderedDict()
         self.attrs['openmp']['enabled'] = False
         self.attrs['openmp']['critical'] = True
+        self.attrs['openmp']['maxnum_threads'] = 102
 
         # mpi parameters
         self.attrs['mpi'] = OrderedDict()
@@ -158,6 +159,9 @@ class KExtConfig(object):
                     if key=='kernel-in-critical-region':
                         if value=='no':
                             self.attrs['openmp']['critical'] = False
+                    elif key=='omp_num_threads':
+                        if isinstance(value, str) and value.isdigit():
+                            self.attrs['openmp']['maxnum_threads'] = int(value)
                     else:
                         raise UserException('Unknown OpenMP option: %s' % openmp)
 
