@@ -20,6 +20,7 @@ sys.path.insert(0, KGEN_APP)
 
 from kgen_utils import UserException, ProgramException, Logger, Config, run_shcmd
 from kgen_state import State
+from kgen_analyze import analyze
 
 def main():
     from compflag_tool import CompFlagDetect
@@ -157,8 +158,6 @@ def main():
         coverage_argv.append(opts.cmd_run)
         coverage_argv.append(args[0])
 
-
-
         # collect kext options
         if opts.invocation:
             kext_argv.append('--invocation')
@@ -211,14 +210,27 @@ def main():
         compflag.main()
         CF_flags = compflag.fini()
 
+        kext = KExtTool()
+        kext.init()
+
+        coverage = CoverageDetect()
+        coverage.init(argv=coverage_argv)
+
+        kext_argv.extend( [ '-i', CF_flags['incini'] ] )
+
+        Config.apply(argv=kext_argv)
+
+        TODO: Need to find a better way to handle command line arguments for all of plugins
+
+        analyze()
+        #Logger.info('Program is analyzed', stdout=True)
+
         coverage_argv.append(opts.cmd_clean)
         coverage_argv.append(opts.cmd_build)
         coverage_argv.append(opts.cmd_run)
         if not opts.invocation:
 
             # run coverage
-            coverage = CoverageDetect()
-            coverage.init(argv=coverage_argv)
             coverage.main()
 
             # parse coverage rebuild option
@@ -253,10 +265,6 @@ def main():
             kext_argv.extend( [ '--invocation', CV_flags['invocation']] )
 
         # run kext
-        kext = KExtTool()
-        kext.init()
-        kext_argv.extend( [ '-i', CF_flags['incini'] ] )
-        Config.apply(argv=kext_argv)
         kext.main()
         extracts = kext.fini()
         # extracts contain kernel files, state files

@@ -68,8 +68,8 @@ class KExtTool(KGenTool):
         preprocess()
         Logger.info('Pre-processing is done', stdout=True)
     
-        analyze()
-        Logger.info('Program is analyzed', stdout=True)
+        #analyze()
+        #Logger.info('Program is analyzed', stdout=True)
 
         # generate kgen_driver.f90 in kernel directory
         self.driver = self.create_tree()
