@@ -1,93 +1,68 @@
 #!/usr/bin/python
-'''
-This is the main Coverage detector  script.
-Author: Youngsung Kim <youngsun@ucar.edu>
-'''
-import sys
-import os
+#
+# coverage.py: generates include INI file from CESM build log
+#
+# Version: 0.1
+# Author : Youngsung Kim ( kgen@ucra.edu )
 
+import os
+import sys
+import stat
 
 # Python version check
-#if sys.hexversion < 0x020600F0:
-#    print 'ERROR: KGEN works with Python Version 2.7 or later.'
-#    sys.exit(-1)
+if sys.hexversion < 0x020700F0:
+    print 'ERROR: KGEN works with Python Version 2.7 or later.'
+    sys.exit(-1)
 
-KGEN_CDETECT = os.path.dirname(os.path.realpath(__file__))
-KGEN_HOME = '%s/../..'%KGEN_CDETECT
+KGEN_COVERAGE = os.path.dirname(os.path.realpath(__file__))
+KGEN_HOME = '%s/../..'%KGEN_COVERAGE
 KGEN_BASE = '%s/base'%KGEN_HOME
 
 sys.path.insert(0, KGEN_BASE)
-sys.path.insert(0, KGEN_CDETECT)
+sys.path.insert(0, KGEN_COVERAGE)
 
-from api import walk
-from cover_config import CoverConfig
-from kgen_utils import Logger, Config, ProgramException, KGGenType
-from kgen_state import State
-from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register
-from genmake import generate_makefile
 from kgen_tool import KGenTool
+from kgen_utils import Config, run_shcmd, Logger, ProgramException
+from kgen_compiler import CompilerFactory
+from coverage_config import CoverageConfig
+import subprocess
 
-class CDetectTool(KGenTool):
-    def initialize(self):
-        myconfig = CoverConfig(KGEN_CDETECT)
+STR_EX = 'execve('
+STR_EN = 'ENOENT'
+STR_UF = '<unfinished'
+TEMP_SH = '#!/bin/bash\n%s\n%s\n%s\n%s\n'
+SH = '%s/_kgen_coverage_cmdwrapper.sh'
 
-        Config.apply(myconfig)
+def _getpwd(env):
+    for item in env:
+        if item.startswith('PWD='):
+            return item[4:]
+    return None
 
-        # create state directories
-        if not os.path.exists(Config.path['state']):
-            os.makedirs(Config.path['state'])
+class CoverageDetect(KGenTool):
 
-    def transform(self):
+    def init(self, argv=None):
+        self.config= CoverageConfig(argv=argv)
 
-        # init plugin framework
-        init_plugins([KERNEL_ID_0])
+        Config.register(self.config)
 
-        # construct a generation tree
-        for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
-            if srcobj.tree == State.topblock['stmt'].top:
-                callsite_sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
-                self.genfiles.append((callsite_sfile, filepath))
-                State.used_srcfiles[filepath] = (srcobj, mods_used, units_used)
+    def main(self):
+        
+        Logger.info('Starting KCoverage', stdout=True)
 
-        # process each nodes in the tree
-        for plugin_name in event_register.keys():
-            for obj, filepath in self.genfiles:
-                obj.created([plugin_name])
-            for tree in self._trees:
-                tree.created([plugin_name])
+        if not os.path.exists(self.config.coverage['cwd']):
+            os.mkdir(self.config.coverage['cwd'])
 
-            for obj, filepath in self.genfiles:
-                obj.process([plugin_name])
-            for tree in self._trees:
-                tree.process([plugin_name])
+    def fini(self):
+        import ConfigParser
 
-            for obj, filepath in self.genfiles:
-                obj.finalize([plugin_name])
-            for tree in self._trees:
-                tree.finalize([plugin_name])
+        Logger.info('KCoverage is finished.', stdout=True)
 
-            for obj, filepath in self.genfiles:
-                obj.flatten(KERNEL_ID_0, [plugin_name])
-            for tree in self._trees:
-                tree.flatten(KERNEL_ID_0, [plugin_name])
+        return { 'invocation': '0:0:0' }
 
-    def output(self):
-
-        # generate source files from each node of the tree
-        for obj, filepath in self.genfiles:
-            filename = os.path.basename(filepath)
-            self.set_indent('')
-            lines = obj.tostring()
-            if lines is not None:
-                with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
-                    fd.write(lines)
-
-        generate_makefile()
-        Logger.info('Makefiles are generated', stdout=True)
-
-        # clean, build and run application
-
-        # analyze output
-
-        # generate result
+if __name__ == '__main__':
+    coverage = CoverageDetect()
+    coverage.init()
+    coverage.main()
+    coverage.fini()
 

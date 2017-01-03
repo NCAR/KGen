@@ -301,7 +301,7 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
 plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kernel_driver_name', 'kernel_driver_callsite_args', \
     'is_openmp_app', 'is_openmp_critical', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'repeat_count', 'dummy_stmt', \
-    'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads' ]
+    'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'coverage_blocks' ]
 
 def getinfo(name):
     if name in plugin_default_infolist: 
@@ -332,6 +332,7 @@ def getinfo(name):
         elif name=='mpi_frame_mpiexec': return Config.add_mpi_frame['mpiexec']
         elif name=='verify_tol': return Config.verify['tolerance']
         elif name=='walk_stmts': return api.walk
+        elif name=='coverage_blocks': return Config.coverage['blocks']
     elif State.plugindb.has_key(name):
         return State.plugindb[name]
     else:

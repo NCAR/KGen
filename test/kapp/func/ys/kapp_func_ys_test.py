@@ -77,10 +77,10 @@ class KAppFuncYSTest(KAppFuncTest):
             __cmd_run='"cd %s; make run "'%tmpsrc, \
             __rebuild='all', \
             __prerun='build="%s",run="%s"'%(prerun_build, prerun_run), \
-            __invocation='0:0:0', \
             __outdir=workdir)
 
             #__prerun='kernel_build="%s",kernel_run="%s"'%(prerun_build, prerun_run), \
+            #__invocation='0:0:0', \
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
