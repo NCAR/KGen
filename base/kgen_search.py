@@ -228,7 +228,7 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
 
         ukey = KGName(pack_innamepath(stmt, node.string.lower()), node=node, stmt=stmt)
 
-        if gentype is None: gentype = KGGenType.STATE_IN
+        if gentype is None: gentype = KGGenType.STATE_UNKNOWN
 
         if resolvers is None:
             stmt.unknowns[ukey] = ResState(gentype, ukey, stmt, res_default)

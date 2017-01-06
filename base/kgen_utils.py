@@ -300,8 +300,14 @@ class KgenConfigParser(RawConfigParser):
 #############################################################################
 
 class KGGenType(object):
+    STATE_UNKNOWN = 0x1
     STATE_IN = 0x2
     STATE_OUT = 0x3
+    STATE_INOUT = 0x4
+
+    @classmethod
+    def is_state_unknown(cls, value):
+        return cls.STATE_UNKNOWN == value
 
     @classmethod
     def is_state_in(cls, value):
@@ -312,8 +318,16 @@ class KGGenType(object):
         return cls.STATE_OUT == value
 
     @classmethod
+    def is_state_inout(cls, value):
+        return cls.STATE_INOUT == value
+
+    @classmethod
     def is_state(cls, value):
-        return cls.is_state_in(value) or cls.is_state_out(value)
+        return cls.is_state_unknown(value) or cls.is_state_in(value) or cls.is_state_out(value) or cls.is_state_inout(value)
+
+    @classmethod
+    def has_state_unknown(cls, geninfo):
+        return geninfo.has_key(cls.STATE_UNKNOWN)
 
     @classmethod
     def has_state_in(cls, geninfo):
@@ -324,8 +338,16 @@ class KGGenType(object):
         return geninfo.has_key(cls.STATE_OUT)
 
     @classmethod
+    def has_state_inout(cls, geninfo):
+        return geninfo.has_key(cls.STATE_INOUT)
+
+    @classmethod
     def has_state(cls, geninfo):
-        return cls.has_state_in(geninfo) or cls.has_state_out(geninfo)
+        return cls.has_state_unknown(geninfo) or cls.has_state_in(geninfo) or cls.has_state_out(geninfo) or cls.has_state_inout(geninfo)
+
+    @classmethod
+    def get_state_unknown(cls, geninfo):
+        return geninfo.get(cls.STATE_UNKNOWN, [])
 
     @classmethod
     def get_state_in(cls, geninfo):
@@ -336,13 +358,23 @@ class KGGenType(object):
         return geninfo.get(cls.STATE_OUT, [])
 
     @classmethod
+    def get_state_inout(cls, geninfo):
+        return geninfo.get(cls.STATE_INOUT, [])
+
+    @classmethod
     def get_state(cls, geninfo):
-        state = cls.get_state_in(geninfo)
-        #state = cls.get_state_in_inout(geninfo)
-        for uname, req in cls.get_state_out(geninfo):
-            if all(not uname==u for u, r in state):
-                state.append((uname, req))
+        state = []
+        state.extend(cls.get_state_unknown(geninfo))
+        state.extend(cls.get_state_in(geninfo))
+        state.extend(cls.get_state_out(geninfo))
+        state.extend(cls.get_state_inout(geninfo))
         return state
+
+    @classmethod
+    def get_request_unknown(cls, uname, geninfo):
+        if cls.has_state_unknown(geninfo):
+            for sin_uname, req in cls.get_state_unknown(geninfo):
+                if uname==sin_uname: return req
 
     @classmethod
     def get_request_in(cls, uname, geninfo):
@@ -357,10 +389,21 @@ class KGGenType(object):
                 if uname==sout_uname: return req
 
     @classmethod
+    def get_request_inout(cls, uname, geninfo):
+        if cls.has_state_inout(geninfo):
+            for sout_uname, req in cls.get_state_inout(geninfo):
+                if uname==sout_uname: return req
+
+    @classmethod
     def get_request(cls, uname, geninfo):
         if cls.has_state(geninfo):
             for s_uname, req in cls.get_state(geninfo):
                 if uname==s_uname: return req
+
+    @classmethod
+    def has_uname_unknown(cls, uname, geninfo):
+        if cls.get_request_unknown(uname, geninfo): return True
+        else: return False
 
     @classmethod
     def has_uname_in(cls, uname, geninfo):
@@ -370,6 +413,11 @@ class KGGenType(object):
     @classmethod
     def has_uname_out(cls, uname, geninfo):
         if cls.get_request_out(uname, geninfo): return True
+        else: return False
+
+    @classmethod
+    def has_uname_inout(cls, uname, geninfo):
+        if cls.get_request_inout(uname, geninfo): return True
         else: return False
 
     @classmethod

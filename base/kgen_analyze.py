@@ -13,6 +13,7 @@ from api import walk
 
 def update_state_info(parent):
 
+    # get ancestors of a specified name
     def get_nodes(node, bag, depth):
         from Fortran2003 import Name
         if isinstance(node, Name) and node.string==bag['name'] and not node.parent in bag:
@@ -22,13 +23,18 @@ def update_state_info(parent):
                 node = node.parent
             bag['lineage'].append(anc)
 
+    # if parent has children
     if hasattr(parent, 'content'):
+        # per every child
         for stmt in parent.content:
+            # if a stmt is a target for updating geninfo
             if isinstance(stmt, TypeDeclarationStatement) and \
                 "parameter" not in stmt.attrspec and hasattr(stmt, 'geninfo') and \
                 any(len(v)>0 for v in stmt.geninfo.values()):
-                for uname, req in KGGenType.get_state_in(stmt.geninfo):
-                    if KGGenType.has_uname_out(uname, stmt.geninfo): continue
+
+                # for every state information of the stmt
+                for uname, req in KGGenType.get_state(stmt.geninfo):
+
                     # select names for searching
                     respairs = []
                     if req.originator in State.callsite['stmts']:
@@ -36,10 +42,11 @@ def update_state_info(parent):
                     elif isinstance(req.originator, Associate):
                         if uname in req.originator.assoc_map:
                             for auname in req.originator.assoc_map[uname]:
-                                for aruname, arreq in KGGenType.get_state_in(req.originator.geninfo):
+                                for aruname, arreq in KGGenType.get_state(req.originator.geninfo):
                                     if auname == aruname:
                                         respairs.append((auname, arreq.originator))
 
+                    # if the stmt is a resolver for callsite stmts or associate
                     if len(respairs) > 0:
                         copied = False
                         for varname, org in respairs:
@@ -69,7 +76,6 @@ def update_state_info(parent):
                                         
                                     # get argument index
                                     argidx = -1
-                                    is_keyword = False
                                     if callobj and subpobj:
                                         if callobj.__class__ in [ Call_Stmt, Function_Reference ]:
                                             arglist = callobj.items[1]
