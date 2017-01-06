@@ -197,8 +197,9 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if (entity_name,DRIVER_READ_IN_ARGS) in argintype: continue
 
-            #if (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype:
-            #    localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
+            # TODO: alloc only for out only type?
+            if (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype:
+                localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         localvartypes = { 'localintype': localintype, 'localouttype': localouttype }
 
         def get_attrs(attrspec, allowed_attrs):
@@ -413,8 +414,9 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) in argintype: continue
 
-            #if (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype:
-            #    localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
+            # TODO: alloc only for out only type?
+            if (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype:
+                localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
         vartypes = { 'argintype': argintype, 'localintype': localintype, 'localouttype': localouttype }
 
         # for state
