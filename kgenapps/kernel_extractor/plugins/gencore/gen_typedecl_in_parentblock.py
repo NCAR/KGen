@@ -112,7 +112,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         argintype = []
         localintype = []
         localouttype = []
-        for uname, req in KGGenType.get_state_in(stmt.geninfo):
+        for uname, req in KGGenType.get_state_in(stmt.geninfo)  + KGGenType.get_state_inout(stmt.geninfo):
             entity_name = uname.firstpartname()
             var = stmt.get_variable(entity_name)
 
@@ -185,7 +185,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                                     self.driver_created_uses.append((get_topname(req.res_stmts[-1]), readname))
             elif (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype and (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
-        for uname, req in KGGenType.get_state_out(stmt.geninfo):
+        for uname, req in KGGenType.get_state_out(stmt.geninfo)  + KGGenType.get_state_inout(stmt.geninfo):
             entity_name = uname.firstpartname()
             var = stmt.get_variable(entity_name)
 
@@ -197,8 +197,8 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if (entity_name,DRIVER_READ_IN_ARGS) in argintype: continue
 
-            if (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype:
-                localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
+            #if (entity_name,KERNEL_PBLOCK_READ_IN_LOCALS) not in localintype:
+            #    localintype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_IN_LOCALS))
         localvartypes = { 'localintype': localintype, 'localouttype': localouttype }
 
         def get_attrs(attrspec, allowed_attrs):
@@ -247,11 +247,19 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
         if len(localintype)==0 and len(argintype)==0 and len(localouttype)==0:
             node.kgen_forced_line = False
-        elif len(localintype)>0:
+        elif len(localintype)+len(localouttype)>0:
+            all_names = []
+            for inname, pname in localintype:
+                if inname not in all_names:
+                    all_names.append(inname)
+            for outname, pname in localouttype:
+                if outname not in all_names:
+                    all_names.append(outname)
+
             attrspec = get_attrs(stmt.attrspec, ['pointer', 'allocatable', 'dimension', 'target'])
 
-            localin_names = [ localin_name for localin_name, pname in localintype]
-            entity_decls = get_decls(localin_names, stmt.entity_decls)
+            #localin_names = [ localin_name for localin_name, pname in localintype]
+            entity_decls = get_decls(all_names, stmt.entity_decls)
 
             attrs = {'type_spec': stmt.__class__.__name__.upper(), 'attrspec': attrspec, \
                 'selector':stmt.selector, 'entity_decls': entity_decls}
@@ -380,7 +388,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         argintype = []
         localintype = []
         localouttype = []
-        for uname, req in KGGenType.get_state_in(stmt.geninfo):
+        for uname, req in KGGenType.get_state_in(stmt.geninfo) + KGGenType.get_state_inout(stmt.geninfo):
             entity_name = uname.firstpartname()
             var = stmt.get_variable(entity_name)
 
@@ -393,7 +401,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             elif (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype and (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype:
                 localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
 
-        for uname, req in KGGenType.get_state_out(stmt.geninfo):
+        for uname, req in KGGenType.get_state_out(stmt.geninfo)  + KGGenType.get_state_inout(stmt.geninfo):
             entity_name = uname.firstpartname()
             var = stmt.get_variable(entity_name)
 
@@ -405,8 +413,8 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) in argintype: continue
 
-            if (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype:
-                localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
+            #if (entity_name,STATE_PBLOCK_WRITE_IN_LOCALS) not in localintype:
+            #    localintype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_IN_LOCALS))
         vartypes = { 'argintype': argintype, 'localintype': localintype, 'localouttype': localouttype }
 
         # for state

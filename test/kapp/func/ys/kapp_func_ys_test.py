@@ -75,8 +75,8 @@ class KAppFuncYSTest(KAppFuncTest):
             __cmd_clean='"cd %s; make clean"'%tmpsrc, \
             __cmd_build='"cd %s; make build"'%tmpsrc, \
             __cmd_run='"cd %s; make run "'%tmpsrc, \
-            __rebuild='all', \
             __prerun='build="%s",run="%s"'%(prerun_build, prerun_run), \
+            __rebuild='all', \
             __invocation='0:0:0', \
             __outdir=workdir)
 

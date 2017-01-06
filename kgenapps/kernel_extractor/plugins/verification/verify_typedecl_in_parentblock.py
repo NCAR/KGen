@@ -31,7 +31,7 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
     def create_subr_verify_typedecl_in_parentblock(self, node):
         stmt = node.kgen_stmt
         is_class_derived = check_class_derived(stmt)
-        entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+        entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo) + KGGenType.get_state_inout(stmt.geninfo)])
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if entity_name in self.verify_locals: continue
 

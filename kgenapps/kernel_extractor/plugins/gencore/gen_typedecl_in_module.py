@@ -365,7 +365,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         raw_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
         entity_names = [ e for e in raw_entity_names if not stmt.get_variable(e).is_parameter() ]
         
-        raw_out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+        raw_out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo) + KGGenType.get_state_inout(stmt.geninfo)])
         out_entity_names = [ e for e in raw_out_entity_names if not stmt.get_variable(e).is_parameter() ]
 
         def get_attrs(attrspec, allowed_attrs):
@@ -485,7 +485,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         raw_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])
         entity_names = [ e for e in raw_entity_names if not stmt.get_variable(e).is_parameter() ]
         
-        raw_out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo)])
+        raw_out_entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state_out(stmt.geninfo) + KGGenType.get_state_inout(stmt.geninfo)])
         out_entity_names = [ e for e in raw_out_entity_names if not stmt.get_variable(e).is_parameter() ]
 
         #entity_names = set([ uname.firstpartname() for uname, req in KGGenType.get_state(stmt.geninfo)])

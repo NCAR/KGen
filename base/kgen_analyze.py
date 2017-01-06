@@ -48,11 +48,12 @@ def update_state_info(parent):
 
                     # if the stmt is a resolver for callsite stmts or associate
                     if len(respairs) > 0:
-                        copied = False
                         for varname, org in respairs:
                             bag = {'name': varname.firstpartname(), 'lineage': [] }
                             traverse(org.f2003, get_nodes, bag)
+                            # if varname exists multiple locations in a stmt, bag['lineage'] so does
                             for lineage in bag['lineage']:
+                                # each lineage contains a list of ancestors
                                 for lidx, anc in enumerate(lineage):
                                     # get callname
                                     callname = None
@@ -116,25 +117,22 @@ def update_state_info(parent):
                                     if argidx>=0:
                                         argname = subpobj.args[argidx]
                                         var = subpobj.a.variables[subpobj.args[argidx]]
-                                        if var.is_intent_inout():
-                                            req.gentype = KGGenType.STATE_OUT
-                                            stmt.add_geninfo(uname, req)
-                                            copied = True
-                                        elif var.is_intent_out():
-                                            req.gentype = KGGenType.STATE_OUT
-                                            stmt.add_geninfo(uname, req)
-                                            idx = -1
-                                            for i, (guname, greq) in enumerate(stmt.geninfo[KGGenType.STATE_IN]):
-                                                if guname == uname and greq == req:
-                                                    idx = i
-                                                    break
-                                            if idx >= 0:
-                                                stmt.geninfo[KGGenType.STATE_IN].pop(idx)
-                                            copied = True
-                                        break
-                                if copied: break
-                            if copied: break
 
+                                        if KGGenType.has_uname_unknown(uname, stmt.geninfo):
+                                            KGGenType.delete_uname_unknown(uname, stmt.geninfo)
+
+                                        if var.is_intent_in():
+                                            if not KGGenType.has_uname_in(uname, stmt.geninfo):
+                                                req.gentype = KGGenType.STATE_IN
+                                                stmt.add_geninfo(uname, req)
+                                        elif var.is_intent_out():
+                                            if not KGGenType.has_uname_out(uname, stmt.geninfo):
+                                                req.gentype = KGGenType.STATE_OUT
+                                                stmt.add_geninfo(uname, req)
+                                        elif var.is_intent_inout():
+                                            if not KGGenType.has_uname_inout(uname, stmt.geninfo):
+                                                req.gentype = KGGenType.STATE_INOUT
+                                                stmt.add_geninfo(uname, req)
     if hasattr(parent, 'parent'):
         update_state_info(parent.parent)
 

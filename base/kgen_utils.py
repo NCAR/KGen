@@ -425,6 +425,17 @@ class KGGenType(object):
         if cls.get_request(uname, geninfo): return True
         else: return False
 
+    @classmethod
+    def delete_uname_unknown(cls, uname, geninfo):
+        idx = -1
+        if cls.has_state_unknown(geninfo):
+            for index, (sin_uname, req) in enumerate(cls.get_state_unknown(geninfo)):
+                if uname==sin_uname:
+                    idx = index
+                    break
+        if idx >= 0:
+            del cls.get_state_unknown(geninfo)[idx]
+
 #############################################################################
 ## EXCEPTION
 #############################################################################
