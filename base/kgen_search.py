@@ -4,6 +4,9 @@ Module content
 ---------------
 """
 
+TODO: clean up gentype usage
+
+
 # kgen_search.py
 
 from kgen_utils import Config, Logger, show_tree, KGGenType
@@ -264,15 +267,16 @@ def search_Type_Declaration_Stmt(stmt, node, gentype=None):
 
     from kgen_utils import pack_innamepath, match_namepath
 
+    decls = []
+    if isinstance(node.items[2], Fortran2003.Entity_Decl):
+        decls.append(node.items[2].items[0].string.lower())
+    elif isinstance(node.items[2], Fortran2003.Entity_Decl_List):
+        for item in node.items[2].items:
+            decls.append(item.items[0].string.lower())
+
     # collect excluded names
     if Config.exclude.has_key('namepath'):
         for pattern, actions in Config.exclude['namepath'].iteritems():
-            decls = []
-            if isinstance(node.items[2], Fortran2003.Entity_Decl):
-                decls.append(node.items[2].items[0].string.lower())
-            elif isinstance(node.items[2], Fortran2003.Entity_Decl_List):
-                for item in node.items[2].items:
-                    decls.append(item.items[0].string.lower())
             for decl in decls:
                 namepath = pack_innamepath(stmt, decl) 
                 if match_namepath(pattern, namepath):
@@ -282,57 +286,57 @@ def search_Type_Declaration_Stmt(stmt, node, gentype=None):
                     else:
                         stmt.exclude_names[decl] = actions
 
-    defer_items(stmt, node)
+    defer_items(stmt, node, gentype=gentype)
 
 def search_Intrinsic_Type_Spec(stmt, node, gentype=None): 
     """ Identifying a name in Intrinsic_Type_Spec node"""
-    defer(stmt, node.items[1])
+    defer(stmt, node.items[1], gentype=KGGenType.STATE_IN)
 
 def search_Kind_Selector(stmt, node, gentype=None): 
     """ Identifying a name in Kind_Selector node"""
-    get_name_or_defer(stmt, node.items[1], res_kind)
+    get_name_or_defer(stmt, node.items[1], res_kind, gentype=KGGenType.STATE_IN)
 
 def search_Entity_Decl(stmt, node, gentype=None): 
     """ Identifying a name in Entity_Decl node"""
-    defer(stmt, node.items[1])
-    get_name_or_defer(stmt, node.items[2], res_value)
-    get_name_or_defer(stmt, node.items[3], res_value) 
+    defer(stmt, node.items[1], gentype=KGGenType.STATE_IN)
+    get_name_or_defer(stmt, node.items[2], res_value, gentype=KGGenType.STATE_IN)
+    get_name_or_defer(stmt, node.items[3], res_value, gentype=KGGenType.STATE_IN) 
 
 def search_Explicit_Shape_Spec(stmt, node, gentype=None): 
     """ Identifying a name in Explicit_Shape_Spec node"""
-    get_name_or_defer(stmt, node.items[0], res_value)
-    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[0], res_value, gentype=KGGenType.STATE_IN)
+    get_name_or_defer(stmt, node.items[1], res_value, gentype=KGGenType.STATE_IN)
 
 def search_Dimension_Attr_Spec(stmt, node, gentype=None): 
     """ Identifying a name in Dimension_Attr_Spec node"""
-    defer(stmt, node.items[1])
+    defer(stmt, node.items[1], gentype=KGGenType.STATE_IN)
 
 def search_Add_Operand(stmt, node, gentype=None): 
     """ Identifying a name in Add_Operand node"""
-    get_name_or_defer(stmt, node.items[0], res_value)
-    get_name_or_defer(stmt, node.items[2], res_value)
+    get_name_or_defer(stmt, node.items[0], res_value, gentype=KGGenType.STATE_IN)
+    get_name_or_defer(stmt, node.items[2], res_value, gentype=KGGenType.STATE_IN)
 
 def search_Mult_Operand(stmt, node, gentype=None): 
     """ Identifying a name in Mult_Operand node"""
-    get_name_or_defer(stmt, node.items[0], res_value)
-    get_name_or_defer(stmt, node.items[2], res_value)
+    get_name_or_defer(stmt, node.items[0], res_value, gentype=KGGenType.STATE_IN)
+    get_name_or_defer(stmt, node.items[2], res_value, gentype=KGGenType.STATE_IN)
 
 def search_Attr_Spec(stmt, node, gentype=None): 
     """ Identifying a name in Attr_Spec node"""
-    defer_items(stmt, node)
+    defer_items(stmt, node, gentype=gentype)
 
 def search_Initialization(stmt, node, gentype=None): 
     """ Identifying a name in Initialization node"""
-    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value, gentype=KGGenType.STATE_IN)
 
 def search_Part_Ref(stmt, node, gentype=None): 
     """ Identifying a name in Part_Ref node"""
     get_name_or_defer(stmt, node.items[0], res_value, gentype=gentype) 
-    get_name_or_defer(stmt, node.items[1], res_value) 
+    get_name_or_defer(stmt, node.items[1], res_value, gentype=gentype) 
 
 def search_Structure_Constructor_2(stmt, node, gentype=None): 
     """ Identifying a name in Structure_Constructor_2 node"""
-    get_name_or_defer(stmt, node.items[1], res_value)
+    get_name_or_defer(stmt, node.items[1], res_value, gentype=KGGenType.STATE_IN)
 
 def search_Int_Literal_Constant(stmt, node, gentype=None): 
     """ Identifying a name in Int_Literal_Constant node"""
@@ -356,8 +360,8 @@ def search_Signed_Real_Literal_Constant(stmt, node, gentype=None):
 
 def search_Subroutine_Stmt(stmt, node, gentype=None): 
     """ Identifying a name in Subroutine_Stmt node"""
-    get_name_or_defer(stmt, node.items[2], res_typedecl) # dummy args
-    get_name_or_defer(stmt, node.items[3], res_typedecl) # postfix
+    get_name_or_defer(stmt, node.items[2], res_typedecl, gentype=KGGenType.STATE_IN) # dummy args
+    get_name_or_defer(stmt, node.items[3], res_typedecl, gentype=KGGenType.STATE_IN) # postfix
 
 def search_Comment(stmt, node, gentype=None): 
     """ Identifying a name in Comment node"""
@@ -369,10 +373,10 @@ def search_Comment(stmt, node, gentype=None):
 def search_Nonlabel_Do_Stmt(stmt, node, gentype=None): 
     """ Identifying a name in Nonlabel_Do_Stmt node"""
     if len(node.items)==3:
-        defer(stmt, node.items[2])
+        defer(stmt, node.items[2], gentype=KGGenType.STATE_IN)
     elif len(node.items)==2:
         if isinstance(node.items[0], str):
-            defer(stmt, node.items[1])
+            defer(stmt, node.items[1], gentype=KGGenType.STATE_IN)
 
 def search_Loop_Control(stmt, node, gentype=None): 
     """ Identifying a name in Loop_Control node"""
@@ -418,14 +422,14 @@ def search_Allocate_Stmt(stmt, node, gentype=None):
     """ Identifying a name in Allocate_Stmt node"""
     get_name_or_defer(stmt, node.items[0], res_typespec)
     get_name_or_defer(stmt, node.items[1], res_typedecl)
-    defer(stmt, node.items[2])
+    defer(stmt, node.items[2], gentype=gentype)
 
 def search_Allocation(stmt, node, gentype=None): 
     """ Identifying a name in Allocation node"""
     get_name_or_defer(stmt, node.items[0], res_typedecl)
     get_name_or_defer(stmt, node.items[1], res_value)
     #if len(node.items)>1:
-    #    defer_items(stmt, node.items[1:])
+    #    defer_items(stmt, node.items[1:], gentype=gentype)
 
 def search_Allocate_Shape_Spec(stmt, node, gentype=None): 
     """ Identifying a name in Allocate_Shape_Spec node"""
@@ -467,7 +471,7 @@ def search_Level_2_Unary_Expr(stmt, node, gentype=None):
 
 def search_Label_Do_Stmt(stmt, node, gentype=None): 
     """ Identifying a name in Label_Do_Stmt node"""
-    defer(stmt, node.items[2])
+    defer(stmt, node.items[2], gentype=gentype)
 
 def search_Array_Constructor(stmt, node, gentype=None): 
     """ Identifying a name in Array_Constructor node"""
@@ -476,7 +480,7 @@ def search_Array_Constructor(stmt, node, gentype=None):
 def search_Array_Section(stmt, node, gentype=None): 
     """ Identifying a name in Array_Section node"""
     get_name_or_defer(stmt, node.items[0], res_value)
-    defer(stmt, node.items[1])
+    defer(stmt, node.items[1], gentype=gentype)
 
 def search_Substring_Range(stmt, node, gentype=None): 
     """ Identifying a name in Substring_Range node"""
@@ -501,7 +505,7 @@ def search_Call_Stmt(stmt, node, gentype=None):
     #if isinstance(node.items[1], Fortran2003.Name):
     #    get_name_or_defer(stmt, node.items[1], res_value)
     #else:
-    #    defer(stmt, node.items[1])
+    #    defer(stmt, node.items[1], gentype=gentype)
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Char_Literal_Constant(stmt, node, gentype=None): 
@@ -946,7 +950,7 @@ def search_Target_Stmt(stmt, node, gentype=None):
 def search_Target_Entity_Decl(stmt, node, gentype=None):
     """ Identifying a name in Target_Entity_Decl node"""
     get_name_or_defer(stmt, node.items[0], res_anything)
-    defer(stmt, node.items[1])
+    defer(stmt, node.items[1], gentype=gentype)
     get_name_or_defer(stmt, node.items[2], res_value)
     get_name_or_defer(stmt, node.items[3], res_value) 
 
@@ -1131,7 +1135,7 @@ def search_Data_Implied_Do(stmt, node, gentype=None):
 
 def search_Ac_Spec(stmt, node, gentype=None):
     """ Identifying a name in Ac_Spec node"""
-    defer(stmt, node.items[0])
+    defer(stmt, node.items[0], gentype=gentype)
     get_name_or_defer(stmt, node.items[1], res_value)
 
 def search_Sequence_Stmt(stmt, node, gentype=None):

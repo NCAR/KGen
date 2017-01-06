@@ -114,6 +114,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
         argintype = []
         localintype = []
         localouttype = []
+        print [ u.namelist for u, v in KGGenType.get_state_unknown(stmt.geninfo)]
         for uname, req in KGGenType.get_state_in(stmt.geninfo)  + KGGenType.get_state_inout(stmt.geninfo):
             entity_name = uname.firstpartname()
             var = stmt.get_variable(entity_name)
