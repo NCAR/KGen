@@ -2,28 +2,53 @@
 
 import sys
 import os.path
-from kgen_utils import Logger, Config, traverse, UserException, show_tree, run_shcmd
+from api import parse, walk
+from kgen_utils import Logger, Config, UserException, run_shcmd
 from kgen_state import State
-from readfortran import FortranFileReader
-from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
-    NoMatchError, Module_Stmt, Program_Stmt, Named_Constant_Def_List
+from Fortran2003 import NoMatchError, Module_Stmt, Program_Stmt
 
 exclude_list = [ Module_Stmt, Program_Stmt ]
 not_supported = {}
 not_parsed = {}
 
 
-def get_MPI_PARAM(node, bag, depth):
-    if isinstance(node, Type_Declaration_Stmt):
-        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()==bag['key']:
-            pass
-    elif isinstance(node, Parameter_Stmt):
-        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()==bag['key']:
-            bag[bag['key']].append(str(node.items[1].items[1]).replace(' ', ''))
-        elif isinstance(node.items[1], Named_Constant_Def_List):
-            for item in node.items[1].items:
-                if isinstance(item, Named_Constant_Def) and item.items[0].string.upper()==bag['key']:
-                    bag[bag['key']].append(str(item.items[1]).replace(' ', ''))
+#def get_MPI_PARAM(node, bag, depth):
+#    if isinstance(node, Type_Declaration_Stmt):
+#        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()==bag['key']:
+#            pass
+#    elif isinstance(node, Parameter_Stmt):
+#        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()==bag['key']:
+#            bag[bag['key']].append(str(node.items[1].items[1]).replace(' ', ''))
+#        elif isinstance(node.items[1], Named_Constant_Def_List):
+#            for item in node.items[1].items:
+#                if isinstance(item, Named_Constant_Def) and item.items[0].string.upper()==bag['key']:
+#                    bag[bag['key']].append(str(item.items[1]).replace(' ', ''))
+
+#def handle_include(mpifdir, lines):
+#    import re
+#    import os
+#
+#    insert_lines = []
+#    for i, line in enumerate(lines):
+#        match = re.match(r'^\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
+#        if match:
+#            include_dirs = [mpifdir]+Config.include['path']
+#            filename = match.group(1)[1:-1].strip()
+#            path = filename
+#            for incl_dir in include_dirs:
+#                path = os.path.join(incl_dir, filename)
+#                if os.path.exists(path):
+#                    break
+#            if os.path.isfile(path):
+#                with open(path, 'r') as f:
+#                    included_lines = f.read()
+#                    insert_lines.extend(handle_include(mpifdir, included_lines.split('\n')))
+#            else:
+#                raise UserException('Can not find %s in include paths.'%path)
+#        else:
+#            insert_lines.append(line)
+#
+#    return insert_lines
 
 def check_mode():
     from kgen_utils import Config, run_shcmd
@@ -174,61 +199,71 @@ def preprocess():
         check_mode()
         sys.exit(0)
     else:
-        if Config.mpi['enabled']:
-            # get path of mpif.h
-            mpifpath = ''
-            if os.path.isabs(Config.mpi['header']):
-                if os.path.exists(Config.mpi['header']):
-                    mpifpath = Config.mpi['header']
-                else:
-                    raise UserException('Can not find %s'%Config.mpi['header'])
-            else:
-                for p in Config.include['path']:
-                    fp = os.path.join(p, Config.mpi['header'])
-                    if os.path.exists(fp):
-                        mpifpath = fp
-                        break
-                if not mpifpath:
-                    for incpath, incdict in Config.include['file'].items():
-                        for p in incdict['path']:
-                            fp = os.path.join(p, Config.mpi['header'])
-                            if os.path.exists(fp):
-                                mpifpath = fp
-                                break
-                        if mpifpath: break
-
-            # collect required information
-            # TODO: FortranFileReader should be replaced with FortranStringReader after preprocessing
-            # TODO: include keyword should be handdled properly too.
-            if mpifpath:
-                try:
-                    reader = FortranFileReader(mpifpath, include_dirs = Config.include['path'])
-                    spec = Specification_Part(reader)
-
-                    bag = {}
-                    config_name_mapping = [
-                        ('comm', 'MPI_COMM_WORLD'),
-                        ('logical', 'MPI_LOGICAL'),
-                        ('status_size', 'MPI_STATUS_SIZE'),
-                        ('any_source', 'MPI_ANY_SOURCE'),
-                        ('source', 'MPI_SOURCE'),
-                        ]
-                    for config_key, name in config_name_mapping:
-                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
-                            bag['key'] = name
-                            bag[name] = []
-                            traverse(spec, get_MPI_PARAM, bag, subnode='content')
-                            if len(bag[name]) > 0:
-                                Config.mpi[config_key] = bag[name][-1]
-                            else:
-                                raise UserException('Can not find {name} in mpif.h'.format(name=name))
-
-                except UserException:
-                    raise  # Reraise this exception rather than catching it below
-                except Exception as e:
-                    raise UserException('Error occurred during reading %s.'%mpifpath)
-            else:
-                raise UserException('Can not find mpif.h. Please provide a path to the file')
+#        if Config.mpi['enabled']:
+#            # get path of mpif.h
+#            mpifpath = ''
+#            if os.path.isabs(Config.mpi['header']):
+#                if os.path.exists(Config.mpi['header']):
+#                    mpifpath = Config.mpi['header']
+#                else:
+#                    raise UserException('Can not find %s'%Config.mpi['header'])
+#            else:
+#                for p in Config.include['path']:
+#                    fp = os.path.join(p, Config.mpi['header'])
+#                    if os.path.exists(fp):
+#                        mpifpath = fp
+#                        break
+#                if not mpifpath:
+#                    for incpath, incdict in Config.include['file'].items():
+#                        for p in incdict['path']:
+#                            fp = os.path.join(p, Config.mpi['header'])
+#                            if os.path.exists(fp):
+#                                mpifpath = fp
+#                                break
+#                        if mpifpath: break
+#
+#            # collect required information
+#            if mpifpath:
+#                try:
+#                    with open(mpifpath, 'r') as f:
+#                        filelines = f.read().split('\n')
+#                        lines = '\n'.join(handle_include(os.path.dirname(mpifpath), filelines))
+#                        #reader = FortranStringReader(lines)
+#                    tree = parse(lines, ignore_comments=True, analyze=False, isfree=True, isstrict=False, include_dirs=None, source_only=None )
+#                    for stmt, depth in walk(tree, -1):
+#                        stmt.parse_f2003()
+#
+#                    #import pdb; pdb.set_trace()
+#                    #spec = Specification_Part(reader)
+#                    bag = {}
+#                    config_name_mapping = [
+#                        ('comm', 'MPI_COMM_WORLD'),
+#                        ('logical', 'MPI_LOGICAL'),
+#                        ('status_size', 'MPI_STATUS_SIZE'),
+#                        ('any_source', 'MPI_ANY_SOURCE'),
+#                        ('source', 'MPI_SOURCE'),
+#                        ]
+#                    for config_key, name in config_name_mapping:
+#                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+#                            for stmt, depth in walk(tree, -1):
+#                                bag['key'] = name
+#                                bag[name] = []
+#                                if hasattr(stmt, 'f2003'):
+#                                    traverse(stmt.f2003, get_MPI_PARAM, bag, subnode='content')
+#                                    if len(bag[name]) > 0:
+#                                        Config.mpi[config_key] = bag[name][-1]
+#                                        break
+#
+#                    for config_key, name in config_name_mapping:
+#                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+#                            raise UserException('Can not find {name} in mpif.h'.format(name=name))
+#
+#                except UserException:
+#                    raise  # Reraise this exception rather than catching it below
+#                except Exception as e:
+#                    raise UserException('Error occurred during reading %s.'%mpifpath)
+#            else:
+#                raise UserException('Can not find mpif.h. Please provide a path to the file')
 
         # parse imported source files through include.ini
         for path, import_type in Config.include['import'].iteritems(): 

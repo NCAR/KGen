@@ -17,6 +17,7 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         self.frame_msg = msg
 
         # register initial events
+
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
             getinfo('parentblock_stmt'), None, self.create_parentblock_parts)
 
@@ -28,28 +29,23 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
-    def create_parentblock_parts(self, node):
+        prenode = getinfo('blocknode_aftercallsite_main')
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
+            prenode, None, self.create_verification_parts)
 
-        namedpart_link_part(node, VERIFY_PBLOCK_USE_PART, USE_PART)
-        namedpart_link_part(node, VERIFY_PBLOCK_DECL_PART, DECL_PART)
-        namedpart_link_part(node, VERIFY_PBLOCK_EXEC_PART, EXEC_PART)
-        namedpart_link_part(node, VERIFY_PBLOCK_CONTAINS_PART, CONTAINS_PART)
-        namedpart_link_part(node, VERIFY_PBLOCK_SUBP_PART, SUBP_PART)
+        namedpart_create_subpart(prenode, VERIFY_PBLOCK_INIT, EXEC_PART)
+        namedpart_append_comment(prenode.kgen_kernel_id, VERIFY_PBLOCK_INIT, '')
+        namedpart_append_comment(prenode.kgen_kernel_id, VERIFY_PBLOCK_INIT, 'verify init')
 
-        namedpart_create_subpart(node, VERIFY_PBLOCK_INIT, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_INIT, '')
-        namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_INIT, 'verify init')
+        namedpart_create_subpart(prenode, VERIFY_PBLOCK_EXTERNS, EXEC_PART)
+        namedpart_append_comment(prenode.kgen_kernel_id, VERIFY_PBLOCK_EXTERNS, '')
+        namedpart_append_comment(prenode.kgen_kernel_id, VERIFY_PBLOCK_EXTERNS, 'extern verify variables')
 
-        namedpart_create_subpart(node, VERIFY_PBLOCK_EXTERNS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_EXTERNS, '')
-        namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_EXTERNS, 'extern verify variables')
+        namedpart_create_subpart(prenode, VERIFY_PBLOCK_LOCALS, EXEC_PART)
+        namedpart_append_comment(prenode.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, '')
+        namedpart_append_comment(prenode.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, 'local verify variables')
 
-        namedpart_create_subpart(node, VERIFY_PBLOCK_LOCALS, EXEC_PART)
-        namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, '')
-        namedpart_append_comment(node.kgen_kernel_id, VERIFY_PBLOCK_LOCALS, 'local verify variables')
-
-        attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['check_status']}
-        part_append_genknode(node, DECL_PART, typedecl_statements.Type, attrs=attrs)
+    def create_verification_parts(self, node):
 
         attrs = {'designator': 'kgen_init_check', 'items': ['check_status', 'tolerance=%s'%getinfo('verify_tol'), \
             'verboseLevel=%s'%getinfo('verbose_level')]}
@@ -106,3 +102,14 @@ class Verify_K_Callsite_File(Kgen_Plugin):
 
         attrs = {'items': ['""']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+    def create_parentblock_parts(self, node):
+
+        namedpart_link_part(node, VERIFY_PBLOCK_USE_PART, USE_PART)
+        namedpart_link_part(node, VERIFY_PBLOCK_DECL_PART, DECL_PART)
+        namedpart_link_part(node, VERIFY_PBLOCK_EXEC_PART, EXEC_PART)
+        namedpart_link_part(node, VERIFY_PBLOCK_CONTAINS_PART, CONTAINS_PART)
+        namedpart_link_part(node, VERIFY_PBLOCK_SUBP_PART, SUBP_PART)
+
+        attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['check_status']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Type, attrs=attrs)

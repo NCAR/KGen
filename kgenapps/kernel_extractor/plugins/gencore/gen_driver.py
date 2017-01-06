@@ -7,7 +7,11 @@ from kgen_plugin import Kgen_Plugin
 
 from gencore_utils import DRIVER_USE_PART, DRIVER_READ_IN_ARGS, DRIVER_CALLSITE_PART, DRIVER_DECL_PART, \
     DRIVER_EXEC_PART, DRIVER_CONTAINS_PART, DRIVER_SUBP_PART, DRIVER_ALLOC_PART, DRIVER_DEALLOC_PART, \
-    shared_objects, DRIVER_READ_IN_EXTERNS
+    shared_objects, DRIVER_READ_IN_EXTERNS, DRIVER_WARMUP_ALLOC_PART, DRIVER_WARMUP_READ_IN_ARGS, \
+    DRIVER_WARMUP_READ_IN_EXTERNS, DRIVER_WARMUP_CALLSITE_PART, DRIVER_WARMUP_DEALLOC_PART, \
+    DRIVER_EVAL_ALLOC_PART, DRIVER_EVAL_READ_IN_ARGS, \
+    DRIVER_EVAL_READ_IN_EXTERNS, DRIVER_EVAL_CALLSITE_PART, DRIVER_EVAL_DEALLOC_PART
+
 
 class Gen_K_Driver(Kgen_Plugin):
     def __init__(self):
@@ -22,15 +26,31 @@ class Gen_K_Driver(Kgen_Plugin):
             block_statements.Program, self.is_driver_name, self.create_kernel_driver_parts) 
 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.FINISH_PROCESS, \
-            block_statements.Program, self.is_driver_name, self.add_callsite_stmt) 
+            block_statements.Program, self.is_driver_name, self.finalize_kernel_driver_parts) 
     # match functions
     def is_driver_name(self, node):
         if node.name==getinfo('kernel_driver_name'): return True
         else: return False
 
-    def add_callsite_stmt(self, node):
+    def finalize_kernel_driver_parts(self, node):
+
+        # add callsite stmts
         attrs = {'designator': getinfo('parentblock_stmt').name, 'items': getinfo('kernel_driver_callsite_args')}
         namedpart_append_genknode(node.kgen_kernel_id, DRIVER_CALLSITE_PART, statements.Call, attrs=attrs)
+
+        for partname, wpartname in [ (DRIVER_ALLOC_PART, DRIVER_WARMUP_ALLOC_PART), (DRIVER_READ_IN_ARGS, DRIVER_WARMUP_READ_IN_ARGS), \
+            (DRIVER_READ_IN_EXTERNS, DRIVER_WARMUP_READ_IN_EXTERNS), (DRIVER_CALLSITE_PART, DRIVER_WARMUP_CALLSITE_PART), \
+            (DRIVER_DEALLOC_PART, DRIVER_WARMUP_DEALLOC_PART) ]:
+            pnode, rawname, named_part =  get_namedpart(node.kgen_kernel_id, partname)
+            for item in named_part:
+                namedpart_append_node(node.kgen_kernel_id, wpartname, item)
+
+        for partname, epartname in [ (DRIVER_ALLOC_PART, DRIVER_EVAL_ALLOC_PART), (DRIVER_READ_IN_ARGS, DRIVER_EVAL_READ_IN_ARGS), \
+            (DRIVER_READ_IN_EXTERNS, DRIVER_EVAL_READ_IN_EXTERNS), (DRIVER_CALLSITE_PART, DRIVER_EVAL_CALLSITE_PART), \
+            (DRIVER_DEALLOC_PART, DRIVER_EVAL_DEALLOC_PART) ]:
+            pnode, rawname, named_part =  get_namedpart(node.kgen_kernel_id, partname)
+            for item in named_part:
+                namedpart_append_node(node.kgen_kernel_id, epartname, item)
 
     #  process after node creation
     def create_kernel_driver_parts(self, node):
@@ -43,7 +63,7 @@ class Gen_K_Driver(Kgen_Plugin):
         namedpart_link_part(node, DRIVER_CONTAINS_PART, CONTAINS_PART)
         namedpart_link_part(node, DRIVER_SUBP_PART, SUBP_PART)
 
-        attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp', 'kgen_array_sumcheck']}
+        attrs = {'name':'kgen_utils_mod', 'isonly': True, 'items':['kgen_get_newunit', 'kgen_error_stop', 'kgen_dp', 'kgen_array_sumcheck', 'kgen_rankthreadinvoke']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         attrs = {'name':'tprof_mod', 'isonly': True, 'items':['tstart', 'tstop', 'tnull', 'tprnt']}
@@ -74,7 +94,7 @@ class Gen_K_Driver(Kgen_Plugin):
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
-        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        part_append_genknode(node, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': \
             ['kgen_elapsed_time', 'kgen_total_time', 'kgen_min_time', 'kgen_max_time'], }
@@ -82,6 +102,15 @@ class Gen_K_Driver(Kgen_Plugin):
 
         attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
+        part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage']}
+        part_append_gensnode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
+        part_append_gensnode(node, DECL_PART, statements.Common, attrs=attrs)
 
         part_append_comment(node, DECL_PART, '')
 
@@ -143,24 +172,148 @@ class Gen_K_Driver(Kgen_Plugin):
 
         part_append_genknode(iflist2, EXEC_PART, statements.Stop)
 
-        attrs = {'loopcontrol': 'WHILE ( kgen_ierr_list == 0 )'}
-        doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
+        # eval
+        attrs = {'variable': 'kgen_evalstage', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'items': ['kgen_filepath'], 'specs': ['UNIT = kgen_unit_list', 'FMT="(A)"', 'IOSTAT=kgen_ierr_list']}
-        part_append_genknode(doobj, EXEC_PART, statements.Read, attrs=attrs)
+        attrs = {'variable': 'kgen_warmupstage', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'expr': 'kgen_ierr_list == 0'}
-        ifread = part_append_genknode(doobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        attrs = {'variable': 'kgen_mainstage', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_ierr', 'sign': '=', 'expr': '0'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'loopcontrol': 'WHILE ( kgen_ierr == 0 )'}
+        doobj1 = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'items': ['kgen_filepath'], 'specs': ['UNIT = kgen_unit_list', 'FMT="(A)"', 'IOSTAT=kgen_ierr']}
+        part_append_genknode(doobj1, EXEC_PART, statements.Read, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr== 0'}
+        ifread1 = part_append_genknode(doobj1, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
-        part_append_genknode(ifread, EXEC_PART, statements.Assignment, attrs=attrs)
+        part_append_genknode(ifread1, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'designator': 'kgen_rankthreadinvoke', 'items': ( 'TRIM(ADJUSTL(kgen_filepath))', 'kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke' ) }
+        part_append_genknode(ifread1, EXEC_PART, statements.Call, attrs=attrs)
 
         attrs = {'specs': ['UNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath))', 'STATUS="OLD"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-        part_append_genknode(ifread, EXEC_PART, statements.Open, attrs=attrs)
+        part_append_genknode(ifread1, EXEC_PART, statements.Open, attrs=attrs)
 
         attrs = {'expr': 'kgen_ierr == 0'}
-        ifopen = part_append_genknode(ifread, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        ifopen_warmup = part_append_genknode(ifread1, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        part_append_comment(ifopen_warmup, EXEC_PART, '')
+
+        # register gencore parts
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_ALLOC_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_READ_IN_ARGS, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_READ_IN_EXTERNS, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_CALLSITE_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_EVAL_DEALLOC_PART, EXEC_PART)
+
+        attrs = {'specs': ['UNIT=kgen_unit']}
+        part_append_genknode(ifopen_warmup, EXEC_PART, statements.Close, attrs=attrs)
+        part_append_comment(node, EXEC_PART, '')
+
+        attrs = {'designator': 'SLEEP', 'items': ( '1', ) }
+        part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=kgen_unit_list']}
+        part_append_genknode(node, EXEC_PART, statements.Rewind, attrs=attrs)
+
+        # warm up
+        attrs = {'variable': 'kgen_evalstage', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_warmupstage', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_mainstage', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_ierr', 'sign': '=', 'expr': '0'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'loopcontrol': 'WHILE ( kgen_ierr == 0 )'}
+        doobj2 = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'items': ['kgen_filepath'], 'specs': ['UNIT = kgen_unit_list', 'FMT="(A)"', 'IOSTAT=kgen_ierr']}
+        part_append_genknode(doobj2, EXEC_PART, statements.Read, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr== 0'}
+        ifread2 = part_append_genknode(doobj2, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+        part_append_genknode(ifread2, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'designator': 'kgen_rankthreadinvoke', 'items': ( 'TRIM(ADJUSTL(kgen_filepath))', 'kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke' ) }
+        part_append_genknode(ifread2, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath))', 'STATUS="OLD"', 'ACCESS="STREAM"', \
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+        part_append_genknode(ifread2, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr == 0'}
+        ifopen_warmup = part_append_genknode(ifread2, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        part_append_comment(ifopen_warmup, EXEC_PART, '')
+
+        # register gencore parts
+        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_ALLOC_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_READ_IN_ARGS, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_READ_IN_EXTERNS, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_CALLSITE_PART, EXEC_PART)
+        namedpart_create_subpart(ifopen_warmup, DRIVER_WARMUP_DEALLOC_PART, EXEC_PART)
+
+        attrs = {'specs': ['UNIT=kgen_unit']}
+        part_append_genknode(ifopen_warmup, EXEC_PART, statements.Close, attrs=attrs)
+        part_append_comment(node, EXEC_PART, '')
+
+        attrs = {'designator': 'SLEEP', 'items': ( '1', ) }
+        part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=kgen_unit_list']}
+        part_append_genknode(node, EXEC_PART, statements.Rewind, attrs=attrs)
+
+        # main
+        attrs = {'variable': 'kgen_evalstage', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_warmupstage', 'sign': '=', 'expr': '.FALSE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_mainstage', 'sign': '=', 'expr': '.TRUE.'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'variable': 'kgen_ierr', 'sign': '=', 'expr': '0'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'loopcontrol': 'WHILE ( kgen_ierr == 0 )'}
+        doobj3 = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'items': ['kgen_filepath'], 'specs': ['UNIT = kgen_unit_list', 'FMT="(A)"', 'IOSTAT=kgen_ierr']}
+        part_append_genknode(doobj3, EXEC_PART, statements.Read, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr== 0'}
+        ifread3 = part_append_genknode(doobj3, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'variable': 'kgen_unit', 'sign': '=', 'expr': 'kgen_get_newunit()'}
+        part_append_genknode(ifread3, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'designator': 'kgen_rankthreadinvoke', 'items': ( 'TRIM(ADJUSTL(kgen_filepath))', 'kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke' ) }
+        part_append_genknode(ifread3, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=kgen_unit', 'FILE=TRIM(ADJUSTL(kgen_filepath))', 'STATUS="OLD"', 'ACCESS="STREAM"', \
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+        part_append_genknode(ifread3, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'expr': 'kgen_ierr == 0'}
+        ifopen = part_append_genknode(ifread3, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['""']}
         part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
@@ -266,3 +419,17 @@ class Gen_K_Driver(Kgen_Plugin):
             part_append_comment(node, EXEC_PART, 'Uncomment following mpi_finalize statement to finalize MPI.')
             part_append_comment(node, EXEC_PART, 'CALL mpi_finalize(kgen_ierr)')
             part_append_comment(node, EXEC_PART, '')
+
+        # Block Data
+        attrs = {'name': 'KGEN'}
+        cblock = part_append_gensnode(node.kgen_parent, UNIT_PART, block_statements.BlockData, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank = 0', 'kgen_openmptid = 0', 'kgen_kernelinvoke = 0']}
+        part_append_gensnode(cblock, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage = .TRUE.', 'kgen_warmupstage = .FALSE.', 'kgen_mainstage = .FALSE.']}
+        part_append_gensnode(cblock, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
+        part_append_gensnode(cblock, DECL_PART, statements.Common, attrs=attrs)
+

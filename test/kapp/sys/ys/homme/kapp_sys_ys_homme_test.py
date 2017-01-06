@@ -34,7 +34,8 @@ class KAppSysYSHommeTest(KAppSysYSTest):
         systestdir = result['mkdir_task']['sysdir']
         workdir = result['mkdir_task']['workdir']
 
-        appsrc = '%s/homme_ref'%systestdir
+        #appsrc = '%s/homme_ref'%systestdir
+        appsrc = '/glade/u/home/youngsun/apps/homme/trunk'
         if not os.path.exists(appsrc):
             os.mkdir(appsrc)
 
@@ -42,7 +43,9 @@ class KAppSysYSHommeTest(KAppSysYSTest):
         out, err, retcode = run_shcmd('svn info | grep URL', cwd=appsrc)
         if retcode != 0 or not out or len(out)<3 or not out.startswith('URL'):
             #out, err, retcode = run_shcmd('svn checkout -r 4971 https://svn-homme-model.cgd.ucar.edu/trunk/ .', cwd=appsrc) # r 4971 has broken pio external link
-            out, err, retcode = run_shcmd('svn checkout -r 5438 https://svn-homme-model.cgd.ucar.edu/trunk/ .', cwd=appsrc)
+            #out, err, retcode = run_shcmd('svn checkout -r 5438 https://svn-homme-model.cgd.ucar.edu/trunk/ .', cwd=appsrc)
+            out, err, retcode = run_shcmd('svn checkout -r 5704 https://svn-homme-model.cgd.ucar.edu/trunk/ .', cwd=appsrc)
+            #out, err, retcode = run_shcmd('svn checkout -r 5650 https://svn-homme-model.cgd.ucar.edu/branch_tags/dungeon_tags/dungeon06 .', cwd=appsrc)
 
         # copy homme src into test specific src dir
         tmpsrc = '%s/homme_work'%systestdir

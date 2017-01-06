@@ -22,7 +22,7 @@ class Test(KAppSysYSHommePgiTest):
         prerun_run = ';'.join(result['config_task']['prerun_run'])
         passed, out, err = self.extract_kernel(srcfile, namepath, \
             __cmd_clean='"cd %s; make clean"'%blddir, \
-            __cmd_build='"cd %s; %s; make -j 8 perfTest"'%(blddir, prerun_build), \
+            __cmd_build='"cd %s; %s; make -j 8 perfTestWACCM"'%(blddir, prerun_build), \
             __cmd_run='"cd %s; bsub < homme.submit"'%rundir, \
             __prerun='kernel_build="%s",kernel_run="%s"'%(prerun_build, prerun_run), \
             __exclude='%s/exclude.ini'%workdir, \

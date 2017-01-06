@@ -1,15 +1,13 @@
 # kgen_analyze.py
 
 
-from kgen_utils import KGName, Logger, Config, ProgramException, UserException, show_tree, KGGenType, \
-    match_namepath, pack_exnamepath, traverse
+from kgen_utils import KGName, Logger, Config, ProgramException, UserException, KGGenType, traverse
 from kgen_state import State, SrcFile, ResState
 from Fortran2003 import Name, Call_Stmt, Function_Reference, Part_Ref, Interface_Stmt, Actual_Arg_Spec_List, \
     Section_Subscript_List, Actual_Arg_Spec, Structure_Constructor_2
 from ordereddict import OrderedDict
 from typedecl_statements import TypeDeclarationStatement
 from block_statements import SubProgramStatement, Associate
-from api import walk
 
 def update_state_info(parent):
 
@@ -138,6 +136,10 @@ def update_state_info(parent):
 
 
 def analyze():
+
+    analyze_callsite()
+
+def analyze_callsite():
     from block_statements import EndStatement, Subroutine, Function, Interface
     from statements import SpecificBinding
     from kgen_search import f2003_search_unknowns
@@ -145,7 +147,10 @@ def analyze():
     # read source file that contains callsite stmt
     cs_file = SrcFile(Config.callsite['filepath'])
 
-    locate_callsite(cs_file.tree)
+    #process_directive(cs_file.tree)
+
+    if len(State.callsite['stmts'])==0:
+        raise UserException('Can not find callsite')
 
     # ancestors of callsite stmt
     ancs = State.callsite['stmts'][0].ancestors()
@@ -172,14 +177,9 @@ def analyze():
 
     # populate parent block parameters
     State.parentblock['stmt'] = ancs[-1]
-    #State.parentblock['expr'] = State.parentblock['stmt'].f2003
-    #collect_args_from_subpstmt(State.parentblock['stmt'], State.parentblock['dummy_arg'])
 
     # populate top block parameters
-    #State.topblock['file'] = cs_file
-    #State.topblock['path'] = cs_file.abspath
     State.topblock['stmt'] = ancs[0]
-    #State.topblock['expr'] = State.topblock['stmt'].f2003
 
     for cs_stmt in State.callsite['stmts']:
         #resolve cs_stmt
@@ -198,78 +198,3 @@ def analyze():
         modstmt = moddict['stmt']
         if modstmt != State.topblock['stmt']:
             update_state_info(moddict['stmt'])
-
-def locate_callsite(cs_tree):
-    from statements import Comment
-    from block_statements import executable_construct
-    import re
-
-    def get_next_non_comment(stmt):
-        if not stmt: return
-        if not hasattr(stmt, 'parent'): return
-
-        started = False
-        for s in stmt.parent.content:
-            if s==stmt:
-                if not isinstance(s, Comment): return s
-                started = True
-            elif started:
-                if not isinstance(s, Comment): return s
-
-    def get_names(node, bag, depth):
-        from Fortran2003 import Name
-        if isinstance(node, Name) and not node.string in bag:
-            bag.append(node.string)
-       
-    # collect directives
-    directs = []
-    for stmt, depth in walk(cs_tree):
-        if isinstance(stmt, Comment):
-            line = stmt.item.comment.strip()
-            match = re.match(r'^[c!*]\$kgen\s+(.+)$', line, re.IGNORECASE)
-            if match:
-                dsplit = match.group(1).split(' ', 1)
-                dname = dsplit[0].strip()
-                if len(dsplit)>1: clause = dsplit[1].strip()
-                else: clause = None
-
-                if dname.startswith('begin_'):
-                    sname = dname[6:]
-                    directs.append(sname)
-                    State.kernel['name'] = clause
-                elif dname.startswith('end_'):
-                    ename = dname[4:]
-                    if directs[-1]==ename:
-                        directs.pop()
-                        if ename=='callsite':
-                            pass
-                        else:
-                            raise UserException('WARNING: Not supported KGEN directive: %s'%ename)
-                    else:
-                        raise UserException('Directive name mismatch: %s, %s'%(dname_stack[-1], ename))
-                elif dname=='callsite':
-                    next_fort_stmt = get_next_non_comment(stmt)
-                    if next_fort_stmt:
-                        State.kernel['name'] = clause
-                        State.callsite['stmts'].append(next_fort_stmt)
-                    else:
-                        raise UserException('WARNING: callsite is not found')
-            elif 'callsite' in directs:
-                State.callsite['stmts'].append(stmt)
-        elif 'callsite' in directs:
-            State.callsite['stmts'].append(stmt)
-        else:
-            if Config.callsite['namepath'] and stmt.__class__ in executable_construct:
-                names = []
-                traverse(stmt.f2003, get_names, names)
-                for name in names:
-                    if match_namepath(Config.callsite['namepath'], pack_exnamepath(stmt, name), internal=False):
-                        State.kernel['name'] = name
-                        for _s, _d in walk(stmt):
-                            State.callsite['stmts'].append(_s)
-                        return
-            elif len(directs)>0 and directs[-1]=='callsite':
-                State.callsite['stmts'].append(stmt)
-
-    if len(State.callsite['stmts'])==0:
-        raise UserException('Can not find callsite')

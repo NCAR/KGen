@@ -1,7 +1,7 @@
 # kgen_state.py
 # data structure
 
-from kgen_utils import Logger, Config, singleton, UserException
+from kgen_utils import Logger, Config, singleton, UserException, traverse, match_namepath, pack_exnamepath, KGGenType
 from api import parse, walk
 from ordereddict import OrderedDict
 
@@ -63,6 +63,9 @@ class State(object):
         # program units
         self._attrs['program_units'] = OrderedDict()
 
+        # plugin database
+        self._attrs['plugindb'] = OrderedDict()
+
     def __getattr__(self, name):
         return self._attrs[name]
 
@@ -75,8 +78,6 @@ class ResState(object):
         self.uname = uname
         self.originator = org
         self.resolvers = resolvers
-        #self.temp_uname = None
-        #self.res_stmt = None
         self.res_stmts = []
         self.unamelist = [uname]
 
@@ -200,20 +201,11 @@ class SrcFile(object):
             include_dirs = Config.include['file'][self.abspath]['path'] + [os.path.dirname(self.abspath)]
         else: include_dirs = None
 
-        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_derived_types.F':
-        #    print '\n'.join(new_lines)
-        #    sys.exit()
-        #    import pdb ; pdb.set_trace()
-
         # fparse
         self.tree = parse('\n'.join(new_lines), ignore_comments=False, analyze=True, isfree=isfree, \
             isstrict=isstrict, include_dirs=include_dirs, source_only=None )
         self.tree.prep = new_lines
         self.tree.used4genstate = False
-
-        #if self.abspath=='/glade/scratch/youngsun/kgen_system_test/branches/initial/MPAS-Release/src/framework/mpas_derived_types.F':
-        #    print self.tree
-        #    sys.exit()
 
         # parse f2003
         lineno = 0
@@ -228,17 +220,9 @@ class SrcFile(object):
         for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
             if not State.modules.has_key(mod_name):
                 State.modules[mod_name] = OrderedDict()
-                #State.modules[mod_name]['num'] = State.mod_num
-                #State.mod_num += 1
                 State.modules[mod_name]['stmt'] = mod_stmt
                 State.modules[mod_name]['file'] = self
                 State.modules[mod_name]['path'] = self.abspath
-                #State.modules[mod_name]['extern'] = OrderedDict()
-                #State.modules[mod_name]['extern']['names'] = []
-                #State.modules[mod_name]['extern']['typedecl_stmt'] = OrderedDict()
-                #State.modules[mod_name]['extern']['tkdpat'] = []
-                #State.modules[mod_name]['mod_rw_var_depends'] = []
-                #State.modules[mod_name]['dtype'] = []
         
         # collect program unit information
         for item in self.tree.content:
@@ -249,6 +233,8 @@ class SrcFile(object):
 
         # create a tuple for file dependency
         State.srcfiles[self.abspath] = ( self, [], [] )
+
+        self.process_directive()
 
     def stmt_by_name(self, name, cls=None, lineafter=-1):
         from statements import Comment
@@ -265,6 +251,88 @@ class SrcFile(object):
             if expr: return stmt, expr
 
         return None, None
+
+    def process_directive(self):
+        from statements import Comment
+        from block_statements import executable_construct
+        import re
+
+        def get_next_non_comment(stmt):
+            if not stmt: return
+            if not hasattr(stmt, 'parent'): return
+
+            started = False
+            for s in stmt.parent.content:
+                if s==stmt:
+                    if not isinstance(s, Comment): return s
+                    started = True
+                elif started:
+                    if not isinstance(s, Comment): return s
+
+        def get_names(node, bag, depth):
+            from Fortran2003 import Name
+            if isinstance(node, Name) and not node.string in bag:
+                bag.append(node.string)
+           
+        # collect directives
+        directs = []
+        for stmt, depth in walk(self.tree):
+            if isinstance(stmt, Comment):
+                line = stmt.item.comment.strip()
+                match = re.match(r'^[c!*]\$kgen\s+(.+)$', line, re.IGNORECASE)
+                if match:
+                    dsplit = match.group(1).split(' ', 1)
+                    dname = dsplit[0].strip()
+                    if len(dsplit)>1: clause = dsplit[1].strip()
+                    else: clause = None
+
+                    if dname.startswith('begin_'):
+                        sname = dname[6:]
+                        directs.append(sname)
+                        State.kernel['name'] = clause
+                    elif dname.startswith('end_'):
+                        ename = dname[4:]
+                        if directs[-1]==ename:
+                            directs.pop()
+                            if ename=='callsite':
+                                pass
+                            else:
+                                raise UserException('WARNING: Not supported KGEN directive: %s'%ename)
+                        else:
+                            raise UserException('Directive name mismatch: %s, %s'%(dname_stack[-1], ename))
+                    elif dname=='callsite':
+                        next_fort_stmt = get_next_non_comment(stmt)
+                        if next_fort_stmt:
+                            State.kernel['name'] = clause
+                            State.callsite['stmts'].append(next_fort_stmt)
+                        else:
+                            raise UserException('WARNING: callsite is not found')
+                    elif dname=='write':
+                        if clause:
+                            stmt.write_state = clause.split(',')
+                    elif dname=='exclude':
+                        next_fort_stmt = get_next_non_comment(stmt)
+                        if next_fort_stmt:
+                            next_fort_stmt.f2003.skip_search = True
+                        else:
+                            raise UserException('WARNING: exclude target is not found')
+
+                elif 'callsite' in directs:
+                    State.callsite['stmts'].append(stmt)
+            elif 'callsite' in directs:
+                State.callsite['stmts'].append(stmt)
+            else:
+                if Config.callsite['namepath'] and stmt.__class__ in executable_construct:
+                    names = []
+                    traverse(stmt.f2003, get_names, names)
+                    for name in names:
+                        if match_namepath(Config.callsite['namepath'], pack_exnamepath(stmt, name), internal=False):
+                            State.kernel['name'] = name
+                            for _s, _d in walk(stmt):
+                                State.callsite['stmts'].append(_s)
+                            return
+                elif len(directs)>0 and directs[-1]=='callsite':
+                    State.callsite['stmts'].append(stmt)
 
 import unittest
 class Test_kgen_state(unittest.TestCase):

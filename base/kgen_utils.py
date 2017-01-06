@@ -295,6 +295,48 @@ class KgenConfigParser(RawConfigParser):
             buf = StringIO(''.join(lines))
             self._read(buf, filename)
 
+def get_MPI_PARAM(node, bag, depth):
+    from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
+        NoMatchError, Module_Stmt, Program_Stmt, Named_Constant_Def_List
+
+    if isinstance(node, Type_Declaration_Stmt):
+        if isinstance(node.items[2], Entity_Decl) and node.items[2].items[0].string.upper()==bag['key']:
+            pass
+    elif isinstance(node, Parameter_Stmt):
+        if isinstance(node.items[1], Named_Constant_Def) and node.items[1].items[0].string.upper()==bag['key']:
+            bag[bag['key']].append(str(node.items[1].items[1]).replace(' ', ''))
+        elif isinstance(node.items[1], Named_Constant_Def_List):
+            for item in node.items[1].items:
+                if isinstance(item, Named_Constant_Def) and item.items[0].string.upper()==bag['key']:
+                    bag[bag['key']].append(str(item.items[1]).replace(' ', ''))
+
+
+def handle_include(mpifdir, lines):
+    import re
+    import os
+
+    insert_lines = []
+    for i, line in enumerate(lines):
+        match = re.match(r'^\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
+        if match:
+            include_dirs = [mpifdir]+Config.include['path']
+            filename = match.group(1)[1:-1].strip()
+            path = filename
+            for incl_dir in include_dirs:
+                path = os.path.join(incl_dir, filename)
+                if os.path.exists(path):
+                    break
+            if os.path.isfile(path):
+                with open(path, 'r') as f:
+                    included_lines = f.read()
+                    insert_lines.extend(handle_include(mpifdir, included_lines.split('\n')))
+            else:
+                raise UserException('Can not find %s in include paths.'%path)
+        else:
+            insert_lines.append(line)
+
+    return insert_lines
+
 #############################################################################
 ## RESOLUTION TYPE
 #############################################################################
@@ -583,6 +625,7 @@ class Config(object):
         self._attrs['source']['isstrict'] = None
         self._attrs['source']['alias'] = OrderedDict()
         self._attrs['source']['file'] = OrderedDict()
+        self._attrs['source']['state'] = []
 
         # include parameters
         self._attrs['include'] = OrderedDict()
@@ -691,6 +734,78 @@ class Config(object):
             if opt and optname in self.opt_handlers:
                 self.opt_handlers[optname](opt)
                 
+        # collect mpi params
+        self._collect_mpi_params()
+
+    def _collect_mpi_params(self):
+        from api import parse, walk
+
+        if Config.mpi['enabled']:
+            # get path of mpif.h
+            mpifpath = ''
+            if os.path.isabs(Config.mpi['header']):
+                if os.path.exists(Config.mpi['header']):
+                    mpifpath = Config.mpi['header']
+                else:
+                    raise UserException('Can not find %s'%Config.mpi['header'])
+            else:
+                for p in Config.include['path']:
+                    fp = os.path.join(p, Config.mpi['header'])
+                    if os.path.exists(fp):
+                        mpifpath = fp
+                        break
+                if not mpifpath:
+                    for incpath, incdict in Config.include['file'].items():
+                        for p in incdict['path']:
+                            fp = os.path.join(p, Config.mpi['header'])
+                            if os.path.exists(fp):
+                                mpifpath = fp
+                                break
+                        if mpifpath: break
+
+            # collect required information
+            if mpifpath:
+                try:
+                    with open(mpifpath, 'r') as f:
+                        filelines = f.read().split('\n')
+                        lines = '\n'.join(handle_include(os.path.dirname(mpifpath), filelines))
+                        #reader = FortranStringReader(lines)
+                    tree = parse(lines, ignore_comments=True, analyze=False, isfree=True, isstrict=False, include_dirs=None, source_only=None )
+                    for stmt, depth in walk(tree, -1):
+                        stmt.parse_f2003()
+
+                    #import pdb; pdb.set_trace()
+                    #spec = Specification_Part(reader)
+                    bag = {}
+                    config_name_mapping = [
+                        ('comm', 'MPI_COMM_WORLD'),
+                        ('logical', 'MPI_LOGICAL'),
+                        ('status_size', 'MPI_STATUS_SIZE'),
+                        ('any_source', 'MPI_ANY_SOURCE'),
+                        ('source', 'MPI_SOURCE'),
+                        ]
+                    for config_key, name in config_name_mapping:
+                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+                            for stmt, depth in walk(tree, -1):
+                                bag['key'] = name
+                                bag[name] = []
+                                if hasattr(stmt, 'f2003'):
+                                    traverse(stmt.f2003, get_MPI_PARAM, bag, subnode='content')
+                                    if len(bag[name]) > 0:
+                                        Config.mpi[config_key] = bag[name][-1]
+                                        break
+
+                    for config_key, name in config_name_mapping:
+                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+                            raise UserException('Can not find {name} in mpif.h'.format(name=name))
+
+                except UserException:
+                    raise  # Reraise this exception rather than catching it below
+                except Exception as e:
+                    raise UserException('Error occurred during reading %s.'%mpifpath)
+            else:
+                raise UserException('Can not find mpif.h. Please provide a path to the file')
+
     def _process_default_flags(self, opts):
 
         # check if exists fpp or cpp
@@ -773,7 +888,7 @@ class Config(object):
         if opts.source:
             for line in opts.source:
                 flags = OrderedDict()
-                for subflag in line.lower().split(','):
+                for subflag in line.split(','):
                     if subflag.find('=')>0:
                         key, value = subflag.split('=')
                         if key=='file':
@@ -783,6 +898,13 @@ class Config(object):
                             if p1.endswith('/'): p1 = p1[:-1]
                             if p2.endswith('/'): p2 = p2[:-1]
                             self._attrs['source']['alias'][p1] = p2
+                        elif key=='state':
+                            for path in value.split(':'):
+                                if os.path.exists(path):
+                                    abspath = os.path.abspath(path)
+                                    self._attrs['source'][key].append(abspath)
+                                else:
+                                    raise UserException('%s does not exist.'%os.path.abspath(path))
                         else:
                             flags[key] = value 
                     else:

@@ -1,0 +1,28 @@
+ROW := 16
+COL := 16
+
+FC := mpipf90
+FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
+
+run: build
+	bsub < ./job.lsf
+
+build: demo.exe
+
+demo.exe: program.o bridge_mod.o update_mod.o calc_mod.o
+	${FC} -o $@ $^
+
+program.o: program.F90 bridge_mod.o
+	${FC} -c -o $@ $<
+
+bridge_mod.o: bridge_mod.F90 update_mod.o
+	${FC} -c -o $@ $<
+
+update_mod.o: update_mod.F90 calc_mod.o
+	${FC} -mp ${FC_FLAGS} -c -o $@ $<
+
+calc_mod.o: calc_mod.F90
+	${FC} -mp -c -o $@ $<
+
+clean:
+	rm -f *.exe *.o *.mod *.err *.out

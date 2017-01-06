@@ -119,6 +119,37 @@ meaning: begin_callsite and end_callsite directives specify a region of Fortran 
             !$kgen end_callsite calc
 
 
+write directive
+
+::
+
+    syntax: !$kgen write variable[,variable,...]
+
+meaning: write directive specifies variables whose content will be saved in state data files and will be read by a generated kernel. By using this directive, user can manually force KGen to save state data at arbitrary points of source code. Multiple variables can be specified by using comma in-between. Variable can be a member of derived type. One restriction of specifying variable is that it can not be an element of array but array itself. For example if A%B is an array it can not be specified as A%B[index].
+
+The directive can be located anywhere within executable part of source code.
+
+::
+
+    example: 
+                !$kgen write i,j
+                CALL calc(i, j, output)
+
+exclude directive
+
+::
+
+    syntax: !$kgen exclude
+
+meaning: exclude directive specifies that next statement will be excluded during kernel generation. The main purpose of this directive is to support MPI "receiving" routines such as "recv" within generated kernel together with "write" directive. For example, user can use "write" directive to force KGen to read/write a variable and "exclude" MPI receiving routine.
+
+::
+
+    example: 
+                !$kgen write data
+                !$kgen exclude
+                CALL MPI_RECV(data, count, MPI_DOUBLE_PRECISION, from, tag, MPI_COMM_WORLD, status, ierr )
+
 2.3.2 KGen command-line user interface
 ---------------------------------------
 
@@ -369,7 +400,8 @@ Use 0 for "non MPI application" and use 0 for "non OpenMP application" in the fi
 [--openmp]
 ::
 
-    meaning : Turns on OpenMP supports in KGen. There is one sub-option: enable.  enable specifies that KGen extracts a kernel from OpenMP application. This is a mandatory for OpenMP application.
+    meaning : Turns on OpenMP supports in KGen. There is two sub-options: "enable" and "kernel-in-critical-region".  "enable" specifies that KGen extracts a kernel from OpenMP application. This is a mandatory for OpenMP application. "kernel-in-critical-region" can has one of two values: "yes" or "no". If "kernel-in-critical-region" is set to "yes", kernel region is encompassed by OpenMP Critical region, which improves correctness of generated state data. However, this may cause deadlock if OpenMP Barrier is used within the kernel.
+    example) --openmp kernel-in-critical-region=yes
 
 [--intrinsic]
 ::

@@ -18,19 +18,19 @@ class Simple_Timing(Kgen_Plugin):
 
         # register event per function 
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.NODE_CREATED, \
-            getinfo('parentblock_stmt'), None, self.add_execblock) 
+            getinfo('parentblock_stmt'), None, self.register_event) 
 
+    def ispstmt(self, stmt, cmpstmt, limitstmt):
+        if stmt == cmpstmt:
+            return True
+        elif stmt == limitstmt:
+            return False
+        elif hasattr(stmt, 'parent'):
+            return self.ispstmt(stmt.parent, cmpstmt, limitstmt)
+        else:
+            return False
 
-    def add_execblock(self, node):
-        def ispstmt(stmt, cmpstmt, limitstmt):
-            if stmt == cmpstmt:
-                return True
-            elif stmt == limitstmt:
-                return False
-            elif hasattr(stmt, 'parent'):
-                return ispstmt(stmt.parent, cmpstmt, limitstmt)
-            else:
-                return False
+    def register_event(self, node):
 
         attrs = {'type_spec': 'INTEGER', 'selector': ('8', None), \
             'entity_decls': ['kgen_intvar', 'kgen_start_clock', 'kgen_stop_clock', 'kgen_rate_clock']}
@@ -38,6 +38,12 @@ class Simple_Timing(Kgen_Plugin):
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['kgen_maxiter = %s'%getinfo('repeat_count')]}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
+
+        prenode = getinfo('blocknode_aftercallsite_main')
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
+            prenode, None, self.add_execblock)
+
+    def add_execblock(self, node):
 
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
@@ -50,11 +56,13 @@ class Simple_Timing(Kgen_Plugin):
 
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, 'TEST!!!!')
 
+        #attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.TRUE.'}
+        #namedpart_append_gensnode(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, statements.Assignment, attrs=attrs)
+
         for elem in execpart:
-            if hasattr(elem, 'kgen_stmt') and ispstmt(getinfo('callsite_stmts')[0], elem.kgen_stmt, node.kgen_stmt):
+            if hasattr(elem, 'kgen_stmt') and self.ispstmt(getinfo('callsite_stmts')[0], elem.kgen_stmt, node.kgen_stmt):
                 namedpart_append_node(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, elem)
 
-        
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 

@@ -36,6 +36,7 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
         prerun_cmds.append('module try-load ncarbinlibs/1.1')
         prerun_cmds.append('module try-load ncarcompilers/1.0')
         prerun_cmds.append('module try-load intel/15.0.3')
+        #prerun_cmds.append('module try-load intel/16.0.1')
 
         return prerun_cmds
 
@@ -69,12 +70,14 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
             os.mkdir('%s/movies'%rundir)
         if os.path.exists('%s/vcoord'%rundir):
             os.system('rm -f %s/vcoord'%rundir)
-        os.system('ln -s %s/test/vcoord %s/vcoord'%(tmpsrc, rundir))
+        #os.system('ln -s %s/test/vcoord %s/vcoord'%(tmpsrc, rundir))
+        os.system('ln -s %s/../../config/perfTestWACCM_64_1_4/vcoord %s/vcoord'%(self.TEST_DIR, rundir))
 
         # create namelist
         if os.path.exists('%s/perfTestWACCM.nl'%rundir):
             os.remove('%s/perfTestWACCM.nl'%rundir)
-        shutil.copy('%s/test/reg_test/namelists/perfTestWACCM.nl'%tmpsrc, rundir)
+        #shutil.copy('%s/test/reg_test/namelists/perfTestWACCM.nl'%tmpsrc, rundir)
+        shutil.copy('%s/../../config/perfTestWACCM_64_1_4/perfTestWACCM-ne8.nl'%self.TEST_DIR, rundir)
         #if os.path.exists('%s/camBench.nl'%rundir):
         #    os.remove('%s/camBench.nl'%rundir)
         #shutil.copy('%s/test/perftest/camBench.nl'%tmpsrc, rundir)
@@ -96,10 +99,10 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
         # create job submit script
         with open('%s/homme.submit'%rundir, 'w') as fd:
             #fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTest/perfTest'%blddir, '%s/camBench.nl'%rundir))
-            fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTestWACCM/perfTestWACCM'%blddir, '%s/perfTestWACCM.nl'%rundir))
+            fd.write(job_script%('16', '16', '\n'.join(result[myname]['prerun_run']), result[myname]['mpirun'], '%s/test_execs/perfTestWACCM/perfTestWACCM'%blddir, '%s/perfTestWACCM-ne8.nl'%rundir))
 
 
-        if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))])==0:
+        if self.REBUILD or not os.path.exists(blddir) or len([name for name in os.listdir(blddir) if os.path.isfile(os.path.join(blddir, name))]) < 3:
 
             # prepare prerun command
             prerun_cmds = result[myname]['prerun_config']
@@ -114,10 +117,12 @@ class KAppSysYSHommeIntelTest(KAppSysYSHommeTest):
             cmake_cmd.append('-DCMAKE_CXX_COMPILER="mpiicpc"')
             cmake_cmd.append('-DCMAKE_Fortran_COMPILER="mpiifort"')
             cmake_cmd.append('-DNETCDF_DIR:PATH=$NETCDF')
-            cmake_cmd.append('-DPNETCDF_DIR:PATH=$PNETCDF')
-            cmake_cmd.append('-DHDF5_DIR:PATH=/glade/apps/opt/hdf5/1.8.12/intel/12.1.5')
-            cmake_cmd.append('-DSZIP_DIR:PATH=/glade/apps/opt/szip/2.1/intel/12.1.5')
+            cmake_cmd.append('-DWITH_PNETCDF=FALSE')
             cmake_cmd.append(tmpsrc)
+
+#            cmake_cmd.append('-DPNETCDF_DIR:PATH=$PNETCDF')
+#            cmake_cmd.append('-DHDF5_DIR:PATH=/glade/apps/opt/hdf5/1.8.12/intel/12.1.5')
+#            cmake_cmd.append('-DSZIP_DIR:PATH=/glade/apps/opt/szip/2.1/intel/12.1.5')
 
             if self.LEAVE_TEMP:
                 with open('%s/config_cmds.sh'%blddir, 'w') as f:

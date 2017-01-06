@@ -22,6 +22,7 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
             kernel_gencore_contains.append(parent)
 
         part_append_comment(parent, SUBP_PART, 'read state subroutine for %s'%subrname)
+        # TODO: may add INTENT type after var
         attrs = {'name': subrname, 'args': ['var', 'kgen_unit', 'printvar']}
         subrobj = part_append_genknode(parent, SUBP_PART, block_statements.Subroutine, attrs=attrs)
         part_append_comment(parent, SUBP_PART, '')

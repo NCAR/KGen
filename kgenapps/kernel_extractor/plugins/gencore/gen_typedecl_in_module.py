@@ -337,13 +337,15 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 #                self.kernel_callsite_call_stmts.append(self.kernel_externs_subrs[node][1])
 
     def create_state_stmts_in_callsite(self, node):
+        kgenunit = 'kgen_unit'
+
         if not self.state_externs_subrs[node][0] in self.state_callsite_use_stmts and node.name!=getinfo('topblock_stmt').name:
             attrs = {'name':node.name, 'isonly': True, 'items':[self.state_externs_subrs[node][0].name]}
             namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_USE_PART, statements.Use, attrs=attrs)
             self.state_callsite_use_stmts.append(self.state_externs_subrs[node][0])
 
         if not self.state_externs_subrs[node][0] in self.state_callsite_call_stmts:
-            attrs = {'designator': self.state_externs_subrs[node][0].name, 'items': ['kgen_unit']}
+            attrs = {'designator': self.state_externs_subrs[node][0].name, 'items': [kgenunit]}
             namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_WRITE_IN_EXTERNS, statements.Call, attrs=attrs)
             self.state_callsite_call_stmts.append(self.state_externs_subrs[node][0])
 
@@ -354,7 +356,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                 self.state_callsite_use_stmts.append(self.state_externs_subrs[node][1])
 
             if not self.state_externs_subrs[node][1] in self.state_callsite_call_stmts:
-                attrs = {'designator': self.state_externs_subrs[node][1].name, 'items': ['kgen_unit']}
+                attrs = {'designator': self.state_externs_subrs[node][1].name, 'items': [kgenunit]}
                 namedpart_append_gensnode(node.kgen_kernel_id, STATE_PBLOCK_WRITE_OUT_EXTERNS, statements.Call, attrs=attrs)
                 self.state_callsite_call_stmts.append(self.state_externs_subrs[node][1])
 

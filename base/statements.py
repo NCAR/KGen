@@ -1393,13 +1393,15 @@ class Use(Statement):
     def resolve(self, request):
         from kgen_state import ResState, SrcFile, State
         from kgen_utils import match_namepath, get_exclude_actions
+        from kgen_extra import Intrinsic_Modules
 
         src = None
         if self.module is None:
             if State.modules.has_key(self.name):
                 self.module = State.modules[self.name]['stmt']
             else:
-                if self.nature and self.nature=='INTRINSIC':
+                if (self.nature and self.nature=='INTRINSIC') or \
+                    Intrinsic_Modules.has_key(self.name.upper()):
                     self.module = self.intrinsic_module(self.name)
                 else:
                     # skip if excluded
@@ -1422,7 +1424,9 @@ class Use(Statement):
 
         if request.state == ResState.RESOLVED:
             # if intrinsic module
-            if self.nature=='INTRINSIC':
+
+            if (self.nature and self.nature=='INTRINSIC') or \
+                Intrinsic_Modules.has_key(self.name.upper()):
                 pass
             # if newly found moudle is not in srcfiles
             elif not self.module in State.srcfiles[self.top.reader.id][1]:
