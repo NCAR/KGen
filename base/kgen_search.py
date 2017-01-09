@@ -4,7 +4,7 @@ Module content
 ---------------
 """
 
-TODO: clean up gentype usage
+#TODO: clean up gentype usage
 
 
 # kgen_search.py
