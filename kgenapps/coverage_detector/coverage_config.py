@@ -136,5 +136,4 @@ class CoverageConfig(object):
 #            sys.exit(-1)
 
     def __getattr__(self, name):
-        print 'BBBB', name
         return self.attrs[name]

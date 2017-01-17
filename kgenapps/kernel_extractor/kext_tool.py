@@ -36,7 +36,7 @@ from kgen_analyze import analyze
 from kgen_genfile import genkobj, gensobj, KERNEL_ID_0, init_plugins, event_register, \
     append_item_in_part, UNIT_PART, Gen_Statement
 from kgen_prepost import preprocess, postprocess 
-from genmake import generate_makefiles
+from kext_make import generate_makefiles
 from kgen_tool import KGenTool
 
 class KExtTool(KGenTool):

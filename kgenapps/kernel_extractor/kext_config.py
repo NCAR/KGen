@@ -13,10 +13,6 @@ class KExtConfig(object):
         self.attrs = OrderedDict()
         self.options = []
 
-        # kgen parameters
-        self.attrs['kgen'] = OrderedDict()
-        self.attrs['kgen']['version'] = [ 0, 7, '2' ]
-
         # openmp parameters
         self.attrs['openmp'] = OrderedDict()
         self.attrs['openmp']['enabled'] = False
@@ -36,7 +32,8 @@ class KExtConfig(object):
 
         # invocation parameters
         self.attrs['invocation'] = OrderedDict()
-        self.attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
+        #self.attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
+        self.attrs['invocation']['triples'] = None
 
         # add mpi frame code in kernel driver
         self.attrs['add_mpi_frame'] = OrderedDict()
@@ -144,8 +141,9 @@ class KExtConfig(object):
                 except:
                     raise UserException('The last item in invocation triple should be number.')
                 self.attrs['invocation']['triples'].append(triple)
-        if not self.attrs['invocation']['triples']:
-            self.attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
+        # remove for development of coverage
+        #if not self.attrs['invocation']['triples']:
+        #    self.attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
 
     # parsing OpenMP parameters
     def opt_openmp(self, opt):

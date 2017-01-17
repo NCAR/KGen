@@ -33,6 +33,7 @@ def main():
 
     Logger.info('Starting KGen', stdout=True)
 
+    # add options for all of kgen tools
     try:
         # option parser
         parser = optparse.OptionParser(version='KGEN version %d.%d.%s'%tuple(version))
@@ -92,9 +93,11 @@ def main():
             print 'Usage: kgen [options] <target file path[:namepath]> --cmd-clean <commands> --cmd-build <commands> --cmd-run <commands>'
             sys.exit(-1)
 
+        # seletively copy user inputs for each kgen tools
         compflag_argv = []
         coverage_argv = []
         kext_argv = []
+        #kgen_argv = []
 
         # collect common options
         if opts.outdir:
@@ -210,25 +213,27 @@ def main():
         compflag.main()
         CF_flags = compflag.fini()
 
-        kext = KExtTool()
-        kext.init()
-
-        coverage = CoverageDetect()
-        coverage.init(argv=coverage_argv)
-
-        kext_argv.extend( [ '-i', CF_flags['incini'] ] )
-
-        Config.apply(argv=kext_argv)
-
-        TODO: Need to find a better way to handle command line arguments for all of plugins
+        Config.apply()
 
         analyze()
-        #Logger.info('Program is analyzed', stdout=True)
 
-        coverage_argv.append(opts.cmd_clean)
-        coverage_argv.append(opts.cmd_build)
-        coverage_argv.append(opts.cmd_run)
+        #kext = KExtTool()
+        #kext.init()
+
+        # collect command line inputs and parse
+        #kgen_argv.extend(kext_argv)
+        #Config.apply(argv=kgen_argv)
+
+
         if not opts.invocation:
+            coverage = CoverageDetect()
+            coverage.init(argv=coverage_argv)
+
+            #Logger.info('Program is analyzed', stdout=True)
+
+            coverage_argv.append(opts.cmd_clean)
+            coverage_argv.append(opts.cmd_build)
+            coverage_argv.append(opts.cmd_run)
 
             # run coverage
             coverage.main()
@@ -263,6 +268,12 @@ def main():
             CV_flags = coverage.fini()
 
             kext_argv.extend( [ '--invocation', CV_flags['invocation']] )
+
+
+        kext_argv.extend( [ '-i', CF_flags['incini'] ] )
+
+        kext = KExtTool()
+        kext.init()
 
         # run kext
         kext.main()

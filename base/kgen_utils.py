@@ -524,6 +524,10 @@ class Config(object):
         self._attrs = OrderedDict()
         self.opt_handlers = OrderedDict()
 
+        # KGEN version
+        self._attrs['kgen'] = OrderedDict()
+        self._attrs['kgen']['version'] = [ 0, 7, '2' ]
+
         # KGEN operation mode
         self._attrs['check_mode'] = False
 
