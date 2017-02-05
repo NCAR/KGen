@@ -19,11 +19,11 @@ class CompFlag(kgtool.KGTool):
     def run(self):
 
         # clean app.
-        if self.cfg.cmdarg['cmd_clean']:
-            kgutils.run_shcmd(self.cfg.cmdarg['cmd_clean'])
+        if self.cfg.cmd_clean['cmds']:
+            kgutils.run_shcmd(self.cfg.cmd_clean['cmds'])
 
         # build app.
-        if not os.path.exists(self.straceoutfile) or 'all' in self.cfg.cmdarg['rebuild'] or 'strace' in self.cfg.cmdarg['rebuild']:
+        if not os.path.exists(self.straceoutfile) or 'all' in self.cfg.rebuild or 'strace' in self.cfg.rebuild:
             bld_cmd = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%self.cfg.cwd
             kgutils.logger.info('Creating KGen strace logfile: %s'%self.straceoutfile)
             kgutils.run_shcmd(bld_cmd)
@@ -31,14 +31,13 @@ class CompFlag(kgtool.KGTool):
             kgutils.logger.info('Reusing KGen strace logfile: %s'%self.straceoutfile)
 
         # parse strace.log and generate include.ini
-        if not os.path.exists(self.includeoutfile) or 'all' in self.cfg.cmdarg['rebuild'] or 'include' in self.cfg.cmdarg['rebuild']:
+        if not os.path.exists(self.includeoutfile) or 'all' in self.cfg.rebuild or 'include' in self.cfg.rebuild:
             self._geninclude()
         else:
             kgutils.logger.info('Reusing KGen include file: %s'%self.includeoutfile)
-        self.cfg.cmdarg['includefile'] = self.includeoutfile
 
         # save info to cfg
-
+        self.cfg.includefile = self.includeoutfile
 
     def _getpwd(self, env):
         for item in env:

@@ -21,7 +21,8 @@ def main():
     compflag = CompFlag(cfg)
     compflag.run()
 
-    import pdb; pdb.set_trace()
+    cfg.process_include_option() 
+
     # parse code
     parser = Parser(cfg)
     parser.run()

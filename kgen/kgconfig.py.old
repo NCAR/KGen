@@ -1,0 +1,261 @@
+'''config.py
+KGen configuration
+'''
+
+import os
+import optparse
+from collections import OrderedDict
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
+
+
+EXTERNAL_NAMELEVEL_SEPERATOR = ':'
+INTERNAL_NAMELEVEL_SEPERATOR = '__kgen__' # lower-case only
+
+class KgenConfigParser(configparser.RawConfigParser):
+    def __init__(self, *args, **kwargs):
+        configparser.RawConfigParser.__init__(self, *args, **kwargs)
+        self.optionxform = str
+
+    def _optname_colon_to_dot(self, line):
+        newline = line.strip()
+
+        if len(newline)>0:
+            if newline[0]==';': # comment
+                return line
+            elif newline[0]=='[' and newline[-1]==']': # filepath
+                return line.replace(':', INTERNAL_NAMELEVEL_SEPERATOR)
+            else: # else
+                pos = line.find('=')
+                if pos>0:
+                    return line[:pos].replace(':', INTERNAL_NAMELEVEL_SEPERATOR) + line[pos:]
+                else:
+                    raise UserException('KGEN requires an equal symbol at each option line')
+        else:
+            return line
+
+    def read(self, filenames):
+        from StringIO import StringIO
+
+        if isinstance(filenames, basestring):
+            filenames = [filenames]
+        for filename in filenames:
+            try:
+                fp = open(filename)
+            except IOError:
+                continue
+
+            lines = []
+            for line in fp.readlines():
+                lines.append(self._optname_colon_to_dot(line))
+            fp.close()
+
+            buf = StringIO(''.join(lines))
+            self._read(buf, filename)
+
+class Config(object):
+
+    def __init__(self, cwd):
+        self.cwd = cwd
+        self._attrs = OrderedDict()
+
+        ##############################################
+        # KGen configurations
+        ##############################################
+
+        # arguments categories
+        self._attrs['cmdarg'] = cmdarg = OrderedDict()
+        self._attrs['callsite'] = callsite = OrderedDict()
+
+        #####################################
+        # command line arguments
+        ######## mandatory arguments ########
+        cmdarg['cmd_clean'] = None
+        cmdarg['cmd_build'] = None
+        cmdarg['cmd_run']   = None
+        ######## path arguments ########
+        cmdarg['outdir']   = self.cwd
+        cmdarg['source']   = OrderedDict() # ex: --source free=a:b:c,fixed=d:e,alias=a|b:d|f,
+        ######## Fortran parser arguments ########
+        cmdarg['includefile']   = None
+        cmdarg['include']   = OrderedDict() # ex: a/b/c=ss:gg:ss,d/e/f=gg:sdf:dsf
+        cmdarg['include']['macro'] = OrderedDict()
+        cmdarg['include']['path'] = ['.']
+        cmdarg['include']['type'] = OrderedDict()
+        cmdarg['include']['compiler'] = OrderedDict()
+        cmdarg['include']['import'] = OrderedDict()
+        cmdarg['include']['file'] = OrderedDict()
+        ######## code generation arguments ########
+        cmdarg['prerun']   = OrderedDict()
+        ######## misc. arguments ########
+        cmdarg['rebuild']   = []
+
+        #################################
+        # callsite conf.
+        ######## path ##########
+        callsite['filepath']   = None
+        callsite['namepath']   = None
+        ######## statement ##########
+        callsite['stmts']   = []
+
+        ##############################################
+        # KGen command argument parser
+        ##############################################
+
+        # create parser
+        parser = optparse.OptionParser()
+
+        ######## mandatory arguments ########
+        parser.add_option("--cmd-clean", dest="cmd_clean", action='store', type='string', default=None, help="clean command for application")
+        parser.add_option("--cmd-build", dest="cmd_build", action='store', type='string', default=None, help="build command for application")
+        parser.add_option("--cmd-run",   dest="cmd_run",   action='store', type='string', default=None, help="run command for application")
+
+        ######## path arguments ########
+        parser.add_option("--outdir",   dest="outdir",  action='store', type='string', default=None, help="output directory")
+        parser.add_option("--source",   dest="source",  action='append', type='string', default=None, help="source file path/alias")
+
+        ######## code generation arguments ########
+        parser.add_option("--prerun",   dest="prerun",  action='append', type='string', default=None, help="shell commands to run before several KGen stages")
+
+        ######## Fortran parser arguments ########
+        parser.add_option("-I", dest="incpath",  action='append', type='string', default=None, help="Include paths")
+        parser.add_option("-D", dest="macro",  action='append', type='string', default=None, help="Macro definitions")
+
+        ######## misc. arguments ########
+        parser.add_option("--rebuild",  dest="rebuild", action='store', type='string', default=None, help="KGen stages ignoring cache")
+
+        # run parser
+        opts, args = parser.parse_args()
+
+        ##############################################
+        # KGen command argument processing
+        ##############################################
+
+        ######## mandatory arguments ########
+
+        if len(args)==1:
+            self.callsite['filepath'], self.callsite['namepath'] = args[0].split(':', 1)
+        else:
+            kgutils.exit('ERROR: Wrong number of callsite information.')
+
+        if opts.cmd_clean:
+            self.cmdarg['cmd_clean'] = opts.cmd_clean
+        else:
+            kgutils.exit('ERROR: "--cmd-clean" is not provided.')
+
+        if opts.cmd_build:
+            self.cmdarg['cmd_build'] = opts.cmd_build
+        else:
+            kgutils.exit('ERROR: "--cmd-build" is not provided.')
+
+        if opts.cmd_run:
+            self.cmdarg['cmd_run'] = opts.cmd_run
+        else:
+            kgutils.exit('ERROR: "--cmd-run" is not provided.')
+
+        ######## path arguments ########
+        if opts.outdir:
+            self.cmdarg['outdir'] = opts.outdir
+
+        if opts.source:
+            self.cmdarg['source'] = self.parse_subargs(opts.source)
+
+        ######## Fortran parser arguments ########
+        if opts.incpath:
+            cmdarg['include']['path'].extend(list(itertools.chain(self.parse_subargs(opts.incpath))))
+
+        if opts.macro:
+            cmdarg['include']['macro'].update(self.parse_subargs(opts.opts.macro))
+
+        ######## code generation arguments ########
+        if opts.prerun:
+            self.cmdarg['prerun'] = self.parse_subargs(opts.prerun) 
+
+        ######## misc. arguments ########
+        if opts.rebuild:
+            self.cmdarg['rebuild'] = self.parse_subargs(opts.rebuild) 
+
+    def parse_subargs(self, arg):
+
+        arglist = arg
+        if isinstance(arg, str):
+            arglilst = [ arg ]
+
+        retval = OrderedDict()
+        hasvalue = False
+
+        for argitem in arglist:
+            comma = argitem.split(',')
+            for comma_item in comma:
+                equal = comma_item.split('=', 1)
+                if len(equal) == 1:
+                    colon = equal[0].split(':')
+                    if len(colon) == 1:
+                        retval[colon[0]] = None
+                    else:
+                        retval[colon] = None
+                elif len(equal) == 2:
+                    hasvalue = True
+                    colon = equal[1].split(':')
+                    if len(colon) == 1:
+                        retval[equal[0]] = equal[1]
+                    else:
+                        retval[equal[0]] = colon
+                else:
+                    kgutils.exit('Wrong format of sub arguments: %s'%argitem)
+
+        if not hasvalue:
+            retval = retval.keys()
+
+        return retval
+
+    def read_includefile(self):
+
+        incattrs = self.cmdarg['include']
+
+        # collect include configuration information
+        Inc = KgenConfigParser(allow_no_value=True)
+        Inc.read(self.cmdarg['includefile'])
+
+        for section in Inc.sections():
+            lsection = section.lower().strip()
+            #if lsection in [ 'type', 'rename', 'state', 'extern' ]:
+            if lsection in [ 'type', 'macro' ]:
+                for option in Inc.options(section):
+                    incattrs[lsection][option] = Inc.get(section, option).strip()
+            elif lsection=='import':
+                for option in Inc.options(section):
+                    incattrs[lsection][option] = Inc.get(section, option).strip()
+            elif lsection=='include':
+                for option in Inc.options(section):
+                    incattrs['path'].append(option.strip())
+            elif lsection=='compiler':
+                for option in Inc.options(section):
+                    incattrs[lsection][option] = Inc.get(section, option).strip()
+            elif os.path.isfile(section):
+                abspath = os.path.abspath(section)
+                if not incattrs['file'].has_key(abspath):
+                    incattrs['file'][abspath] = OrderedDict()
+                    incattrs['file'][abspath]['path'] = ['.']
+                    incattrs['file'][abspath]['compiler'] = None
+                    incattrs['file'][abspath]['compiler_options'] = None
+                    incattrs['file'][abspath]['macro'] = OrderedDict()
+                for option in Inc.options(section):
+                    if option=='include':
+                        pathlist = Inc.get(section, option).split(':')
+                        incattrs['file'][abspath]['path'].extend(pathlist)
+                    elif option in [ 'compiler', 'compiler_options' ]:
+                        incattrs['file'][abspath][option] = Inc.get(section, option)
+                    else:
+                        incattrs['file'][abspath]['macro'][option] = Inc.get(section, option)
+            else:
+                pass
+                #print '%s is either not suppored keyword or can not be found. Ignored.' % section
+
+    def proc_alias(self):
+        pass
+
+    def __getattr__(self, name):
+        return self._attrs[name]
