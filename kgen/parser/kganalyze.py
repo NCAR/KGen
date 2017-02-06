@@ -1,6 +1,7 @@
 # kgen_analyze.py
 
 
+from kgconfig import Config
 from kgutils import KGName, ProgramException, UserException, traverse
 from kgparse import KGGenType, SrcFile, ResState
 from Fortran2003 import Name, Call_Stmt, Function_Reference, Part_Ref, Interface_Stmt, Actual_Arg_Spec_List, \
@@ -9,7 +10,7 @@ from collections import OrderedDict
 from typedecl_statements import TypeDeclarationStatement
 from block_statements import SubProgramStatement, Associate
 
-def update_state_info(parent, cfg):
+def update_state_info(parent):
 
     def get_nodes(node, bag, depth):
         from Fortran2003 import Name
@@ -29,7 +30,7 @@ def update_state_info(parent, cfg):
                     if KGGenType.has_uname_out(uname, stmt.geninfo): continue
                     # select names for searching
                     respairs = []
-                    if req.originator in cfg.callsite['stmts']:
+                    if req.originator in Config.callsite['stmts']:
                         respairs.append((uname, req.originator))
                     elif isinstance(req.originator, Associate):
                         if uname in req.originator.assoc_map:
@@ -117,14 +118,14 @@ def update_state_info(parent, cfg):
                             if copied: break
 
     if hasattr(parent, 'parent'):
-        update_state_info(parent.parent, cfg)
+        update_state_info(parent.parent)
 
 
-def analyze(cfg):
+def analyze():
 
-    analyze_callsite(cfg)
+    analyze_callsite()
 
-def analyze_callsite(cfg):
+def analyze_callsite():
     from block_statements import EndStatement, Subroutine, Function, Interface
     from statements import SpecificBinding
     from kgsearch import f2003_search_unknowns
@@ -134,14 +135,14 @@ def analyze_callsite(cfg):
 
     #process_directive(cs_file.tree)
 
-    if len(cfg.callsite['stmts'])==0:
+    if len(Config.callsite['stmts'])==0:
         raise UserException('Can not find callsite')
 
     # ancestors of callsite stmt
-    ancs = cfg.callsite['stmts'][0].ancestors()
+    ancs = Config.callsite['stmts'][0].ancestors()
 
     # add geninfo for ancestors
-    prevstmt = cfg.callsite['stmts'][0]
+    prevstmt = Config.callsite['stmts'][0]
     prevname = None
 
     for anc in reversed(ancs):
@@ -161,12 +162,12 @@ def analyze_callsite(cfg):
         prevstmt = anc
 
     # populate parent block parameters
-    cfg.parentblock['stmt'] = ancs[-1]
+    Config.parentblock['stmt'] = ancs[-1]
 
     # populate top block parameters
-    cfg.topblock['stmt'] = ancs[0]
+    Config.topblock['stmt'] = ancs[0]
 
-    for cs_stmt in cfg.callsite['stmts']:
+    for cs_stmt in Config.callsite['stmts']:
         #resolve cs_stmt
         f2003_search_unknowns(cs_stmt, cs_stmt.f2003)
         for uname, req in cs_stmt.unknowns.iteritems():
@@ -176,10 +177,10 @@ def analyze_callsite(cfg):
 
 
     # update state info of callsite and its upper blocks
-    update_state_info(cfg.parentblock['stmt'], cfg)
+    update_state_info(Config.parentblock['stmt'])
 
     # update state info of modules
-    for modname, moddict in cfg.modules.iteritems():
+    for modname, moddict in Config.modules.iteritems():
         modstmt = moddict['stmt']
-        if modstmt != cfg.topblock['stmt']:
-            update_state_info(moddict['stmt'], cfg)
+        if modstmt != Config.topblock['stmt']:
+            update_state_info(moddict['stmt'])

@@ -244,9 +244,25 @@ def show_tree(node, prevent_print=False):
 # Logging
 ##############################################
 
-logger = logging.getLogger("kgen")
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(levelname)-8s [%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+# create logger with 'spam_application'
+logger = logging.getLogger('kgen')
 logger.setLevel(logging.DEBUG)
+
+# create file handler which logs even debug messages
+fh = logging.FileHandler('kgen.log', mode='w')
+fh.setLevel(logging.DEBUG)
+
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+
+# create formatter and add it to the handlers
+cf = logging.Formatter('%(message)s')
+ff = logging.Formatter('%(levelname)-8s [%(filename)s:%(lineno)s] %(message)s')
+fh.setFormatter(ff)
+ch.setFormatter(cf)
+
+# add the handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)
+

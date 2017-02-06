@@ -6,6 +6,7 @@ import kgtool
 import kgutils
 import kgcompiler
 import ConfigParser
+from kgconfig import Config
 
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
@@ -19,25 +20,25 @@ class CompFlag(kgtool.KGTool):
     def run(self):
 
         # clean app.
-        if self.cfg.cmd_clean['cmds']:
-            kgutils.run_shcmd(self.cfg.cmd_clean['cmds'])
+        if Config.cmd_clean['cmds']:
+            kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
         # build app.
-        if not os.path.exists(self.straceoutfile) or 'all' in self.cfg.rebuild or 'strace' in self.cfg.rebuild:
-            bld_cmd = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%self.cfg.cwd
+        if not os.path.exists(self.straceoutfile) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
+            bld_cmd = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%Config.cwd
             kgutils.logger.info('Creating KGen strace logfile: %s'%self.straceoutfile)
             kgutils.run_shcmd(bld_cmd)
         else:
             kgutils.logger.info('Reusing KGen strace logfile: %s'%self.straceoutfile)
 
         # parse strace.log and generate include.ini
-        if not os.path.exists(self.includeoutfile) or 'all' in self.cfg.rebuild or 'include' in self.cfg.rebuild:
+        if not os.path.exists(self.includeoutfile) or 'all' in Config.rebuild or 'include' in Config.rebuild:
             self._geninclude()
         else:
             kgutils.logger.info('Reusing KGen include file: %s'%self.includeoutfile)
 
         # save info to cfg
-        self.cfg.includefile = self.includeoutfile
+        Config.includefile = self.includeoutfile
 
     def _getpwd(self, env):
         for item in env:
@@ -52,14 +53,14 @@ class CompFlag(kgtool.KGTool):
         Config = ConfigParser.RawConfigParser()
         Config.optionxform = str
 
-        if len(self.cfg.cmdarg['includepath'])>0:
+        if len(Config.cmdarg['includepath'])>0:
             Config.add_section('include')
-            for path in self.cfg.cmdarg['includepath']:
+            for path in Config.cmdarg['includepath']:
                 Config.set('include', path, '')
 
-        if len(self.cfg.cmdarg['macro'])>0:
+        if len(Config.cmdarg['macro'])>0:
             Config.add_section('macro')
-            for key, value in self.cfg.cmdarg['macro']:
+            for key, value in Config.cmdarg['macro']:
                 Config.set('macro', key, value)
 
 

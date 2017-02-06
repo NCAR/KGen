@@ -98,7 +98,7 @@ class StatementWithNamelist(Statement):
             s = ' ' + s
         return clsname + s
 
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         for item in self.items:
             if any(elem in item for elem in r'-=>'):
                 print 'DEBUG: %s has non-ascii character.'%self.__class__
@@ -755,7 +755,7 @@ class Contains(Statement):
     def tokgen(self):
         return 'CONTAINS'
 
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         from block_statements import SubProgramStatement
         if isinstance(request.res_stmts[-1], SubProgramStatement):
             self.add_geninfo(uname, request)
@@ -953,7 +953,7 @@ class Access(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         if not self.items or uname.firstpartname() in self.items:
             self.add_geninfo(uname, request)
     # end of KGEN addition
@@ -1194,7 +1194,7 @@ class Save(Statement):
             return 'SAVE'
         return 'SAVE %s' % (', '.join(items))
 
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         from kgutils import KGName
         if hasattr(self, 'items'):
             if self.items:
@@ -1352,7 +1352,7 @@ class Use(Statement):
         def __init__(self, public_names):
             self.supporting_names = public_names
 
-        def resolve(self, request, cfg):
+        def resolve(self, request):
             from kgparse import ResState
             from api import parse
 
@@ -1392,28 +1392,29 @@ class Use(Statement):
         if Intrinsic_Modules.has_key(modname.upper()):
             return self.KgenIntrinsicModule(Intrinsic_Modules[modname.upper()])
 
-    def resolve(self, request, cfg):
+    def resolve(self, request):
         from kgparse import ResState, SrcFile
         from kgutils import match_namepath
         from kgextra import Intrinsic_Modules
+        from kgconfig import Config
 
         src = None
         if self.module is None:
-            if cfg.modules.has_key(self.name):
-                self.module = cfg.modules[self.name]['stmt']
+            if Config.modules.has_key(self.name):
+                self.module = Config.modules[self.name]['stmt']
             else:
                 if (self.nature and self.nature=='INTRINSIC') or \
                     Intrinsic_Modules.has_key(self.name.upper()):
                     self.module = self.intrinsic_module(self.name)
                 else:
                     # skip if excluded
-                    if 'skip_module' in cfg.get_exclude_actions('namepath', self.name):
+                    if 'skip_module' in Config.get_exclude_actions('namepath', self.name):
                         return
 
                     fn = self.reader.find_module_source_file(self.name)
                     if fn:
-                        src = SrcFile(fn, cfg)
-                        logger.info('\tin the search of "%s" directly from %s and originally from %s' % \
+                        src = SrcFile(fn)
+                        logger.debug('\tin the search of "%s" directly from %s and originally from %s' % \
                             (request.uname.firstpartname(), os.path.basename(self.reader.id), \
                             os.path.basename(request.originator.reader.id)))
                         self.module = src.tree.a.module[self.name]
@@ -1422,7 +1423,7 @@ class Use(Statement):
                             (self.name, self.reader.id))
 
         if self.module:
-            self.module.resolve(request, cfg)
+            self.module.resolve(request)
 
         if request.state == ResState.RESOLVED:
             # if intrinsic module
@@ -1431,8 +1432,8 @@ class Use(Statement):
                 Intrinsic_Modules.has_key(self.name.upper()):
                 pass
             # if newly found moudle is not in srcfiles
-            elif not self.module in cfg.srcfiles[self.top.reader.id][1]:
-                cfg.srcfiles[self.top.reader.id][1].append(self.module)
+            elif not self.module in Config.srcfiles[self.top.reader.id][1]:
+                Config.srcfiles[self.top.reader.id][1].append(self.module)
 
     def tokgen(self):
         def get_rename(node, bag, depth):
@@ -1590,7 +1591,7 @@ class Parameter(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         from kgsearch import f2003_search_unknowns
         from kgparse import ResState
 
@@ -1615,7 +1616,7 @@ class Parameter(Statement):
                     f2003_search_unknowns(self, node.items[1])
                     for unknown, request in self.unknowns.iteritems():
                         if request.state != ResState.RESOLVED:
-                            self.resolve(request, cfg)
+                            self.resolve(request)
 
     def tokgen(self):
         if hasattr(self, 'new_items'):
@@ -1654,7 +1655,7 @@ class Equivalence(Statement):
 
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         def get_equivname(node, bag, depth):
             from Fortran2003 import Equivalence_Object_List, Equivalence_Set, Name
             if isinstance(node, Name) and node.string==uname.firstpartname():
@@ -1720,7 +1721,7 @@ class Dimension(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
@@ -1774,7 +1775,7 @@ class Target(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
@@ -1823,7 +1824,7 @@ class Pointer(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
@@ -2126,7 +2127,7 @@ class Common(Statement):
                 l.append(s)
         return 'COMMON ' + ' '.join(l)
 
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         if self.items:
             for bname, vname in self.items:
                 if uname.firstpartname()==bname: 
@@ -2195,7 +2196,7 @@ class Intent(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
@@ -2520,7 +2521,7 @@ class Allocatable(Statement):
         return
 
     # start of KGEN addition
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
@@ -2579,7 +2580,7 @@ class Bind(Statement):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
 
-    def resolve_uname(self, uname, request, cfg):
+    def resolve_uname(self, uname, request):
         logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 

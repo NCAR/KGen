@@ -12,6 +12,7 @@ except:
     import ConfigParser as configparser
 
 KGEN_EXT = '%s/extractor'%os.path.dirname(os.path.realpath(__file__))
+KGEN_COVER = '%s/coverage'%os.path.dirname(os.path.realpath(__file__))
 
 #############################################################################
 ## CONFIG
@@ -118,10 +119,21 @@ def process_exclude_option(exclude_option, excattrs):
     else:
         UserException('Can not find exclude file: %s'%exclude_option)
 
+def singleton(cls):
+    """ singleton generator """
+
+    instances = collections.OrderedDict()
+    def get_instance():
+        if cls not in instances:
+            instances[cls] = cls()
+        return instances[cls]
+    return get_instance()
+
+@singleton
 class Config(object):
     """ KGEN configuration parameter holder """
 
-    def __init__(self, cwd):
+    def __init__(self):
 
         # command line option parser
         self.parser = optparse.OptionParser()
@@ -173,6 +185,7 @@ class Config(object):
         self._attrs['path']['outdir'] = '.'
         self._attrs['path']['state'] = 'state'
         self._attrs['path']['kernel'] = 'kernel'
+        self._attrs['path']['coverage'] = 'coverage'
 
         # source file parameters
         self._attrs['source'] = collections.OrderedDict()
@@ -289,6 +302,16 @@ class Config(object):
         self._attrs['plugin']['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXT
         self._attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXT
 
+        ###############################################################
+        # coverage information
+        ###############################################################
+
+        # coverage parameters
+        self._attrs['coveragefile'] = ''
+        self._attrs['coverage'] = collections.OrderedDict()
+
+        # set plugin parameters
+        self._attrs['plugin']['priority']['cover.gencore'] = '%s/plugins/gencore'%KGEN_COVER
 
         ###############################################################
         # state information
@@ -304,6 +327,7 @@ class Config(object):
         self._attrs['parentblock']['stmt'] = None
         self._attrs['topblock'] = collections.OrderedDict()
         self._attrs['topblock']['stmt'] = None
+        self._attrs['used_srcfiles'] = collections.OrderedDict()
 
 
         ###############################################################
@@ -390,26 +414,27 @@ class Config(object):
         return self._attrs[name]
 
     def _collect_mpi_params(self):
-        from parser.api import parse, walk
+        #from parser.api import parse, walk
+        #import parser
 
         if self._attrs['mpi']['enabled']:
             # get path of mpif.h
             mpifpath = ''
-            if os.path.isabs(Config.mpi['header']):
-                if os.path.exists(Config.mpi['header']):
-                    mpifpath = Config.mpi['header']
+            if os.path.isabs(self._attrs['mpi']['header']):
+                if os.path.exists(self._attrs['mpi']['header']):
+                    mpifpath = self.__attrs['.mpi']['header']
                 else:
-                    raise UserException('Can not find %s'%Config.mpi['header'])
+                    raise UserException('Can not find %s'%self._attrs['.mpi']['header'])
             else:
-                for p in Config.include['path']:
-                    fp = os.path.join(p, Config.mpi['header'])
+                for p in self._attrs['include']['path']:
+                    fp = os.path.join(p, self._attrs['mpi']['header'])
                     if os.path.exists(fp):
                         mpifpath = fp
                         break
                 if not mpifpath:
-                    for incpath, incdict in Config.include['file'].items():
+                    for incpath, incdict in self._attrs['include']['file'].items():
                         for p in incdict['path']:
-                            fp = os.path.join(p, Config.mpi['header'])
+                            fp = os.path.join(p, self._attrs['mpi']['header'])
                             if os.path.exists(fp):
                                 mpifpath = fp
                                 break
@@ -422,8 +447,8 @@ class Config(object):
                         filelines = f.read().split('\n')
                         lines = '\n'.join(handle_include(os.path.dirname(mpifpath), filelines))
                         #reader = FortranStringReader(lines)
-                    tree = parse(lines, ignore_comments=True, analyze=False, isfree=True, isstrict=False, include_dirs=None, source_only=None )
-                    for stmt, depth in walk(tree, -1):
+                    tree = parser.api.parse(lines, ignore_comments=True, analyze=False, isfree=True, isstrict=False, include_dirs=None, source_only=None )
+                    for stmt, depth in parser.api.walk(tree, -1):
                         stmt.parse_f2003()
 
                     #import pdb; pdb.set_trace()
@@ -437,18 +462,18 @@ class Config(object):
                         ('source', 'MPI_SOURCE'),
                         ]
                     for config_key, name in config_name_mapping:
-                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+                        if not self._attrs['mpi'].has_key(config_key) or self._attrs['mpi'][config_key] is None:
                             for stmt, depth in walk(tree, -1):
                                 bag['key'] = name
                                 bag[name] = []
                                 if hasattr(stmt, 'f2003'):
                                     traverse(stmt.f2003, get_MPI_PARAM, bag, subnode='content')
                                     if len(bag[name]) > 0:
-                                        Config.mpi[config_key] = bag[name][-1]
+                                        self._attrs['mpi'][config_key] = bag[name][-1]
                                         break
 
                     for config_key, name in config_name_mapping:
-                        if not Config.mpi.has_key(config_key) or Config.mpi[config_key] is None:
+                        if not self._attrs['mpi'].has_key(config_key) or self._attrs['mpi'][config_key] is None:
                             raise UserException('Can not find {name} in mpif.h'.format(name=name))
 
                 except UserException:

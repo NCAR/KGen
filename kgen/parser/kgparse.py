@@ -2,6 +2,7 @@
 '''
 #import os.path
 #from kgen_utils import run_shcmd
+from kgconfig import Config
 from statements import Comment
 from block_statements import Module, Program
 import os
@@ -155,10 +156,9 @@ class SrcFile(object):
 
         return insert_lines
 
-    def __init__(self, srcpath, cfg, preprocess=True):
+    def __init__(self, srcpath, preprocess=True):
 
         # set default values
-        self.cfg = cfg
         self.tree = None
         self.srcpath = srcpath
         self.abspath = os.path.abspath(self.srcpath)
@@ -167,29 +167,29 @@ class SrcFile(object):
         # set source file format
         isfree = True
         isstrict = False
-        if self.abspath in self.cfg.source['file'].keys():
-            if self.cfg.source['file'][self.abspath].has_key('isfree'):
-                isfree = self.cfg.source['file'][self.abspath]['isfree']
-            if self.cfg.source['file'][self.abspath].has_key('isstrict'):
-                isstrict = self.cfg.source['file'][self.abspath]['isstrict']
+        if self.abspath in Config.source['file'].keys():
+            if Config.source['file'][self.abspath].has_key('isfree'):
+                isfree = Config.source['file'][self.abspath]['isfree']
+            if Config.source['file'][self.abspath].has_key('isstrict'):
+                isstrict = Config.source['file'][self.abspath]['isstrict']
         else:
-            if self.cfg.source['isstrict']: isstrict = self.cfg.source['isstrict']
-            if self.cfg.source['isfree']: isfree = self.cfg.source['isfree']
+            if Config.source['isstrict']: isstrict = Config.source['isstrict']
+            if Config.source['isfree']: isfree = Config.source['isfree']
 
         # prepare include paths and macro definitions
         path_src = []
         macros_src = []
-        if self.cfg.include['file'].has_key(self.abspath):
-            path_src = self.cfg.include['file'][self.abspath]['path']+[os.path.dirname(self.abspath)]
+        if Config.include['file'].has_key(self.abspath):
+            path_src = Config.include['file'][self.abspath]['path']+[os.path.dirname(self.abspath)]
             path_src = [ path for path in path_src if len(path)>0 ]
-            for k, v in self.cfg.include['file'][self.abspath]['macro'].iteritems():
+            for k, v in Config.include['file'][self.abspath]['macro'].iteritems():
                 if v:
                     macros_src.append('-D%s=%s'%(k,v))
                 else:
                     macros_src.append('-D%s'%k)
-        includes = '-I'+' -I'.join(self.cfg.include['path']+path_src)
+        includes = '-I'+' -I'.join(Config.include['path']+path_src)
         macros_common = []
-        for k, v in self.cfg.include['macro'].iteritems():
+        for k, v in Config.include['macro'].iteritems():
             if v:
                 macros_common.append('-D%s=%s'%(k,v))
             else:
@@ -202,13 +202,13 @@ class SrcFile(object):
         new_lines = []
         with open(self.abspath, 'r') as f:
             if preprocess:
-                pp = self.cfg.bin['pp']
+                pp = Config.bin['pp']
                 if pp.endswith('fpp'):
                     if isfree: srcfmt = ' -free'
                     else: srcfmt = ' -fixed'
-                    flags = self.cfg.bin['fpp_flags'] + srcfmt
+                    flags = Config.bin['fpp_flags'] + srcfmt
                 elif pp.endswith('cpp'):
-                    flags = self.cfg.bin['cpp_flags']
+                    flags = Config.bin['cpp_flags']
                 else: raise UserException('Preprocessor is not either fpp or cpp')
 
                 output, err, retcode = kgutils.run_shcmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
@@ -218,9 +218,9 @@ class SrcFile(object):
                 new_lines = f.read().split('\n')
 
         # add include paths
-        include_dirs = self.cfg.include['path'][:]
-        if self.cfg.include['file'].has_key(self.abspath) and self.cfg.include['file'][self.abspath].has_key('path'):
-            include_dirs.extend(self.cfg.include['file'][self.abspath]['path'])
+        include_dirs = Config.include['path'][:]
+        if Config.include['file'].has_key(self.abspath) and Config.include['file'][self.abspath].has_key('path'):
+            include_dirs.extend(Config.include['file'][self.abspath]['path'])
             include_dirs.append(os.path.dirname(self.abspath))
 
         # fparse
@@ -241,11 +241,11 @@ class SrcFile(object):
 
         # collect module information
         for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
-            if not self.cfg.modules.has_key(mod_name):
-                self.cfg.modules[mod_name] = collections.OrderedDict()
-                self.cfg.modules[mod_name]['stmt'] = mod_stmt
-                self.cfg.modules[mod_name]['file'] = self
-                self.cfg.modules[mod_name]['path'] = self.abspath
+            if not Config.modules.has_key(mod_name):
+                Config.modules[mod_name] = collections.OrderedDict()
+                Config.modules[mod_name]['stmt'] = mod_stmt
+                Config.modules[mod_name]['file'] = self
+                Config.modules[mod_name]['path'] = self.abspath
         
         # collect program unit information
         for item in self.tree.content:
@@ -255,7 +255,7 @@ class SrcFile(object):
                 State.program_units[item.reader.id].append(item)
 
         # create a tuple for file dependency
-        self.cfg.srcfiles[self.abspath] = ( self, [], [] )
+        Config.srcfiles[self.abspath] = ( self, [], [] )
 
         self.process_directive()
 
@@ -345,15 +345,15 @@ class SrcFile(object):
             elif 'callsite' in directs:
                 State.callsite['stmts'].append(stmt)
             else:
-                if self.cfg.callsite['namepath'] and stmt.__class__ in executable_construct:
+                if Config.callsite['namepath'] and stmt.__class__ in executable_construct:
                     names = []
                     kgutils.traverse(stmt.f2003, get_names, names)
                     for name in names:
-                        if kgutils.match_namepath(self.cfg.callsite['namepath'], kgutils.pack_exnamepath(stmt, name), internal=False):
-                            self.cfg.kernel['name'] = name
+                        if kgutils.match_namepath(Config.callsite['namepath'], kgutils.pack_exnamepath(stmt, name), internal=False):
+                            Config.kernel['name'] = name
                             for _s, _d in api.walk(stmt):
-                                self.cfg.callsite['stmts'].append(_s)
+                                Config.callsite['stmts'].append(_s)
                             return
                 elif len(directs)>0 and directs[-1]=='callsite':
-                    self.cfg.callsite['stmts'].append(stmt)
+                    Config.callsite['stmts'].append(stmt)
 

@@ -32,7 +32,7 @@ class FortranParser(object):
             parser = self.cache[reader.id]
             self.block = parser.block
             self.is_analyzed = parser.is_analyzed
-            logger.info('using cached %s' % (reader.id))
+            logger.debug('using cached %s' % (reader.id))
             # self.block.show_message('using cached %s' % (reader.id))
         else:
             self.cache[reader.id] = self
@@ -81,7 +81,7 @@ class FortranParser(object):
         if self.is_analyzed:
             return
         if self.block is None:
-            logger.info('Nothing to analyze.')
+            logger.debug('Nothing to analyze.')
             # self.reader.show_message('Nothing to analyze.')
             return
 

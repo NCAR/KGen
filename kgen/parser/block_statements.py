@@ -351,7 +351,7 @@ class Module(BeginStatement, HasAttributes,
             stmt.analyze()
 
         if content:
-            logger.info('Not analyzed content: %s' % content)
+            logger.debug('Not analyzed content: %s' % content)
             # self.show_message('Not analyzed content: %s' % content)
 
         module_provides = self.a.module_provides
@@ -484,7 +484,7 @@ class Program(BeginStatement, ProgramBlock,
                 stmt.analyze()
 
         if content:
-            logger.info('Not analyzed content: %s' % content)
+            logger.debug('Not analyzed content: %s' % content)
             # self.show_message('Not analyzed content: %s' % content)
 
 #        parent_provides = self.parent.get_provides()
@@ -568,21 +568,21 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
     a = AttributeHolder(interface_provides = {})
 
     # start of KGEN
-    def resolve(self, request, cfg):
+    def resolve(self, request):
         from kgparse import ResState
         from kgsearch import f2003_search_unknowns
 
         if request is None: return
 
-        logger.info('%s is being resolved'%request.uname.firstpartname())
+        logger.debug('%s is being resolved'%request.uname.firstpartname())
 
         # if resolved, return
         if request.state == ResState.RESOLVED:
-            logger.info('%s is already resolved'%request.uname.firstpartname())
+            logger.debug('%s is already resolved'%request.uname.firstpartname())
             return
 
         if request.uname.firstpartname()==self.name:
-            logger.info('The request is being resolved by an interface')
+            logger.debug('The request is being resolved by an interface')
             request.res_stmt = self
             request.state = ResState.RESOLVED
             request.res_stmt.add_geninfo(request.uname, request)
@@ -590,14 +590,14 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
 
             for _stmt, _depth in walk(request.res_stmt, -1):
                 if not hasattr(_stmt, 'unknowns'):
-                    f2003_search_unknowns(cfg, _stmt, _stmt.f2003)
+                    f2003_search_unknowns(_stmt, _stmt.f2003)
                 for unk, req in _stmt.unknowns.iteritems():
                     if req.state != ResState.RESOLVED:
-                        _stmt.resolve(req, cfg) 
+                        _stmt.resolve(req) 
 
         # defer to super
         if request.state != ResState.RESOLVED:
-            super(Interface, self).resolve(request, cfg)
+            super(Interface, self).resolve(request)
 
     # end of KGEN
 
@@ -636,7 +636,7 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
             stmt.analyze()
             #assert isinstance(stmt, SubProgramStatement),`stmt.__class__.__name__`
         if content:
-            logger.info('Not analyzed content: %s' % content)
+            logger.debug('Not analyzed content: %s' % content)
             # self.show_message('Not analyzed content: %s' % content)
 
         if self.name in self.parent.a.variables:
@@ -834,7 +834,7 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
                 stmt.analyze()
 
         if content:
-            logger.info('Not analyzed content: %s' % content)
+            logger.debug('Not analyzed content: %s' % content)
             # self.show_message('Not analyzed content: %s' % content)
 
         parent_provides = self.parent.get_provides()
