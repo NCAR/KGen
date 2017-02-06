@@ -14,9 +14,6 @@ STR_UF = '<unfinished'
 
 class CompFlag(kgtool.KGTool):
 
-    straceoutfile = 'strace.log'
-    includeoutfile = 'include.ini'
-
     def run(self):
 
         # clean app.
@@ -24,21 +21,18 @@ class CompFlag(kgtool.KGTool):
             kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
         # build app.
-        if not os.path.exists(self.straceoutfile) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
-            bld_cmd = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%Config.cwd
-            kgutils.logger.info('Creating KGen strace logfile: %s'%self.straceoutfile)
+        if not os.path.exists(Config.stracefile) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
+            bld_cmd = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%(Config.stracefile, Config.cwd)
+            kgutils.logger.info('Creating KGen strace logfile: %s'%Config.stracefile)
             kgutils.run_shcmd(bld_cmd)
         else:
-            kgutils.logger.info('Reusing KGen strace logfile: %s'%self.straceoutfile)
+            kgutils.logger.info('Reusing KGen strace logfile: %s'%Config.stracefile)
 
         # parse strace.log and generate include.ini
-        if not os.path.exists(self.includeoutfile) or 'all' in Config.rebuild or 'include' in Config.rebuild:
+        if not os.path.exists(Config.includefile) or 'all' in Config.rebuild or 'include' in Config.rebuild:
             self._geninclude()
         else:
-            kgutils.logger.info('Reusing KGen include file: %s'%self.includeoutfile)
-
-        # save info to cfg
-        Config.includefile = self.includeoutfile
+            kgutils.logger.info('Reusing KGen include file: %s'%Config.includefile)
 
     def _getpwd(self, env):
         for item in env:
@@ -48,24 +42,30 @@ class CompFlag(kgtool.KGTool):
 
     def _geninclude(self):
 
-        kgutils.logger.info('Creating KGen include file: %s'%self.includeoutfile)
+        kgutils.logger.info('Creating KGen include file: %s'%Config.includefile)
 
-        Config = ConfigParser.RawConfigParser()
-        Config.optionxform = str
+        cfg = ConfigParser.RawConfigParser()
+        cfg.optionxform = str
 
-        if len(Config.cmdarg['includepath'])>0:
-            Config.add_section('include')
-            for path in Config.cmdarg['includepath']:
-                Config.set('include', path, '')
+        if len(Config.include['path'])>0:
+            cfg.add_section('include')
+            for inc in Config.include['path']:
+                for i in inc.split(':'):
+                    cfg.set('include', i, '')
 
-        if len(Config.cmdarg['macro'])>0:
-            Config.add_section('macro')
-            for key, value in Config.cmdarg['macro']:
-                Config.set('macro', key, value)
+        if len(Config.include['macro'])>0:
+            cfg.add_section('macro')
+            for key, value in Config.include['macro'].items():
+                cfg.set('macro', key, value)
+
+        if len(Config.include['import'])>0:
+            cfg.add_section('import')
+            for key, value in Config.include['macro'].items():
+                cfg.set('import', key, value)
 
 
         flags = {}
-        with open(self.straceoutfile, 'r') as f:
+        with open(Config.stracefile, 'r') as f:
             line = f.readline()
             while(line):
                 pos_execve = line.find(STR_EX)
@@ -102,17 +102,17 @@ class CompFlag(kgtool.KGTool):
                 macros = incitems[-1][2]
                 options = incitems[-1][4]
 
-                if Config.has_section(fname):
+                if cfg.has_section(fname):
                     print 'Warning: %s section is dupulicated.' % fname
                 else:
-                    Config.add_section(fname)
-                    Config.set(fname,'compiler', compiler)
-                    Config.set(fname,'compiler_options', ' '.join(options))
-                    Config.set(fname,'include',':'.join(incs))
+                    cfg.add_section(fname)
+                    cfg.set(fname,'compiler', compiler)
+                    cfg.set(fname,'compiler_options', ' '.join(options))
+                    cfg.set(fname,'include',':'.join(incs))
                     for name, value in macros:
-                        Config.set(fname, name, value)
+                        cfg.set(fname, name, value)
 
-        if len(Config.sections())>0:
-            with open(self.includeoutfile, 'w') as f:
-                Config.write(f)
+        if len(cfg.sections())>0:
+            with open(Config.includefile, 'w') as f:
+                cfg.write(f)
 

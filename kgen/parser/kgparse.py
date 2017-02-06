@@ -227,8 +227,6 @@ class SrcFile(object):
         self.tree = api.parse('\n'.join(new_lines), ignore_comments=False, analyze=True, isfree=isfree, \
             isstrict=isstrict, include_dirs=include_dirs, source_only=None )
         self.tree.prep = new_lines
-        self.tree.used4genstate = False
-
 
         # parse f2003
         lineno = 0

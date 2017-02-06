@@ -5,7 +5,7 @@ import sys
 import collections
 import copy
 import optparse
-import kgutils
+from kgutils import UserException, run_shcmd, INTERNAL_NAMELEVEL_SEPERATOR, traverse
 try:
     import configparser
 except:
@@ -30,11 +30,11 @@ class KgenConfigParser(configparser.RawConfigParser):
             if newline[0]==';': # comment
                 return line
             elif newline[0]=='[' and newline[-1]==']': # filepath
-                return line.replace(':', kgutils.INTERNAL_NAMELEVEL_SEPERATOR)
+                return line.replace(':', INTERNAL_NAMELEVEL_SEPERATOR)
             else: # else
                 pos = line.find('=')
                 if pos>0:
-                    return line[:pos].replace(':', kgutils.INTERNAL_NAMELEVEL_SEPERATOR) + line[pos:]
+                    return line[:pos].replace(':', INTERNAL_NAMELEVEL_SEPERATOR) + line[pos:]
                 else:
                     raise UserException('KGEN requires an equal symbol at each option line')
         else:
@@ -60,7 +60,8 @@ class KgenConfigParser(configparser.RawConfigParser):
             self._read(buf, filename)
 
 def get_MPI_PARAM(node, bag, depth):
-    from Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
+    import parser
+    from parser.Fortran2003 import Specification_Part, Type_Declaration_Stmt, Entity_Decl, Parameter_Stmt, Named_Constant_Def, \
         NoMatchError, Module_Stmt, Program_Stmt, Named_Constant_Def_List
 
     if isinstance(node, Type_Declaration_Stmt):
@@ -181,6 +182,7 @@ class Config(object):
         self._attrs['search']['promote_exception'] = False
 
         # path parameters
+        self._attrs['cwd'] = os.getcwd()
         self._attrs['path'] = collections.OrderedDict()
         self._attrs['path']['outdir'] = '.'
         self._attrs['path']['state'] = 'state'
@@ -196,10 +198,10 @@ class Config(object):
         self._attrs['source']['state'] = []
 
         # include parameters
-        self._attrs['includefile'] = None
+        self._attrs['includefile'] = 'include.ini'
         self._attrs['include'] = collections.OrderedDict()
         self._attrs['include']['macro'] = collections.OrderedDict()
-        self._attrs['include']['path'] = ['.']
+        self._attrs['include']['path'] = []
         self._attrs['include']['type'] = collections.OrderedDict()
         self._attrs['include']['compiler'] = collections.OrderedDict()
         self._attrs['include']['import'] = collections.OrderedDict()
@@ -215,6 +217,14 @@ class Config(object):
         # plugin parameters
         self._attrs['plugin'] = collections.OrderedDict()
         self._attrs['plugin']['priority'] = collections.OrderedDict()
+
+        ###############################################################
+        # compiler flag information
+        ###############################################################
+
+        # coverage parameters
+        self._attrs['stracefile'] = 'strace.log'
+        self._attrs['strace'] = collections.OrderedDict()
 
 
         ###############################################################
@@ -307,7 +317,7 @@ class Config(object):
         ###############################################################
 
         # coverage parameters
-        self._attrs['coveragefile'] = ''
+        self._attrs['coveragefile'] = 'coverage.ini'
         self._attrs['coverage'] = collections.OrderedDict()
 
         # set plugin parameters
@@ -408,14 +418,14 @@ class Config(object):
         self._process_extract_flags(opts)
                 
         # collect mpi params
-        self._collect_mpi_params()
+        #self.collect_mpi_params()
 
     def __getattr__(self, name):
         return self._attrs[name]
 
-    def _collect_mpi_params(self):
+    def collect_mpi_params(self):
         #from parser.api import parse, walk
-        #import parser
+        import parser
 
         if self._attrs['mpi']['enabled']:
             # get path of mpif.h
@@ -463,7 +473,7 @@ class Config(object):
                         ]
                     for config_key, name in config_name_mapping:
                         if not self._attrs['mpi'].has_key(config_key) or self._attrs['mpi'][config_key] is None:
-                            for stmt, depth in walk(tree, -1):
+                            for stmt, depth in parser.api.walk(tree, -1):
                                 bag['key'] = name
                                 bag[name] = []
                                 if hasattr(stmt, 'f2003'):
@@ -479,6 +489,7 @@ class Config(object):
                 except UserException:
                     raise  # Reraise this exception rather than catching it below
                 except Exception as e:
+                    import pdb; pdb.set_trace()
                     raise UserException('Error occurred during reading %s.'%mpifpath)
             else:
                 raise UserException('Can not find mpif.h. Please provide a path to the file')
@@ -488,7 +499,7 @@ class Config(object):
         # check if exists fpp or cpp
         output = ''
         try:
-            out, err, retcode = kgutils.run_shcmd('which cpp', show_error_msg=False)
+            out, err, retcode = run_shcmd('which cpp', show_error_msg=False)
             output = out.strip()
         except Exception as e: pass
         if output.endswith('cpp'):
@@ -496,7 +507,7 @@ class Config(object):
         else:
             output = ''
             try:
-                out, err, retcode = kgutils.run_shcmd('which fpp', show_error_msg=False)
+                out, err, retcode = run_shcmd('which fpp', show_error_msg=False)
                 output = out.strip()
             except Exception as e: pass
             if output.endswith('fpp'):
@@ -771,7 +782,7 @@ class Config(object):
                 for clean in line.split(','):
                     kv = clean.split('=', 1)
                     if len(kv) == 1:
-                        self._attrs['cmd_clean']['cmds'] = value
+                        self._attrs['cmd_clean']['cmds'] = kv[0]
                     elif len(kv) ==2:
                         key, value = kv
                         if key in [ 'cmds' ] :
@@ -787,7 +798,7 @@ class Config(object):
                 for build in line.split(','):
                     kv = build.split('=', 1)
                     if len(kv) == 1:
-                        self._attrs['cmd_build']['cmds'] = value
+                        self._attrs['cmd_build']['cmds'] = kv[0]
                     elif len(kv) ==2:
                         key, value = kv
                         if key in [ 'cmds' ] :
@@ -802,7 +813,7 @@ class Config(object):
                 for run in line.split(','):
                     kv = run.split('=', 1)
                     if len(kv) == 1:
-                        self._attrs['cmd_run']['cmds'] = value
+                        self._attrs['cmd_run']['cmds'] = kv[0]
                     elif len(kv) ==2:
                         key, value = kv
                         if key in [ 'cmds' ] :

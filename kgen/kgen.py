@@ -22,7 +22,9 @@ def main():
     compflag = CompFlag()
     compflag.run()
 
+
     Config.process_include_option() 
+    Config.collect_mpi_params()
 
     # parse code
     parser = Parser()
