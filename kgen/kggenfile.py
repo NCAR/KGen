@@ -1181,24 +1181,24 @@ class GenS_BeginStatement(GenS_Statement, Gen_BeginStatement):
 
 ########### functions ############
 
-def generate_kgen_utils(k_id):
-    from kgextra import kgen_utils_file_head, kgen_utils_file_checksubr, \
-        kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr, kgen_utils_array_sumcheck
-
-    with open('%s/kgen_utils.f90'%Config.path['kernel'], 'wb') as f:
-        f.write('MODULE kgen_utils_mod')
-        f.write(kgen_utils_file_head)
-        f.write('\n')
-        f.write('CONTAINS')
-        f.write('\n')
-        f.write(kgen_utils_array_sumcheck)
-        f.write(kgen_utils_file_tostr)
-        f.write(kgen_utils_file_checksubr)
-        f.write(kgen_get_newunit)
-        f.write(kgen_error_stop)
-        f.write('END MODULE kgen_utils_mod\n')
-
-#def generate_srcfiles():
+#def generate_kgen_utils(k_id):
+#    from kgextra import kgen_utils_file_head, kgen_utils_file_checksubr, \
+#        kgen_get_newunit, kgen_error_stop, kgen_utils_file_tostr, kgen_utils_array_sumcheck
+#
+#    with open('%s/kgen_utils.f90'%Config.path['kernel'], 'wb') as f:
+#        f.write('MODULE kgen_utils_mod')
+#        f.write(kgen_utils_file_head)
+#        f.write('\n')
+#        f.write('CONTAINS')
+#        f.write('\n')
+#        f.write(kgen_utils_array_sumcheck)
+#        f.write(kgen_utils_file_tostr)
+#        f.write(kgen_utils_file_checksubr)
+#        f.write(kgen_get_newunit)
+#        f.write(kgen_error_stop)
+#        f.write('END MODULE kgen_utils_mod\n')
+#
+##def generate_srcfiles():
 #    """Generate files."""
 #
 #    # setup plugin framework
