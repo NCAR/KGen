@@ -248,9 +248,9 @@ class SrcFile(object):
         # collect program unit information
         for item in self.tree.content:
             if item.__class__ not in [ Module, Comment, Program ]:
-                if item.reader.id not in State.program_units.keys():
-                    State.program_units[item.reader.id] = []
-                State.program_units[item.reader.id].append(item)
+                if item.reader.id not in Config.program_units.keys():
+                    Config.program_units[item.reader.id] = []
+                Config.program_units[item.reader.id].append(item)
 
         # create a tuple for file dependency
         Config.srcfiles[self.abspath] = ( self, [], [] )
@@ -310,7 +310,7 @@ class SrcFile(object):
                     if dname.startswith('begin_'):
                         sname = dname[6:]
                         directs.append(sname)
-                        State.kernel['name'] = clause
+                        Config.kernel['name'] = clause
                     elif dname.startswith('end_'):
                         ename = dname[4:]
                         if directs[-1]==ename:
@@ -324,8 +324,8 @@ class SrcFile(object):
                     elif dname=='callsite':
                         next_fort_stmt = get_next_non_comment(stmt)
                         if next_fort_stmt:
-                            State.kernel['name'] = clause
-                            State.callsite['stmts'].append(next_fort_stmt)
+                            Config.kernel['name'] = clause
+                            Config.callsite['stmts'].append(next_fort_stmt)
                         else:
                             raise UserException('WARNING: callsite is not found')
                     elif dname=='write':
@@ -339,9 +339,9 @@ class SrcFile(object):
                             raise UserException('WARNING: exclude target is not found')
 
                 elif 'callsite' in directs:
-                    State.callsite['stmts'].append(stmt)
+                    Config.callsite['stmts'].append(stmt)
             elif 'callsite' in directs:
-                State.callsite['stmts'].append(stmt)
+                Config.callsite['stmts'].append(stmt)
             else:
                 if Config.callsite['namepath'] and stmt.__class__ in executable_construct:
                     names = []

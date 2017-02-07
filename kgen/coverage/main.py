@@ -76,6 +76,8 @@ class Coverage(KGTool):
 
             self.gen_makefile()
 
+            kgutils.logger.info('Instrumentation for coverage is generated at %s.'%os.path.abspath(Config.path['coverage']))
+
             # clean app
             #if Config.cmd_clean['cmds']:
             #    kgutils.run_shcmd(Config.cmd_clean['cmds'])
@@ -83,12 +85,14 @@ class Coverage(KGTool):
             #bld_cmd = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%Config.cwd
             #kgutils.logger.info('Creating KGen strace logfile: %s'%self.straceoutfile)
             out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
+            import pdb; pdb.set_trace()
             if retcode != 0:
                 #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
                 kgutils.logger.info('Failed to generate coverage information: %s'%err)
 
-            # generate coverage file
+            kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
+            # generate coverage file
             data_matches = re.findall(r'%s\s+(\d+)\s+(\d+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+\.\d+)\s*%s'%(BEGIN_DATA_MARKER, END_DATA_MARKER), out, re.MULTILINE)
 
             begin_matches = re.findall(BEGIN_DATA_MARKER, out, re.MULTILINE)
@@ -110,6 +114,9 @@ class Coverage(KGTool):
 
                 with open(Config.coveragefile, 'w') as fd:
                     cfg.write(fd)
+
+            kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
+
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
 

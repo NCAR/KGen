@@ -46,31 +46,25 @@ class Gen_Coverage_File(Kgen_Plugin):
     ##################################
 
     def preprocess_ifthen(self, node):
-        self.logger.info('Begin preprocess_ifthen')
-        node.kgen_stmt.top.genspair.used4coverage = True
+        self.logger.debug('Begin preprocess_ifthen')
 
-        if node.kgen_stmt.reader.id in self.paths:
-            import pdb; pdb.set_trace()
-
-        self.paths[node.kgen_stmt.reader.id] = len(self.paths)
+        if node.kgen_stmt.reader.id not in self.paths:
+            node.kgen_stmt.top.genspair.used4coverage = True
+            self.paths[node.kgen_stmt.reader.id] = len(self.paths)
 
     def preprocess_elseif(self, node):
-        self.logger.info('Begin preprocess_elseif')
-        node.kgen_stmt.top.genspair.used4coverage = True
+        self.logger.debug('Begin preprocess_elseif')
 
-        if node.kgen_stmt.reader.id in self.paths:
-            import pdb; pdb.set_trace()
-
-        self.paths[node.kgen_stmt.reader.id] = len(self.paths)
+        if node.kgen_stmt.reader.id not in self.paths:
+            node.kgen_stmt.top.genspair.used4coverage = True
+            self.paths[node.kgen_stmt.reader.id] = len(self.paths)
 
     def preprocess_else(self, node):
-        self.logger.info('Begin preprocess_else')
-        node.kgen_stmt.top.genspair.used4coverage = True
+        self.logger.debug('Begin preprocess_else')
 
-        if node.kgen_stmt.reader.id in self.paths:
-            import pdb; pdb.set_trace()
-
-        self.paths[node.kgen_stmt.reader.id] = len(self.paths)
+        if node.kgen_stmt.reader.id not in self.paths:
+            node.kgen_stmt.top.genspair.used4coverage = True
+            self.paths[node.kgen_stmt.reader.id] = len(self.paths)
 
     #def preprocess_ifstmt(self, node):
     #    getinfo('logger').info('Begin preprocess_ifstmt')
@@ -88,26 +82,41 @@ class Gen_Coverage_File(Kgen_Plugin):
     # adding statements
     ##################################
 
-    def addstmts_ifthen(self, node):
-        self.logger.info('Begin addstmts_ifthen')
+    def ispure(self, node):
 
-        attrs = {'designator': 'gen_coverage', 'items': \
-            [ str(self.paths[node.kgen_stmt.reader.id]), str(node.kgen_stmt.item.span[1]) ]}
-        part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
+        if hasattr(node, 'kgen_stmt') and node.kgen_stmt and \
+            isinstance(node.kgen_stmt, block_statements.SubProgramStatement):        
+            if node.kgen_stmt.prefix.lower().find('pure') >= 0:
+                return True
+
+        if hasattr(node, 'kgen_parent'):
+            return self.ispure(node.kgen_parent)
+
+        return False
+
+    def addstmts_ifthen(self, node):
+        self.logger.debug('Begin addstmts_ifthen')
+
+        if not self.ispure(node):
+            attrs = {'designator': 'gen_coverage', 'items': \
+                [ str(self.paths[node.kgen_stmt.reader.id]), str(node.kgen_stmt.item.span[1]) ]}
+            part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
 
     def addstmts_elseif(self, node):
-        self.logger.info('Begin addstmts_elseif')
+        self.logger.debug('Begin addstmts_elseif')
 
-        attrs = {'designator': 'gen_coverage', 'items': \
-            [ str(self.paths[node.kgen_stmt.reader.id]), str(node.kgen_stmt.item.span[1]) ]}
-        part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
+        if not self.ispure(node):
+            attrs = {'designator': 'gen_coverage', 'items': \
+                [ str(self.paths[node.kgen_stmt.reader.id]), str(node.kgen_stmt.item.span[1]) ]}
+            part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
 
     def addstmts_else(self, node):
-        self.logger.info('Begin addstmts_else')
+        self.logger.debug('Begin addstmts_else')
 
-        attrs = {'designator': 'gen_coverage', 'items': \
-            [ str(self.paths[node.kgen_stmt.reader.id]), str(node.kgen_stmt.item.span[1]) ]}
-        part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
+        if not self.ispure(node):
+            attrs = {'designator': 'gen_coverage', 'items': \
+                [ str(self.paths[node.kgen_stmt.reader.id]), str(node.kgen_stmt.item.span[1]) ]}
+            part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
 
     #def addstmts_ifstmt(self, node):
     #    getinfo('logger').info('Begin addstmts_ifstmt')
@@ -119,7 +128,7 @@ class Gen_Coverage_File(Kgen_Plugin):
     ##################################
 
     def add_coverage(self, node):
-        self.logger.info('Begin add_coverage')
+        self.logger.debug('Begin add_coverage')
 
         maxfiles = len(self.paths)
         maxloc = max([ lines for path, lines in self.paths.items() ])
@@ -133,6 +142,9 @@ class Gen_Coverage_File(Kgen_Plugin):
             for mod_name, use_names in getinfo('mpi_use'):
                 attrs = {'name':mod_name, 'isonly': True, 'items':use_names}
                 part_append_gensnode(coversubr, USE_PART, statements.Use, attrs=attrs)
+
+            attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['initialized']}
+            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['myrank', 'ierror']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
@@ -152,14 +164,20 @@ class Gen_Coverage_File(Kgen_Plugin):
 
             if getinfo('is_mpi_app'):
 
-                attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
+                attrs = {'designator': 'MPI_INITIALIZED', 'items': [ 'initialized', 'ierror' ]}
                 part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+
+                attrs = {'expr': 'initialized'}
+                ifinit = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
+                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
 
                 attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
 
                 attrs = {'items': [ '"%s"'%BEGIN_DATA_MARKER, 'fileid', 'lineno', 'myrank', 'OMP_GET_THREAD_NUM()', 'now', '"%s"'%END_DATA_MARKER ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Write, attrs=attrs)
+                part_append_gensnode(ifinit, EXEC_PART, statements.Write, attrs=attrs)
 
             else:
                 attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
@@ -171,14 +189,20 @@ class Gen_Coverage_File(Kgen_Plugin):
         else:
             if getinfo('is_mpi_app'):
 
-                attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
+                attrs = {'designator': 'MPI_INITIALIZED', 'items': [ 'initialized', 'ierror' ]}
                 part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+
+                attrs = {'expr': 'initialized'}
+                ifinit = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
+                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
 
                 attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
 
                 attrs = {'items': [ '"%s"'%BEGIN_DATA_MARKER, 'fileid', 'lineno', 'myrank', '.', 'now', '"%s"'%END_DATA_MARKER ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Write, attrs=attrs)
+                part_append_gensnode(ifinit, EXEC_PART, statements.Write, attrs=attrs)
 
             else:
 

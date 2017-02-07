@@ -5,7 +5,7 @@ import sys
 import collections
 import copy
 import optparse
-from kgutils import UserException, run_shcmd, INTERNAL_NAMELEVEL_SEPERATOR, traverse
+from kgutils import UserException, run_shcmd, INTERNAL_NAMELEVEL_SEPERATOR, traverse, match_namepath
 try:
     import configparser
 except:
@@ -209,6 +209,9 @@ class Config(object):
 
         # exclude parameters
         self._attrs['exclude'] = collections.OrderedDict()
+
+        # program units
+        self._attrs['program_units'] = []
 
         # debugging parameters
         self._attrs['debug'] = collections.OrderedDict()
