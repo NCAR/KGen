@@ -218,6 +218,8 @@ class Config(object):
         self._attrs['plugin'] = collections.OrderedDict()
         self._attrs['plugin']['priority'] = collections.OrderedDict()
 
+        self._attrs['plugindb'] = collections.OrderedDict()
+
         ###############################################################
         # compiler flag information
         ###############################################################

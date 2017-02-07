@@ -2,11 +2,21 @@
 '''
 
 import os
+import re
 from kgtool import KGTool
 from parser.kgparse import KGGenType
 from kggenfile import gensobj, KERNEL_ID_0, event_register, Gen_Statement
 import kgutils
 from kgconfig import Config
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
+
+BEGIN_DATA_MARKER = r'kgpathbegin'
+END_DATA_MARKER = r'kgpathend'
+BEGIN_PATH_MARKER = r'kgdatabegin'
+END_PATH_MARKER = r'kgdataend'
 
 class Coverage(KGTool):
 
@@ -76,16 +86,37 @@ class Coverage(KGTool):
             if retcode != 0:
                 #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
                 kgutils.logger.info('Failed to generate coverage information: %s'%err)
+
+            # generate coverage file
+
+            data_matches = re.findall(r'%s\s+(\d+)\s+(\d+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+\.\d+)\s*%s'%(BEGIN_DATA_MARKER, END_DATA_MARKER), out, re.MULTILINE)
+
+            begin_matches = re.findall(BEGIN_DATA_MARKER, out, re.MULTILINE)
+            end_matches = re.findall(END_DATA_MARKER, out, re.MULTILINE)
+            if len(data_matches) != len(begin_matches) or len(data_matches) != len(end_matches):
+                kgutils.logger.warning('There may be missed coverage information during collection.')
+
+            if data_matches:
+                cfg = configparser.RawConfigParser()
+                cfg.optionxform = str
+
+                cfg.add_section('file')
+                for path, pathnum in Config.plugindb['coverage_paths'].items():
+                    cfg.set('file', pathnum, path)
+
+                cfg.add_section('data')
+                for idx, (fileid, lineno, rank, tid, cputime) in enumerate(data_matches):
+                    cfg.set('data', idx, '%s %s %s %s %s'%(fileid, lineno, rank, tid, cputime))
+
+                with open(Config.coveragefile, 'w') as fd:
+                    cfg.write(fd)
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
 
         # run app
-        if Config.cmd_run['cmds']:
-            kgutils.run_shcmd(Config.cmd_run['cmds'])
+        #if Config.cmd_run['cmds']:
+        #    kgutils.run_shcmd(Config.cmd_run['cmds'])
 
-        # save info to cfg
-
-        pass
 
     def set_indent(self, indent):
         Gen_Statement.kgen_gen_attrs = {'indent': '', 'span': None}

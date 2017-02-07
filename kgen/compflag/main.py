@@ -5,8 +5,11 @@ import os
 import kgtool
 import kgutils
 import kgcompiler
-import ConfigParser
 from kgconfig import Config
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
 
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
@@ -44,7 +47,7 @@ class CompFlag(kgtool.KGTool):
 
         kgutils.logger.info('Creating KGen include file: %s'%Config.includefile)
 
-        cfg = ConfigParser.RawConfigParser()
+        cfg = configparser.RawConfigParser()
         cfg.optionxform = str
 
         if len(Config.include['path'])>0:
