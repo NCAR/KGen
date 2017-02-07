@@ -211,7 +211,7 @@ class Config(object):
         self._attrs['exclude'] = collections.OrderedDict()
 
         # program units
-        self._attrs['program_units'] = []
+        self._attrs['program_units'] = {}
 
         # debugging parameters
         self._attrs['debug'] = collections.OrderedDict()

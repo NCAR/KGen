@@ -3,6 +3,7 @@
 
 import os
 import re
+import glob
 from kgtool import KGTool
 from parser.kgparse import KGGenType
 from kggenfile import gensobj, KERNEL_ID_0, event_register, Gen_Statement
@@ -78,42 +79,30 @@ class Coverage(KGTool):
 
             kgutils.logger.info('Instrumentation for coverage is generated at %s.'%os.path.abspath(Config.path['coverage']))
 
+            with open(Config.coveragefile, 'w') as fd:
+                fd.write('[file]\n')
+                for path, pathnum in Config.plugindb['coverage_paths'].items():
+                    fd.write('%d = %s\n'%(pathnum, path))
+                fd.write('\n')
+                fd.write('[data]\n')
+
             # clean app
             #if Config.cmd_clean['cmds']:
             #    kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
-            #bld_cmd = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%Config.cwd
-            #kgutils.logger.info('Creating KGen strace logfile: %s'%self.straceoutfile)
             out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
-            import pdb; pdb.set_trace()
             if retcode != 0:
                 #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
                 kgutils.logger.info('Failed to generate coverage information: %s'%err)
 
             kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
-            # generate coverage file
-            data_matches = re.findall(r'%s\s+(\d+)\s+(\d+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+\.\d+)\s*%s'%(BEGIN_DATA_MARKER, END_DATA_MARKER), out, re.MULTILINE)
+            # TODO: wait until coverage data generation is completed
 
-            begin_matches = re.findall(BEGIN_DATA_MARKER, out, re.MULTILINE)
-            end_matches = re.findall(END_DATA_MARKER, out, re.MULTILINE)
-            if len(data_matches) != len(begin_matches) or len(data_matches) != len(end_matches):
-                kgutils.logger.warning('There may be missed coverage information during collection.')
-
-            if data_matches:
-                cfg = configparser.RawConfigParser()
-                cfg.optionxform = str
-
-                cfg.add_section('file')
-                for path, pathnum in Config.plugindb['coverage_paths'].items():
-                    cfg.set('file', pathnum, path)
-
-                cfg.add_section('data')
-                for idx, (fileid, lineno, rank, tid, cputime) in enumerate(data_matches):
-                    cfg.set('data', idx, '%s %s %s %s %s'%(fileid, lineno, rank, tid, cputime))
-
-                with open(Config.coveragefile, 'w') as fd:
-                    cfg.write(fd)
+            with open(Config.coveragefile, 'a') as fd:
+                for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
+                    with open(data, 'r') as fc:
+                        fd.write(fc.read())
 
             kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
 

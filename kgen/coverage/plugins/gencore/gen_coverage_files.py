@@ -1,4 +1,6 @@
 
+import os
+import random
 from kgplugin import Kgen_Plugin
 from parser import block_statements, statements, typedecl_statements
 import collections
@@ -153,64 +155,104 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
+        attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'SAVE' ], 'entity_decls': ['myunit = %d'%random.randrange(1000000, 9999999)]}
+        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['isopen']}
+        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+        attrs = {'type_spec': 'CHARACTER', 'selector':('12', None), 'entity_decls': ['rankstr']}
+        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
+
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['fileid', 'lineno']}
         part_append_genknode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'REAL', 'entity_decls': ['now']}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
-
         if getinfo('is_openmp_app'):
+            part_append_comment(coversubr, EXEC_PART, 'CRITICAL (kgen_cover)', style='openmp')
 
-            if getinfo('is_mpi_app'):
+        if getinfo('is_mpi_app'):
 
-                attrs = {'designator': 'MPI_INITIALIZED', 'items': [ 'initialized', 'ierror' ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'designator': 'MPI_INITIALIZED', 'items': [ 'initialized', 'ierror' ]}
+            part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
 
-                attrs = {'expr': 'initialized'}
-                ifinit = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
+            attrs = {'expr': 'initialized .AND. ( ierror .EQ. MPI_SUCCESS )'}
+            ifinit = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
-                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
+            part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
 
-                attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
-                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'specs': ['UNIT=myunit', 'OPENED=isopen']}
+            part_append_gensnode(ifinit, EXEC_PART, statements.Inquire, attrs=attrs)
 
-                attrs = {'items': [ '"%s"'%BEGIN_DATA_MARKER, 'fileid', 'lineno', 'myrank', 'OMP_GET_THREAD_NUM()', 'now', '"%s"'%END_DATA_MARKER ]}
-                part_append_gensnode(ifinit, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'expr': '.NOT. isopen .AND. ( ierror .EQ. MPI_SUCCESS )'}
+            ifopen = part_append_gensnode(ifinit, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
+            attrs = {'specs': [ 'rankstr', '"(I10)"' ], 'items': [ 'myrank' ]}
+            part_append_gensnode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'specs': ['NEWUNIT=myunit', 'FILE="%s/coverage.data." // TRIM(ADJUSTL(rankstr))'%os.path.abspath(getinfo('coverage_path')), \
+                'STATUS="REPLACE"', 'ACCESS="SEQUENTIAL"', 'FORM="FORMATTED"', 'ACTION="WRITE"','IOSTAT=ierror']}
+            part_append_gensnode(ifopen, EXEC_PART, statements.Open, attrs=attrs)
+
+            attrs = {'specs': ['UNIT=myunit', 'OPENED=isopen']}
+            part_append_gensnode(ifinit, EXEC_PART, statements.Inquire, attrs=attrs)
+
+            attrs = {'expr': 'isopen .AND. ( ierror .EQ. MPI_SUCCESS )'}
+            ifopen2 = part_append_gensnode(ifinit, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
+            part_append_gensnode(ifopen2, EXEC_PART, statements.Call, attrs=attrs)
+
+            if getinfo('is_openmp_app'):
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(F32.16,1X,A1,1X,I0,1X,I0,1X,I0,1X,I0)"' ], \
+                    'items': [ 'now', '"="', 'fileid', 'lineno', 'myrank', 'OMP_GET_THREAD_NUM()' ]}
+                part_append_gensnode(ifopen2, EXEC_PART, statements.Write, attrs=attrs)
             else:
-                attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(F32.16,1X,A1,1X,I0,1X,I0,1X,I0,1X,I0)"' ], \
+                    'items': [ 'now', '"="', 'fileid', 'lineno', 'myrank', '-1' ]}
+                part_append_gensnode(ifopen2, EXEC_PART, statements.Write, attrs=attrs)
 
-                attrs = {'items': [ '"%s"'%BEGIN_DATA_MARKER, 'fileid', 'lineno', '.', 'OMP_GET_THREAD_NUM()', 'now', '"%s"'%END_DATA_MARKER ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'specs': [ 'UNIT=myunit' ]}
+            part_append_gensnode(ifopen2, EXEC_PART, statements.Flush, attrs=attrs)
 
         else:
-            if getinfo('is_mpi_app'):
 
-                attrs = {'designator': 'MPI_INITIALIZED', 'items': [ 'initialized', 'ierror' ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'specs': ['UNIT=myunit', 'OPENED=isopen']}
+            part_append_gensnode(coversubr, EXEC_PART, statements.Inquire, attrs=attrs)
 
-                attrs = {'expr': 'initialized'}
-                ifinit = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
+            attrs = {'expr': '.NOT. isopen'}
+            ifopen = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-                attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
-                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'specs': ['NEWUNIT=myunit', 'FILE="%s/coverage.data"'%os.path.abspath(getinfo('coverage_path')), \
+                'STATUS="REPLACE"', 'ACCESS="SEQUENTIAL"', 'FORM="FORMATTED"', 'ACTION="WRITE"','IOSTAT=ierror']}
+            part_append_gensnode(ifopen, EXEC_PART, statements.Open, attrs=attrs)
 
-                attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
-                part_append_gensnode(ifinit, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'specs': ['UNIT=myunit', 'OPENED=isopen']}
+            part_append_gensnode(coversubr, EXEC_PART, statements.Inquire, attrs=attrs)
 
-                attrs = {'items': [ '"%s"'%BEGIN_DATA_MARKER, 'fileid', 'lineno', 'myrank', '.', 'now', '"%s"'%END_DATA_MARKER ]}
-                part_append_gensnode(ifinit, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'expr': 'isopen'}
+            ifopen2 = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
+            attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
+            part_append_gensnode(ifopen2, EXEC_PART, statements.Call, attrs=attrs)
+
+            if getinfo('is_openmp_app'):
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(F32.16,1X,A1,1X,I0,1X,I0,1X,I0,1X,I0)"' ], \
+                    'items': [ 'now', '"="', 'fileid', 'lineno', '-1', 'OMP_GET_THREAD_NUM()' ]}
+                part_append_gensnode(ifopen2, EXEC_PART, statements.Write, attrs=attrs)
             else:
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(F32.16,1X,A1,1X,I0,1X,I0,1X,I0,1X,I0)"' ], \
+                    'items': [ 'now', '"="', 'fileid', 'lineno', '-1', '-1' ]}
+                part_append_gensnode(ifopen2, EXEC_PART, statements.Write, attrs=attrs)
 
-                attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Call, attrs=attrs)
+            attrs = {'specs': [ 'UNIT=myunit' ]}
+            part_append_gensnode(ifopen2, EXEC_PART, statements.Flush, attrs=attrs)
 
-                attrs = {'items': [ '"%s"'%BEGIN_DATA_MARKER, 'fileid', 'lineno', '.', '.', 'now', '"%s"'%END_DATA_MARKER ]}
-                part_append_gensnode(coversubr, EXEC_PART, statements.Write, attrs=attrs)
+        if getinfo('is_openmp_app'):
+            part_append_comment(coversubr, EXEC_PART, 'END CRITICAL (kgen_cover)', style='openmp')
 
 #        # add block data
 #        attrs = {'name': 'KCOVER'}
