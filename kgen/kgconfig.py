@@ -172,8 +172,8 @@ class Config(object):
         # external tool parameters
         self._attrs['bin'] = collections.OrderedDict()
         self._attrs['bin']['pp'] = 'cpp'
-        self._attrs['bin']['cpp_flags'] = '-w -traditional'
-        self._attrs['bin']['fpp_flags'] = '-w'
+        self._attrs['bin']['cpp_flags'] = '-w -traditional -P'
+        #self._attrs['bin']['fpp_flags'] = '-w'
 
         # search parameters
         self._attrs['search'] = collections.OrderedDict()
@@ -505,16 +505,19 @@ class Config(object):
         if output.endswith('cpp'):
             self.bin['pp'] = output
         else:
-            output = ''
-            try:
-                out, err, retcode = run_shcmd('which fpp', show_error_msg=False)
-                output = out.strip()
-            except Exception as e: pass
-            if output.endswith('fpp'):
-                self.bin['pp'] = output
-            else:
-                print 'ERROR: neither cpp or fpp is found'
-                sys.exit(-1)
+            print 'ERROR: cpp is not found.'
+            sys.exit(-1)
+
+#            output = ''
+#            try:
+#                out, err, retcode = run_shcmd('which fpp', show_error_msg=False)
+#                output = out.strip()
+#            except Exception as e: pass
+#            if output.endswith('fpp'):
+#                self.bin['pp'] = output
+#            else:
+#                print 'ERROR: neither cpp or fpp is found'
+#                sys.exit(-1)
 
         # parsing intrinsic skip option
         if opts.intrinsic:

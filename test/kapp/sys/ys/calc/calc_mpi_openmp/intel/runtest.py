@@ -20,11 +20,11 @@ class Test(KAppSysYSCalcCMOTest):
             __timing='repeat=1', \
             __prerun='build="%s",run="%s"'%(prerun, prerun), \
             __mpi='enable', \
-            __rebuild='all', \
             __openmp='enable', \
             __outdir=workdir)
 
             #__debug='printvar=:i,:j,:output',
+            #__rebuild='all', \
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err

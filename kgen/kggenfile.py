@@ -309,11 +309,11 @@ plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kerne
 
 def getinfo(name):
     if name in plugin_default_infolist: 
-        if name=='kernel_name': return State.kernel['name']
+        if name=='kernel_name': return Config.kernel['name']
         elif name=='kgen_version': return '%d.%d.%s'%tuple(Config.kgen['version'])
         elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
-        elif name=='kernel_driver_name': return State.kernel_driver['name']
-        elif name=='kernel_driver_callsite_args': return State.kernel_driver['callsite_args']
+        elif name=='kernel_driver_name': return Config.kernel_driver['name']
+        elif name=='kernel_driver_callsite_args': return Config.kernel_driver['callsite_args']
         elif name=='is_openmp_app': return Config.openmp['enabled']
         elif name=='is_openmp_critical': return Config.openmp['critical']
         elif name=='openmp_maxthreads': return Config.openmp['maxnum_threads']
@@ -325,9 +325,9 @@ def getinfo(name):
         elif name=='invocations': return Config.invocation['triples']
         elif name=='print_var_names': return Config.debug['printvar']
         elif name=='callsite_file_path': return Config.callsite['filepath']
-        elif name=='callsite_stmts': return State.callsite['stmts']
-        elif name=='parentblock_stmt': return State.parentblock['stmt']
-        elif name=='topblock_stmt': return State.topblock['stmt']
+        elif name=='callsite_stmts': return Config.callsite['stmts']
+        elif name=='parentblock_stmt': return Config.parentblock['stmt']
+        elif name=='topblock_stmt': return Config.topblock['stmt']
         elif name=='verbose_level': return Config.verify['verboselevel']
         elif name=='repeat_count': return Config.timing['repeat']
         elif name=='dummy_stmt': return statements.DummyStatement()
@@ -338,8 +338,8 @@ def getinfo(name):
         elif name=='walk_stmts': return api.walk
         elif name=='coverage_blocks': return Config.coverage['blocks']
         elif name=='logger': return logger 
-    elif State.plugindb.has_key(name):
-        return State.plugindb[name]
+    elif Config.plugindb.has_key(name):
+        return Config.plugindb[name]
     else:
         raise ProgramException('No information for %s'%name)
 
@@ -347,7 +347,7 @@ def setinfo(name, info):
     if name in plugin_default_infolist:
         raise ProgramException('Given name is already defined as a KGen internal information name: %s'%name)
     else:
-        State.plugindb[name] = info
+        Config.plugindb[name] = info
 
 def set_plugin_env(mod):
 
@@ -822,7 +822,7 @@ class Gen_Statement(object):
                     end = self.kgen_stmt.item.span[1]
                     lines = self.kgen_stmt.top.prep[start:end]
                     lines_str = '\n'.join(lines)
-                    if lines_str.strip().startswith(self.kgen_stmt.item.comment.strip()):
+                    if lines_str.strip().expandtabs().startswith(self.kgen_stmt.item.comment.strip().expandtabs()):
                         if hasattr(self, 'kgen_parent') and self.kgen_parent.kgen_isvalid:
                             return lines_str
             else:

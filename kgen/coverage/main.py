@@ -61,6 +61,8 @@ class Coverage(KGTool):
                         coverage_files.append(filename)
                         with open('%s/%s'%(Config.path['coverage'], filename), 'wb') as fd:
                             fd.write(slines)
+                        with open('%s/%s.tmp'%(Config.path['coverage'], filename), 'wb') as ft:
+                            ft.write('\n'.join(sfile.kgen_stmt.prep))
 
             self.gen_makefile()
 
@@ -70,7 +72,10 @@ class Coverage(KGTool):
 
             #bld_cmd = 'strace -o strace.log -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%Config.cwd
             #kgutils.logger.info('Creating KGen strace logfile: %s'%self.straceoutfile)
-            kgutils.run_shcmd(bld_cmd)
+            out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
+            if retcode != 0:
+                #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
+                kgutils.logger.info('Failed to generate coverage information: %s'%err)
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
 

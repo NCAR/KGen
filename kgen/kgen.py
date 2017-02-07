@@ -16,12 +16,9 @@ from extractor.main import Extractor
 
 def main():
 
-    init_plugins([KERNEL_ID_0])
-
     # compflag
     compflag = CompFlag()
     compflag.run()
-
 
     Config.process_include_option() 
     Config.collect_mpi_params()
@@ -30,10 +27,12 @@ def main():
     parser = Parser()
     parser.run()
 
+    # init plugins
+    init_plugins([KERNEL_ID_0])
+
     # coverage
     cover = Coverage()
     cover.run()
-
 
     # extract
     ext = Extractor()
