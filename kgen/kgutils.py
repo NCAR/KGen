@@ -240,6 +240,10 @@ def show_tree(node, prevent_print=False):
         lines.append(line+'\n')
     return lines
 
+def chunks(l, n):
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
 ##############################################
 # Logging
 ##############################################

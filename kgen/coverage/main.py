@@ -72,42 +72,135 @@ class Coverage(KGTool):
                         coverage_files.append(filename)
                         with open('%s/%s'%(Config.path['coverage'], filename), 'wb') as fd:
                             fd.write(slines)
-                        with open('%s/%s.tmp'%(Config.path['coverage'], filename), 'wb') as ft:
+                        with open('%s/%s.kgen'%(Config.path['coverage'], filename), 'wb') as ft:
                             ft.write('\n'.join(sfile.kgen_stmt.prep))
 
             self.gen_makefile()
 
             kgutils.logger.info('Instrumentation for coverage is generated at %s.'%os.path.abspath(Config.path['coverage']))
 
+            coverage_paths = Config.plugindb['coverage_paths']
+            maxfiles = len(coverage_paths)
+            maxlines = max([ len(lineids) for fileid, lineids in coverage_paths.values() ])
+
             with open(Config.coveragefile, 'w') as fd:
                 fd.write('[file]\n')
-                for path, pathnum in Config.plugindb['coverage_paths'].items():
-                    fd.write('%d = %s\n'%(pathnum, path))
+                fd.write('; <file number> = <path to file>\n')
+                for path, (pathnum, lines) in coverage_paths.items():
+                    fd.write('%d = %s/%s.kgen\n'%(pathnum, os.path.abspath(Config.path['coverage']), os.path.basename(path)))
                 fd.write('\n')
                 fd.write('[data]\n')
+                fd.write('; <item number> = <file number> <line number> <MPI rank> < OpenMP Thread> <number of invocations>\n')
 
             # clean app
             #if Config.cmd_clean['cmds']:
             #    kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
-            out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
-            if retcode != 0:
-                #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
-                kgutils.logger.info('Failed to generate coverage information: %s'%err)
+            #out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
+            #if retcode != 0:
+            #    #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
+            #    kgutils.logger.info('Failed to generate coverage information: %s'%err)
 
             kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
             # TODO: wait until coverage data generation is completed
+            # use -K option fir bsub to wait for job completion
 
+            def get_linenum(fileid, lineid):
+                for path, (pathnum, lines) in coverage_paths.items():
+                    if fileid != pathnum: continue
+                    for linenum, lid in lines.items():
+                        if lid == lineid: return linenum
+                return -1
+
+            count = 0
             with open(Config.coveragefile, 'a') as fd:
                 for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
                     with open(data, 'r') as fc:
-                        fd.write(fc.read())
+                        splitpath = data.split('.')
+                        rank = splitpath[-2]
+                        thread = splitpath[-1]
+                        for fileid in range(maxfiles):
+                            for lineid in range(maxlines):
+                                invoke = fc.read(10).strip()
+                                linenum = get_linenum(fileid, lineid)
+                                if linenum >= 0:
+                                    if invoke != '0':
+                                        fd.write('%d = %d %d %s %s %s\n'%(count, fileid, get_linenum(fileid, lineid), rank, thread, invoke))
+                                        count += 1
+                                elif invoke != '0':
+                                    raise Exception('Coverage data file check failure: %d = %d %d %s %s %s'%\
+                                        (count, fileid, get_linenum(fileid, lineid), rank, thread, invoke))
 
             kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
 
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
+
+        # generate skeleton source file
+
+        # read ini file
+        #configparser.ConfigParser
+        cfg = configparser.ConfigParser()
+        cfg.optionxform = str
+        cfg.read(Config.coveragefile)
+
+        filemap = {}
+        for opt in cfg.options('file'):
+            filemap[int(opt)] = cfg.get('file', opt) 
+
+        invokes = {} # fileid, lineno, rank, thread, no. of invokes
+        for opt in cfg.options('data'):
+
+            fileid, lineno, rank, thread, num_invokes = tuple( int(num) for num in cfg.get('data', opt).split() )
+            lineno -= 1
+
+            if fileid not in invokes:
+                invokes[fileid] = {}
+            if lineno not in invokes[fileid]:
+                invokes[fileid][lineno] = {}
+            if rank not in invokes[fileid][lineno]:
+                invokes[fileid][lineno][rank] = {}
+            if thread not in invokes[fileid][lineno][rank]:
+                invokes[fileid][lineno][rank][thread] = num_invokes
+            else:
+                raise Exception('Dupulicated invokes: %s'%cfg.get('data', opt))
+
+        summary = {}
+        for fileid, lines in invokes.items():
+            summary[fileid] = {}
+            for lineid, ranks in lines.items():
+               
+                rankinvokes = {}
+                threadinvokes = {}
+                for rank, threads in ranks.items(): 
+                    rankinvokes[rank] = sum(threads.values())
+                    for thread, invokes in threads.items():
+                        if thread in threadinvokes:
+                            threadinvokes[thread] += invokes
+                        else:
+                            threadinvokes[thread] = invokes
+                totalinvokes = sum(rankinvokes.values())
+
+                summary[fileid][lineid] = [ \
+                'Total number of invokes: %d'%totalinvokes, \
+                'MPI rank(invokes) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankinvokes.items()]), \
+                'OpenMP thread(invokes) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadinvokes.items()]) ]
+ 
+        #import pdb; pdb.set_trace()
+
+        #open src file
+        #add lines
+        for fileid, filepath in filemap.items():
+            with open(filepath, 'r') as fsrc:
+                srclines = fsrc.readlines()
+            
+            for lineno, invokelines in summary[fileid].items():
+                srclines[lineno] = '%s\n%s\n'%(srclines[lineno], '\n'.join(invokelines))
+
+            with open('%s.coverage'%'.'.join(filepath.split('.')[:-1]), 'w') as fdst:
+                fdst.write('\n'.join(srclines))
+
 
         # run app
         #if Config.cmd_run['cmds']:

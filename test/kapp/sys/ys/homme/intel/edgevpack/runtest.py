@@ -23,7 +23,7 @@ class Test(KAppSysYSHommeIntelTest):
         passed, out, err = self.extract_kernel(srcfile, namepath, \
             __cmd_clean='"cd %s; make clean"'%blddir, \
             __cmd_build='"cd %s; %s; make -j 8 perfTestWACCM"'%(blddir, prerun_build), \
-            __cmd_run='"cd %s; bsub < homme.submit"'%rundir, \
+            __cmd_run='"cd %s; bsub -K < homme.submit"'%rundir, \
             __prerun='kernel_build="%s",kernel_run="%s"'%(prerun_build, prerun_run), \
             __exclude='%s/exclude.ini'%workdir, \
             __invocation='0:0-1:10,0:0-1:50,10:0-1:10,10:0-1:50', \
