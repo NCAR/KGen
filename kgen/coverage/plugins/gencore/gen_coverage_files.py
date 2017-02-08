@@ -24,9 +24,9 @@ class Gen_Coverage_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             block_statements.IfThen, None, self.preprocess_ifthen)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-            block_statements.ElseIf, None, self.preprocess_elseif)
+            statements.ElseIf, None, self.preprocess_elseif)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-            block_statements.Else, None, self.preprocess_else)
+            statements.Else, None, self.preprocess_else)
         #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
         #    block_statements.If, None, self.preprocess_ifstmt)
 
@@ -34,9 +34,9 @@ class Gen_Coverage_File(Kgen_Plugin):
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
             block_statements.IfThen, None, self.addstmts_ifthen)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            block_statements.ElseIf, None, self.addstmts_elseif)
+            statements.ElseIf, None, self.addstmts_elseif)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            block_statements.Else, None, self.addstmts_else)
+            statements.Else, None, self.addstmts_else)
         #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
         #    block_statements.If, None, self.addstmts_ifstmt)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
@@ -130,7 +130,8 @@ class Gen_Coverage_File(Kgen_Plugin):
             path = self.paths[node.kgen_stmt.reader.id]
             attrs = {'designator': 'gen_coverage', 'items': \
                 [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
-            part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
+            idx, name, part = get_part_index(node)
+            part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Call, index=(idx+1), attrs=attrs)
 
     def addstmts_else(self, node):
         self.logger.debug('Begin addstmts_else')
@@ -139,7 +140,8 @@ class Gen_Coverage_File(Kgen_Plugin):
             path = self.paths[node.kgen_stmt.reader.id]
             attrs = {'designator': 'gen_coverage', 'items': \
                 [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
-            part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
+            idx, name, part = get_part_index(node)
+            part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Call, index=(idx+1), attrs=attrs)
 
     #def addstmts_ifstmt(self, node):
     #    getinfo('logger').info('Begin addstmts_ifstmt')
@@ -260,8 +262,6 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'loopcontrol': 'idx2=0,%d-1'%maxlines}
             doline = part_append_gensnode(dofile, EXEC_PART, block_statements.Do, attrs=attrs)
 
-            #recstr = ' '*(RECL-1) + '0'
-            #attrs = {'specs': [ 'UNIT=myunit', 'REC=(%d * idx1 + idx2 + 1)'%maxlines, 'FMT="(A%d)"'%RECL ], 'items': [ '"%s"'%recstr ] }
             attrs = {'specs': [ 'UNIT=myunit', 'REC=(%d * idx1 + idx2 + 1)'%maxlines, 'FMT="(I%d)"'%RECL ], 'items': [ '0' ] }
             part_append_gensnode(doline, EXEC_PART, statements.Write, attrs=attrs)
 
@@ -312,8 +312,6 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'loopcontrol': 'idx2=0,%d-1'%maxlines}
             doline = part_append_gensnode(dofile, EXEC_PART, block_statements.Do, attrs=attrs)
 
-            #recstr = ' '*(RECL-1) + '0'
-            #attrs = {'specs': [ 'UNIT=myunit', 'REC=(%d * idx1 + idx2 + 1)'%maxlines, 'FMT="(A%d)"'%RECL ], 'items': [ '"%s"'%recstr ] }
             attrs = {'specs': [ 'UNIT=myunit', 'REC=(%d * idx1 + idx2 + 1)'%maxlines, 'FMT="(I%d)"'%RECL ], 'items': [ '0' ] }
             part_append_gensnode(doline, EXEC_PART, statements.Write, attrs=attrs)
 

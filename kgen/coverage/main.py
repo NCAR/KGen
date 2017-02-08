@@ -96,10 +96,10 @@ class Coverage(KGTool):
             #if Config.cmd_clean['cmds']:
             #    kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
-            #out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
-            #if retcode != 0:
-            #    #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
-            #    kgutils.logger.info('Failed to generate coverage information: %s'%err)
+            out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
+            if retcode != 0:
+                #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
+                kgutils.logger.info('Failed to generate coverage information: %s'%err)
 
             kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
