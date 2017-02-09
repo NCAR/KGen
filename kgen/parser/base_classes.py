@@ -961,7 +961,7 @@ class Statement(object):
         if request.state != ResState.RESOLVED:
             if self is request.originator:
                 # check if program units can resolve the request
-                for filepath, units in State.program_units.iteritems():
+                for filepath, units in Config.program_units.iteritems():
                     for unit in units:
                         if any( isinstance(unit, resolver) for resolver in request.resolvers) and \
                             hasattr(unit, 'name') and request.uname.firstpartname()==unit.name:
@@ -981,8 +981,8 @@ class Statement(object):
                                                 _stmt.resolve(req) 
 
                                 # if newly found program unit is not in srcfiles
-                                if not unit in State.srcfiles[self.top.reader.id][2]:
-                                    State.srcfiles[self.top.reader.id][2].append(unit)
+                                if not unit in Config.srcfiles[self.top.reader.id][2]:
+                                    Config.srcfiles[self.top.reader.id][2].append(unit)
                     if request.state==ResState.RESOLVED:
                         break
 

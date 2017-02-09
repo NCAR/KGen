@@ -81,7 +81,9 @@ class Coverage(KGTool):
 
             coverage_paths = Config.plugindb['coverage_paths']
             maxfiles = len(coverage_paths)
-            maxlines = max([ len(lineids) for fileid, lineids in coverage_paths.values() ])
+            maxlines = max( len(lineids) for fileid, lineids in coverage_paths.values() )
+            
+            totallines = { fileid: len(lineids) for fileid, lineids in coverage_paths.values() }
 
             with open(Config.coveragefile, 'w') as fd:
                 fd.write('[file]\n')
@@ -96,10 +98,11 @@ class Coverage(KGTool):
             #if Config.cmd_clean['cmds']:
             #    kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
-            out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
-            if retcode != 0:
-                #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
-                kgutils.logger.info('Failed to generate coverage information: %s'%err)
+            # TEMP
+            #out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
+            #if retcode != 0:
+            #    #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
+            #    kgutils.logger.info('Failed to generate coverage information: %s'%err)
 
             kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
@@ -114,6 +117,7 @@ class Coverage(KGTool):
                 return -1
 
             count = 0
+            blocks = {}
             with open(Config.coveragefile, 'a') as fd:
                 for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
                     with open(data, 'r') as fc:
@@ -121,6 +125,7 @@ class Coverage(KGTool):
                         rank = splitpath[-2]
                         thread = splitpath[-1]
                         for fileid in range(maxfiles):
+                            blocks[fileid] = {}
                             for lineid in range(maxlines):
                                 invoke = fc.read(10).strip()
                                 linenum = get_linenum(fileid, lineid)
@@ -128,11 +133,20 @@ class Coverage(KGTool):
                                     if invoke != '0':
                                         fd.write('%d = %d %d %s %s %s\n'%(count, fileid, get_linenum(fileid, lineid), rank, thread, invoke))
                                         count += 1
+                                        if linenum not in blocks[fileid]:
+                                            blocks[fileid][linenum] = 1
+                                        else:
+                                            blocks[fileid][linenum] += 1
                                 elif invoke != '0':
                                     raise Exception('Coverage data file check failure: %d = %d %d %s %s %s'%\
                                         (count, fileid, get_linenum(fileid, lineid), rank, thread, invoke))
 
             kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
+            kgutils.logger.info('    ***** In this kernel of "%s" *****:'%Config.kernel['name'])
+            kgutils.logger.info('    * %d original source files are used.'%maxfiles)
+            kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%sum(totallines.values()))
+            kgutils.logger.info('    * %d conditional blocks are invoked at least once among all the conditional blocks.'%\
+                sum( len(linenums) for  linenums in blocks.values()) )
 
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
@@ -183,23 +197,34 @@ class Coverage(KGTool):
                 totalinvokes = sum(rankinvokes.values())
 
                 summary[fileid][lineid] = [ \
-                'Total number of invokes: %d'%totalinvokes, \
-                'MPI rank(invokes) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankinvokes.items()]), \
-                'OpenMP thread(invokes) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadinvokes.items()]) ]
+                ';; Total number of invokes: %d'%totalinvokes, \
+                ';; MPI rank(invokes) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankinvokes.items()]), \
+                ';; OpenMP thread(invokes) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadinvokes.items()]) ]
  
         #import pdb; pdb.set_trace()
 
         #open src file
         #add lines
         for fileid, filepath in filemap.items():
+            if fileid not in summary: continue
+
             with open(filepath, 'r') as fsrc:
                 srclines = fsrc.readlines()
-            
+
+            if 'totallines' in locals():
+                filesummary = [ \
+                    ';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;', \
+                    '; %d conditional blocks exist in this file'%totallines[fileid], \
+                    '; %d conditional blokcs are invoked at least once among all the conditional blocks.'%len(blocks[fileid]), \
+                    ';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;' \
+                ]
+                srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
+
             for lineno, invokelines in summary[fileid].items():
                 srclines[lineno] = '%s\n%s\n'%(srclines[lineno], '\n'.join(invokelines))
 
             with open('%s.coverage'%'.'.join(filepath.split('.')[:-1]), 'w') as fdst:
-                fdst.write('\n'.join(srclines))
+                fdst.write(''.join(srclines))
 
 
         # run app
