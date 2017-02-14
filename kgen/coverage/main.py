@@ -92,17 +92,17 @@ class Coverage(KGTool):
                     fd.write('%d = %s/%s.kgen\n'%(pathnum, os.path.abspath(Config.path['coverage']), os.path.basename(path)))
                 fd.write('\n')
                 fd.write('[data]\n')
-                fd.write('; <item number> = <file number> <line number> <MPI rank> < OpenMP Thread> <number of invocations>\n')
+                fd.write('; <item number> = <file number> <line number> <MPI rank> < OpenMP Thread> <invocation order> <number of visits>\n')
 
             # clean app
-            #if Config.cmd_clean['cmds']:
-            #    kgutils.run_shcmd(Config.cmd_clean['cmds'])
+            if Config.cmd_clean['cmds']:
+                kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
             # TEMP
-            #out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
-            #if retcode != 0:
-            #    #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
-            #    kgutils.logger.info('Failed to generate coverage information: %s'%err)
+            out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
+            if retcode != 0:
+                #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
+                kgutils.logger.info('Failed to generate coverage information: %s'%err)
 
             kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
@@ -122,24 +122,25 @@ class Coverage(KGTool):
                 for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
                     with open(data, 'r') as fc:
                         splitpath = data.split('.')
-                        rank = splitpath[-2]
-                        thread = splitpath[-1]
+                        rank = splitpath[-3]
+                        thread = splitpath[-2]
+                        invoke = splitpath[-1]
                         for fileid in range(maxfiles):
                             blocks[fileid] = {}
                             for lineid in range(maxlines):
-                                invoke = fc.read(10).strip()
+                                visit = fc.read(10).strip()
                                 linenum = get_linenum(fileid, lineid)
                                 if linenum >= 0:
-                                    if invoke != '0':
-                                        fd.write('%d = %d %d %s %s %s\n'%(count, fileid, get_linenum(fileid, lineid), rank, thread, invoke))
+                                    if visit != '0':
+                                        fd.write('%d = %d %d %s %s %s %s\n'%(count, fileid, get_linenum(fileid, lineid), rank, thread, invoke, visit))
                                         count += 1
                                         if linenum not in blocks[fileid]:
                                             blocks[fileid][linenum] = 1
                                         else:
                                             blocks[fileid][linenum] += 1
-                                elif invoke != '0':
-                                    raise Exception('Coverage data file check failure: %d = %d %d %s %s %s'%\
-                                        (count, fileid, get_linenum(fileid, lineid), rank, thread, invoke))
+                                elif visit != '0':
+                                    raise Exception('Coverage data file check failure: %d = %d %d %s %s %s %s'%\
+                                        (count, fileid, get_linenum(fileid, lineid), rank, thread, invoke, visit))
 
             kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
             kgutils.logger.info('    ***** In this kernel of "%s" *****:'%Config.kernel['name'])
@@ -163,43 +164,46 @@ class Coverage(KGTool):
         for opt in cfg.options('file'):
             filemap[int(opt)] = cfg.get('file', opt) 
 
-        invokes = {} # fileid, lineno, rank, thread, no. of invokes
+        visits = {} # fileid, lineno, rank, thread, invoke, no. of visits
         for opt in cfg.options('data'):
 
-            fileid, lineno, rank, thread, num_invokes = tuple( int(num) for num in cfg.get('data', opt).split() )
+            fileid, lineno, rank, thread, invoke, num_visits = tuple( int(num) for num in cfg.get('data', opt).split() )
             lineno -= 1
 
-            if fileid not in invokes:
-                invokes[fileid] = {}
-            if lineno not in invokes[fileid]:
-                invokes[fileid][lineno] = {}
-            if rank not in invokes[fileid][lineno]:
-                invokes[fileid][lineno][rank] = {}
-            if thread not in invokes[fileid][lineno][rank]:
-                invokes[fileid][lineno][rank][thread] = num_invokes
+            if fileid not in visits:
+                visits[fileid] = {}
+            if lineno not in visits[fileid]:
+                visits[fileid][lineno] = {}
+            if rank not in visits[fileid][lineno]:
+                visits[fileid][lineno][rank] = {}
+            if thread not in visits[fileid][lineno][rank]:
+                visits[fileid][lineno][rank][thread] = num_visits
+            if invoke not in visits[fileid][lineno][rank][thread]:
+                visits[fileid][lineno][rank][thread][invoke] = num_visits
             else:
-                raise Exception('Dupulicated invokes: %s'%cfg.get('data', opt))
+                raise Exception('Dupulicated visits: %s'%cfg.get('data', opt))
 
         summary = {}
-        for fileid, lines in invokes.items():
+        for fileid, lines in visits.items():
             summary[fileid] = {}
             for lineid, ranks in lines.items():
                
-                rankinvokes = {}
-                threadinvokes = {}
+                rankvisits = {}
+                threadvisits = {}
                 for rank, threads in ranks.items(): 
-                    rankinvokes[rank] = sum(threads.values())
-                    for thread, invokes in threads.items():
-                        if thread in threadinvokes:
-                            threadinvokes[thread] += invokes
+                    #rankvisits[rank] = sum(threads.values())
+                    rankvisits[rank] = sum( [ sum(invokes1.values()) for invokes1 in threads.values() ] )
+                    for thread, invokes2 in threads.items():
+                        if thread in threadvisits:
+                            threadvisits[thread] += sum(invokes2.values())
                         else:
-                            threadinvokes[thread] = invokes
-                totalinvokes = sum(rankinvokes.values())
+                            threadvisits[thread] = sum(invokes2.values())
+                totalvisits = sum(rankvisits.values())
 
                 summary[fileid][lineid] = [ \
-                ';; Total number of invokes: %d'%totalinvokes, \
-                ';; MPI rank(invokes) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankinvokes.items()]), \
-                ';; OpenMP thread(invokes) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadinvokes.items()]) ]
+                ';; Total number of visits: %d'%totalvisits, \
+                ';; MPI rank(visits) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]), \
+                ';; OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]) ]
  
         #import pdb; pdb.set_trace()
 
