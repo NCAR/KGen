@@ -1007,7 +1007,6 @@ class Statement(object):
                         # TODO: check against implicit_rules of parent
                         # TODO: mark implicit resolution in ResState
                     except:
-                        #import pdb; pdb.set_trace()
                         pass
 
                 # if still not resolved, mark it
@@ -1073,7 +1072,7 @@ class BeginStatement(Statement):
         from kgen_utils import pack_exnamepath
         from block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine, Interface, Associate
         from typedecl_statements import TypeDeclarationStatement
-        from statements import External, Use, SpecificBinding
+        from statements import External, Use, SpecificBinding, Call
         from api import walk
         from block_statements import SubProgramStatement
 
@@ -1209,6 +1208,46 @@ class BeginStatement(Statement):
                         for unk, req in typedecl_stmt.unknowns.iteritems():
                             if req.state != ResState.RESOLVED:
                                 typedecl_stmt.resolve(req) 
+
+            # check if an interface block in a module can resolve
+            if request.state != ResState.RESOLVED and isinstance(request.originator, Call) and \
+                hasattr(self.a, 'module_interface') and Interface in request.resolvers:
+                for if_obj in self.a.module_interface:
+                    for item in if_obj.content:
+                        if item.__class__ in [ Function, Subroutine ] and request.uname.firstpartname()==item.name:
+                            Logger.info('The request is being resolved by a Subprogram in an interface', name=request.uname, stmt=self)
+                            request.res_stmts.append(item)
+                            request.state = ResState.RESOLVED
+                            item.add_geninfo(request.uname, request)
+                            self.check_spec_stmts(request.uname, request)
+                            Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=item)
+                            for _stmt, _depth in walk(item, -1):
+                                if not hasattr(_stmt, 'unknowns'):
+                                    f2003_search_unknowns(_stmt, _stmt.f2003)
+                                if hasattr(_stmt, 'unknowns'):
+                                    for unk, req in _stmt.unknowns.iteritems():
+                                        if req.state != ResState.RESOLVED:
+                                            _stmt.resolve(req) 
+
+            # check if an interface block in a subprogram can resolve
+            if request.state != ResState.RESOLVED and isinstance(request.originator, Call) and \
+                hasattr(self.a, 'subprogram_interface') and Interface in request.resolvers:
+                for if_obj in self.a.subprogram_interface:
+                    for item in if_obj.content:
+                        if item.__class__ in [ Function, Subroutine ] and request.uname.firstpartname()==item.name:
+                            Logger.info('The request is being resolved by a Subprogram in an interface', name=request.uname, stmt=self)
+                            request.res_stmts.append(item)
+                            request.state = ResState.RESOLVED
+                            item.add_geninfo(request.uname, request)
+                            self.check_spec_stmts(request.uname, request)
+                            Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=item)
+                            for _stmt, _depth in walk(item, -1):
+                                if not hasattr(_stmt, 'unknowns'):
+                                    f2003_search_unknowns(_stmt, _stmt.f2003)
+                                if hasattr(_stmt, 'unknowns'):
+                                    for unk, req in _stmt.unknowns.iteritems():
+                                        if req.state != ResState.RESOLVED:
+                                            _stmt.resolve(req) 
 
             # check if a common statement can resolve
             #if request.state != ResState.RESOLVED and hasattr(self.a, 'common_stmts') and \

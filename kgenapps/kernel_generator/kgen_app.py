@@ -95,6 +95,8 @@ def main():
             compflag_argv.append('--build')
             compflag_argv.append('cwd="%s",clean="%s"'%(opts.outdir, opts.cmd_clean))
             outdir = opts.outdir
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
         else:
             kext_argv.append('--outdir')
             kext_argv.append(os.getcwd())
