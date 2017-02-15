@@ -94,6 +94,9 @@ class Coverage(KGTool):
                 fd.write('[data]\n')
                 fd.write('; <item number> = <file number> <line number> <MPI rank> < OpenMP Thread> <invocation order> <number of visits>\n')
 
+            TODO: generates coverage data files per srcfile-lineno pairs
+            then instrumentation keep append(MPI-OpenMP-Invocation) tripples in binary
+
             # clean app
             if Config.cmd_clean['cmds']:
                 kgutils.run_shcmd(Config.cmd_clean['cmds'])
