@@ -79,23 +79,20 @@ class Coverage(KGTool):
 
             kgutils.logger.info('Instrumentation for coverage is generated at %s.'%os.path.abspath(Config.path['coverage']))
 
-            coverage_paths = Config.plugindb['coverage_paths']
-            maxfiles = len(coverage_paths)
-            maxlines = max( len(lineids) for fileid, lineids in coverage_paths.values() )
-            
-            totallines = { fileid: len(lineids) for fileid, lineids in coverage_paths.values() }
+#            with open(Config.coveragefile, 'w') as fd:
+#                fd.write('[file]\n')
+#                fd.write('; <file number> = <path to file>\n')
+#                for path, (pathnum, lines) in coverage_paths.items():
+#                    fd.write('%d = %s/%s.kgen\n'%(pathnum, os.path.abspath(Config.path['coverage']), os.path.basename(path)))
+#                fd.write('\n')
+#                fd.write('[data]\n')
+#                fd.write('; <item number> = <file number> <line number> <MPI rank> < OpenMP Thread> <invocation order> <timestamp of visit>\n')
 
-            with open(Config.coveragefile, 'w') as fd:
-                fd.write('[file]\n')
-                fd.write('; <file number> = <path to file>\n')
-                for path, (pathnum, lines) in coverage_paths.items():
-                    fd.write('%d = %s/%s.kgen\n'%(pathnum, os.path.abspath(Config.path['coverage']), os.path.basename(path)))
-                fd.write('\n')
-                fd.write('[data]\n')
-                fd.write('; <item number> = <file number> <line number> <MPI rank> < OpenMP Thread> <invocation order> <number of visits>\n')
+            #TODO: generates coverage data files per srcfile-lineno pairs
+            #then instrumentation keep append(MPI-OpenMP-Invocation) tripples in binary
 
-            TODO: generates coverage data files per srcfile-lineno pairs
-            then instrumentation keep append(MPI-OpenMP-Invocation) tripples in binary
+            # TODO: wait until coverage data generation is completed
+            # use -K option fir bsub to wait for job completion
 
             # clean app
             if Config.cmd_clean['cmds']:
@@ -109,130 +106,134 @@ class Coverage(KGTool):
 
             kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
-            # TODO: wait until coverage data generation is completed
-            # use -K option fir bsub to wait for job completion
-
-            def get_linenum(fileid, lineid):
-                for path, (pathnum, lines) in coverage_paths.items():
-                    if fileid != pathnum: continue
-                    for linenum, lid in lines.items():
-                        if lid == lineid: return linenum
-                return -1
-
-            count = 0
-            blocks = {}
-            with open(Config.coveragefile, 'a') as fd:
-                for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
-                    with open(data, 'r') as fc:
-                        splitpath = data.split('.')
-                        rank = splitpath[-3]
-                        thread = splitpath[-2]
-                        invoke = splitpath[-1]
-                        for fileid in range(maxfiles):
-                            blocks[fileid] = {}
-                            for lineid in range(maxlines):
-                                visit = fc.read(10).strip()
-                                linenum = get_linenum(fileid, lineid)
-                                if linenum >= 0:
-                                    if visit != '0':
-                                        fd.write('%d = %d %d %s %s %s %s\n'%(count, fileid, get_linenum(fileid, lineid), rank, thread, invoke, visit))
-                                        count += 1
-                                        if linenum not in blocks[fileid]:
-                                            blocks[fileid][linenum] = 1
-                                        else:
-                                            blocks[fileid][linenum] += 1
-                                elif visit != '0':
-                                    raise Exception('Coverage data file check failure: %d = %d %d %s %s %s %s'%\
-                                        (count, fileid, get_linenum(fileid, lineid), rank, thread, invoke, visit))
-
-            kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
-            kgutils.logger.info('    ***** In this kernel of "%s" *****:'%Config.kernel['name'])
-            kgutils.logger.info('    * %d original source files are used.'%maxfiles)
-            kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%sum(totallines.values()))
-            kgutils.logger.info('    * %d conditional blocks are invoked at least once among all the conditional blocks.'%\
-                sum( len(linenums) for  linenums in blocks.values()) )
-
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
 
-        # generate skeleton source file
+        count = 0
+        visits = {}
+        filemap = {}
+        linemap = {}
+        with open(Config.coveragefile, 'a') as fd:
+            for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
+                with open(data, 'r') as fc:
+                    splitpath = data.split('.')
+                    ranknum = int(splitpath[-3])
+                    fileid = int(splitpath[-2])
+                    lineid = int(splitpath[-1])
+
+                    if fileid not in visits:
+                        visits[fileid] = {}
+                    if lineid not in visits[fileid]:
+                        visits[fileid][lineid] = {}
+                    if ranknum not in visits[fileid][lineid]:
+                        visits[fileid][lineid][ranknum] = {}
+
+                    for idx, line in enumerate(fc):
+                        line = line.replace('\n', '')
+                        if idx == 0:
+                            fpath, linepairs = line.split(' ', 1)
+                            if fileid not in filemap:
+                                filemap[fileid] = fpath
+                            if fileid not in linemap:
+                                linemap[fileid] = {}
+                                for pair in linepairs.split():
+                                    lnum, lid = tuple( int(num) for num in pair.split(':') )
+                                    linemap[fileid][lid] = lnum
+                        else:
+                            linenum = linemap[fileid][lineid]
+                            if linenum < 0:
+                                raise Exception('Coverage data file check failure at %s'%data)
+
+                            visit = line.split()
+                            threadnum, invokenum = tuple(int(num) for num in visit[:2])
+                            timestamp = float(visit[-1])
+
+                            if threadnum not in visits[fileid][lineid][ranknum]:
+                                visits[fileid][lineid][ranknum][threadnum] = {}
+                            if invokenum not in visits[fileid][lineid][ranknum][threadnum]:
+                                visits[fileid][lineid][ranknum][threadnum][invokenum] = [ timestamp ]
+                            else:
+                                visits[fileid][lineid][ranknum][threadnum][invokenum].append(timestamp)
+
+        kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
+        kgutils.logger.info('    ***** In this kernel of "%s" *****:'%Config.kernel['name'])
+        kgutils.logger.info('    * %d original source files are used.'%len(visits))
+        kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%sum( len(lines) for lines in linemap.values() ) )
+        kgutils.logger.info('    * %d conditional blocks are invoked at least once among all the conditional visits.'%\
+            sum( len(lineids) for  lineids in visits.values()) )
 
         # read ini file
         #configparser.ConfigParser
-        cfg = configparser.ConfigParser()
-        cfg.optionxform = str
-        cfg.read(Config.coveragefile)
+#        cfg = configparser.ConfigParser()
+#        cfg.optionxform = str
+#        cfg.read(Config.coveragefile)
+#
+#        filemap = {}
+#        for opt in cfg.options('file'):
+#            filemap[int(opt)] = cfg.get('file', opt) 
+#
+#        visits = {} # fileid, lineno, rank, thread, invoke, no. of visits
+#        for opt in cfg.options('data'):
+#
+#            visit = cfg.get('data', opt).split()
+#            fileid, linenum, ranknum, threadnum, invokenum = tuple( int(num) for num in visit[:5] )
+#            timestamp = float(visit[-1])
+#            linenum -= 1
+#
+#            if fileid not in visits:
+#                visits[fileid] = {}
+#            if linenum not in visits[fileid]:
+#                visits[fileid][linenum] = {}
+#            if ranknum not in visits[fileid][linenum]:
+#                visits[fileid][linenum][ranknum] = {}
+#            if threadnum not in visits[fileid][linenum][ranknum]:
+#                visits[fileid][linenum][ranknum][threadnum] = {}
+#            if invokenum not in visits[fileid][linenum][ranknum][threadnum]:
+#                visits[fileid][linenum][ranknum][threadnum][invokenum] = [ timestamp ]
+#            else:
+#                visits[fileid][linenum][ranknum][threadnum][invokenum].append(timestamp)
 
-        filemap = {}
-        for opt in cfg.options('file'):
-            filemap[int(opt)] = cfg.get('file', opt) 
 
-        visits = {} # fileid, lineno, rank, thread, invoke, no. of visits
-        for opt in cfg.options('data'):
 
-            fileid, lineno, rank, thread, invoke, num_visits = tuple( int(num) for num in cfg.get('data', opt).split() )
-            lineno -= 1
-
-            if fileid not in visits:
-                visits[fileid] = {}
-            if lineno not in visits[fileid]:
-                visits[fileid][lineno] = {}
-            if rank not in visits[fileid][lineno]:
-                visits[fileid][lineno][rank] = {}
-            if thread not in visits[fileid][lineno][rank]:
-                visits[fileid][lineno][rank][thread] = num_visits
-            if invoke not in visits[fileid][lineno][rank][thread]:
-                visits[fileid][lineno][rank][thread][invoke] = num_visits
-            else:
-                raise Exception('Dupulicated visits: %s'%cfg.get('data', opt))
-
-        summary = {}
         for fileid, lines in visits.items():
-            summary[fileid] = {}
+            visitinfo = {}
             for lineid, ranks in lines.items():
-               
                 rankvisits = {}
                 threadvisits = {}
                 for rank, threads in ranks.items(): 
-                    #rankvisits[rank] = sum(threads.values())
-                    rankvisits[rank] = sum( [ sum(invokes1.values()) for invokes1 in threads.values() ] )
-                    for thread, invokes2 in threads.items():
-                        if thread in threadvisits:
-                            threadvisits[thread] += sum(invokes2.values())
+                    rankvisits[rank] = sum( [ sum( len(ts) for ts in ivk.values()) for ivk in threads.values() ] )
+                    for tid, ivk in threads.items():
+                        if tid in threadvisits:
+                            threadvisits[tid] += sum(len(ts) for ts in ivk.values())
                         else:
-                            threadvisits[thread] = sum(invokes2.values())
+                            threadvisits[tid] = sum(len(ts) for ts in ivk.values())
                 totalvisits = sum(rankvisits.values())
 
-                summary[fileid][lineid] = [ \
-                ';; Total number of visits: %d'%totalvisits, \
-                ';; MPI rank(visits) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]), \
-                ';; OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]) ]
- 
-        #import pdb; pdb.set_trace()
+                visitinfo[lineid] = [ \
+                '!! Total number of visits: %d'%totalvisits, \
+                '!! MPI rank(visits) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]), \
+                '!! OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]) ]
 
-        #open src file
-        #add lines
-        for fileid, filepath in filemap.items():
-            if fileid not in summary: continue
-
-            with open(filepath, 'r') as fsrc:
+            basefile = '%s/%s.kgen'%(os.path.abspath(Config.path['coverage']), os.path.basename(filemap[fileid]))
+            with open(basefile, 'r') as fsrc:
                 srclines = fsrc.readlines()
 
-            if 'totallines' in locals():
-                filesummary = [ \
-                    ';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;', \
-                    '; %d conditional blocks exist in this file'%totallines[fileid], \
-                    '; %d conditional blokcs are invoked at least once among all the conditional blocks.'%len(blocks[fileid]), \
-                    ';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;' \
-                ]
-                srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
+            filesummary = [ \
+                '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
+                '! %d conditional blocks exist in this file'%len(linemap[fileid]), \
+                '! %d conditional blokcs are invoked at least once among all the conditional blocks.'%len(lines), \
+                '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' \
+            ]
+            srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
 
-            for lineno, invokelines in summary[fileid].items():
-                srclines[lineno] = '%s\n%s\n'%(srclines[lineno], '\n'.join(invokelines))
+            for lineid, linesummary in visitinfo.items():
+                srclines[linemap[fileid][lineid]] = '%s\n%s\n'%(srclines[linemap[fileid][lineid]], '\n'.join(linesummary))
 
-            with open('%s.coverage'%'.'.join(filepath.split('.')[:-1]), 'w') as fdst:
+            coveragefile = '%s/%s.coverage'%(os.path.abspath(Config.path['coverage']), os.path.basename(filemap[fileid]))
+            with open(coveragefile, 'w') as fdst:
                 fdst.write(''.join(srclines))
 
+        #import pdb; pdb.set_trace()
 
         # run app
         #if Config.cmd_run['cmds']:
