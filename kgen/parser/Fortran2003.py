@@ -1985,7 +1985,7 @@ class Binding_Attr(STRINGBase): # R453
     """
     subclass_names = ['Access_Spec', 'Binding_PASS_Arg_Name']
     #def match(string): return STRINGBase.match(['PASS', 'NOPASS', 'NON_OVERRIDABLE'], string) # KGEN deletion
-    def match(string): return STRINGBase.match(['POINTER', 'PASS', 'NOPASS', 'NON_OVERRIDABLE'], string) # KGEN addition
+    def match(string): return STRINGBase.match(['DEFERRED', 'POINTER', 'PASS', 'NOPASS', 'NON_OVERRIDABLE'], string) # KGEN addition
     match = staticmethod(match)
 
 class Final_Binding(StmtBase, WORDClsBase): # R454

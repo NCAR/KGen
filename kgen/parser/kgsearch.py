@@ -1087,10 +1087,11 @@ def search_Specific_Binding(stmt, node, gentype=None):
     """ Identifying a name in Specific_Binding node"""
     get_name_or_defer(stmt, node.items[0], res_typespec + [ Interface ])
     get_name_or_defer(stmt, node.items[1], res_value)
-    if node.items[3] is None:
-        get_name_or_defer(stmt, node.items[2], res_subprogram)
-    else:
-        get_name_or_defer(stmt, node.items[3], res_subprogram)
+    if not hasattr(node.items[1], 'string') or 'DEFERRED' not in node.items[1].string:
+        if node.items[3] is None:
+            get_name_or_defer(stmt, node.items[2], res_subprogram)
+        else:
+            get_name_or_defer(stmt, node.items[3], res_subprogram)
 
 def search_Binding_Attr(stmt, node, gentype=None):
     """ Identifying a name in Binding_Attr node"""
@@ -1148,4 +1149,9 @@ def search_Stmt_Function_Stmt(stmt, node, gentype=None):
     get_name_or_defer(stmt, node.items[0], res_typedecl)
     #show_tree(node)
     #import pdb ;pdb.set_trace()
+    pass
+
+def search_Language_Binding_Spec(stmt, node, gentype=None):
+    """ Identifying a name in Language_Binding_Spec node"""
+    # No need to resolve exteranl c library routines
     pass

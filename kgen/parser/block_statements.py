@@ -643,7 +643,8 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
             var = self.parent.a.variables.pop(self.name)
             self.update_attributes(var.attributes)
 
-        if isinstance(self.parent, Module):#XXX
+        #if isinstance(self.parent, Module):# KGEN deletion
+        if isinstance(self.parent, ( SubProgramStatement, Module )): # KGEN addition
             parent_interface = self.parent.get_interface()
             # start of KGEN deletion
 #            if self.name in parent_interface:
@@ -678,7 +679,8 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
     [ <prefix> ] <FUNCTION|SUBROUTINE> <name> [ ( <args> ) ] [ <suffix> ]
     """
 
-    a = AttributeHolder(internal_subprogram = {})
+    #a = AttributeHolder(internal_subprogram = {}) # KGEN deletion
+    a = AttributeHolder(internal_subprogram = {}, subprogram_interface = []) # KGEN addition
     known_attributes = ['RECURSIVE', 'PURE', 'ELEMENTAL']
 
 
@@ -731,6 +733,11 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
 
         return construct_name + '%s %s(%s)%s' % (s, self.name,', '.join(args),suf) 
 
+    def get_interface(self):
+        return self.a.subprogram_interface
+
+    # end of KGEN
+
     def process_item(self):
         clsname = self.__class__.__name__.lower()
         item = self.item
@@ -758,7 +765,8 @@ class SubProgramStatement(BeginStatement, ProgramBlock,
             self.result, suffix = parse_result(suffix, item)
             if suffix:
                 assert self.bind is None,`self.bind`
-                self.bind, suffix = parse_result(suffix, item)
+                #self.bind, suffix = parse_result(suffix, item) # KGEN deletion
+                self.bind, suffix = parse_bind(suffix, item) # KGEN addition
             if self.result is None:
                 self.result = self.name
         assert not suffix,`suffix`
