@@ -342,7 +342,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             part_append_gensnode(ifopen, EXEC_PART, statements.Open, attrs=attrs)
 
             #attrs = {'specs': [ 'UNIT=myunit', 'FMT="(A,A,A)"' ], 'items': [ '"%s"'%self.get_filepath(fileid), '" "', '"%s"'%' '.join(self.get_linepairs(fileid)) ]}
-            attrs = {'specs': [ 'UNIT=myunit', 'FMT="(A)"' ], 'items': [ 'headlines(fileid)']}
+            attrs = {'specs': [ 'UNIT=myunit', 'FMT="(A)"' ], 'items': [ 'TRIM(ADJUSTL(headlines(fileid)))']}
             part_append_gensnode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'specs': ['UNIT=myunit', 'OPENED=isopen']}
@@ -387,7 +387,7 @@ class Gen_Coverage_File(Kgen_Plugin):
                 'STATUS="REPLACE"', 'ACCESS="APPEND"', 'FORM="FORMATTED"', 'ACTION="WRITE"','IOSTAT=ierror']}
             part_append_gensnode(ifopen, EXEC_PART, statements.Open, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=myunit', 'FMT="(A)"' ], 'items': [ 'headlines(fileid)']}
+            attrs = {'specs': [ 'UNIT=myunit', 'FMT="(A)"' ], 'items': [ 'TRIM(ADJUSTL(headlines(fileid)))']}
             #attrs = {'specs': [ 'UNIT=myunit', 'FMT="(A,A,A)"' ], 'items': [ '"%s"'%self.get_filepath(fileid), '" "', '"%s"'%' '.join(self.get_linepairs(fileid)) ]}
             part_append_gensnode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
 
