@@ -32,7 +32,7 @@ class Coverage(KGTool):
             os.makedirs(Config.path['coverage'])
 
         # build app with instrumntation
-        if not os.path.exists(Config.coveragefile) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
+        if True or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
 
             # generate instrumentation
             for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
@@ -113,47 +113,46 @@ class Coverage(KGTool):
         visits = {}
         filemap = {}
         linemap = {}
-        with open(Config.coveragefile, 'a') as fd:
-            for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
-                with open(data, 'r') as fc:
-                    splitpath = data.split('.')
-                    ranknum = int(splitpath[-3])
-                    fileid = int(splitpath[-2])
-                    lineid = int(splitpath[-1])
+        for data in glob.glob('%s/coverage.data*'%Config.path['coverage']):
+            with open(data, 'r') as fc:
+                splitpath = data.split('.')
+                ranknum = int(splitpath[-3])
+                fileid = int(splitpath[-2])
+                lineid = int(splitpath[-1])
 
-                    if fileid not in visits:
-                        visits[fileid] = {}
-                    if lineid not in visits[fileid]:
-                        visits[fileid][lineid] = {}
-                    if ranknum not in visits[fileid][lineid]:
-                        visits[fileid][lineid][ranknum] = {}
+                if fileid not in visits:
+                    visits[fileid] = {}
+                if lineid not in visits[fileid]:
+                    visits[fileid][lineid] = {}
+                if ranknum not in visits[fileid][lineid]:
+                    visits[fileid][lineid][ranknum] = {}
 
-                    for idx, line in enumerate(fc):
-                        line = line.replace('\n', '')
-                        if idx == 0:
-                            fpath, linepairs = line.split(' ', 1)
-                            if fileid not in filemap:
-                                filemap[fileid] = fpath
-                            if fileid not in linemap:
-                                linemap[fileid] = {}
-                                for pair in linepairs.split():
-                                    lnum, lid = tuple( int(num) for num in pair.split(':') )
-                                    linemap[fileid][lid] = lnum
+                for idx, line in enumerate(fc):
+                    line = line.replace('\n', '')
+                    if idx == 0:
+                        fpath, linepairs = line.split(' ', 1)
+                        if fileid not in filemap:
+                            filemap[fileid] = fpath
+                        if fileid not in linemap:
+                            linemap[fileid] = {}
+                            for pair in linepairs.split():
+                                lnum, lid = tuple( int(num) for num in pair.split(':') )
+                                linemap[fileid][lid] = lnum
+                    else:
+                        linenum = linemap[fileid][lineid]
+                        if linenum < 0:
+                            raise Exception('Coverage data file check failure at %s'%data)
+
+                        visit = line.split()
+                        threadnum, invokenum = tuple(int(num) for num in visit[:2])
+                        timestamp = float(visit[-1])
+
+                        if threadnum not in visits[fileid][lineid][ranknum]:
+                            visits[fileid][lineid][ranknum][threadnum] = {}
+                        if invokenum not in visits[fileid][lineid][ranknum][threadnum]:
+                            visits[fileid][lineid][ranknum][threadnum][invokenum] = [ timestamp ]
                         else:
-                            linenum = linemap[fileid][lineid]
-                            if linenum < 0:
-                                raise Exception('Coverage data file check failure at %s'%data)
-
-                            visit = line.split()
-                            threadnum, invokenum = tuple(int(num) for num in visit[:2])
-                            timestamp = float(visit[-1])
-
-                            if threadnum not in visits[fileid][lineid][ranknum]:
-                                visits[fileid][lineid][ranknum][threadnum] = {}
-                            if invokenum not in visits[fileid][lineid][ranknum][threadnum]:
-                                visits[fileid][lineid][ranknum][threadnum][invokenum] = [ timestamp ]
-                            else:
-                                visits[fileid][lineid][ranknum][threadnum][invokenum].append(timestamp)
+                            visits[fileid][lineid][ranknum][threadnum][invokenum].append(timestamp)
 
         kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
         kgutils.logger.info('    ***** In this kernel of "%s" *****:'%Config.kernel['name'])
@@ -162,6 +161,7 @@ class Coverage(KGTool):
         kgutils.logger.info('    * %d conditional blocks are invoked at least once among all the conditional visits.'%\
             sum( len(lineids) for  lineids in visits.values()) )
 
+        #import pdb; pdb.set_trace()
         # read ini file
         #configparser.ConfigParser
 #        cfg = configparser.ConfigParser()
@@ -210,9 +210,11 @@ class Coverage(KGTool):
                 totalvisits = sum(rankvisits.values())
 
                 visitinfo[lineid] = [ \
+                '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
                 '!! Total number of visits: %d'%totalvisits, \
-                '!! MPI rank(visits) : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]), \
-                '!! OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]) ]
+                '!! MPI rank(visits)      : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]), \
+                '!! OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]), \
+                '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' ]
 
             basefile = '%s/%s.kgen'%(os.path.abspath(Config.path['coverage']), os.path.basename(filemap[fileid]))
             with open(basefile, 'r') as fsrc:
@@ -220,14 +222,14 @@ class Coverage(KGTool):
 
             filesummary = [ \
                 '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
-                '! %d conditional blocks exist in this file'%len(linemap[fileid]), \
-                '! %d conditional blokcs are invoked at least once among all the conditional blocks.'%len(lines), \
+                '!! %d conditional blocks exist in this file'%len(linemap[fileid]), \
+                '!! %d conditional blokcs are invoked at least once among all the conditional blocks.'%len(lines), \
                 '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' \
             ]
             srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
 
             for lineid, linesummary in visitinfo.items():
-                srclines[linemap[fileid][lineid]] = '%s\n%s\n'%(srclines[linemap[fileid][lineid]], '\n'.join(linesummary))
+                srclines[linemap[fileid][lineid]-1] = '%s%s\n'%(srclines[linemap[fileid][lineid]-1], '\n'.join(linesummary))
 
             coveragefile = '%s/%s.coverage'%(os.path.abspath(Config.path['coverage']), os.path.basename(filemap[fileid]))
             with open(coveragefile, 'w') as fdst:
