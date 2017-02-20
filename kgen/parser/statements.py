@@ -41,6 +41,7 @@ from utils import classes
 # start of KGEN addition
 import Fortran2003
 from kgutils import traverse, pack_innamepath, ProgramException, UserException
+from kgconfig import Config
 import logging
 logger = logging.getLogger('kgen')
 
@@ -786,10 +787,12 @@ class Allocate(Statement):
                     stmt = cls(self, item2.copy(spec))
                     if stmt.isvalid:
                         break
-            if stmt is not None and stmt.isvalid:
-                spec = stmt
-            else:
-                self.warning('TODO: unparsed type-spec' + `spec`)
+            # start of KGEN deletion
+#            if stmt is not None and stmt.isvalid:
+#                spec = stmt
+#            else:
+#                self.warning('TODO: unparsed type-spec' + `spec`)
+            # end of KGEN deletion
             line2 = line2[i+2:].lstrip()
         else:
             spec = None
@@ -2733,6 +2736,88 @@ class Case(Statement):
             s += ' ' + self.name
         return s
     # end of KGEN addition
+
+# start of KGEN addition
+
+# SelectType construct statements
+
+    <type-guard-stmt> = TYPE IS ( <type-spec> ) [ <select-construct-name> ]
+                        | CLASS IS ( <type-spec> ) [ <select-construct-name> ]
+                        | CLASS DEFAULT [ <select-construct-name> ]
+
+class TypeGuard(Statement):
+    """
+    TYPE IS ( <type-spec> ) [ <select-constract-name> ]
+    CLASS IS ( <type-spec> ) [ <select-constract-name> ]
+    CLASS DEFAULT [ <select-constract-name> ]
+
+    <type-spec> = <intrinsic-type-spec>
+                  | <derived-type-spec>
+    """
+
+    f2003_class = Fortran2003.Type_Guard_Stmt # KGEN addition
+
+    match = re.compile(r'(type|class)\b\s*(is\*\(.*\)|DEFAULT)\s*\w*\Z',re.I).match
+    def process_item(self):
+        #assert self.parent.__class__.__name__=='Select',`self.parent.__class__`
+        line = self.item.get_line().lstrip()
+        if line.startswith('type'):
+            line = line[4:].lstrip()
+            assert line[:2] == 'is'
+           
+            line = line[2:].lstrip()
+            assert line[0] == '('
+            i = line.find(')')
+            self.typespec = line[1:i]
+            line = line[i+1:].lstrip() 
+            self.guard = 'type is'
+        elif line.startswith('class'):
+            line = line[5:].lstrip()
+
+            if line[:2] == 'is':
+                line = line[2:].lstrip()
+                assert line[0] == '('
+                i = line.find(')')
+                self.typespec = line[1:i]
+                line = line[i+1:].lstrip() 
+                self.guard = 'class is'
+
+            elif line[:7]: == 'default':
+                self.typespec = None
+                line = line[7:].lstrip()
+                self.guard = 'class default'
+            else:
+                raise
+
+        self.name = line
+
+        parent_name = getattr(self.parent, 'name', '')
+        if self.name and self.name!=parent_name:
+            self.warning('expected select-construct-name %r but got %r, skipping.'\
+                         % (parent_name, self.name))
+            self.isvalid = False
+        return
+
+    def tofortran(self, isfix=None):
+        tab = self.get_indent_tab(isfix=isfix)
+        s = self.guard
+        if self.typespec:
+            s += '( %s )'%self.typespec
+        if self.name:
+            s += ' ' + self.name
+        return s
+
+    def analyze(self): return
+
+    def tokgen(self):
+        s = self.guard
+        if self.typespec:
+            s += '( %s )'%self.typespec
+        if self.name:
+            s += ' ' + self.name
+        return s
+
+# end of KGEN addition
 
 # Where construct statements
 

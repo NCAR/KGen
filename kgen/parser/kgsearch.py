@@ -185,15 +185,15 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
                     not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
                     not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
                     logger.debug('Intrinsic procedure name of "%s" is used for name resolution'% \
-                        (node.string.lower()), stdout=True)
-                    logger.debug('\tnear "%s"'% stmt.item.line, stdout=True)
-                    logger.debug('\tin %s'% stmt.reader.id, stdout=True)
+                        (node.string.lower()))
+                    logger.debug('\tnear "%s"'% stmt.item.line)
+                    logger.debug('\tin %s'% stmt.reader.id)
                 else:
                     #if node.string.lower()!='null':
                     #    logger.debug('Intrinsic procedure name of "%s" is skipped from name resolution'% \
-                    #        (node.string.lower()), stdout=True)
-                    #logger.debug('\tnear "%s"'% stmt.item.line, stdout=True)
-                    #logger.debug('\tin %s'% stmt.reader.id, stdout=True)
+                    #        (node.string.lower()))
+                    #logger.debug('\tnear "%s"'% stmt.item.line)
+                    #logger.debug('\tin %s'% stmt.reader.id)
                     return
     
             elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
@@ -201,16 +201,16 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
                     not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
                     not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
                     #logger.debug('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
-                    #    (node.string.lower()), stdout=True)
-                    #logger.debug('\tnear "%s"'% stmt.item.line, stdout=True)
-                    #logger.debug('\tin %s'% stmt.reader.id, stdout=True)
+                    #    (node.string.lower()))
+                    #logger.debug('\tnear "%s"'% stmt.item.line)
+                    #logger.debug('\tin %s'% stmt.reader.id)
                     pass
                 else:
                     if node.string.lower()!='null':
                         logger.debug('Intrinsic procedure name of "%s" is skipped from name resolution'% \
-                            (node.string.lower()), stdout=True)
-                    logger.debug('\tnear "%s"'% stmt.item.line, stdout=True)
-                    logger.debug('\tin %s'% stmt.reader.id, stdout=True)
+                            (node.string.lower()))
+                    logger.debug('\tnear "%s"'% stmt.item.line)
+                    logger.debug('\tin %s'% stmt.reader.id)
                     return
 
         # skip if excluded

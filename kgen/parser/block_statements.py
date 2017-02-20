@@ -11,8 +11,9 @@ Created: May 2006
 -----
 """
 
+           #'Subroutine','Function','Select','WhereConstruct','ForallConstruct', # KGEN deletion
 __all__ = ['BeginSource','Module','PythonModule','Program','BlockData','Interface',
-           'Subroutine','Function','Select','WhereConstruct','ForallConstruct',
+           'Subroutine','Function','SelectCase','SelectType', 'WhereConstruct','ForallConstruct', # KGEN addition
            'IfThen','If','Do','Associate','TypeDecl','Enum',
            'EndSource','EndModule','EndPythonModule','EndProgram','EndBlockData','EndInterface',
            'EndSubroutine','EndFunction','EndSelect','EndWhere','EndForall',
@@ -999,7 +1000,8 @@ class EndSelect(EndStatement):
     match = re.compile(r'end\s*select\s*\w*\Z', re.I).match
     blocktype = 'select'
 
-class Select(BeginStatement):
+#class Select(BeginStatement): # KGEN deletion
+class SelectCase(BeginStatement): # KGEN addition
     """
     [ <case-construct-name> : ] SELECT CASE ( <case-expr> )
 
@@ -1018,6 +1020,31 @@ class Select(BeginStatement):
 
     def get_classes(self):
         return [Case] + execution_part_construct
+
+# start of KGEN addition
+# SelectType
+
+class SelectType(BeginStatement):
+    """
+    [ <select-construct-name> : ] SELECT TYPE ( [ <associate-name> => ] <selector> )
+
+    """
+    f2003_class = Fortran2003.Select_Type_Stmt
+
+    match = re.compile(r'select\s*type\s*\(.*\)\Z',re.I).match
+    end_stmt_cls = EndSelect
+    name = ''
+    def tostr(self):
+        return 'SELECT TYPE ( %s )' % (self.expr)
+    def process_item(self):
+        self.expr = self.item.get_line()[6:].lstrip()[4:].lstrip()[1:-1].strip()
+        self.construct_name = self.item.name
+        return BeginStatement.process_item(self)
+
+    def get_classes(self):
+        return [TypeGuard] + execution_part_construct
+
+# end of KGEN addition
 
 # Where
 
@@ -1544,8 +1571,8 @@ proc_binding_stmt = [SpecificBinding, GenericBinding, FinalBinding]
 
 type_bound_procedure_part = [Contains, Private] + proc_binding_stmt
 
-kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf, Case, ElseWhere, \
-    Read0, Read1 ]# KGEN addition
+kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf, Case, TypeGuard\
+    ElseWhere, Read0, Read1 ]# KGEN addition
 
 #R214
 action_stmt = [ Allocate, GeneralAssignment, Assign, Backspace, Call, Close,
@@ -1558,8 +1585,9 @@ action_stmt = [ Allocate, GeneralAssignment, Assign, Backspace, Call, Close,
 # EndFunction, EndProgram, EndSubroutine - part of the corresponding blocks
 
 #executable_construct = [ Associate, Do, ForallConstruct, IfThen, # KGEN deletion
+#    Select, WhereConstruct ] + action_stmt # KGEN deletion
 executable_construct = [ Associate, Do, ForallStmt, ForallConstruct, IfThen, # KGEN addition
-    Select, WhereConstruct ] + action_stmt
+    SelectCase, SelectType, WhereConstruct ] + action_stmt # KGEN addition
 #Case, see Select
 
 execution_part_construct = executable_construct + [ Format, Entry,

@@ -16,6 +16,7 @@ import re
 import sys
 import copy
 import logging
+from collections import OrderedDict
 from readfortran import Line, Comment
 #from numpy.distutils.misc_util import yellow_text, red_text # KGEN deletion
 from utils import split_comma, specs_split_comma, is_int_literal_constant
@@ -27,6 +28,7 @@ from utils import classes
 logger = logging.getLogger('kgen')
 
 from kgutils import KGName, ProgramException, traverse
+from kgconfig import Config
 
 class ImplicitRule_Resolver(object):
     def __init__(self, name):
@@ -37,7 +39,6 @@ class ImplicitRule_Resolver(object):
 
     # save names that this self resolved
     def add_geninfo(self, uname, request):
-        from ordereddict import OrderedDict
 
         if uname is None or request is None: return
 
@@ -849,7 +850,6 @@ class Statement(object):
 
     # save names that this self resolved
     def add_geninfo(self, uname, request):
-        from collections import OrderedDict
 
         if uname is None or request is None: return
 
@@ -1214,12 +1214,12 @@ class BeginStatement(Statement):
                 for if_obj in self.a.module_interface:
                     for item in if_obj.content:
                         if item.__class__ in [ Function, Subroutine ] and request.uname.firstpartname()==item.name:
-                            Logger.info('The request is being resolved by a Subprogram in an interface', name=request.uname, stmt=self)
+                            logger.info('The request is being resolved by a Subprogram in an interface')
                             request.res_stmts.append(item)
                             request.state = ResState.RESOLVED
                             item.add_geninfo(request.uname, request)
                             self.check_spec_stmts(request.uname, request)
-                            Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=item)
+                            logger.info('%s is resolved'%request.uname.firstpartname())
                             for _stmt, _depth in walk(item, -1):
                                 if not hasattr(_stmt, 'unknowns'):
                                     f2003_search_unknowns(_stmt, _stmt.f2003)
@@ -1234,12 +1234,12 @@ class BeginStatement(Statement):
                 for if_obj in self.a.subprogram_interface:
                     for item in if_obj.content:
                         if item.__class__ in [ Function, Subroutine ] and request.uname.firstpartname()==item.name:
-                            Logger.info('The request is being resolved by a Subprogram in an interface', name=request.uname, stmt=self)
+                            logger.info('The request is being resolved by a Subprogram in an interface')
                             request.res_stmts.append(item)
                             request.state = ResState.RESOLVED
                             item.add_geninfo(request.uname, request)
                             self.check_spec_stmts(request.uname, request)
-                            Logger.info('%s is resolved'%request.uname.firstpartname(), name=request.uname, stmt=item)
+                            logger.info('%s is resolved'%request.uname.firstpartname())
                             for _stmt, _depth in walk(item, -1):
                                 if not hasattr(_stmt, 'unknowns'):
                                     f2003_search_unknowns(_stmt, _stmt.f2003)

@@ -162,13 +162,6 @@ class Config(object):
         self._attrs['logging'] = collections.OrderedDict()
         self._attrs['logging']['select'] = collections.OrderedDict()
 
-        # callsite parameters
-        self._attrs['callsite'] = collections.OrderedDict()
-        self._attrs['callsite']['filepath'] = ''
-        self._attrs['callsite']['span'] = (-1, -1)
-        self._attrs['callsite']['namepath'] = ''
-#        self._attrs['callsite']['lineafter'] = -1
-
         # external tool parameters
         self._attrs['bin'] = collections.OrderedDict()
         self._attrs['bin']['pp'] = 'cpp'
@@ -285,11 +278,11 @@ class Config(object):
 
         # make prerun parameters
         self._attrs['prerun'] = collections.OrderedDict()
-        self._attrs['prerun']['kernel_build'] = None
-        self._attrs['prerun']['kernel_run'] = None
-        self._attrs['prerun']['clean'] = None
-        self._attrs['prerun']['build'] = None
-        self._attrs['prerun']['run'] = None
+        self._attrs['prerun']['kernel_build'] = ''
+        self._attrs['prerun']['kernel_run'] = ''
+        self._attrs['prerun']['clean'] = ''
+        self._attrs['prerun']['build'] = ''
+        self._attrs['prerun']['run'] = ''
 
         # make rebuild parameters
         self._attrs['rebuild'] = collections.OrderedDict()
@@ -338,6 +331,10 @@ class Config(object):
         self._attrs['kernel']['name'] = None
         self._attrs['callsite'] = collections.OrderedDict()
         self._attrs['callsite']['stmts'] = []
+        self._attrs['callsite']['filepath'] = ''
+        self._attrs['callsite']['span'] = (-1, -1)
+        self._attrs['callsite']['namepath'] = ''
+#        self._attrs['callsite']['lineafter'] = -1
         self._attrs['parentblock'] = collections.OrderedDict()
         self._attrs['parentblock']['stmt'] = None
         self._attrs['topblock'] = collections.OrderedDict()
@@ -372,9 +369,9 @@ class Config(object):
         self.parser.add_option("--prerun", dest="prerun", action='append', type='string', default=None, help="prerun commands")
         self.parser.add_option("--rebuild", dest="rebuild", action='append', type='string', default=None, help="rebuild controls")
         self.parser.add_option("--state-switch", dest="state_switch", action='append', type='string', default=None, help="Specifying how to switch orignal sources with instrumented ones.")
-        self.parser.add_option("--cmd-clean", dest="cmd_clean", action='append', type='string', default=None, help="Clean information to generate makefile")
-        self.parser.add_option("--cmd-build", dest="cmd_build", action='append', type='string', default=None, help="Build information to generate makefile")
-        self.parser.add_option("--cmd-run", dest="cmd_run", action='append', type='string', default=None, help="Run information to generate makefile")
+        self.parser.add_option("--cmd-clean", dest="cmd_clean", action='store', type='string', default=None, help="Clean information to generate makefile")
+        self.parser.add_option("--cmd-build", dest="cmd_build", action='store', type='string', default=None, help="Build information to generate makefile")
+        self.parser.add_option("--cmd-run", dest="cmd_run", action='store', type='string', default=None, help="Run information to generate makefile")
         self.parser.add_option("--kernel-option", dest="kernel_option", action='append', type='string', default=None, help="Specifying kernel compiler and linker options")
         self.parser.add_option("--check", dest="check", action='append', type='string', default=None, help="Kernel correctness check information")
         self.parser.add_option("--verbose", dest="verbose_level", action='store', type='int', default=None, help="Set the verbose level for verification output")
@@ -786,50 +783,14 @@ class Config(object):
                     self._attrs['rebuild'][comp] = True
 
         if opts.cmd_clean:
-            for line in opts.cmd_clean:
-                for clean in line.split(','):
-                    kv = clean.split('=', 1)
-                    if len(kv) == 1:
-                        self._attrs['cmd_clean']['cmds'] = kv[0]
-                    elif len(kv) ==2:
-                        key, value = kv
-                        if key in [ 'cmds' ] :
-                            self._attrs['cmd_clean'][key] = value
-                        else:
-                            raise UserException('Unknown cmd-clean option: %s' % clean)
-                    else:
-                        raise UserException('Wrong syntax: %s' % clean)
+            self._attrs['cmd_clean']['cmds'] = opts.cmd_clean
 
 
         if opts.cmd_build:
-            for line in opts.cmd_build:
-                for build in line.split(','):
-                    kv = build.split('=', 1)
-                    if len(kv) == 1:
-                        self._attrs['cmd_build']['cmds'] = kv[0]
-                    elif len(kv) ==2:
-                        key, value = kv
-                        if key in [ 'cmds' ] :
-                            self._attrs['cmd_build'][key] = value
-                        else:
-                            raise UserException('Unknown cmd-build option: %s' % build)
-                    else:
-                        raise UserException('Wrong syntax: %s' % build)
+            self._attrs['cmd_build']['cmds'] = opts.cmd_build
 
         if opts.cmd_run:
-            for line in opts.cmd_run:
-                for run in line.split(','):
-                    kv = run.split('=', 1)
-                    if len(kv) == 1:
-                        self._attrs['cmd_run']['cmds'] = kv[0]
-                    elif len(kv) ==2:
-                        key, value = kv
-                        if key in [ 'cmds' ] :
-                            self._attrs['cmd_run'][key] = value
-                        else:
-                            raise UserException('Unknown cmd-run option: %s' % run)
-                    else:
-                        raise UserException('Wrong syntax: %s' % run)
+            self._attrs['cmd_run']['cmds'] = opts.cmd_run
 
         if opts.state_switch:
             for line in opts.state_switch:

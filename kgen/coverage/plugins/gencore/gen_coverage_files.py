@@ -268,20 +268,18 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'CHARACTER', 'selector':('10', None), 'entity_decls': ['rankstr']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
-        if getinfo('is_openmp_app'):
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
+            attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'PARAMETER' ], 'entity_decls': \
+                ['unitstart = %d'%random.randrange(100000, 999999)]}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'PARAMETER' ], 'entity_decls': ['unitstart = %d'%random.randrange(100000, 999999)]}
+        if getinfo('is_openmp_app'):
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d)'%(getinfo('openmp_maxthreads')-1) ], 'entity_decls': ['kgen_invokes']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         else:
-            attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'PARAMETER' ], 'entity_decls': ['unitstart = '%random.randrange(100000, 999999)]}
-            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_invokes']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 

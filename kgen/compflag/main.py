@@ -2,6 +2,7 @@
 '''
 
 import os
+import stat
 import kgtool
 import kgutils
 import kgcompiler
@@ -14,6 +15,8 @@ except:
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
 STR_UF = '<unfinished'
+TEMP_SH = '#!/bin/bash\n%s\n%s\n%s\n%s\n'
+SH = '%s/_kgen_compflag_cmdwrapper.sh'
 
 class CompFlag(kgtool.KGTool):
 
@@ -25,9 +28,26 @@ class CompFlag(kgtool.KGTool):
 
         # build app.
         if not os.path.exists(Config.stracefile) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
+
+
+            with open(SH%Config.cwd, 'w') as f:
+                f.write(TEMP_SH%(Config.prerun['clean'], Config.cmd_clean['cmds'], \
+                    Config.prerun['build'], Config.cmd_build['cmds']))
+            st = os.stat(SH%Config.cwd)
+            os.chmod(SH%Config.cwd, st.st_mode | stat.S_IEXEC)
+
             bld_cmd = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%(Config.stracefile, Config.cwd)
             kgutils.logger.info('Creating KGen strace logfile: %s'%Config.stracefile)
-            kgutils.run_shcmd(bld_cmd)
+            try:
+                out, err, retcode = kgutils.run_shcmd(bld_cmd)
+                if retcode != 0 and os.path.exists(Config.stracefile):
+                    os.remove(Config.stracefile)
+                    kgutils.logger.error('%s\n%s'%(err, out))
+            except:
+                if os.path.exists(Config.stracefile):
+                    os.remove(Config.stracefile)
+                kgutils.logger.error('%s\n%s'%(err, out))
+                raise
         else:
             kgutils.logger.info('Reusing KGen strace logfile: %s'%Config.stracefile)
 

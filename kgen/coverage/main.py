@@ -273,12 +273,13 @@ class Coverage(KGTool):
                                 threadvisits[tid] = sum(len(ts) for ts in ivk.values())
                     totalvisits = sum(rankvisits.values())
 
-                    visitinfo[lineid] = [ \
-                    '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
-                    '!! Total number of visits: %d'%totalvisits, \
-                    '!! MPI rank(visits)      : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]), \
-                    '!! OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]), \
-                    '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' ]
+                    visitinfo[lineid] = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
+                        '!! Total number of visits: %d'%totalvisits ]
+                    if Config.mpi['enabled']:
+                        visitinfo[lineid].append('!! MPI rank(visits)      : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]))
+                    if Config.openmp['enabled']:
+                        visitinfo[lineid].append('!! OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]))
+                    visitinfo[lineid].append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
 
                 basefile = '%s/%s.kgen'%(os.path.abspath(Config.path['coverage']), os.path.basename(filemap[fileid]))
                 with open(basefile, 'r') as fsrc:
@@ -390,7 +391,7 @@ class Coverage(KGTool):
         except Exception as e:
             raise Exception('Please check the format of coverage file: %s'%str(e))
 
-        THREASHOLD = 0.9
+        THREASHOLD = 0.99
         THREASHOLD_NUM = int(number_of_condblocks_invoked*THREASHOLD)
         collected = []
         triples = {}

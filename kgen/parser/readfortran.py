@@ -85,6 +85,7 @@ from cStringIO import StringIO
 from sourceinfo import get_source_info, get_source_info_str
 from splitline import String, string_replace_map, splitquote
 from utils import is_name
+from kgconfig import Config
 
 logger = logging.getLogger('kgen')
 

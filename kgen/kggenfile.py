@@ -751,7 +751,7 @@ class Gen_Statement(object):
                 l.append(uname.firstpartname())
         if l:
             output = ' !!! UNRESOLVED !!! %s'%', '.join(l)
-            Logger.warn(output, stmt=stmt)
+            logger.warn(output)
             return output
         else: return ''
 
