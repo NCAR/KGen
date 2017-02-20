@@ -28,9 +28,10 @@ from utils import classes
 logger = logging.getLogger('kgen')
 
 from kgutils import KGName, ProgramException, traverse
+from kgextra import Intrinsic_Procedures
 from kgconfig import Config
 
-class ImplicitRule_Resolver(object):
+class KGen_Resolver(object):
     def __init__(self, name):
         self.name = name
 
@@ -48,6 +49,31 @@ class ImplicitRule_Resolver(object):
             self.geninfo[request.gentype] = []
         if (uname, request) not in self.geninfo[request.gentype]:
             self.geninfo[request.gentype].append((uname, request))
+
+class ImplicitRule_Resolver(KGen_Resolver):
+    pass
+
+class IntrinsicProcedure_Resolver(KGen_Resolver):
+    pass
+
+def is_except(name, stmt):
+    if not name or not stmt: return False
+
+    namelist = [a.name for a in stmt.ancestors()]
+    namelist.append(name)
+    exceptlist = Config.search['except']
+
+    for elist in exceptlist:
+        elist_split = elist.split(':')
+        same = True
+        for i in range(min(len(namelist), len(elist_split))):
+            if namelist[len(namelist)-i-1]!=elist_split[len(elist_split)-i-1]:
+                same = False
+                break
+        if same: return True
+
+    return False
+
 # end of KGEN addition
 
 class AttributeHolder(object):
@@ -986,6 +1012,17 @@ class Statement(object):
                     if request.state==ResState.RESOLVED:
                         break
 
+                # check if intrinsic procedure can resolve
+                if request.state != ResState.RESOLVED:
+                    if request.uname.firstpartname() in Intrinsic_Procedures:
+                        if  Config.search['skip_intrinsic'] and not is_except(request.uname.firstpartname(), self) or \
+                            not Config.search['skip_intrinsic'] and is_except(request.uname.firstpartname(), self):
+                            ipres = IntrinsicProcedure_Resolver(request.uname.firstpartname())
+                            ipres.add_geninfo(request.uname, request)
+                            request.res_stmts.append(ipres)
+                            request.state = ResState.RESOLVED
+                            logger.debug('%s is resolved using intrinsic procedure'%request.uname.firstpartname())
+
                 # tries to apply implicit rules
                 if request.state != ResState.RESOLVED:
                     try:
@@ -1071,7 +1108,7 @@ class BeginStatement(Statement):
         from kgutils import pack_exnamepath
         from block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine, Interface, Associate
         from typedecl_statements import TypeDeclarationStatement
-        from statements import External, Use, SpecificBinding, Call
+        from statements import External, Use, GenericBinding, SpecificBinding, Call
         from api import walk
         from block_statements import SubProgramStatement
         import Fortran2003
@@ -1396,7 +1433,7 @@ class BeginStatement(Statement):
             if request.state != ResState.RESOLVED and request.uname.firstpartname()==self.name:
                 type_stmt  = self
                 if any( isinstance(type_stmt, resolver) for resolver in request.resolvers ):
-                    logger.debug('The request is being resolved by a typedecl')
+                    logger.debug('The request is being resolved by a type')
                     request.res_stmts.append(type_stmt)
                     request.state = ResState.RESOLVED
                     type_stmt.add_geninfo(request.uname, request)
@@ -1414,6 +1451,25 @@ class BeginStatement(Statement):
                                 for unk, req in _stmt.unknowns.iteritems():
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
+            elif request.state != ResState.RESOLVED and isinstance(request.originator, GenericBinding):
+                for child in self.content:
+                    if isinstance(child, SpecificBinding):
+                        if request.uname.firstpartname()==child.name:
+                            logger.debug('The request is being resolved by a specific binding')
+                            request.res_stmts.append(child)
+                            request.state = ResState.RESOLVED
+                            child.add_geninfo(request.uname, request)
+                            child.check_spec_stmts(request.uname, request)
+                            logger.debug('%s is resolved'%request.uname.firstpartname())
+
+                            #if self not in request.originator.ancestors():
+                            for _stmt, _depth in walk(child, -1):
+                                if not hasattr(_stmt, 'unknowns'):
+                                    f2003_search_unknowns(_stmt, _stmt.f2003)
+                                if hasattr(_stmt, 'unknowns'):
+                                    for unk, req in _stmt.unknowns.iteritems():
+                                        if req.state != ResState.RESOLVED:
+                                            _stmt.resolve(req) 
 
         elif isinstance(self, Associate):
             def get_name(node, bag, depth):
