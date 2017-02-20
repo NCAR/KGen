@@ -15,7 +15,8 @@ __all__ = ['split_comma', 'specs_split_comma',
            'ParseError','AnalyzeError',
            'get_module_file','parse_bind','parse_result','is_name','parse_array_spec',
            'CHAR_BIT','str2stmt',
-           'classes']
+           'entity_split_comma', 'classes'] # KGEN addition
+           #'classes'] # KGEN deletion
 
 import re
 import os, glob
@@ -34,6 +35,62 @@ is_entity_decl = re.compile(r'^[a-z_]\w*',re.I).match
 is_int_literal_constant = re.compile(r'^\d+(_\w+|)$').match
 #module_file_extensions = ['.f', '.f90', '.f95', '.f03', '.f08'] # KGEN deletion
 module_file_extensions = ['.f', '.f90', '.f95', '.f03', '.f08', '.F', '.F90', '.F95', '.F03', '.F08'] # KGEN addition
+
+# start of KGEN addition
+def entity_split_comma(line, item = None, comma=',', keep_empty=False):
+    items = []
+    if item is None:
+        s = ''
+        depth = 0
+        for ch in line:
+            if ch == '[':
+                depth += 1
+            elif ch == ']':
+                depth -= 1
+
+            if ch == comma:
+                if depth == 0:
+                    if not s and not keep_empty: continue
+                    items.append(s.strip())
+                    s = ''
+                elif depth < 0:
+                    raise
+                else:
+                    s += ch
+            else:
+                s += ch
+        if s: items.append(s.strip())
+        return items
+
+    if not line.strip(): # we may have blank space so strip the line
+        return []
+
+    newitem = item.copy(line, True)
+    apply_map = newitem.apply_map
+    s = ''
+    depth = 0
+    for ch in newitem.get_line().strip():
+        if ch == '[':
+            depth += 1
+        elif ch == ']':
+            depth -= 1
+
+        if ch == comma:
+            if depth == 0:
+                s = apply_map(s).strip()
+                if not s and not keep_empty: continue
+                items.append(s)
+                s = ''
+            elif depth < 0:
+                raise
+            else:
+                s += ch
+        else:
+            s += ch
+    s = apply_map(s).strip()
+    if s: items.append(s)
+    return items
+# end of KGEN addition
 
 def split_comma(line, item = None, comma=',', keep_empty=False):
     items = []

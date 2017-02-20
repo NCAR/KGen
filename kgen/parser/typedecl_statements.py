@@ -20,7 +20,8 @@ import re
 import string
 from base_classes import Statement, BeginStatement, EndStatement,\
      AttributeHolder, Variable
-from utils import split_comma, AnalyzeError, name_re, is_entity_decl, is_name, CHAR_BIT, parse_array_spec
+#from utils import split_comma, AnalyzeError, name_re, is_entity_decl, is_name, CHAR_BIT, parse_array_spec
+from utils import entity_split_comma, split_comma, AnalyzeError, name_re, is_entity_decl, is_name, CHAR_BIT, parse_array_spec
 
 import Fortran2003 # KGEN addition
 from kgutils import traverse # KGEN additon
@@ -145,8 +146,6 @@ class TypeDeclarationStatement(Statement):
         line = itemline[:] # KGEN addition
         from block_statements import Function
 
-        #if line.find('[')>0: import pdb; pdb.set_trace()
-
         if not line.lower().startswith(clsname):
             i = 0
             j = 0
@@ -224,13 +223,16 @@ class TypeDeclarationStatement(Statement):
         i = line.find('::')
         if i==-1:
             self.attrspec = []
-            self.entity_decls = split_comma(line, self.item)
+            #self.entity_decls = split_comma(line, self.item)
+            self.entity_decls = entity_split_comma(line, self.item)
         else:
             self.attrspec = split_comma(line[:i].rstrip(), self.item)
-            self.entity_decls = split_comma(line[i+2:].lstrip(), self.item)
+            #self.entity_decls = split_comma(line[i+2:].lstrip(), self.item)
+            self.entity_decls = entity_split_comma(line[i+2:].lstrip(), self.item)
         for entity in self.entity_decls:
             if not is_entity_decl(entity):
                 self.isvalid = False
+                import pdb; pdb.set_trace()
                 return
 
         if isinstance(self.parent, Function) \

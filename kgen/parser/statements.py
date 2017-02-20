@@ -21,9 +21,10 @@ __all__ = ['GeneralAssignment',
            'Inquire','Sequence','External','Namelist','Common','Optional','Intent',
            'Entry','Import','ForallStmt','SpecificBinding','GenericBinding',
            'FinalBinding','Allocatable','Asynchronous','Bind','Else','ElseIf',
-           'Case','WhereStmt','ElseWhere','Enumerator','FortranName','Threadsafe',
+           'Case','TypeGuard', 'WhereStmt','ElseWhere','Enumerator','FortranName','Threadsafe',
            'Depend','Check','CallStatement','CallProtoArgument','Pause',
            'Comment', 'StmtFuncStatement'] # KGEN addition
+           #'Case','WhereStmt','ElseWhere','Enumerator','FortranName','Threadsafe', # KGEN deletion
            #'Comment'] # KGEN deletion
 
 import re
@@ -151,6 +152,12 @@ class GeneralAssignment(Statement):
                 self.isvalid = False
                 return
         self.variable = apply_map(v1)
+        # start of KGEN addition
+        # check variable
+        if any( self.variable.endswith(ch) for ch in  [ '/' ] ):
+            self.isvalid = False
+            return
+        # end of KGEN addition
         self.expr = apply_map(m.group('expr'))
         return
 
@@ -780,14 +787,14 @@ class Allocate(Statement):
         i = line2.find('::')
         if i != -1:
             spec = item2.apply_map(line2[:i].rstrip())
-            from block_statements import type_spec
-            stmt = None
-            for cls in type_spec:
-                if cls.match(spec):
-                    stmt = cls(self, item2.copy(spec))
-                    if stmt.isvalid:
-                        break
             # start of KGEN deletion
+#            from block_statements import type_spec
+#            stmt = None
+#            for cls in type_spec:
+#                if cls.match(spec):
+#                    stmt = cls(self, item2.copy(spec))
+#                    if stmt.isvalid:
+#                        break
 #            if stmt is not None and stmt.isvalid:
 #                spec = stmt
 #            else:
@@ -803,7 +810,8 @@ class Allocate(Statement):
     def tofortran(self, isfix=None):
         t = ''
         if self.spec:
-            t = self.spec.tostr() + ' :: '
+            #t = self.spec.tostr() + ' :: ' # KGEN deletion
+            t = self.spec + ' :: ' # KGEN addition
         return self.get_indent_tab(isfix=isfix) \
                + 'ALLOCATE (%s%s)' % (t,', '.join(self.items))
     def analyze(self): return
@@ -812,7 +820,7 @@ class Allocate(Statement):
     def tokgen(self):
         t = ''
         if hasattr(self, 'spec') and self.spec:
-            t = self.spec.tostr() + ' :: '
+            t = self.spec + ' :: '
         return 'ALLOCATE (%s%s)' % (t,', '.join(self.items))
 
     # end of KGEN addition
@@ -2739,12 +2747,6 @@ class Case(Statement):
 
 # start of KGEN addition
 
-# SelectType construct statements
-
-    <type-guard-stmt> = TYPE IS ( <type-spec> ) [ <select-construct-name> ]
-                        | CLASS IS ( <type-spec> ) [ <select-construct-name> ]
-                        | CLASS DEFAULT [ <select-construct-name> ]
-
 class TypeGuard(Statement):
     """
     TYPE IS ( <type-spec> ) [ <select-constract-name> ]
@@ -2755,9 +2757,9 @@ class TypeGuard(Statement):
                   | <derived-type-spec>
     """
 
-    f2003_class = Fortran2003.Type_Guard_Stmt # KGEN addition
+    f2003_class = Fortran2003.Type_Guard_Stmt
 
-    match = re.compile(r'(type|class)\b\s*(is\*\(.*\)|DEFAULT)\s*\w*\Z',re.I).match
+    match = re.compile(r'(type|class)\b\s+(is\s*\(.*\)|DEFAULT)\s*\w*\Z',re.I).match
     def process_item(self):
         #assert self.parent.__class__.__name__=='Select',`self.parent.__class__`
         line = self.item.get_line().lstrip()
@@ -2782,7 +2784,7 @@ class TypeGuard(Statement):
                 line = line[i+1:].lstrip() 
                 self.guard = 'class is'
 
-            elif line[:7]: == 'default':
+            elif line[:7] == 'default':
                 self.typespec = None
                 line = line[7:].lstrip()
                 self.guard = 'class default'

@@ -1147,11 +1147,19 @@ def search_Sequence_Stmt(stmt, node, gentype=None):
 def search_Stmt_Function_Stmt(stmt, node, gentype=None):
     """ Identifying a name in Stmt_Function_Stmt node"""
     get_name_or_defer(stmt, node.items[0], res_typedecl)
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
-    pass
 
 def search_Language_Binding_Spec(stmt, node, gentype=None):
     """ Identifying a name in Language_Binding_Spec node"""
     # No need to resolve exteranl c library routines
     pass
+
+def search_Select_Type_Stmt(stmt, node, gentype=None):
+    """ Identifying a name in search_Select_Type_Stmt node"""
+    get_name_or_defer(stmt, node.items[1], res_typedecl)
+
+def search_Type_Guard_Stmt(stmt, node, gentype=None):
+    """ Identifying a name in search_Type_Guard_Stmt node"""
+    get_name_or_defer(stmt, node.items[1], res_typespec)
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+

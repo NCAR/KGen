@@ -69,11 +69,41 @@ def string_replace_map(line, lower=False,
     items = []
     expr_keys = []
     # start of KGEN
-    if newline and newline.find('[')>=0: paren = '[]'
-    else: paren='()'
-    for item in splitparen(newline, paren=paren):
-    # end of KGEN
-    #for item in splitparen(newline): # KGEN deletion
+    #if newline and newline.find('[')>=0: paren = '[]'
+    #else: paren='()'
+#    for item in splitparen(newline, paren='()'):
+#        if isinstance(item, ParenString) and not _is_name(item[1:-1].strip()):
+#            if item[1:-1].find('[') >= 0:
+#                for item2 in splitparen(item, paren='[]'):
+#                    if isinstance(item2, ParenString) and not _is_name(item2[1:-1].strip()):
+#                        key = rev_string_map.get(item2)
+#                        if key is None:
+#                            _cache['pindex'] += 1
+#                            index = _cache['pindex']
+#                            key = 'F2PY_EXPR_TUPLE_%s' % (index)
+#                            it = item2[1:-1].strip()
+#                            string_map[key] = it
+#                            rev_string_map[it] = key
+#                            expr_keys.append(key)
+#                        items.append(item2[0]+key+item2[-1])
+#                    else:
+#                        items.append(item2)
+#            else:
+#                key = rev_string_map.get(item)
+#                if key is None:
+#                    _cache['pindex'] += 1
+#                    index = _cache['pindex']
+#                    key = 'F2PY_EXPR_TUPLE_%s' % (index)
+#                    it = item[1:-1].strip()
+#                    string_map[key] = it
+#                    rev_string_map[it] = key
+#                    expr_keys.append(key)
+#                items.append(item[0]+key+item[-1])
+#        else:
+#            items.append(item)
+    # end of KGEN addition
+    # start of KGEN deletion
+    for item in splitparen(newline):
         if isinstance(item, ParenString) and not _is_name(item[1:-1].strip()):
             key = rev_string_map.get(item)
             if key is None:
@@ -86,7 +116,9 @@ def string_replace_map(line, lower=False,
                 expr_keys.append(key)
             items.append(item[0]+key+item[-1])
         else:
-            items.append(item)
+             items.append(item)
+    # end of KGEN deletion
+
     found_keys = set()
     for k in expr_keys:
         v = string_map[k]

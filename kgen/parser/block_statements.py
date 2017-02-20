@@ -349,6 +349,7 @@ class Module(BeginStatement, HasAttributes,
                 continue
             #from statements import Comment
             #if not isinstance(stmt, Comment) and str(stmt).find('[')>0: import pdb; pdb.set_trace()
+            if isinstance(stmt, Line): print 'BBBB', str(stmt)
             stmt.analyze()
 
         if content:
@@ -1173,6 +1174,13 @@ class If(BeginStatement):
 
     match = re.compile(r'if\s*\(',re.I).match
 
+#        item = self.item
+#        line = item.get_line()[2:-4].strip()
+#        assert line[0]=='(' and line[-1]==')',`line`
+#        self.expr = item.apply_map(line[1:-1].strip())
+#        self.construct_name = item.name
+#        return BeginStatement.process_item(self)
+
     def process_item(self):
         item = self.item
         mode = self.reader.mode
@@ -1180,7 +1188,21 @@ class If(BeginStatement):
         classes = [cls for cls in classes if mode in cls.modes]
 
         line = item.get_line()[2:].lstrip()
-        i = line.find(')')
+        # start of KGEN addition
+        if line[1:4] in ( 'any', 'all' ):
+            j = line.find(')')
+            if j < 0:
+                i = -1
+            else:
+                k = line[j+1:].find(')')
+                if k < 0:
+                    i = -1
+                else:
+                    i = line[j+1:].find(')') + j + 1
+        else:
+            i = line.find(')')
+        # end of KGEN addition
+        #i = line.find(')') # KGEN deletion
         expr = line[1:i].strip()
         line = line[i+1:].strip()
         if line.lower()=='then':
@@ -1571,7 +1593,7 @@ proc_binding_stmt = [SpecificBinding, GenericBinding, FinalBinding]
 
 type_bound_procedure_part = [Contains, Private] + proc_binding_stmt
 
-kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf, Case, TypeGuard\
+kgen_added_action_stmt = [ PointerAssignment, Assignment, Else, ElseIf, Case, TypeGuard, \
     ElseWhere, Read0, Read1 ]# KGEN addition
 
 #R214
