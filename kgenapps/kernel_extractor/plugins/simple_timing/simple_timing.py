@@ -51,17 +51,27 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'loopcontrol': 'kgen_intvar = 1, kgen_maxiter'}
         doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
            
-        execpart = get_part(node, EXEC_PART)
-        namedpart_create_subpart(doobj, KERNEL_PBLOCK_TIMING, EXEC_PART)
+        #execpart = get_part(node, EXEC_PART)
+        #namedpart_create_subpart(doobj, KERNEL_PBLOCK_TIMING, EXEC_PART)
 
-        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, 'TEST!!!!')
+        kernel_stmts = getinfo('callsite_stmts')
+        start = kernel_stmts[0].item.span[0]-1
+        end = kernel_stmts[-1].item.span[1]
+        lines = kernel_stmts[0].top.prep[start:end]
+        lines_str = '\n'.join(lines)
+        dummy_node = part_append_genknode(doobj, EXEC_PART, statements.Call)
+        dummy_node.kgen_stmt = getinfo('dummy_stmt')
+        dummy_node.kgen_forced_line = lines_str
+
+        #namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, 'TEST!!!!')
 
         #attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.TRUE.'}
         #namedpart_append_gensnode(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, statements.Assignment, attrs=attrs)
-
-        for elem in execpart:
-            if hasattr(elem, 'kgen_stmt') and self.ispstmt(getinfo('callsite_stmts')[0], elem.kgen_stmt, node.kgen_stmt):
-                namedpart_append_node(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, elem)
+        #for elem in execpart:
+        #    print 'AAA', hasattr(elem, 'kgen_stmt') , self.ispstmt(getinfo('callsite_stmts')[0], elem.kgen_stmt, node.kgen_stmt)    
+        #    if hasattr(elem, 'kgen_stmt') and self.ispstmt(getinfo('callsite_stmts')[0], elem.kgen_stmt, node.kgen_stmt):
+        #        namedpart_append_node(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, elem)
+        #import pdb; pdb.set_trace()
 
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
