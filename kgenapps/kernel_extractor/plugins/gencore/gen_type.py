@@ -37,7 +37,8 @@ class Gen_Type(Kgen_Plugin):
             statements.Use, self.has_dtype_res_path, self.add_readnames_in_use_public) 
 
     def has_state_info(self, node):
-        if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0:
+        if node.kgen_stmt and 'abstract' not in node.kgen_stmt.specs and \
+            hasattr(node.kgen_stmt, 'geninfo') and len(node.kgen_stmt.geninfo)>0:
             return True
         else: return False
 
@@ -45,7 +46,8 @@ class Gen_Type(Kgen_Plugin):
         if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo'):
             if not node.kgen_stmt.isonly: return False
             for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
-                if any(len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type) for uname, req in reqlist):
+                if any(len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type) and \
+                    'abstract' not in req.res_stmts[0].specs for uname, req in reqlist):
                     return True
         return False
 
