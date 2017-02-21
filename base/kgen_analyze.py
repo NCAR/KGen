@@ -5,7 +5,7 @@ from kgen_utils import KGName, Logger, Config, ProgramException, UserException, 
 from kgen_state import State, SrcFile, ResState
 from Fortran2003 import Name, Call_Stmt, Function_Reference, Part_Ref, Interface_Stmt, Actual_Arg_Spec_List, \
     Section_Subscript_List, Actual_Arg_Spec, Structure_Constructor_2
-from ordereddict import OrderedDict
+from collections import OrderedDict
 from typedecl_statements import TypeDeclarationStatement
 from block_statements import SubProgramStatement, Associate
 

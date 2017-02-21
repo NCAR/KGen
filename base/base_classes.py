@@ -16,20 +16,20 @@ import re
 import sys
 import copy
 import logging
+from collections import OrderedDict
 from readfortran import Line, Comment
 #from numpy.distutils.misc_util import yellow_text, red_text # KGEN deletion
 from utils import split_comma, specs_split_comma, is_int_literal_constant
 from utils import classes
 
-#logger = logging.getLogger('fparser') # KGEN deletion
-
 # start of KGEN addition
 logger = logging.getLogger('kgen')
 
 import Fortran2003
-from kgen_utils import KGName, Logger, ProgramException, traverse
+from kgen_utils import KGName, Logger, ProgramException, traverse, Config
+from kgen_extra import Intrinsic_Procedures
 
-class ImplicitRule_Resolver(object):
+class KGen_Resolver(object):
     def __init__(self, name):
         self.name = name
 
@@ -38,7 +38,6 @@ class ImplicitRule_Resolver(object):
 
     # save names that this self resolved
     def add_geninfo(self, uname, request):
-        from ordereddict import OrderedDict
 
         if uname is None or request is None: return
 
@@ -48,6 +47,31 @@ class ImplicitRule_Resolver(object):
             self.geninfo[request.gentype] = []
         if (uname, request) not in self.geninfo[request.gentype]:
             self.geninfo[request.gentype].append((uname, request))
+
+class ImplicitRule_Resolver(KGen_Resolver):
+    pass
+
+class IntrinsicProcedure_Resolver(KGen_Resolver):
+    pass
+
+def is_except(name, stmt):
+    if not name or not stmt: return False
+
+    namelist = [a.name for a in stmt.ancestors()]
+    namelist.append(name)
+    exceptlist = Config.search['except']
+
+    for elist in exceptlist:
+        elist_split = elist.split(':')
+        same = True
+        for i in range(min(len(namelist), len(elist_split))):
+            if namelist[len(namelist)-i-1]!=elist_split[len(elist_split)-i-1]:
+                same = False
+                break
+        if same: return True
+
+    return False
+
 # end of KGEN addition
 
 class AttributeHolder(object):
@@ -849,7 +873,6 @@ class Statement(object):
 
     # save names that this self resolved
     def add_geninfo(self, uname, request):
-        from ordereddict import OrderedDict
 
         if uname is None or request is None: return
 
@@ -988,6 +1011,17 @@ class Statement(object):
                     if request.state==ResState.RESOLVED:
                         break
 
+                # check if intrinsic procedure can resolve
+                if request.state != ResState.RESOLVED:
+                    if request.uname.firstpartname() in Intrinsic_Procedures:
+                        if  Config.search['skip_intrinsic'] and not is_except(request.uname.firstpartname(), self) or \
+                            not Config.search['skip_intrinsic'] and is_except(request.uname.firstpartname(), self):
+                            ipres = IntrinsicProcedure_Resolver(request.uname.firstpartname())
+                            ipres.add_geninfo(request.uname, request)
+                            request.res_stmts.append(ipres)
+                            request.state = ResState.RESOLVED
+                            Logger.debug('%s is resolved using intrinsic procedure'%request.uname.firstpartname())
+
                 # tries to apply implicit rules
                 if request.state != ResState.RESOLVED:
                     try:
@@ -1072,7 +1106,7 @@ class BeginStatement(Statement):
         from kgen_utils import pack_exnamepath
         from block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine, Interface, Associate
         from typedecl_statements import TypeDeclarationStatement
-        from statements import External, Use, SpecificBinding, Call
+        from statements import External, Use, GenericBinding, SpecificBinding, Call
         from api import walk
         from block_statements import SubProgramStatement
 
@@ -1415,6 +1449,25 @@ class BeginStatement(Statement):
                                 for unk, req in _stmt.unknowns.iteritems():
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
+            elif request.state != ResState.RESOLVED and isinstance(request.originator, GenericBinding):
+                for child in self.content:
+                    if isinstance(child, SpecificBinding):
+                        if request.uname.firstpartname()==child.name:
+                            Logger.debug('The request is being resolved by a specific binding')
+                            request.res_stmts.append(child)
+                            request.state = ResState.RESOLVED
+                            child.add_geninfo(request.uname, request)
+                            child.check_spec_stmts(request.uname, request)
+                            Logger.debug('%s is resolved'%request.uname.firstpartname())
+
+                            #if self not in request.originator.ancestors():
+                            for _stmt, _depth in walk(child, -1):
+                                if not hasattr(_stmt, 'unknowns'):
+                                    f2003_search_unknowns(_stmt, _stmt.f2003)
+                                if hasattr(_stmt, 'unknowns'):
+                                    for unk, req in _stmt.unknowns.iteritems():
+                                        if req.state != ResState.RESOLVED:
+                                            _stmt.resolve(req) 
 
         elif isinstance(self, Associate):
             def get_name(node, bag, depth):
@@ -1569,7 +1622,7 @@ class BeginStatement(Statement):
                         % (item.get_line(),self.__class__.__name__),
                         item.span[0], item.span[1])
                 # .. but at the expense of loosing the comment.
-                logger.warning(message)
+                Logger.warning(message)
                 # self.show_message(message)
                 if line[:i]:
                     newitem = item.copy(line[:i].rstrip())
@@ -1591,7 +1644,7 @@ class BeginStatement(Statement):
                         ' Trying f90 fix mode patterns..'\
                         % (item.get_line(),self.__class__.__name__),
                         item.span[0], item.span[1])
-                logger.warning(message)
+                Logger.warning(message)
                 # self.show_message(message)
 
                 item.reader.set_mode(False, False)
@@ -1608,7 +1661,7 @@ class BeginStatement(Statement):
                         'The f90 fix mode resolved the parse pattern issue.'\
                         ' Setting reader to f90 fix mode.',
                         item.span[0], item.span[1])
-                    logger.info(message)
+                    Logger.info(message)
                     # self.show_message(message)
                     # set f90 fix mode
                     self.classes = f77_classes + classes
@@ -1624,7 +1677,7 @@ class BeginStatement(Statement):
                         'no parse pattern found for "%s" in %r block.'\
                         % (item.get_line(),self.__class__.__name__),
                         item.span[0], item.span[1])
-        logger.warning(message)
+        Logger.warning(message)
         # self.show_message(message)
         self.content.append(item)
         #sys.exit()

@@ -19,7 +19,7 @@ sys.path.insert(0, '%s/base'%KGEN_HOME)
 TEST_SCRIPT = 'runtest.py'
 
 from kgen_test import KGenTest
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 def report(testDB):
     ntests = len(testDB)

@@ -69,11 +69,11 @@ def string_replace_map(line, lower=False,
     items = []
     expr_keys = []
     # start of KGEN
-    if newline and newline.find('[')>=0: paren = '[]'
-    else: paren='()'
-    for item in splitparen(newline, paren=paren):
+    #if newline and newline.find('[')>=0: paren = '[]'
+    #else: paren='()'
+#    for item in splitparen(newline, paren='()'):
     # end of KGEN
-    #for item in splitparen(newline): # KGEN deletion
+    for item in splitparen(newline):
         if isinstance(item, ParenString) and not _is_name(item[1:-1].strip()):
             key = rev_string_map.get(item)
             if key is None:

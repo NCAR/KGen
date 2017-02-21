@@ -12,7 +12,7 @@ from typedecl_statements import TypeDeclarationStatement, TypeStmt
 from block_statements import Type, TypeDecl, Function, Subroutine, Interface, execution_part, Associate
 from statements import External, Common, SpecificBinding
 from kgen_extra import Intrinsic_Procedures
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 res_default = [ TypeDeclarationStatement ]
 res_external = [ External ]
@@ -37,24 +37,6 @@ res_anything = res_typespec + res_subprogram + [ SpecificBinding, Common, Type, 
 
 class SearchException(Exception):
     pass
-
-def is_except(name, stmt):
-    if not name or not stmt: return False
-
-    namelist = [a.name for a in stmt.ancestors()]
-    namelist.append(name.string.lower())
-    exceptlist = Config.search['except']
-
-    for elist in exceptlist:
-        elist_split = elist.split(':')
-        same = True
-        for i in range(min(len(namelist), len(elist_split))):
-            if namelist[len(namelist)-i-1]!=elist_split[len(elist_split)-i-1]:
-                same = False
-                break
-        if same: return True
-
-    return False
 
 def f2003_search_unknowns(stmt, node, resolvers=None, gentype=None):
     """Identify unknowns whose declaration statement will be searched by KGen.
@@ -173,40 +155,40 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
 
     if isinstance(node, Fortran2003.Name):
 
-        # skip if intrinsic
-        if node.string.lower() in Intrinsic_Procedures:
-            if  Config.search['skip_intrinsic'] and not is_except(node, stmt):
-                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
-                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
-                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
-                    Logger.info('Intrinsic procedure name of "%s" is used for name resolution'% \
-                        (node.string.lower()), stdout=True)
-                    Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
-                    Logger.info('\tin %s'% stmt.reader.id, stdout=True)
-                else:
-                    #if node.string.lower()!='null':
-                    #    Logger.info('Intrinsic procedure name of "%s" is skipped from name resolution'% \
-                    #        (node.string.lower()), stdout=True)
-                    #Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
-                    #Logger.info('\tin %s'% stmt.reader.id, stdout=True)
-                    return
-    
-            elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
-                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
-                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
-                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
-                    #Logger.info('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
-                    #    (node.string.lower()), stdout=True)
-                    #Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
-                    #Logger.info('\tin %s'% stmt.reader.id, stdout=True)
-                    pass
-                else:
-                    if node.string.lower()!='null':
-                        Logger.info('Intrinsic procedure name of "%s" is skipped from name resolution'% \
-                            (node.string.lower()), stdout=True)
-                    Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
-                    Logger.info('\tin %s'% stmt.reader.id, stdout=True)
-                    return
+#        # skip if intrinsic
+#        if node.string.lower() in Intrinsic_Procedures:
+#            if  Config.search['skip_intrinsic'] and not is_except(node, stmt):
+#                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+#                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+#                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
+#                    Logger.info('Intrinsic procedure name of "%s" is used for name resolution'% \
+#                        (node.string.lower()), stdout=True)
+#                    Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+#                    Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+#                else:
+#                    #if node.string.lower()!='null':
+#                    #    Logger.info('Intrinsic procedure name of "%s" is skipped from name resolution'% \
+#                    #        (node.string.lower()), stdout=True)
+#                    #Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+#                    #Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+#                    return
+#    
+#            elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
+#                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+#                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+#                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
+#                    #Logger.info('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
+#                    #    (node.string.lower()), stdout=True)
+#                    #Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+#                    #Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+#                    pass
+#                else:
+#                    if node.string.lower()!='null':
+#                        Logger.info('Intrinsic procedure name of "%s" is skipped from name resolution'% \
+#                            (node.string.lower()), stdout=True)
+#                    Logger.info('\tnear "%s"'% stmt.item.line, stdout=True)
+#                    Logger.info('\tin %s'% stmt.reader.id, stdout=True)
+#                    return
 
         # skip if excluded
         #if Config.exclude.has_key('namepath') and stmt.__class__ in execution_part:
@@ -617,9 +599,9 @@ def search_Data_Ref(stmt, node, gentype=None):
     # NOTE: to limit the scope of data saving in derived type,
     #       the last part_ref would be the one that has gentype=gentype
     if isinstance(node.items[0], Name):
-        get_name_or_defer(stmt, node.items[0], res_typestmt, gentype=gentype)
+        get_name_or_defer(stmt, node.items[0], res_value, gentype=gentype)
     elif isinstance(node.items[0], Part_Ref):
-        get_name_or_defer(stmt, node.items[0].items[0], res_typestmt, gentype=gentype) 
+        get_name_or_defer(stmt, node.items[0].items[0], res_value, gentype=gentype) 
         get_name_or_defer(stmt, node.items[0].items[1], res_value) 
 
     for item in node.items[1:]:
@@ -1111,7 +1093,7 @@ def search_Association(stmt, node, gentype=None):
 def search_Generic_Binding(stmt, node, gentype=None):
     """ Identifying a name in Generic_Binding node"""
     get_name_or_defer(stmt, node.items[0], res_value)
-    get_name_or_defer(stmt, node.items[2], [ Fortran2003.Specific_Binding ])
+    get_name_or_defer(stmt, node.items[2], [ SpecificBinding ])
 
 def search_Complex_Literal_Constant(stmt, node, gentype=None):
     """ Identifying a name in Complex_Literal_Constant node"""
@@ -1147,5 +1129,13 @@ def search_Language_Binding_Spec(stmt, node, gentype=None):
     """ Identifying a name in Language_Binding_Spec node"""
     # No need to resolve exteranl c library routines
     pass
+
+def search_Select_Type_Stmt(stmt, node, gentype=None):
+    """ Identifying a name in search_Select_Type_Stmt node"""
+    get_name_or_defer(stmt, node.items[1], res_typedecl)
+
+def search_Type_Guard_Stmt(stmt, node, gentype=None):
+    """ Identifying a name in search_Type_Guard_Stmt node"""
+    get_name_or_defer(stmt, node.items[1], res_typespec)
     #show_tree(node)
     #import pdb ;pdb.set_trace()

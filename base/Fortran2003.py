@@ -340,9 +340,11 @@ class SequenceBase(Base):
     <sequence-base> = <obj>, <obj> [ , <obj> ]...
     """
     def match(separator, subcls, string):
+        from utils import entity_split_comma
         line, repmap = string_replace_map(string)
         if isinstance(separator, str):
-            splitted = line.split(separator)
+            #splitted = line.split(separator) # KGEN deletion
+            splitted = entity_split_comma(line, comma=separator) # KGEN addition
         else:
             splitted = separator[1].split(line)
             separator = separator[0]
@@ -4481,7 +4483,21 @@ class If_Stmt(StmtBase): # R807
         line, repmap = string_replace_map(string)
         line = line[2:].lstrip()
         if not line.startswith('('): return
-        i = line.find(')')
+        # start of KGEN addition
+        if line[1:4] in ( 'any', 'all' ):
+            j = line.find(')')
+            if j < 0:
+                i = -1
+            else:
+                k = line[j+1:].find(')')
+                if k < 0:
+                    i = -1
+                else:
+                    i = line[j+1:].find(')') + j + 1
+        else:
+            i = line.find(')')
+        # end of KGEN addition
+        #i = line.find(')') # KGEN deletion
         if i==-1: return
         expr = repmap(line[1:i].strip())
         stmt = repmap(line[i+1:].lstrip())

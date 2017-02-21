@@ -1,6 +1,6 @@
 # cover_config.py
 
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 class CoverConfig(object):
 

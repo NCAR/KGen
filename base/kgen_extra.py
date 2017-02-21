@@ -594,7 +594,7 @@ Intrinsic_Procedures = [ \
 # null function \
 'null', \
 # allocation transfer procedure \
-'move alloc', \
+'move_alloc', \
 # random number subroutines \
 'random_number','random_seed', \
 # system environment procedures \

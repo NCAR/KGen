@@ -384,32 +384,31 @@ class FortranReaderBase(object):
 
     def find_module_source_file(self, mod_name):
         from utils import get_module_file, module_in_file
-        from kgen_utils import Config # KGEN addition
         if self.source_only:
             for sf in self.source_only:
                 if module_in_file(mod_name, sf):
                     return sf
         else:
             fn = None
-            #for d in self.include_dirs: # KGEN deletion
-            for d in self.include_dirs+Config.include['path']: # KGEN addition
+            for d in self.include_dirs: # KGEN deletion
+#            for d in self.include_dirs+Config.include['path']: # KGEN addition
                 fn = get_module_file(mod_name, d)
                 if fn is not None:
                     return fn
 
-            # start of KGEN addition
-            #if mod_name=='pio': import pdb; pdb.set_trace()
-            if Config.include['file'].has_key(self.id):
-                for path in Config.include['file'][self.id]['path']:
-                    fn = get_module_file(mod_name, path) 
-                    if fn is not None:
-                        return fn
-
-            for fn in Config.include['file'].keys():
-                if module_in_file(mod_name, fn):
-                    if fn is not None:
-                        return fn
-            # end of KGEN addition
+#            # start of KGEN addition
+#            #if mod_name=='pio': import pdb; pdb.set_trace()
+#            if Config.include['file'].has_key(self.id):
+#                for path in Config.include['file'][self.id]['path']:
+#                    fn = get_module_file(mod_name, path) 
+#                    if fn is not None:
+#                        return fn
+#
+#            for fn in Config.include['file'].keys():
+#                if module_in_file(mod_name, fn):
+#                    if fn is not None:
+#                        return fn
+#            # end of KGEN addition
 
     def set_mode(self, isfree, isstrict):
         """ Set Fortran code mode.
@@ -596,7 +595,7 @@ class FortranReaderBase(object):
         --------
         _next, get_source_item
         """
-        from kgen_utils import Config
+        from kgen_utils import Config # KGEN addition
 
         try:
             if self.reader is not None:
@@ -1250,15 +1249,8 @@ class FortranReaderBase(object):
 class FortranFileReader(FortranReaderBase):
 
     def __init__(self, filename, include_dirs = None, source_only=None):
-        from kgen_utils import Config # KGEN addition
 
         isfree, isstrict = get_source_info(filename)
-        # start of KGEN addition
-        if Config.source['isfree']:
-            isfree = Config.source['isfree']
-        if Config.source['isstrict']:
-            isstrict = Config.source['isstrict']
-        # end of KGEN addition
 
         self.id = filename
         self.file = open(filename,'r')
@@ -1277,17 +1269,10 @@ class FortranFileReader(FortranReaderBase):
 class FortranStringReader(FortranReaderBase):
 
     def __init__(self, string, include_dirs = None, source_only = None):
-        from kgen_utils import Config # KGEN addition
 
         self.id = 'string-'+str(id(string))
         source = StringIO(string)
         isfree, isstrict = get_source_info_str(string)
-        # start of KGEN addition
-        if Config.source['isfree']:
-            isfree = Config.source['isfree']
-        if Config.source['isstrict']:
-            isstrict = Config.source['isstrict']
-        # end of KGEN addition
 
         FortranReaderBase.__init__(self, source, isfree, isstrict)
         if include_dirs is not None:

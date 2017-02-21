@@ -3,7 +3,7 @@
 
 from kgen_utils import Logger, Config, singleton, UserException, traverse, match_namepath, pack_exnamepath, KGGenType
 from api import parse, walk
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 @singleton
 class State(object):

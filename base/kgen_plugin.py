@@ -1,7 +1,7 @@
 # kgen_plugin.py
 
 from kgen_utils import ProgramException
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 class Kgen_Plugin(object):
     plugin_common = OrderedDict()

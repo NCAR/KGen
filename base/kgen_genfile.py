@@ -13,7 +13,7 @@ import typedecl_statements
 from kgen_utils import Config, KGGenType, ProgramException, traverse, match_namepath, pack_innamepath, pack_exnamepath, get_exclude_actions, Logger
 from kgen_state import State
 from kgen_plugin import Kgen_Plugin
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 ########### Common ############
 
