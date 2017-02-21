@@ -1001,7 +1001,7 @@ class EndSelect(EndStatement):
     blocktype = 'select'
 
 #class Select(BeginStatement): # KGEN deletion
-class Select(BeginStatement):
+class SelectCase(BeginStatement):
     """
     [ <case-construct-name> : ] SELECT CASE ( <case-expr> )
 
