@@ -40,27 +40,6 @@ def get_module_verifyname(modstmt):
     if modstmt is None: return
     return '%s_externs_%s'%(vprefix, modstmt.name)
 
-
-
-def get_typedecl_subpname(stmt, entity_name):
-    import typedecl_statements
-
-    assert isinstance(stmt, typedecl_statements.TypeDeclarationStatement), 'None type of typedecl stmt'
-    assert entity_name, 'No entity name is provided.'
-
-    var = stmt.get_variable(entity_name)
-    if var is None: return 'Unknown_name'
-
-    prefix = [ get_parentname(stmt), stmt.name ] + list(stmt.selector)
-    l = []
-    if var.is_array(): l.append('dim%d'%var.rank)
-    if var.is_pointer(): l.append('ptr')
-
-    subpname = '_'.join(prefix+l)
-    if len(subpname)<MAXLEN_SUBPNAME:
-        return '_'.join(prefix+l)
-
-
 def get_typedecl_subpname(stmt, entity_name):
     import typedecl_statements
     if not hasattr(get_typedecl_subpname, 'kgen_subpname_cache'):
