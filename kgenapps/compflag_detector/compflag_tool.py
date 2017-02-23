@@ -26,6 +26,7 @@ from kgen_utils import run_shcmd, Logger, ProgramException
 from kgen_compiler import CompilerFactory
 from compflag_config import CompFlagConfig
 import subprocess
+from collections import OrderedDict
 
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
@@ -107,7 +108,7 @@ class CompFlagDetect(KGenTool):
                     Config.set('import', key, value)
 
 
-            flags = {}
+            flags = OrderedDict()
             with open(os.path.join(cwd, self.config.strace), 'r') as f:
                 line = f.readline()
                 while(line):

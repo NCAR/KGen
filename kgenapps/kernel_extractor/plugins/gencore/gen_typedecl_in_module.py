@@ -1,5 +1,6 @@
 # gen_write_typedecl_in_module.py
  
+from collections import OrderedDict
 import statements
 import block_statements
 import typedecl_statements
@@ -16,8 +17,8 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
 
-        self.state_externs_subrs = {}
-        self.kernel_externs_subrs = {}
+        self.state_externs_subrs = OrderedDict()
+        self.kernel_externs_subrs = OrderedDict()
 
         self.state_callsite_use_stmts = []
         self.kernel_callsite_use_stmts = []

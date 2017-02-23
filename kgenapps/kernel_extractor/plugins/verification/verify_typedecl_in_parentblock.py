@@ -44,10 +44,10 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
             subrname = get_typedecl_verifyname(stmt, entity_name)
 
             if subrname not in self.verify_parentblock_subrnames:
-                self.verify_parentblock_subrnames.append(subrname)
 
                 if stmt.is_derived() or is_class_derived:
                     if var.is_pointer() or var.is_array():
+                        self.verify_parentblock_subrnames.append(subrname)
                         create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
                     else:
                         subrname = None
@@ -57,7 +57,10 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
                                 if len(req.res_stmts)>0:
                                     subrname = get_dtype_verifyname(req.res_stmts[0])
                                     break
+                        if subrname:
+                            self.verify_parentblock_subrnames.append(subrname)
                 else:
+                    self.verify_parentblock_subrnames.append(subrname)
                     create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
 
             if subrname:

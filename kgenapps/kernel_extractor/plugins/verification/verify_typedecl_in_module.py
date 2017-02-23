@@ -3,6 +3,7 @@
 import statements
 import block_statements
 import typedecl_statements
+from collections import OrderedDict
 from kgen_plugin import Kgen_Plugin
 
 from verify_utils import get_module_verifyname, kernel_verify_contains, VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_EXTERNS, \
@@ -13,7 +14,7 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
 
-        self.verify_externs_subrs = {}
+        self.verify_externs_subrs = OrderedDict()
         self.verify_callsite_use_stmts = []
         self.verify_callsite_call_stmts = []
         self.verify_extern = []

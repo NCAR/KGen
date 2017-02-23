@@ -45,7 +45,7 @@ def generate_kernel_makefile():
     all_objs = all_objs_srcfiles + [ obj(kernel_driver_file), obj(kgen_utils_file), obj(tprof_file) ]
 
     # dependency
-    depends = {}
+    depends = OrderedDict()
 
     # dependency for kernel_driver.f90
     depends[kernel_driver_file] = ' '.join(all_objs_srcfiles + [obj(kgen_utils_file), obj(tprof_file) ])

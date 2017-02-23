@@ -29,17 +29,18 @@
 # D) generate in (named?) data block
 # E) Use module for dtype list and manipulate functions. Use Interface for assigning pointer
 
+from collections import OrderedDict
 import statements
 import typedecl_statements
 import block_statements
 
-shared_objects = {}
+shared_objects = OrderedDict()
 shared_objects['driver_object'] = None
 
-state_gencore_parts = {}
+state_gencore_parts = OrderedDict()
 state_gencore_contains = []
 
-kernel_gencore_parts = {}
+kernel_gencore_parts = OrderedDict()
 kernel_gencore_contains = []
 
 DRIVER_USE_PART = 'DUP'
@@ -124,7 +125,7 @@ def get_dtype_subpname(typestmt):
 def get_typedecl_subpname(stmt, entity_name):
     import typedecl_statements
     if not hasattr(get_typedecl_subpname, 'kgen_subpname_cache'):
-        get_typedecl_subpname.kgen_subpname_cache = {}
+        get_typedecl_subpname.kgen_subpname_cache = OrderedDict()
 
     assert isinstance(stmt, typedecl_statements.TypeDeclarationStatement), 'None type of typedecl stmt'
     assert entity_name, 'No entity name is provided.'
