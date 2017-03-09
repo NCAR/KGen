@@ -187,7 +187,7 @@ class SrcFile(object):
                     macros_src.append('-D%s=%s'%(k,v))
                 else:
                     macros_src.append('-D%s'%k)
-        includes = '-I'+' -I'.join(Config.include['path']+path_src)
+        includes = [ '-I %s'%incpath for incpath in Config.include['path']+path_src ]
         macros_common = []
         for k, v in Config.include['macro'].iteritems():
             if v:
@@ -211,7 +211,7 @@ class SrcFile(object):
                     flags = Config.bin['cpp_flags']
                 else: raise UserException('Preprocessor is not either fpp or cpp')
 
-                output, err, retcode = kgutils.run_shcmd('%s %s %s %s' % (pp, flags, includes, macros), input=f.read())
+                output, err, retcode = kgutils.run_shcmd('%s %s %s %s' % (pp, flags, ' '.join(includes), macros), input=f.read())
                 prep = map(lambda l: '!KGEN'+l if l.startswith('#') else l, output.split('\n'))
                 new_lines = self.handle_include(prep)
             else:
