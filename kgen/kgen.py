@@ -17,26 +17,30 @@ from extractor.main import Extractor
 def main():
 
     # compflag
-    compflag = CompFlag()
-    compflag.run()
+    if 'compflag' not in Config.skip:
+        compflag = CompFlag()
+        compflag.run()
 
     Config.process_include_option() 
     Config.collect_mpi_params()
 
     # parse code
-    parser = Parser()
-    parser.run()
+    if 'parse' not in Config.skip:
+        parser = Parser()
+        parser.run()
 
     # init plugins
     init_plugins([KERNEL_ID_0])
 
     # coverage
-    cover = Coverage()
-    cover.run()
+    if 'coverage' not in Config.skip:
+        cover = Coverage()
+        cover.run()
 
     # extract
-    ext = Extractor()
-    ext.run()
+    if 'extract' not in Config.skip:
+        ext = Extractor()
+        ext.run()
 
 if __name__ == '__main__':
     sys.exit(main)

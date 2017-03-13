@@ -154,6 +154,9 @@ class Config(object):
         # KGEN operation mode
         self._attrs['check_mode'] = False
 
+        # skip parameters
+        self._attrs['skip'] = []
+
         # Fortran parameters
         self._attrs['fort'] = collections.OrderedDict()
         self._attrs['fort']['maxlinelen'] = 132
@@ -317,6 +320,7 @@ class Config(object):
         # coverage parameters
         self._attrs['coveragefile'] = 'coverage.ini'
         self._attrs['coverage'] = collections.OrderedDict()
+        self._attrs['coverage']['reuse_rawdata'] = True
 
         # set plugin parameters
         self._attrs['plugin']['priority']['cover.gencore'] = '%s/plugins/gencore'%KGEN_COVER
@@ -355,6 +359,7 @@ class Config(object):
         self.parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
+        self.parser.add_option("--skip", dest="skip", action='store', type='string', default=None, help="Specifying KGen internal tasks that will be skipped")
         self.parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
 
@@ -376,6 +381,8 @@ class Config(object):
         self.parser.add_option("--check", dest="check", action='append', type='string', default=None, help="Kernel correctness check information")
         self.parser.add_option("--verbose", dest="verbose_level", action='store', type='int', default=None, help="Set the verbose level for verification output")
         self.parser.add_option("--add-mpi-frame", dest="add_mpi_frame", action='store', type='string', default=None, help="Add MPI frame codes in kernel_driver")
+
+        self.parser.add_option("--noreuse-rawdata", dest="reuse_rawdata", action='store_false', default=True, help="Control raw data generation for coverage.")
 
         #self.parser.set_usage(cfg.usage)
 
@@ -687,6 +694,9 @@ class Config(object):
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
 
+        if opts.skip:
+            self._attrs['skip'] = opts.skip.split(',')
+
         if opts.outdir:
             self._attrs['path']['outdir'] = opts.outdir
 
@@ -858,6 +868,9 @@ class Config(object):
                     self._attrs['add_mpi_frame'][key] = value
                 else:
                     print 'WARNING: %s is not supported add_mpi_frame parameter'%key
+
+        # generating coverage raw data
+        self._attrs['coverage']['reuse_rawdata'] = opts.reuse_rawdata 
 
     def get_exclude_actions(self, section_name, *args ):
         if section_name=='namepath':

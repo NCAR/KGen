@@ -238,7 +238,7 @@ class Gen_Coverage_File(Kgen_Plugin):
        
         pathlines = []
         for fileid in range(maxfiles):
-            pathlines.append('"%s %s"'%(self.get_filepath(fileid),' '.join(self.get_linepairs(fileid))))
+            pathlines.append('"%s %s"'%(self.get_filepath(fileid), ' '.join(self.get_linepairs(fileid))))
 
         attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER', \
             'DIMENSION(0:%d)'%(maxfiles-1) ], 'entity_decls': ['headlines = (/ %s /)'%','.join(pathlines)]}

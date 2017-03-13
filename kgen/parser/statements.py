@@ -330,18 +330,38 @@ class Call(Statement):
         item = self.item
         apply_map = item.apply_map
         line = item.get_line()[4:].strip()
-        i = line.find('(')
+# start of KGEN addition
+        i = line.rfind('(')
         items = []
         if i==-1:
             self.designator = apply_map(line).strip()
         else:
-            j = line.find(')')
+            j = line.rfind(')')
             if j == -1 or len(line)-1 != j:
                 self.isvalid = False
                 return
             self.designator = apply_map(line[:i]).strip()
             items = split_comma(line[i+1:-1], item)
         self.items = items
+# end of KGEN addition
+
+# start of KGEN deletion
+#        i = line.find('(')
+#        items = []
+#        if i==-1:
+#            self.designator = apply_map(line).strip()
+#        else:
+#            j = line.find(')')
+#            if j == -1 or len(line)-1 != j:
+#                self.isvalid = False
+#                return
+#            self.designator = apply_map(line[:i]).strip()
+#            items = split_comma(line[i+1:-1], item)
+#        self.items = items
+#        i = line.find('(')
+#        items = []
+# end of KGEN deletion
+
         return
 
     def tofortran(self, isfix=None):

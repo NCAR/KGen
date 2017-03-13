@@ -23,7 +23,7 @@ class CompFlag(kgtool.KGTool):
     def run(self):
 
         # clean app.
-        if Config.cmd_clean['cmds']:
+        if 'clean' not in Config.skip and Config.cmd_clean['cmds']:
             kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
         # build app.

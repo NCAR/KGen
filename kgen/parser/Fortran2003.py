@@ -4484,7 +4484,8 @@ class If_Stmt(StmtBase): # R807
         line = line[2:].lstrip()
         if not line.startswith('('): return
         # start of KGEN addition
-        if line[1:4] in ( 'any', 'all' ):
+        anyallmatch = re.match(r'^\(\s*(any|all)\s*\(', line)
+        if anyallmatch:
             j = line.find(')')
             if j < 0:
                 i = -1

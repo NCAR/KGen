@@ -1189,7 +1189,8 @@ class If(BeginStatement):
 
         line = item.get_line()[2:].lstrip()
         # start of KGEN addition
-        if line[1:4] in ( 'any', 'all' ):
+        anyallmatch = re.match(r'^\(\s*(any|all)\s*\(', line)
+        if anyallmatch:
             j = line.find(')')
             if j < 0:
                 i = -1

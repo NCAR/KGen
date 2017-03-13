@@ -26,6 +26,8 @@ END_PATH_MARKER = r'kgdataend'
 
 DEBUG = True
 
+                #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
+
 def readdatafiles(inq, outq):
     visits = {}
     filemap = {}
@@ -108,67 +110,69 @@ class Coverage(KGTool):
 
         # build app with instrumntation
         if not os.path.exists(Config.coveragefile) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
+            if len(glob.glob('%s/coverage.data.*'%Config.path['coverage'])) > 0 and Config.coverage['reuse_rawdata']:
+                kgutils.logger.info('Raw data generation is skipped.')
+            else:
+                # generate instrumentation
+                for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
+                    if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
+                        sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
+                        sfile.used4coverage = False
+                        if sfile is None:
+                            raise kgutils.ProgramException('Kernel source file is not generated for %s.'%filepath)
+                        self.genfiles.append((sfile, filepath))
+                        Config.used_srcfiles[filepath] = (sfile, mods_used, units_used)
 
-            # generate instrumentation
-            for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
-                if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
-                    sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
-                    sfile.used4coverage = False
-                    if sfile is None:
-                        raise kgutils.ProgramException('Kernel source file is not generated for %s.'%filepath)
-                    self.genfiles.append((sfile, filepath))
-                    Config.used_srcfiles[filepath] = (sfile, mods_used, units_used)
+                # process each nodes in the tree
+                for plugin_name in event_register.keys():
+                    if not plugin_name.startswith('cover'): continue
 
-            # process each nodes in the tree
-            for plugin_name in event_register.keys():
-                if not plugin_name.startswith('cover'): continue
+                    for sfile, filepath in self.genfiles:
+                        sfile.created([plugin_name])
 
+                    for sfile, filepath in self.genfiles:
+                        sfile.process([plugin_name])
+
+                    for sfile, filepath in self.genfiles:
+                        sfile.finalize([plugin_name])
+
+                    for sfile, filepath in self.genfiles:
+                        sfile.flatten(KERNEL_ID_0, [plugin_name])
+
+                # generate source files from each node of the tree
+                coverage_files = []
                 for sfile, filepath in self.genfiles:
-                    sfile.created([plugin_name])
+                    filename = os.path.basename(filepath)
+                    if sfile.used4coverage:
+                        self.set_indent('')
+                        slines = sfile.tostring()
+                        if slines is not None:
+                            slines = self.remove_multiblanklines(slines)
+                            coverage_files.append(filename)
+                            with open('%s/%s'%(Config.path['coverage'], filename), 'wb') as fd:
+                                fd.write(slines)
+                            with open('%s/%s.kgen'%(Config.path['coverage'], filename), 'wb') as ft:
+                                ft.write('\n'.join(sfile.kgen_stmt.prep))
 
-                for sfile, filepath in self.genfiles:
-                    sfile.process([plugin_name])
+                self.gen_makefile()
 
-                for sfile, filepath in self.genfiles:
-                    sfile.finalize([plugin_name])
-
-                for sfile, filepath in self.genfiles:
-                    sfile.flatten(KERNEL_ID_0, [plugin_name])
-
-            # generate source files from each node of the tree
-            coverage_files = []
-            for sfile, filepath in self.genfiles:
-                filename = os.path.basename(filepath)
-                if sfile.used4coverage:
-                    self.set_indent('')
-                    slines = sfile.tostring()
-                    if slines is not None:
-                        slines = self.remove_multiblanklines(slines)
-                        coverage_files.append(filename)
-                        with open('%s/%s'%(Config.path['coverage'], filename), 'wb') as fd:
-                            fd.write(slines)
-                        with open('%s/%s.kgen'%(Config.path['coverage'], filename), 'wb') as ft:
-                            ft.write('\n'.join(sfile.kgen_stmt.prep))
-
-            self.gen_makefile()
-
-            kgutils.logger.info('Instrumentation for coverage is generated at %s.'%os.path.abspath(Config.path['coverage']))
+                kgutils.logger.info('Instrumentation for coverage is generated at %s.'%os.path.abspath(Config.path['coverage']))
 
 
-            # TODO: wait until coverage data generation is completed
-            # use -K option fir bsub to wait for job completion
+                # TODO: wait until coverage data generation is completed
+                # use -K option fir bsub to wait for job completion
 
-            # clean app
-            if Config.cmd_clean['cmds']:
-                kgutils.run_shcmd(Config.cmd_clean['cmds'])
+                # clean app
+                if Config.cmd_clean['cmds']:
+                    kgutils.run_shcmd(Config.cmd_clean['cmds'])
 
-            # TEMP
-            out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
-            if retcode != 0:
-                #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
-                kgutils.logger.info('Failed to generate coverage information: %s'%err)
+                # TEMP
+                out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
+                if retcode != 0:
+                    #kgutils.logger.info('Failed to generate coverage information: %s : %s'%(out, err))
+                    kgutils.logger.info('Failed to generate coverage information: %s'%err)
 
-            kgutils.logger.info('Application is built/run with coverage instrumentation.')
+                kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
             def chunks(l, n):
                 for i in range(0, len(l), n):
@@ -220,7 +224,7 @@ class Coverage(KGTool):
             for idx in range(nprocs):
                 procs[idx].join()
 
-            number_of_files_having_condblocks = len(Config.plugindb['coverage_paths'])
+            number_of_files_having_condblocks = len(filemap)
             number_of_files_invoked = len(visits)
             number_of_condblocks_exist = sum( len(lines) for lines in linemap.values())
             try:
@@ -239,15 +243,17 @@ class Coverage(KGTool):
                 # file section
                 fd.write('[file]\n')
                 fd.write('; <file number> = <path to file>\n')
-                for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                    fd.write('%d = %s/%s.kgen\n'%(pathnum, os.path.abspath(Config.path['coverage']), os.path.basename(path)))
+                #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
+                for fileid, filepath in filemap.items():
+                    fd.write('%d = %s/%s.kgen\n'%(fileid, filepath))
                 fd.write('\n')
 
                 # block section
                 fd.write('[block]\n')
                 fd.write('; <file number> =  <line number> ...\n')
-                for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                    fd.write('%d = %s\n'%(pathnum, ' '.join([ str(lnum) for lnum, lid in lines.items() ])))
+                #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
+                for fileid, lines in linemap.items():
+                    fd.write('%d = %s\n'%(fileid, ' '.join([ str(lnum) for lnum, lid in lines.items() ])))
                 fd.write('\n')
 
 
