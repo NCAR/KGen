@@ -7,6 +7,7 @@ import os
 import sys
 
 from kgconfig import Config
+from kgutils import logger
 from kggenfile import init_plugins, KERNEL_ID_0
 
 from compflag.main import CompFlag
@@ -16,8 +17,12 @@ from extractor.main import Extractor
 
 def main():
 
+    Config.parse()
+
     # compflag
-    if 'compflag' not in Config.skip:
+    if 'compflag' in Config.skip:
+        logger.info('Skipped compflag.') 
+    else:
         compflag = CompFlag()
         compflag.run()
 
@@ -25,7 +30,9 @@ def main():
     Config.collect_mpi_params()
 
     # parse code
-    if 'parse' not in Config.skip:
+    if 'parse' in Config.skip:
+        logger.info('Skipped parse.') 
+    else:
         parser = Parser()
         parser.run()
 
@@ -33,12 +40,16 @@ def main():
     init_plugins([KERNEL_ID_0])
 
     # coverage
-    if 'coverage' not in Config.skip:
+    if 'coverage' in Config.skip:
+        logger.info('Skipped coverage.') 
+    else:
         cover = Coverage()
         cover.run()
 
     # extract
-    if 'extract' not in Config.skip:
+    if 'extract' in Config.skip:
+        logger.info('Skipped extract.') 
+    else:
         ext = Extractor()
         ext.run()
 

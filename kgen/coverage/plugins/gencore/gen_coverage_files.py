@@ -118,7 +118,10 @@ class Gen_Coverage_File(Kgen_Plugin):
     ##################################
 
     def save_paths(self, node):
-        setinfo('coverage_paths', self.paths)
+        with open('%s/kcover_filemap.txt'%os.path.abspath(getinfo('coverage_path')), 'w') as f:
+            for filepath, (fileid, lines) in self.paths.items():
+                f.write('%d %s %s\n'%(fileid, filepath, ' '.join([str(linenum) for linenum in lines.keys()])))
+        #setinfo('coverage_paths', self.paths)
 
     ##################################
     # adding coverage statements

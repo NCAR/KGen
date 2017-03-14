@@ -8,10 +8,11 @@ import math
 import datetime
 import collections
 import multiprocessing
+from collections import OrderedDict
 
 from kgtool import KGTool
 from parser.kgparse import KGGenType
-from kggenfile import gensobj, KERNEL_ID_0, event_register, Gen_Statement
+from kggenfile import gensobj, KERNEL_ID_0, event_register, Gen_Statement, set_indent
 import kgutils
 from kgconfig import Config
 try:
@@ -25,8 +26,6 @@ BEGIN_PATH_MARKER = r'kgdatabegin'
 END_PATH_MARKER = r'kgdataend'
 
 DEBUG = True
-
-                #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
 
 def readdatafiles(inq, outq):
     visits = {}
@@ -144,10 +143,10 @@ class Coverage(KGTool):
                 for sfile, filepath in self.genfiles:
                     filename = os.path.basename(filepath)
                     if sfile.used4coverage:
-                        self.set_indent('')
+                        set_indent('')
                         slines = sfile.tostring()
                         if slines is not None:
-                            slines = self.remove_multiblanklines(slines)
+                            slines = kgutils.remove_multiblanklines(slines)
                             coverage_files.append(filename)
                             with open('%s/%s'%(Config.path['coverage'], filename), 'wb') as fd:
                                 fd.write(slines)
@@ -224,9 +223,27 @@ class Coverage(KGTool):
             for idx in range(nprocs):
                 procs[idx].join()
 
-            number_of_files_having_condblocks = len(filemap)
+            filesection = OrderedDict()
+            blocksection = OrderedDict()
+            if os.path.exists('%s/kcover_filemap.txt'%Config.path['coverage']):
+                with open('%s/kcover_filemap.txt'%Config.path['coverage'], 'r') as f:
+                    for line in f:
+                        fid, fpath, lines = line.split(' ', 2)
+                        filesection[int(fid)] = fpath.strip()
+                        blocksection[int(fid)] = lines.strip().split()
+                number_of_files_having_condblocks = len(filesection)
+                number_of_condblocks_exist = sum( len(lines) for lines in blocksection.values() )
+            else:
+                for fid, fpath in filemap.items():
+                    filesection[fid] = fpath
+
+                for fid, lines in linemap.items():
+                    blocksection[fid] = ' '.join([ str(lnum) for lid, lnum in lines.items() ])
+
+                number_of_files_having_condblocks = len(filemap)
+                number_of_condblocks_exist = sum( len(lines) for lines in linemap.values())
+
             number_of_files_invoked = len(visits)
-            number_of_condblocks_exist = sum( len(lines) for lines in linemap.values())
             try:
                 number_of_condblocks_invoked = sum( len(lineids) for  lineids in visits.values() )
             except: import pdb; pdb.set_trace()
@@ -244,16 +261,16 @@ class Coverage(KGTool):
                 fd.write('[file]\n')
                 fd.write('; <file number> = <path to file>\n')
                 #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                for fileid, filepath in filemap.items():
-                    fd.write('%d = %s/%s.kgen\n'%(fileid, filepath))
+                for fileid, filepath in filesection.items():
+                    fd.write('%d = %s.kgen\n'%(fileid, filepath))
                 fd.write('\n')
 
                 # block section
                 fd.write('[block]\n')
                 fd.write('; <file number> =  <line number> ...\n')
                 #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                for fileid, lines in linemap.items():
-                    fd.write('%d = %s\n'%(fileid, ' '.join([ str(lnum) for lnum, lid in lines.items() ])))
+                for fileid, lines in blocksection.items():
+                    fd.write('%d = %s\n'%(fileid, ' '.join(lines)))
                 fd.write('\n')
 
 
@@ -265,18 +282,22 @@ class Coverage(KGTool):
             kgutils.logger.info('    * %d conditional blocks are executed at least once among all the conditional blocks.'%\
                 number_of_condblocks_invoked )
 
+            # visits: fileid -> lineid -> ranknum -> threadnum -> invokenum -> [ timestamp, ... ]
             for fileid, lines in visits.items():
                 visitinfo = {}
                 for lineid, ranks in lines.items():
                     rankvisits = {}
                     threadvisits = {}
                     for rank, threads in ranks.items(): 
-                        rankvisits[rank] = sum( [ sum( len(ts) for ts in ivk.values()) for ivk in threads.values() ] )
+                        #rankvisits[rank] = sum( [ sum( len(ts) for ts in ivk.values()) for ivk in threads.values() ] )
+                        rankvisits[rank] = sum([ sum( len(ivk.values()) for ivk in threads.values() ) ])
                         for tid, ivk in threads.items():
                             if tid in threadvisits:
-                                threadvisits[tid] += sum(len(ts) for ts in ivk.values())
+                                #threadvisits[tid] += sum(len(ts) for ts in ivk.values())
+                                threadvisits[tid] += sum(len(ivk.values()))
                             else:
-                                threadvisits[tid] = sum(len(ts) for ts in ivk.values())
+                                #threadvisits[tid] = sum(len(ts) for ts in ivk.values())
+                                threadvisits[tid] = len(ivk.values())
                     totalvisits = sum(rankvisits.values())
 
                     visitinfo[lineid] = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
@@ -426,25 +447,9 @@ class Coverage(KGTool):
         print 'Following (File id, line number) pairs are covered by above triples:'
         print str(collected)
 
-    def set_indent(self, indent):
-        Gen_Statement.kgen_gen_attrs = {'indent': '', 'span': None}
-
-    def remove_multiblanklines(self, text):
-        MAXBLANKLINES = 3
-        lines = text.split('\n')
-        newlines = []
-        count = 0
-        for line in lines:
-            if len(line)>0:
-                newlines.append(line)
-                count = 0
-            else:
-                count += 1
-                if count < MAXBLANKLINES:
-                    newlines.append(line)
-
-        return '\n'.join(newlines)
-
+        for ranknum, threadnum, invokenum in triples.keys():
+            Config.invocation['triples'].append( ( (str(ranknum), str(ranknum)), (str(threadnum), str(threadnum)), \
+                (str(invokenum), str(invokenum)) ) )
 
     def write(self, f, line, n=True, t=False):
         nl = ''

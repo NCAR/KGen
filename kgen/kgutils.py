@@ -244,6 +244,22 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+def remove_multiblanklines(text):
+    MAXBLANKLINES = 3
+    lines = text.split('\n')
+    newlines = []
+    count = 0
+    for line in lines:
+        if len(line)>0:
+            newlines.append(line)
+            count = 0
+        else:
+            count += 1
+            if count < MAXBLANKLINES:
+                newlines.append(line)
+
+    return '\n'.join(newlines)
+
 ##############################################
 # Logging
 ##############################################

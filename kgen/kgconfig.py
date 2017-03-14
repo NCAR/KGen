@@ -149,7 +149,7 @@ class Config(object):
     
         # KGEN version
         self._attrs['kgen'] = collections.OrderedDict()
-        self._attrs['kgen']['version'] = [ 0, 7, '2' ]
+        self._attrs['kgen']['version'] = [ 0, 7, '3' ]
 
         # KGEN operation mode
         self._attrs['check_mode'] = False
@@ -252,7 +252,7 @@ class Config(object):
         # invocation parameters
         self._attrs['invocation'] = collections.OrderedDict()
         #self._attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
-        self._attrs['invocation']['triples'] = None
+        self._attrs['invocation']['triples'] = []
 
         # add mpi frame code in kernel driver
         self._attrs['add_mpi_frame'] = collections.OrderedDict()
@@ -386,7 +386,9 @@ class Config(object):
 
         #self.parser.set_usage(cfg.usage)
 
-        opts, args = self.parser.parse_args()
+    def parse(self, cfgargs=None):
+
+        opts, args = self.parser.parse_args(cfgargs)
 
         if len(args)<1:
             print 'ERROR: No call-site information is provided in command line.'
@@ -407,7 +409,7 @@ class Config(object):
 
         callsite = args[0].split(':', 1)
         if not os.path.isfile(callsite[0]):
-            print 'ERROR: %s can not be found.' % callsite[0]
+            print 'ERROR: callsite file, "%s" can not be found.' % callsite[0]
             sys.exit(-1)
 
         # set callsite filepath

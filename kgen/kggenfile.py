@@ -5,17 +5,14 @@ import os
 import re
 import sys
 import inspect
-import parser.api
-from parser import base_classes
-from parser import statements
-from parser import block_statements
-from parser import typedecl_statements
+import logging
+import collections
+
+from parser import api, base_classes, statements, block_statements, typedecl_statements, Fortran2003
+from parser import kgparse
 from kgutils import ProgramException, traverse, match_namepath, pack_innamepath, pack_exnamepath
-from parser.kgparse import KGGenType
 from kgplugin import Kgen_Plugin
 from kgconfig import Config
-import collections
-import logging
 
 logger = logging.getLogger('kgen') # KGEN addition
 
@@ -93,9 +90,8 @@ def get_indent(line):
     return re.match(r"[^\S\n]*", line).group()
 
 def get_entity_name(entity):
-    from Fortran2003 import Entity_Decl
  
-    edecl = Entity_Decl(entity)
+    edecl = Fortran2003.Entity_Decl(entity)
     return edecl.items[0].string
 
 def _take_functions(cls, obj, end_obj):
@@ -354,7 +350,7 @@ def set_plugin_env(mod):
 
     mod.genkobj = genkobj
     mod.gensobj = genkobj
-    mod.KGGenType = KGGenType
+    mod.KGGenType = kgparse.KGGenType
 
     mod.getinfo =  getinfo
     mod.setinfo =  setinfo
@@ -905,8 +901,7 @@ class GenK_Statement(Gen_Statement):
     def __init__(self, parent, stmt, match_class, kernel_id, attrs=None):
 
         def process_exclude(node, bag, depth):
-            from Fortran2003 import Name
-            if isinstance(node, Name):
+            if isinstance(node, Fortran2003.Name):
                 for namepath, actions in bag['excludes'].iteritems():
                     if match_namepath(namepath, pack_innamepath(bag['stmt'], node.string)):
                         bag['matched'] = True
@@ -1181,6 +1176,19 @@ class GenS_BeginStatement(GenS_Statement, Gen_BeginStatement):
         return self.beginstatement_tostring()
 
 ########### functions ############
+
+def create_rootnode(kernelid):
+    return genkobj(None, block_statements.BeginSource, kernelid)
+
+def create_programnode(parent, kernelid):
+    return genkobj(parent, block_statements.Program, kernelid)
+
+def append_program_in_root(driver, program):
+    append_item_in_part(driver, UNIT_PART, program)
+
+def set_indent(indent):
+    Gen_Statement.kgen_gen_attrs = {'indent': indent, 'span': None}
+
 
 #def generate_kgen_utils(k_id):
 #    from kgextra import kgen_utils_file_head, kgen_utils_file_checksubr, \
