@@ -10,7 +10,7 @@ from kgconfig import Config
 from kggenfile import genkobj, gensobj, KERNEL_ID_0, event_register, create_rootnode, create_programnode, \
     append_program_in_root, set_indent
 from parser.kgparse import KGGenType
-from kgextra import kgen_utils_file_head, kgen_utils_file_checksubr, kgen_get_newunit, kgen_error_stop, \
+from parser.kgextra import kgen_utils_file_head, kgen_utils_file_checksubr, kgen_get_newunit, kgen_error_stop, \
     kgen_utils_file_tostr, kgen_utils_array_sumcheck, kgen_rankthread
 
 KGUTIL = 'kgen_utils.f90'
@@ -51,7 +51,7 @@ class Extractor(KGTool):
                 if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
                     kfile = genkobj(None, srcobj.tree, KERNEL_ID_0)
                     sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
-                    sfile.used4genstate = False
+                    sfile.kgen_stmt.used4genstate = False
                     if kfile is None or sfile is None:
                         raise kgutils.ProgramException('Kernel source file is not generated for %s.'%filepath)
                     self.genfiles.append((kfile, sfile, filepath))
@@ -60,6 +60,7 @@ class Extractor(KGTool):
             # process each nodes in the tree
             for plugin_name in event_register.keys():
                 if not plugin_name.startswith('ext'): continue
+
 
                 for kfile, sfile, filepath in self.genfiles:
                     kfile.created([plugin_name])
@@ -95,19 +96,20 @@ class Extractor(KGTool):
                 if klines is not None:
                     klines = kgutils.remove_multiblanklines(klines)
                     kernel_files.append(filename)
-                    with open('%s/%s'%(Config.path['kernel'], filename), 'wb') as fd:
+                    with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], filename), 'wb') as fd:
                         fd.write(klines)
 
-                if sfile.used4genstate:
+                if sfile.kgen_stmt.used4genstate:
+                    import pdb; pdb.set_trace()
                     set_indent('')
                     slines = sfile.tostring()
                     if slines is not None:
                         slines = kgutils.remove_multiblanklines(slines)
                         state_files.append(filename)
-                        with open('%s/%s'%(Config.path['state'], filename), 'wb') as fd:
+                        with open('%s/%s/%s'%(Config.path['outdir'], Config.path['state'], filename), 'wb') as fd:
                             fd.write(slines)
 
-            with open('%s/%s.f90'%(Config.path['kernel'], Config.kernel['name']), 'wb') as fd:
+            with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], KGDRIVER), 'wb') as fd:
                 set_indent('')
                 lines = driver.tostring()
                 if lines is not None:
@@ -248,12 +250,13 @@ class Extractor(KGTool):
                 else:
                     compiler_options[opts] = [ base, KGDRIVER ]
 
-        with open('%s/Makefile'%(Config.path['kernel']), 'wb') as f:
+        with open('%s/%s/Makefile'%(Config.path['outdir'], Config.path['kernel']), 'wb') as f:
             self.write(f, '# Makefile for KGEN-generated kernel')
             self.write(f, '')
 
             if Config.kernel_option['FC']:
                 self.write(f, 'FC := %s'%Config.kernel_option['FC'])
+                self.write(f, 'FC_0 := %s'%Config.kernel_option['FC'])
             else:
                 self.write(f, 'FC := ')
                 for i, compiler in enumerate(compilers):
@@ -261,6 +264,7 @@ class Extractor(KGTool):
 
             if Config.kernel_option['FC_FLAGS']:
                 self.write(f, 'FC_FLAGS := %s'%Config.kernel_option['FC_FLAGS'])
+                self.write(f, 'FC_FLAGS_SET_0 := %s'%Config.kernel_option['FC_FLAGS'])
             else:
                 self.write(f, 'FC_FLAGS := ')
                 for i, options in enumerate(compiler_options):
@@ -358,11 +362,11 @@ class Extractor(KGTool):
 
     def generate_state_makefile(self):
 
-        org_files = [ filepath for filepath, (kfile, sfile, mods_used, units_used) in Config.used_srcfiles.items() if sfile.used4genstate ]
+        org_files = [ filepath for filepath, (kfile, sfile, mods_used, units_used) in Config.used_srcfiles.items() if sfile.kgen_stmt.used4genstate ]
         if not Config.topblock['stmt'].reader.id in org_files:
-            org_files.append(Config.topblock['path'])
+            org_files.append(Config.topblock['filepath'])
 
-        with open('%s/Makefile'%(Config.path['state']), 'wb') as f:
+        with open('%s/%s/Makefile'%(Config.path['outdir'], Config.path['state']), 'wb') as f:
 
             self.write(f, '# Makefile for KGEN-generated instrumentation')
             self.write(f, '')
@@ -438,7 +442,7 @@ class Extractor(KGTool):
 
     def generate_kgen_utils(self):
 
-        with open('%s/%s'%(Config.path['kernel'], KGUTIL), 'wb') as f:
+        with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], KGUTIL), 'wb') as f:
             f.write('MODULE kgen_utils_mod')
             f.write(kgen_utils_file_head)
             f.write('\n')

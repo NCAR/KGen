@@ -1,6 +1,7 @@
 '''KGen source code parser
 '''
 
+import os
 import kgtool
 import kgutils
 import kgparse
@@ -20,7 +21,6 @@ class Parser(kgtool.KGTool):
         if len(Config.callsite['stmts'])==0:
             raise kgutils.UserException('Can not find callsite')
 
-
         # add geninfo to ancestors
         ancs = Config.callsite['stmts'][0].ancestors()
 
@@ -31,6 +31,7 @@ class Parser(kgtool.KGTool):
 
         # populate top block parameters
         Config.topblock['stmt'] = ancs[0]
+        Config.topblock['filepath'] = os.path.abspath(Config.topblock['stmt'].reader.id)
 
         # resolve
         for cs_stmt in Config.callsite['stmts']:

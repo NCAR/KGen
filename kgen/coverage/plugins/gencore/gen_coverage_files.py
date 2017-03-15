@@ -4,7 +4,6 @@ import random
 from kgplugin import Kgen_Plugin
 from parser import block_statements, statements, typedecl_statements
 import collections
-from coverage.main import BEGIN_DATA_MARKER, END_DATA_MARKER, BEGIN_PATH_MARKER, END_PATH_MARKER
 
 RECL = 10
 

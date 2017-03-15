@@ -343,6 +343,7 @@ class Config(object):
         self._attrs['parentblock']['stmt'] = None
         self._attrs['topblock'] = collections.OrderedDict()
         self._attrs['topblock']['stmt'] = None
+        self._attrs['topblock']['filepath'] = ''
         self._attrs['used_srcfiles'] = collections.OrderedDict()
 
 
@@ -820,14 +821,14 @@ class Config(object):
                     if len(split_kopt)==1:
                         self._attrs['kernel_option']['compiler']['add'][split_kopt[0]] = None
                     elif len(split_kopt)==2:
-                        if split_kopt[1] in [ 'FC', 'FC_FLAGS' ]:
-                            self._attrs['kernel_option'][split_kopt[1]] = split_kopt[0]
-                        elif split_kopt[1] in [ 'add', 'remove' ]:
-                            self._attrs['kernel_option']['compiler'][split_kopt[1]].append(split_kopt[0])
-                        elif split_kopt[1]=='link':
-                            self._attrs['kernel_option']['linker']['add'].append(split_kopt[0])
+                        if split_kopt[0] in [ 'FC', 'FC_FLAGS' ]:
+                            self._attrs['kernel_option'][split_kopt[0]] = split_kopt[1]
+                        elif split_kopt[0] in [ 'add', 'remove' ]:
+                            self._attrs['kernel_option']['compiler'][split_kopt[0]].append(split_kopt[1])
+                        elif split_kopt[0]=='link':
+                            self._attrs['kernel_option']['linker']['add'].append(split_kopt[1])
                         else:
-                            raise UserException('Unknown state-switch option: %s' % run)
+                            raise UserException('Unknown state-switch option: %s' % kopt)
 
         if opts.timing:
             for time in opts.timing.split(','):

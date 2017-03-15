@@ -15,12 +15,12 @@ KGEN_APPLICATION = '%s/../../../kgen'%CURDIR
 sys.path.insert(0, KGEN_APPLICATION)
 
 from kgconfig import Config
+from kggenfile import init_plugins, KERNEL_ID_0
+from parser.main import Parser
 from extractor.main import Extractor
-
 
 @pytest.yield_fixture(scope="module")
 def extractor():
-    ext = Extractor()
     outdir = tempfile.mkdtemp()
     for filename in glob.glob(os.path.join(SRCDIR, '*.*')):
         shutil.copy(filename, outdir)
@@ -28,16 +28,29 @@ def extractor():
     args.extend(['--cmd-clean', '"cd %s; make clean"'%outdir])
     args.extend(['--cmd-build', '"cd %s; make build"'%outdir])
     args.extend(['--cmd-run', '"cd %s; make run"'%outdir])
+    args.extend(['--kernel-option', 'FC=gfortran,FC_FLAGS=-O2'])
     args.extend(['--invocation', '0:0:0'])
     args.extend(['--outdir', outdir])
+    args.extend(['-I', outdir])
     args.extend(['%s/%s'%(outdir, CALLSITE)])
     Config.parse(args)
     Config.kernel['name'] = 'unittest'
+    Config.process_include_option()
+    Config.collect_mpi_params()
+
+    parser = Parser()
+    parser.run()
+
+    init_plugins([KERNEL_ID_0])
+
+    ext = Extractor()
+
     yield ext
+
     shutil.rmtree(outdir) 
 
 def test_run(extractor):
-    print 'AAA', Config.path['outdir']
     extractor.run()    
+    import pdb; pdb.set_trace()
 
 del sys.path[0]
