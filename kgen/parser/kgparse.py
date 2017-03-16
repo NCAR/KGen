@@ -131,7 +131,7 @@ class SrcFile(object):
 
         insert_lines = []
         for i, line in enumerate(lines):
-            match = re.match(r'^\s*include\s*("[^"]+"|\'[^\']+\')\s*\Z', line, re.I)
+            match = re.match(r'^\s*include\s*("[^"]+"|\'[^\']+\')', line, re.I)
             #if not match:
             #    match = re.match(r'\s*#include\s*("[^"]+"|\<[^\']+\>)\s*\Z', line, re.I)
             if match:

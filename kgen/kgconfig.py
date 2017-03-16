@@ -2,17 +2,20 @@
 import os
 import re
 import sys
+import glob
 import collections
 import copy
 import optparse
-from kgutils import UserException, run_shcmd, INTERNAL_NAMELEVEL_SEPERATOR, traverse, match_namepath
+from kgutils import UserException, run_shcmd, INTERNAL_NAMELEVEL_SEPERATOR, traverse, match_namepath, dequote
 try:
     import configparser
 except:
     import ConfigParser as configparser
 
-KGEN_EXT = '%s/extractor'%os.path.dirname(os.path.realpath(__file__))
-KGEN_COVER = '%s/coverage'%os.path.dirname(os.path.realpath(__file__))
+SRCROOT = os.path.dirname(os.path.realpath(__file__))
+KGEN_MACHINE = '%s/../machines'%SRCROOT
+KGEN_EXT = '%s/extractor'%SRCROOT
+KGEN_COVER = '%s/coverage'%SRCROOT
 
 #############################################################################
 ## CONFIG
@@ -154,6 +157,15 @@ class Config(object):
         # KGEN operation mode
         self._attrs['check_mode'] = False
 
+        # machine parameters
+        self._attrs['machine'] = collections.OrderedDict()
+        self._attrs['machine']['inc'] = None
+        self._attrs['machine']['general'] = collections.OrderedDict()
+        self._attrs['machine']['general']['name'] = 'Generic Machine'
+        self._attrs['machine']['general']['id'] = 'generic'
+        self._attrs['machine']['variable'] = collections.OrderedDict()
+        self._attrs['machine']['variable']['work_directory'] = os.path.expandvars('${HOME}/kgen_workspace')
+
         # skip parameters
         self._attrs['skip'] = []
 
@@ -271,8 +283,8 @@ class Config(object):
 
         # make kernel parameters
         self._attrs['kernel_option'] = collections.OrderedDict()
-        self._attrs['kernel_option']['FC'] = None
-        self._attrs['kernel_option']['FC_FLAGS'] = None
+        self._attrs['kernel_option']['FC'] = 'gfortran'
+        self._attrs['kernel_option']['FC_FLAGS'] = '-g'
         self._attrs['kernel_option']['compiler'] = collections.OrderedDict()
         self._attrs['kernel_option']['compiler']['add'] = []
         self._attrs['kernel_option']['compiler']['remove'] = []
@@ -283,7 +295,6 @@ class Config(object):
         self._attrs['prerun'] = collections.OrderedDict()
         self._attrs['prerun']['kernel_build'] = ''
         self._attrs['prerun']['kernel_run'] = ''
-        self._attrs['prerun']['clean'] = ''
         self._attrs['prerun']['build'] = ''
         self._attrs['prerun']['run'] = ''
 
@@ -345,7 +356,9 @@ class Config(object):
         self._attrs['topblock']['stmt'] = None
         self._attrs['topblock']['filepath'] = ''
         self._attrs['used_srcfiles'] = collections.OrderedDict()
-
+        self._attrs['kernel_driver'] = collections.OrderedDict()
+        self._attrs['kernel_driver']['name'] = 'kernel_driver'
+        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_elapsed_time', 'kgen_isverified']
 
         ###############################################################
         # Add common options
@@ -360,6 +373,7 @@ class Config(object):
         self.parser.add_option("--skip-intrinsic", dest="skip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
+        self.parser.add_option("--machinefile", dest="machinefile", action='store', type='string', default=None, help="Specifying machinefile")
         self.parser.add_option("--skip", dest="skip", action='store', type='string', default=None, help="Specifying KGen internal tasks that will be skipped")
         self.parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
@@ -703,6 +717,21 @@ class Config(object):
         if opts.outdir:
             self._attrs['path']['outdir'] = opts.outdir
 
+        if opts.machinefile:
+            if os.path.exists(opts.machinefile):
+                self._attrs['machine']['inc'] = KgenConfigParser(allow_no_value=True)
+                inc.read(opts.machinefile)
+            else:
+                print 'WARNING: "%s" machine file does not exist.'%opts.machinefile
+        else:
+            self._attrs['machine']['inc'] = self.find_machine()
+
+        if self._attrs['machine']['inc']:
+            self.read_machinefile(self._attrs['machine'], self._attrs['kernel_option'], self._attrs['prerun'])
+
+        if not os.path.exists(self._attrs['machine']['variable']['work_directory']):
+            os.makedirs(self._attrs['machine']['variable']['work_directory'])
+
         # create state directories and change working directory
         if not os.path.exists(self._attrs['path']['outdir']):
             os.makedirs(self._attrs['path']['outdir'])
@@ -785,8 +814,8 @@ class Config(object):
             for line in opts.prerun:
                 for comp in line.split(','):
                     key, value = comp.split('=', 1)
-                    if key in [ 'clean', 'build', 'run', 'kernel_build', 'kernel_run' ] :
-                        self._attrs['prerun'][key] = value
+                    if key in [ 'build', 'run', 'kernel_build', 'kernel_run' ] :
+                        self._attrs['prerun'][key] = dequote(value)
                     else:
                         raise UserException('Unknown prerun option: %s' % comp)
 
@@ -796,21 +825,21 @@ class Config(object):
                     self._attrs['rebuild'][comp] = True
 
         if opts.cmd_clean:
-            self._attrs['cmd_clean']['cmds'] = opts.cmd_clean
+            self._attrs['cmd_clean']['cmds'] = dequote(opts.cmd_clean)
 
 
         if opts.cmd_build:
-            self._attrs['cmd_build']['cmds'] = opts.cmd_build
+            self._attrs['cmd_build']['cmds'] = dequote(opts.cmd_build)
 
         if opts.cmd_run:
-            self._attrs['cmd_run']['cmds'] = opts.cmd_run
+            self._attrs['cmd_run']['cmds'] = dequote(opts.cmd_run)
 
         if opts.state_switch:
             for line in opts.state_switch:
                 for run in line.split(','):
                     key, value = run.split('=', 1)
                     if key in [ 'cmds', 'type' ] :
-                        self._attrs['state_switch'][key] = value
+                        self._attrs['state_switch'][key] = dequote(value)
                     else:
                         raise UserException('Unknown state-switch option: %s' % run)
 
@@ -822,11 +851,11 @@ class Config(object):
                         self._attrs['kernel_option']['compiler']['add'][split_kopt[0]] = None
                     elif len(split_kopt)==2:
                         if split_kopt[0] in [ 'FC', 'FC_FLAGS' ]:
-                            self._attrs['kernel_option'][split_kopt[0]] = split_kopt[1]
+                            self._attrs['kernel_option'][split_kopt[0]] = dequote(split_kopt[1])
                         elif split_kopt[0] in [ 'add', 'remove' ]:
-                            self._attrs['kernel_option']['compiler'][split_kopt[0]].append(split_kopt[1])
+                            self._attrs['kernel_option']['compiler'][split_kopt[0]].append(dequote(split_kopt[1]))
                         elif split_kopt[0]=='link':
-                            self._attrs['kernel_option']['linker']['add'].append(split_kopt[1])
+                            self._attrs['kernel_option']['linker']['add'].append(dequote(split_kopt[1]))
                         else:
                             raise UserException('Unknown state-switch option: %s' % kopt)
 
@@ -935,4 +964,56 @@ class Config(object):
             else:
                 pass
                 #print '%s is either not suppored keyword or can not be found. Ignored.' % section
+
+
+    def find_machine(self):
+
+        # find machine files
+        inc = None
+        for path in glob.glob('%s/*'%KGEN_MACHINE):
+            try:
+                inc = KgenConfigParser(allow_no_value=True)
+                inc.read(path)
+                cmd = inc.get('shell', 'command')
+                out, err, retcode = run_shcmd(cmd)
+                if retcode == 0:
+                    if inc.has_option('shell', 'startswith'):
+                        if any( out.startswith(s.strip()) for s in inc.get('shell', 'startswith').split(',') ):
+                            break
+                    elif inc.has_option('shell', 'pattern'):
+                        if any( re.match(p.strip(), out) for p in inc.get('shell', 'pattern').split(',') ):
+                            break
+                inc = None
+            except:
+                inc = None
+
+        return inc
+
+    def read_machinefile(self, machine, kernel_option, prerun):
+
+        # populate contents of the machine file
+        try:
+            inc = machine['inc']
+            if inc.has_section('general'):
+                if inc.has_option('general', 'name') and inc.get('general', 'name'):
+                    machine['general']['name'] = inc.get('general', 'name')
+                if inc.has_option('general', 'id') and inc.get('general', 'id'):
+                    machine['general']['id'] = inc.get('general', 'id')
+            if inc.has_section('variable'):
+                if inc.has_option('variable', 'prerun_build') and inc.get('variable', 'prerun_build'):
+                    prerun['build'] = inc.get('variable', 'prerun_build')
+                if inc.has_option('variable', 'prerun_run') and inc.get('variable', 'prerun_run'):
+                    prerun['run'] = inc.get('variable', 'prerun_run')
+                if inc.has_option('variable', 'prerun_kernel_build') and inc.get('variable', 'prerun_kernel_build'):
+                    prerun['kernel_build'] = inc.get('variable', 'prerun_kernel_build')
+                if inc.has_option('variable', 'prerun_kernel_run') and inc.get('variable', 'prerun_kernel_run'):
+                    prerun['kernel_run'] = inc.get('variable', 'prerun_kernel_run')
+                if inc.has_option('variable', 'compiler') and inc.get('variable', 'compiler'):
+                    kernel_option['FC'] = inc.get('variable', 'compiler')
+                if inc.has_option('variable', 'compiler_flags') and inc.get('variable', 'compiler_flags'):
+                    kernel_option['FC_FLAGS'] = inc.get('variable', 'compiler_flags')
+                if inc.has_option('variable', 'work_directory') and inc.get('variable', 'work_directory'):
+                    machine['variable']['work_directory'] = os.path.expandvars(inc.get('variable', 'work_directory'))
+        except:
+            pass
 

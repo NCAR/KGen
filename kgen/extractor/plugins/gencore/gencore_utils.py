@@ -99,7 +99,7 @@ rprefix = 'kr'
 wprefix = 'kw'
 vprefix = 'kv'
 
-MAXLEN_SUBPNAME = 50
+MAXLEN_SUBPNAME =40
 
 def get_ancestor_name(stmt, generation):
     assert stmt and hasattr(stmt, 'parent'), 'Given stmt does not have parent attribute.'
@@ -117,8 +117,22 @@ def get_parentname(stmt):
     return get_ancestor_name(stmt, -1)
 
 def get_dtype_subpname(typestmt):
+    if not hasattr(get_dtype_subpname, 'kgen_subpname_cache'):
+        get_dtype_subpname.kgen_subpname_cache = OrderedDict()
+
     assert typestmt, 'None type of typestmt'
-    return '%s_%s'%(get_topname(typestmt), typestmt.name)
+
+    subpname = '%s_%s'%(get_topname(typestmt), typestmt.name)
+
+    if len(subpname)<MAXLEN_SUBPNAME:
+        return subpname
+    else:
+        if subpname in get_dtype_subpname.kgen_subpname_cache:
+            return 'kgen_%s_typesubp%d'%(get_topname(typestmt), get_dtype_subpname.kgen_subpname_cache[subpname])
+        else:
+            subpindex = len(get_dtype_subpname.kgen_subpname_cache)
+            get_dtype_subpname.kgen_subpname_cache[subpname] = subpindex
+            return 'kgen_%s_typesubp%d'%(get_topname(typestmt), subpindex)
 
 def get_typedecl_subpname(stmt, entity_name):
     if not hasattr(get_typedecl_subpname, 'kgen_subpname_cache'):
@@ -140,11 +154,11 @@ def get_typedecl_subpname(stmt, entity_name):
         return '_'.join(prefix+l)
     else:
         if subpname in get_typedecl_subpname.kgen_subpname_cache:
-            return 'kgen_subpname_%d'%get_typedecl_subpname.kgen_subpname_cache[subpname]
+            return 'kgen_%s_subp%d'%(get_parentname(stmt), get_typedecl_subpname.kgen_subpname_cache[subpname])
         else:
             subpindex = len(get_typedecl_subpname.kgen_subpname_cache)
             get_typedecl_subpname.kgen_subpname_cache[subpname] = subpindex
-            return 'kgen_subpname_%d'%subpindex
+            return 'kgen_%s_subp%d'%(get_parentname(stmt), subpindex)
 
 def get_dtype_writename(typestmt):
     if typestmt is None: return
@@ -202,7 +216,6 @@ def process_spec_stmts(stmt):
             iname = re.split('\(|\*|=', item)[0].strip()
             if iname in unames: return True
             else: return False
-
 
         if hasattr(spec_stmt, 'items'):
             new_items = []

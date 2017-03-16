@@ -348,8 +348,6 @@ class Module(BeginStatement, HasAttributes,
                     stmt.error('Expected END MODULE statement (analyzer).')
                 continue
             #from statements import Comment
-            #if not isinstance(stmt, Comment) and str(stmt).find('[')>0: import pdb; pdb.set_trace()
-            if isinstance(stmt, Line): print 'BBBB', str(stmt)
             stmt.analyze()
 
         if content:

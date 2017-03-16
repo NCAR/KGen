@@ -2,7 +2,7 @@
 
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from .verify_utils import VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_DECL_PART, VERIFY_PBLOCK_EXEC_PART, \
+from verify_utils import VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_DECL_PART, VERIFY_PBLOCK_EXEC_PART, \
     VERIFY_PBLOCK_CONTAINS_PART, VERIFY_PBLOCK_SUBP_PART, VERIFY_PBLOCK_EXTERNS, VERIFY_PBLOCK_LOCALS, \
     VERIFY_PBLOCK_INIT
 
@@ -24,7 +24,8 @@ class Verify_K_Callsite_File(Kgen_Plugin):
 
     def create_topblock_parts(self, node):
 
-        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'kgen_tolerance', \
+            'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         prenode = getinfo('blocknode_aftercallsite_main')
@@ -68,7 +69,7 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'items': ['"Number of non-identical variables out of tolerance: "','check_status%numOutTol']}
         part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"Tolerance: "','check_status%tolerance']}
+        attrs = {'items': ['"Tolerance: "','kgen_tolerance']}
         part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['""']}

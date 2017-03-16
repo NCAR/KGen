@@ -1,7 +1,7 @@
 # gencore_write_subr.py
 
 from parser import statements, block_statements, typedecl_statements
-from .gencore_utils import kernel_gencore_contains, state_gencore_contains, get_dtype_writename, get_dtype_readname, \
+from gencore_utils import kernel_gencore_contains, state_gencore_contains, get_dtype_writename, get_dtype_readname, \
     gen_read_istrue, gen_write_istrue, check_class_derived
 
 def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, ename_prefix=''):

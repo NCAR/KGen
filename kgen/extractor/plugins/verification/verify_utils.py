@@ -1,6 +1,7 @@
 # gen_core_utils.py
 
 from collections import OrderedDict
+from parser import typedecl_statements, block_statements
 
 shared_objects = OrderedDict()
 
@@ -17,7 +18,7 @@ VERIFY_PBLOCK_EXTERNS = 'VPBE'
 VERIFY_PBLOCK_LOCALS ='VPBL'
 
 vprefix = 'kv'
-MAXLEN_SUBPNAME = 55
+MAXLEN_SUBPNAME = 40
 
 def get_ancestor_name(stmt, generation):
     assert stmt and hasattr(stmt, 'parent'), 'Given stmt does not have parent attribute.'
@@ -35,35 +36,28 @@ def get_parentname(stmt):
     return get_ancestor_name(stmt, -1)
 
 def get_dtype_subpname(typestmt):
+    if not hasattr(get_dtype_subpname, 'kgen_subpname_cache'):
+        get_dtype_subpname.kgen_subpname_cache = OrderedDict()
+
     assert typestmt, 'None type of typestmt'
-    return '%s_%s'%(get_topname(typestmt), typestmt.name)
+
+    subpname = '%s_%s'%(get_topname(typestmt), typestmt.name)
+
+    if len(subpname)<MAXLEN_SUBPNAME:
+        return subpname
+    else:
+        if subpname in get_dtype_subpname.kgen_subpname_cache:
+            return 'kgen_%s_typesubp%d'%(get_topname(typestmt), get_dtype_subpname.kgen_subpname_cache[subpname])
+        else:
+            subpindex = len(get_dtype_subpname.kgen_subpname_cache)
+            get_dtype_subpname.kgen_subpname_cache[subpname] = subpindex
+            return 'kgen_%s_typesubp%d'%(get_topname(typestmt), subpindex)
 
 def get_module_verifyname(modstmt):
     if modstmt is None: return
     return '%s_externs_%s'%(vprefix, modstmt.name)
 
-
-#def get_typedecl_subpname(stmt, entity_name):
-#    import typedecl_statements
-#
-#    assert isinstance(stmt, typedecl_statements.TypeDeclarationStatement), 'None type of typedecl stmt'
-#    assert entity_name, 'No entity name is provided.'
-#
-#    var = stmt.get_variable(entity_name)
-#    if var is None: return 'Unknown_name'
-#
-#    prefix = [ get_parentname(stmt), stmt.name ] + list(stmt.selector)
-#    l = []
-#    if var.is_array(): l.append('dim%d'%var.rank)
-#    if var.is_pointer(): l.append('ptr')
-#
-#    subpname = '_'.join(prefix+l)
-#    if len(subpname)<MAXLEN_SUBPNAME:
-#        return '_'.join(prefix+l)
-
-
 def get_typedecl_subpname(stmt, entity_name):
-    from parse import typedecl_statements
     if not hasattr(get_typedecl_subpname, 'kgen_subpname_cache'):
         get_typedecl_subpname.kgen_subpname_cache = OrderedDict()
 
@@ -83,11 +77,11 @@ def get_typedecl_subpname(stmt, entity_name):
         return '_'.join(prefix+l)
     else:
         if subpname in get_typedecl_subpname.kgen_subpname_cache:
-            return 'kgen_subpname_%d'%get_typedecl_subpname.kgen_subpname_cache[subpname]
+            return 'kgen_%s_subp%d'%(get_parentname(stmt), get_typedecl_subpname.kgen_subpname_cache[subpname])
         else:
             subpindex = len(get_typedecl_subpname.kgen_subpname_cache)
             get_typedecl_subpname.kgen_subpname_cache[subpname] = subpindex
-            return 'kgen_subpname_%d'%subpindex
+            return 'kgen_%s_subp%d'%(get_parentname(stmt), subpindex)
 
 def get_dtype_verifyname(typestmt):
     if typestmt is None: return
@@ -135,7 +129,6 @@ def is_remove_state(ename, stmt):
     return False
 
 def is_param_zero(length, stmt):
-    from pare import typedecl_statements
 
     if hasattr(stmt, 'unknowns'):
         for uname, req in stmt.unknowns.iteritems():
@@ -169,7 +162,6 @@ def is_zero_array(var, stmt):
     return False
 
 def check_class_derived(stmt):
-    from parse import block_statements
 
     if not stmt.is_class(): return False
 

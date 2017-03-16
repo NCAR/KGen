@@ -3,7 +3,7 @@
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
 
-from .gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
+from gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
     get_dtype_readname, get_typedecl_readname, kernel_gencore_contains, gen_read_istrue, gen_write_istrue, \
     is_zero_array, is_excluded, is_remove_state
 

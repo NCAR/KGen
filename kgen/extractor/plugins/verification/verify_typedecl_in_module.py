@@ -4,9 +4,9 @@ from parser import statements, block_statements, typedecl_statements
 from collections import OrderedDict
 from kgplugin import Kgen_Plugin
 
-from .verify_utils import get_module_verifyname, kernel_verify_contains, VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_EXTERNS, \
+from verify_utils import get_module_verifyname, kernel_verify_contains, VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_EXTERNS, \
     get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array, check_class_derived
-from .verify_subr import create_verify_subr
+from verify_subr import create_verify_subr
 
 class Verify_Typedecl_In_Module(Kgen_Plugin):
     def __init__(self):
@@ -47,7 +47,8 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
 
     def create_verify_module_parts(self, node):
 
-        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'kgen_tolerance', \
+            'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         subrname = get_module_verifyname(node.kgen_stmt)

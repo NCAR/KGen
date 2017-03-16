@@ -2,7 +2,7 @@
  
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from .verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils, is_remove_state, \
+from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils, is_remove_state, \
     is_zero_array
 
 class Verify_Type(Kgen_Plugin):
@@ -147,7 +147,8 @@ class Verify_Type(Kgen_Plugin):
 
             checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Use and n.name=='kgen_utils_mod' and 'check_t' in n.items
             if not parent in kernel_verify_kgenutils and not part_has_node(parent, USE_PART, checks):
-                attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items': ['check_t', 'kgen_init_check', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+                attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items': ['check_t', 'kgen_init_check', 'kgen_tolerance', \
+                    'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
                 part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)
                 kernel_verify_kgenutils.append(parent)
 
@@ -348,7 +349,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'n_%s'%entity_name, 'sign': '=', 'expr': 'COUNT(var%%%s /= kgenref_var%%%s)'%(entity_name, entity_name)}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'ABS(kgenref_var%%%s) > dtype_check_status%%minvalue'%entity_name}
+                                attrs = {'expr': 'ABS(kgenref_var%%%s) > kgen_minvalue'%entity_name}
                                 whereobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.Where, attrs=attrs)
 
                                 attrs = {'variable': 'buf1_%s'%entity_name, 'sign': '=', \
@@ -372,7 +373,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'rmsdiff_%s'%entity_name, 'sign': '=', 'expr': 'SQRT(SUM(buf2_%s)/REAL(n_%s))'%(entity_name, entity_name)}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'nrmsdiff_%s > dtype_check_status%%tolerance'%entity_name}
+                                attrs = {'expr': 'nrmsdiff_%s > kgen_tolerance'%entity_name}
                                 ifvobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
@@ -512,7 +513,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'diff_%s'%entity_name, 'sign': '=', 'expr': 'ABS(var%%%s - kgenref_var%%%s)'%(entity_name, entity_name)}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'diff_%s <= dtype_check_status%%tolerance'%entity_name}
+                                attrs = {'expr': 'diff_%s <= kgen_tolerance'%entity_name}
                                 ifvobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}

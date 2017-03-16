@@ -2,8 +2,8 @@
  
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from .verify_utils import VERIFY_PBLOCK_LOCALS, get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array, check_class_derived
-from .verify_subr import create_verify_subr
+from verify_utils import VERIFY_PBLOCK_LOCALS, get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array, check_class_derived
+from verify_subr import create_verify_subr
 
 class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
     def __init__(self):

@@ -87,7 +87,7 @@ ELSE
     allocate(temp2(%(allocshape)s))
 
     n = count(var/=ref_var)
-    where(abs(ref_var) > check_status%%minvalue)
+    where(abs(ref_var) > kgen_minvalue)
         temp  = ((var-ref_var)/ref_var)**2
         temp2 = (var-ref_var)**2
     elsewhere
@@ -97,7 +97,7 @@ ELSE
     nrmsdiff = sqrt(sum(temp)/real(n))
     rmsdiff = sqrt(sum(temp2)/real(n))
 
-    if (nrmsdiff > check_status%%tolerance) then
+    if (nrmsdiff > kgen_tolerance) then
         check_status%%numOutTol = check_status%%numOutTol+1
     else
         check_status%%numInTol = check_status%%numInTol+1
@@ -137,6 +137,8 @@ INTEGER, PARAMETER :: CHECK_IDENTICAL = 1
 INTEGER, PARAMETER :: CHECK_IN_TOL = 2
 INTEGER, PARAMETER :: CHECK_OUT_TOL = 3
 
+REAL(kind=kgen_dp) :: kgen_tolerance, kgen_minvalue
+
 interface kgen_tostr
     module procedure kgen_tostr_args1
     module procedure kgen_tostr_args2
@@ -163,11 +165,9 @@ type check_t
     integer :: numIdentical
     integer :: numInTol
     integer :: VerboseLevel
-    real(kind=kgen_dp) :: tolerance
-    real(kind=kgen_dp) :: minvalue
 end type check_t
 
-public kgen_dp, check_t, kgen_init_check, kgen_print_check, kgen_perturb_real
+public kgen_dp, check_t, kgen_init_check, kgen_tolerance, kgen_minvalue, kgen_print_check, kgen_perturb_real
 public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
 public kgen_get_newunit, kgen_error_stop
 """
@@ -450,14 +450,14 @@ subroutine kgen_init_check(check, verboseLevel, tolerance, minValue)
       check%verboseLevel = 1
   end if
   if(present(tolerance)) then
-     check%tolerance = tolerance
+      kgen_tolerance = tolerance
   else
-      check%tolerance = 1.0D-15
+      kgen_tolerance = 1.0D-15
   end if
   if(present(minvalue)) then
-     check%minvalue = minvalue
+      kgen_minvalue = minvalue
   else
-      check%minvalue = 1.0D-15
+      kgen_minvalue = 1.0D-15
   end if
 end subroutine kgen_init_check
 
@@ -465,7 +465,7 @@ subroutine kgen_print_check(kname, check)
    character(len=*) :: kname
    type(check_t), intent(in) ::  check
 
-   write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',check%tolerance
+   write (*,*) TRIM(kname),': Tolerance for normalized RMS: ',kgen_tolerance
    !write (*,*) TRIM(kname),':',check%numFatal,'fatal errors,',check%numWarning,'warnings detected, and',check%numIdentical,'identical out of',check%numTotal,'variables checked'
    write (*,*) TRIM(kname),': Number of variables checked: ',check%numTotal
    write (*,*) TRIM(kname),': Number of Identical results: ',check%numIdentical

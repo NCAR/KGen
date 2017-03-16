@@ -260,6 +260,13 @@ def remove_multiblanklines(text):
 
     return '\n'.join(newlines)
 
+def dequote(s):
+    s = s.strip()
+    if len(s) == 0: return s
+    if (s[0] == s[-1]) and s.startswith(("'", '"')):
+        return s[1:-1]
+    return s
+
 ##############################################
 # Logging
 ##############################################

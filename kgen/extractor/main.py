@@ -2,6 +2,7 @@
 '''
 
 import os
+import glob
 import shutil
 import kgutils
 from collections import OrderedDict
@@ -14,7 +15,6 @@ from parser.kgextra import kgen_utils_file_head, kgen_utils_file_checksubr, kgen
     kgen_utils_file_tostr, kgen_utils_array_sumcheck, kgen_rankthread
 
 KGUTIL = 'kgen_utils.f90'
-KGDRIVER = 'kernel_driver.f90'
 TPROF = 'tprof_mod.f90'
 
 class Extractor(KGTool):
@@ -36,14 +36,14 @@ class Extractor(KGTool):
 
         # generate kernel and instrumentation
         if 'all' in Config.rebuild or 'extract' in Config.rebuild or \
-            not os.path.exists('%s/%s/Makefile'%(Config.path['outdir'], Config.path['kernel'])) or \
-            not os.path.exists('%s/%s/Makefile'%(Config.path['outdir'], Config.path['state'])):
+            not os.path.exists('%s/%s/Makefile'%(Config.path['outdir'], Config.path['state'])) or \
+            len(glob.glob('%s/%s.*'%(Config.path['outdir'], Config.kernel['name']))) == 0:
 
             # generate kgen_driver.f90 in kernel directory
             driver = create_rootnode(KERNEL_ID_0)
             self._trees.append(driver)
             program = create_programnode(driver, KERNEL_ID_0)
-            program.name = Config.kernel['name']
+            program.name = Config.kernel_driver['name']
             append_program_in_root(driver, program)
 
             # generate instrumentation
@@ -61,12 +61,14 @@ class Extractor(KGTool):
             for plugin_name in event_register.keys():
                 if not plugin_name.startswith('ext'): continue
 
-
                 for kfile, sfile, filepath in self.genfiles:
                     kfile.created([plugin_name])
                     sfile.created([plugin_name])
                 for tree in self._trees:
                     tree.created([plugin_name])
+
+            for plugin_name in event_register.keys():
+                if not plugin_name.startswith('ext'): continue
 
                 for kfile, sfile, filepath in self.genfiles:
                     kfile.process([plugin_name])
@@ -74,11 +76,17 @@ class Extractor(KGTool):
                 for tree in self._trees:
                     tree.process([plugin_name])
 
+            for plugin_name in event_register.keys():
+                if not plugin_name.startswith('ext'): continue
+
                 for kfile, sfile, filepath in self.genfiles:
                     kfile.finalize([plugin_name])
                     sfile.finalize([plugin_name])
                 for tree in self._trees:
                     tree.finalize([plugin_name])
+
+            for plugin_name in event_register.keys():
+                if not plugin_name.startswith('ext'): continue
 
                 for kfile, sfile, filepath in self.genfiles:
                     kfile.flatten(KERNEL_ID_0, [plugin_name])
@@ -100,7 +108,6 @@ class Extractor(KGTool):
                         fd.write(klines)
 
                 if sfile.kgen_stmt.used4genstate:
-                    import pdb; pdb.set_trace()
                     set_indent('')
                     slines = sfile.tostring()
                     if slines is not None:
@@ -109,7 +116,7 @@ class Extractor(KGTool):
                         with open('%s/%s/%s'%(Config.path['outdir'], Config.path['state'], filename), 'wb') as fd:
                             fd.write(slines)
 
-            with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], KGDRIVER), 'wb') as fd:
+            with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], '%s.f90'%Config.kernel_driver['name']), 'wb') as fd:
                 set_indent('')
                 lines = driver.tostring()
                 if lines is not None:
@@ -123,7 +130,8 @@ class Extractor(KGTool):
             kernel_files.append(KGUTIL)
             self.generate_kgen_utils()
 
-            shutil.copyfile('%s/%s'%(os.path.dirname(os.path.realpath(__file__)), TPROF), '%s/%s'%(Config.path['kernel'], TPROF))
+            shutil.copyfile('%s/%s'%(os.path.dirname(os.path.realpath(__file__)), TPROF), \
+                '%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], TPROF))
             kernel_files.append(TPROF)
 
             self.generate_kernel_makefile()
@@ -138,12 +146,12 @@ class Extractor(KGTool):
             # TODO: wait until state data generation is completed
             # use -K option for bsub to wait for job completion
 
-#                # clean app
-#                if Config.cmd_clean['cmds']:
-#                    kgutils.run_shcmd(Config.cmd_clean['cmds'])
-#
+            # clean app
+            if Config.cmd_clean['cmds']:
+                kgutils.run_shcmd(Config.cmd_clean['cmds'])
+
             # build and run app with state instrumentation
-            out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['state'])
+            out, err, retcode = kgutils.run_shcmd('make', cwd='%s/%s'%(Config.path['outdir'], Config.path['state']))
             if retcode != 0:
                 kgutils.logger.info('Failed to generate state data: %s'%err)
 
@@ -168,17 +176,17 @@ class Extractor(KGTool):
         #basenames
         callsite_base = os.path.basename(Config.callsite['filepath'])
         dep_base_srcfiles = [ os.path.basename(filepath) for filepath, srclist in Config.used_srcfiles.iteritems() ]
-        dep_bases = dep_base_srcfiles + [ KGDRIVER ]
+        dep_bases = dep_base_srcfiles + [ '%s.f90'%Config.kernel_driver['name'] ]
 
         # all object files
         all_objs_srcfiles = [ self.obj(dep_base_srcfile) for dep_base_srcfile in dep_base_srcfiles ]
-        all_objs = all_objs_srcfiles + [ self.obj(KGDRIVER), self.obj(KGUTIL), self.obj(TPROF) ]
+        all_objs = all_objs_srcfiles + [ self.obj('%s.f90'%Config.kernel_driver['name']), self.obj(KGUTIL), self.obj(TPROF) ]
 
         # dependency
         depends = OrderedDict()
 
         # dependency for kernel_driver.f90
-        depends[KGDRIVER] = ' '.join(all_objs_srcfiles + [self.obj(KGUTIL), self.obj(TPROF) ])
+        depends['%s.f90'%Config.kernel_driver['name']] = ' '.join(all_objs_srcfiles + [self.obj(KGUTIL), self.obj(TPROF) ])
 
         # dependency for other files
         for filepath, (kfile, sfile, mods_used, units_used) in Config.used_srcfiles.iteritems():
@@ -196,7 +204,7 @@ class Extractor(KGTool):
             if basename==callsite_base:
                 dobjs = all_objs[:]
                 dobjs.remove(self.obj(callsite_base))
-                dobjs.remove(self.obj(KGDRIVER))
+                dobjs.remove(self.obj('%s.f90'%Config.kernel_driver['name']))
                 depends[basename] = ' '.join(dobjs)
             else:
                 depends[basename] = ' '.join(dep)
@@ -234,7 +242,7 @@ class Extractor(KGTool):
                     if base not in compilers[comp]:
                         compilers[comp].append(base)
                 else:
-                    compilers[comp] = [ base, KGDRIVER ]
+                    compilers[comp] = [ base, '%s.f90'%Config.kernel_driver['name']]
 
             opts = ''
             if Config.include['compiler'].has_key('compiler_options'):
@@ -248,7 +256,7 @@ class Extractor(KGTool):
                     if base not in compiler_options[kfile['compiler_options']]:
                         compiler_options[opts].append(base)
                 else:
-                    compiler_options[opts] = [ base, KGDRIVER ]
+                    compiler_options[opts] = [ base, '%s.f90'%Config.kernel_driver['name'] ]
 
         with open('%s/%s/Makefile'%(Config.path['outdir'], Config.path['kernel']), 'wb') as f:
             self.write(f, '# Makefile for KGEN-generated kernel')
@@ -373,11 +381,6 @@ class Extractor(KGTool):
 
             cwd = os.path.abspath(Config.cwd)
 
-            prerun_clean_str = ''
-            if Config.prerun['clean']:
-                self.write(f, 'PRERUN_CLEAN := %s'%Config.prerun['clean'])
-                prerun_clean_str = '${PRERUN_CLEAN}; '
-
             prerun_build_str = ''
             if Config.prerun['build']:
                 self.write(f, 'PRERUN_BUILD := %s'%Config.prerun['build'])
@@ -420,14 +423,13 @@ class Extractor(KGTool):
 
             self.write(f, 'recover:')
             for org_file in org_files:
-                self.write(f, 'cp -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
-            self.write(f, '')
-
-            self.write(f, 'recover_from_locals:')
-            for org_file in org_files:
                 self.write(f, 'cp -f %s.kgen_org %s'%(os.path.basename(org_file), org_file), t=True)
             self.write(f, '')
 
+            self.write(f, 'recover_from_srcdir:')
+            for org_file in org_files:
+                self.write(f, 'cp -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
+            self.write(f, '')
 
             self.write(f, 'save:')
             for org_file in org_files:
@@ -437,7 +439,7 @@ class Extractor(KGTool):
 
             if Config.cmd_clean['cmds']>0:
                 self.write(f, 'clean:')
-                self.write(f, '%s%s'%(prerun_clean_str, Config.cmd_clean['cmds']), t=True)
+                self.write(f, '%s'%(Config.cmd_clean['cmds']), t=True)
             self.write(f, '')
 
     def generate_kgen_utils(self):

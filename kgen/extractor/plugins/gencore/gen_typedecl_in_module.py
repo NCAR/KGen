@@ -4,12 +4,12 @@ from collections import OrderedDict
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
 
-from .gencore_utils import get_topname, get_typedecl_writename, get_dtype_writename, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
+from gencore_utils import get_topname, get_typedecl_writename, get_dtype_writename, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
     STATE_PBLOCK_USE_PART, kernel_gencore_contains, state_gencore_contains, get_typedecl_readname, get_dtype_readname, get_module_in_readname, \
     KERNEL_PBLOCK_USE_PART, DRIVER_READ_IN_EXTERNS, process_spec_stmts, get_module_out_writename, get_module_out_readname, \
     KERNEL_PBLOCK_READ_OUT_EXTERNS, STATE_PBLOCK_WRITE_OUT_EXTERNS, gen_write_istrue, gen_read_istrue, is_excluded, \
     is_remove_state, is_zero_array, DRIVER_USE_PART, check_class_derived
-from .gencore_subr import create_write_subr, create_read_subr
+from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Module(Kgen_Plugin):
     def __init__(self):

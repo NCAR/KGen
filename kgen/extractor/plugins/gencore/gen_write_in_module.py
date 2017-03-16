@@ -4,7 +4,7 @@ import os
 import re 
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from .gencore_utils import is_zero_array, check_class_derived
+from gencore_utils import is_zero_array, check_class_derived
 
 class Gen_Write_In_Module(Kgen_Plugin):
     def __init__(self):

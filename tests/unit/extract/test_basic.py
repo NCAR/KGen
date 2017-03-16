@@ -4,16 +4,17 @@ import sys
 import os
 import shutil
 import glob
-import tempfile
 import pytest
 
 CURDIR = os.path.dirname(os.path.realpath(__file__))
-SRCDIR = '%s/../../resource/simple_program'%CURDIR
+ROOTDIR = '%s/../../../'%CURDIR
+SRCDIR = '%s/tests/resource/Fortran_program/simple_program'%ROOTDIR
 CALLSITE = 'calling_module.F90:calling_module:calling_subroutine:add'
 
-KGEN_APPLICATION = '%s/../../../kgen'%CURDIR
+KGEN_APPLICATION = '%s/kgen'%ROOTDIR
 sys.path.insert(0, KGEN_APPLICATION)
 
+from kgutils import run_shcmd
 from kgconfig import Config
 from kggenfile import init_plugins, KERNEL_ID_0
 from parser.main import Parser
@@ -21,22 +22,31 @@ from extractor.main import Extractor
 
 @pytest.yield_fixture(scope="module")
 def extractor():
-    outdir = tempfile.mkdtemp()
-    for filename in glob.glob(os.path.join(SRCDIR, '*.*')):
+
+    inc = Config.find_machine()
+
+    relpath = os.path.relpath(CURDIR, start=ROOTDIR) 
+    outdir = '%s/%s'%(os.path.expandvars(inc.get('variable', 'work_directory')), relpath.replace('/', '_'))
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    for filename in glob.glob(os.path.join(SRCDIR, '*')):
         shutil.copy(filename, outdir)
+
     args = []
-    args.extend(['--cmd-clean', '"cd %s; make clean"'%outdir])
-    args.extend(['--cmd-build', '"cd %s; make build"'%outdir])
-    args.extend(['--cmd-run', '"cd %s; make run"'%outdir])
-    args.extend(['--kernel-option', 'FC=gfortran,FC_FLAGS=-O2'])
+    args.extend(['--prerun', 'build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%\
+        {'cmd': 'module purge; module load gnu'}])
+    args.extend(['--cmd-clean', 'cd %s; make clean'%outdir])
+    args.extend(['--cmd-build', 'cd %s; make build'%outdir])
+    args.extend(['--cmd-run', 'cd %s; make run'%outdir])
     args.extend(['--invocation', '0:0:0'])
     args.extend(['--outdir', outdir])
     args.extend(['-I', outdir])
     args.extend(['%s/%s'%(outdir, CALLSITE)])
     Config.parse(args)
-    Config.kernel['name'] = 'unittest'
+
     Config.process_include_option()
     Config.collect_mpi_params()
+
 
     parser = Parser()
     parser.run()
@@ -51,6 +61,17 @@ def extractor():
 
 def test_run(extractor):
     extractor.run()    
-    import pdb; pdb.set_trace()
+
+    # run kernel
+    out, err, retcode = run_shcmd('make', cwd='%s/%s'%(Config.path['outdir'], Config.path['kernel']) )
+
+    # check output
+    if retcode == 0:
+        outlines = out.split('\n')
+        if any( line.find('Verification FAILED') >= 0 for line in outlines ):
+            assert False
+        assert True
+    else:
+        assert False
 
 del sys.path[0]

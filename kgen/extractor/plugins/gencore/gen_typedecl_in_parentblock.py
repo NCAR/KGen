@@ -2,12 +2,12 @@
  
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from .gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS, \
+from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS, \
     DRIVER_READ_IN_ARGS, KERNEL_PBLOCK_READ_IN_LOCALS, KERNEL_PBLOCK_READ_OUT_LOCALS, \
     DRIVER_DECL_PART, DRIVER_USE_PART, get_typedecl_writename, get_dtype_writename, state_gencore_contains, \
     get_topname, get_typedecl_readname, get_dtype_readname, shared_objects, process_spec_stmts, is_zero_array, \
     is_excluded, is_remove_state, namedgen_read_istrue, namedgen_write_istrue, check_class_derived 
-from .gencore_subr import create_write_subr, create_read_subr
+from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
     def __init__(self):
