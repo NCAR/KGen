@@ -333,7 +333,7 @@ def getinfo(name):
         elif name=='verify_tol': return Config.verify['tolerance']
         elif name=='walk_stmts': return api.walk
         elif name=='coverage_file': return Config.coveragefile
-        elif name=='coverage_path': return Config.path['coverage']
+        elif name=='coverage_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['coverage']))
         elif name=='logger': return logger 
     elif Config.plugindb.has_key(name):
         return Config.plugindb[name]

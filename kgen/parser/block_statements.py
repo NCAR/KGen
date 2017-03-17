@@ -1425,10 +1425,12 @@ class Type(BeginStatement, HasVariables, HasAttributes, AccessSpecs):
 
     def tostr(self):
         s = 'TYPE'
-        if self.specs:
+        #if self.specs: # KGEN deletion
+        if hasattr(self, 'specs') and self.specs: # KGEN addition
             s += ', '.join(['']+self.specs) + ' ::'
         s += ' ' + self.name
-        if self.params:
+        #if self.params: # KGEN deletion
+        if hasattr(self, 'params') and self.params: # KGEN addition
             s += ' ('+', '.join(self.params)+')'
         return s
 
