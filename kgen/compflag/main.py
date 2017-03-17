@@ -15,8 +15,8 @@ except:
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
 STR_UF = '<unfinished'
-TEMP_SH = '#!/bin/bash\n%s\n%s\n%s\n%s\n'
-SH = '%s/_kgen_compflag_cmdwrapper.sh'
+#TEMP_SH = '#!/bin/bash\n%s\n%s\n%s\n'
+#SH = '%s/_kgen_compflag_cmdwrapper.sh'
 
 class CompFlag(kgtool.KGTool):
 
@@ -25,18 +25,24 @@ class CompFlag(kgtool.KGTool):
         # clean app.
         if 'clean' not in Config.skip and Config.cmd_clean['cmds']:
             kgutils.run_shcmd(Config.cmd_clean['cmds'])
+            if Config.state_switch['clean']:
+                kgutils.run_shcmd(Config.state_switch['clean'])
 
         # build app.
         if not os.path.exists(Config.stracefile) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
 
+            #with open(SH%Config.cwd, 'w') as f:
+            #    f.write(TEMP_SH%(Config.cmd_clean['cmds'], Config.prerun['build'], Config.cmd_build['cmds']))
+            #st = os.stat(SH%Config.cwd)
+            #os.chmod(SH%Config.cwd, st.st_mode | stat.S_IEXEC)
+            
+            if Config.prerun['build']:
+                cmdstr = '%s;%s'%(Config.prerun['build'], Config.cmd_build['cmds'])
+            else:
+                cmdstr = Config.cmd_build['cmds']
 
-            with open(SH%Config.cwd, 'w') as f:
-                f.write(TEMP_SH%(Config.prerun['clean'], Config.cmd_clean['cmds'], \
-                    Config.prerun['build'], Config.cmd_build['cmds']))
-            st = os.stat(SH%Config.cwd)
-            os.chmod(SH%Config.cwd, st.st_mode | stat.S_IEXEC)
+            bld_cmd = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- /bin/sh -c "%s"'%(Config.stracefile, cmdstr)
 
-            bld_cmd = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- %s/_kgen_compflag_cmdwrapper.sh'%(Config.stracefile, Config.cwd)
             kgutils.logger.info('Creating KGen strace logfile: %s'%Config.stracefile)
             try:
                 out, err, retcode = kgutils.run_shcmd(bld_cmd)
@@ -86,6 +92,9 @@ class CompFlag(kgtool.KGTool):
             for key, value in Config.include['macro'].items():
                 cfg.set('import', key, value)
 
+
+        if not os.path.exists(Config.stracefile):
+            raise Exception('No strace file is found.')
 
         flags = {}
         with open(Config.stracefile, 'r') as f:

@@ -1,4 +1,4 @@
-FC := ifort
+FC := gfortran
 FC_FLAGS :=
 
 all : run

@@ -184,13 +184,13 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             ['mpi_s', 'mpi_e', 'omp_s', 'omp_e', 'invoke_e', 'msize', 'osize'], }
         part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(OUT)', 'DIMENSION(0:osize-1)'], 'entity_decls': ['last_invoke']}
+        attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(INOUT)', 'DIMENSION(0:osize-1)'], 'entity_decls': ['last_invoke']}
         part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'attrspec': ['INTENT(OUT)', 'DIMENSION(0:msize-1,0:osize-1)'], 'entity_decls': ['isstop']}
+        attrs = {'type_spec': 'LOGICAL', 'attrspec': ['INTENT(INOUT)', 'DIMENSION(0:msize-1,0:osize-1)'], 'entity_decls': ['isstop']}
         part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(OUT)', 'DIMENSION(0:msize-1,0:osize-1)'], \
+        attrs = {'type_spec': 'CHARACTER', 'attrspec': ['INTENT(INOUT)', 'DIMENSION(0:msize-1,0:osize-1)'], \
             'entity_decls': ['lockpath'], 'selector':('1024', None)}
         part_append_gensnode(initvarsubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 

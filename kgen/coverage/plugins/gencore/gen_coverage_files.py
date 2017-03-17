@@ -232,6 +232,11 @@ class Gen_Coverage_File(Kgen_Plugin):
         self.logger.debug('Begin add_coverage')
 
         maxfiles = len(self.paths)
+
+        if maxfiles == 0:
+            self.logger.warn('There is no valid conditional block.')
+            return
+
         maxlines = max([ len(lineids) for fileid, lineids in self.paths.values() ])
 
         # add subroutine
@@ -358,10 +363,10 @@ class Gen_Coverage_File(Kgen_Plugin):
                 attrs = {'variable': 'mytid', 'sign': '=', 'expr': 'OMP_GET_THREAD_NUM()'}
                 part_append_gensnode(ifopen2, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I,I,F)"' ], 'items': [ 'mytid', \
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I4,1X,I10,1X,F16.7)"' ], 'items': [ 'mytid', \
                     'kgen_invokes(OMP_GET_THREAD_NUM())', 'now' ]}
             else:
-                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I,I,F)"' ], 'items': [ '-1', \
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I4,1X,I10,1X,F16.7)"' ], 'items': [ '0', \
                     'kgen_invokes', 'now' ]}
 
             part_append_gensnode(ifopen2, EXEC_PART, statements.Write, attrs=attrs)
@@ -379,7 +384,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'specs': [ 'linestr', '"(I6)"' ], 'items': [ 'lineid' ]}
             part_append_gensnode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': [ 'filepath', '*' ], 'items': [ '"%s/coverage.data.-1." \
+            attrs = {'specs': [ 'filepath', '*' ], 'items': [ '"%s/coverage.data.0." \
                 // TRIM(ADJUSTL(filestr)) // "." // TRIM(ADJUSTL(linestr))' % os.path.abspath(getinfo('coverage_path')) ]}
             part_append_gensnode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
 
@@ -395,7 +400,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             part_append_gensnode(coversubr, EXEC_PART, statements.Inquire, attrs=attrs)
 
             attrs = {'expr': 'isopen'}
-            ifopen2 = part_append_gensnode(ifinit, EXEC_PART, block_statements.IfThen, attrs=attrs)
+            ifopen2 = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             attrs = {'designator': 'cpu_time', 'items': [ 'now' ]}
             part_append_gensnode(ifopen2, EXEC_PART, statements.Call, attrs=attrs)
@@ -404,12 +409,12 @@ class Gen_Coverage_File(Kgen_Plugin):
                 attrs = {'variable': 'mytid', 'sign': '=', 'expr': 'OMP_GET_THREAD_NUM()'}
                 part_append_gensnode(ifopen2, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I,I,F)"' ], 'items': [ 'mytid', \
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I4,1X,I10,1X,F16.7)"' ], 'items': [ 'mytid', \
                     'kgen_invokes(OMP_GET_THREAD_NUM())', 'now' ]}
                 part_append_gensnode(ifopen2, EXEC_PART, statements.Write, attrs=attrs)
 
             else:
-                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I,I,F)"' ], 'items': [ '-1', \
+                attrs = {'specs': [ 'UNIT=myunit', 'FMT="(I4,1X,I10,1X,F16.7)"' ], 'items': [ '0', \
                     'kgen_invokes', 'now' ]}
                 part_append_gensnode(ifopen2, EXEC_PART, statements.Write, attrs=attrs)
 

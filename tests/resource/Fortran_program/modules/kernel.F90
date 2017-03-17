@@ -16,14 +16,20 @@ module kernel
 
         subroutine add(atype)
                 type(typeA), intent(inout) :: atype
-                integer i, j
+                integer i, j, temp
 
                 do i=1,np
-                    do j=1,np
-                        atype%c(i,j) = atype%a(i,j) + atype%b(i,j)
-                    end do
+                    if ( mod(i, 2) .eq. 0 ) then
+                        do j=1,np
+                            atype%c(i,j) = atype%a(i,j) + atype%b(i,j)
+                        end do
+                    end if
                 end do
-                save_value = atype%c(1,1)
+                if ( sum(atype%c) .gt. 4 ) then
+                    save_value = atype%c(1,1)
+                else
+                    save_value = 0
+                end if 
         end subroutine add
 
 end module kernel

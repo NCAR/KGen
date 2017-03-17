@@ -149,6 +149,8 @@ class Extractor(KGTool):
             # clean app
             if Config.cmd_clean['cmds']:
                 kgutils.run_shcmd(Config.cmd_clean['cmds'])
+                if Config.state_switch['clean']:
+                    kgutils.run_shcmd(Config.state_switch['clean'])
 
             # build and run app with state instrumentation
             out, err, retcode = kgutils.run_shcmd('make', cwd='%s/%s'%(Config.path['outdir'], Config.path['state']))
@@ -415,10 +417,10 @@ class Extractor(KGTool):
                     basename = os.path.basename(org_file)
                     self.write(f, 'cp -f %(f1)s %(f2)s'%{'f1':basename, 'f2':org_file}, t=True)
             elif Config.state_switch['type']=='copy':
-                if Config.state_switch['cmds']>0:
-                    self.write(f, Config.state_switch['cmds'], t=True)
-                else:
-                    self.write(f, 'echo "No information is provided to copy files. Please specify switch commands using \'state-switch\' command line option"; exit -1', t=True)
+                for org_file in org_files:
+                    basename = os.path.basename(org_file)
+                    self.write(f, 'cp -f %s/%s/%s %s'%(Config.path['outdir'], Config.path['state'], \
+                        basename, Config.state_switch['directory']), t=True)
             self.write(f, '')
 
             self.write(f, 'recover:')

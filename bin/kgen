@@ -3,6 +3,10 @@
 import sys
 import os
 
+if sys.version_info < (2,7):
+    print ('ERROR: KGen requires Python version >= 2.7 and < 3.0')
+    sys.exit(-1)
+
 KGEN_APPLICATION = '%s/../kgen'%os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, KGEN_APPLICATION)
 

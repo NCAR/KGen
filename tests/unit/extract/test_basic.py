@@ -26,7 +26,8 @@ def extractor():
     inc = Config.find_machine()
 
     relpath = os.path.relpath(CURDIR, start=ROOTDIR) 
-    outdir = '%s/%s'%(os.path.expandvars(inc.get('variable', 'work_directory')), relpath.replace('/', '_'))
+    outdir = '%s/%s'%(os.path.expandvars(inc.get('variable', 'work_directory')), \
+        '%s_%s'%(relpath.replace('/', '_'), os.path.basename(__file__)[:-3]))
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     for filename in glob.glob(os.path.join(SRCDIR, '*')):
@@ -57,7 +58,7 @@ def extractor():
 
     yield ext
 
-    shutil.rmtree(outdir) 
+    #shutil.rmtree(outdir) 
 
 def test_run(extractor):
     extractor.run()    
@@ -70,8 +71,12 @@ def test_run(extractor):
         outlines = out.split('\n')
         if any( line.find('Verification FAILED') >= 0 for line in outlines ):
             assert False
+        if not any( line.find('Verification PASSED') >= 0 for line in outlines ):
+            assert False
+
         assert True
     else:
         assert False
+
 
 del sys.path[0]

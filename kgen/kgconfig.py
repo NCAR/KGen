@@ -310,7 +310,8 @@ class Config(object):
         self._attrs['cmd_run']['cmds'] = ''
         self._attrs['state_switch'] = collections.OrderedDict()
         self._attrs['state_switch']['type'] = 'replace'
-        self._attrs['state_switch']['cmds'] = ''
+        self._attrs['state_switch']['directory'] = ''
+        self._attrs['state_switch']['clean'] = ''
 
         # kernel correctness check parameters
         self._attrs['check'] = collections.OrderedDict()
@@ -838,7 +839,7 @@ class Config(object):
             for line in opts.state_switch:
                 for run in line.split(','):
                     key, value = run.split('=', 1)
-                    if key in [ 'cmds', 'type' ] :
+                    if key in [ 'directory', 'type', 'clean' ] :
                         self._attrs['state_switch'][key] = dequote(value)
                     else:
                         raise UserException('Unknown state-switch option: %s' % run)
