@@ -301,9 +301,10 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
 plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kernel_driver_name', 'kernel_driver_callsite_args', \
     'is_openmp_app', 'is_openmp_critical', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'repeat_count', 'dummy_stmt', \
-    'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'coverage_file', 'coverage_path', 'logger' ]
+    'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'coverage_file', 'coverage_path', 'logger', \
+    'coverage_typeid', 'coverage_typename' ]
 
-def getinfo(name):
+def getinfo(name, plugin=None):
     if name in plugin_default_infolist: 
         if name=='kernel_name': return Config.kernel['name']
         elif name=='kgen_version': return '%d.%d.%s'%tuple(Config.kgen['version'])
@@ -333,6 +334,8 @@ def getinfo(name):
         elif name=='verify_tol': return Config.verify['tolerance']
         elif name=='walk_stmts': return api.walk
         elif name=='coverage_file': return Config.coveragefile
+        elif name=='coverage_typeid': return 0
+        elif name=='coverage_typename': return 'code'
         elif name=='coverage_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['coverage']))
         elif name=='logger': return logger 
     elif Config.plugindb.has_key(name):

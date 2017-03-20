@@ -9,7 +9,7 @@ module calling_module
         subroutine calling_subroutine(testvalue)
 
                 !real(kind=real_kind), dimension(np,np) :: ar1, ar2, ar3
-                integer(kind=real_kind), intent(in) :: testvalue
+                real(kind=real_kind), intent(in) :: testvalue
                 type(typeA), allocatable :: atype(:)     ! test comment
                 real(real_kind) :: value = TEST_VALUE     ! test comment
                 integer i, j, k

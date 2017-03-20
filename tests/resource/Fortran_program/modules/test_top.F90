@@ -2,10 +2,13 @@ program test_top
         USE kernel, only : real_kind
         USE calling_module
 
-        integer(kind=real_kind) testvalue
+        real(kind=real_kind) testvalue
+        integer i
 
         testvalue = 1
 
-        call calling_subroutine(testvalue)
+        do i=1,10
+            call calling_subroutine(testvalue)
+        end do
 
 end program test_top
