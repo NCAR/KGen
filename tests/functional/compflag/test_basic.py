@@ -32,7 +32,7 @@ def test_strace():
     # create a kgen command
     cmds = []
     cmds.append(KGEN_APP)
-    cmds.append('--prerun build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%{'cmd': 'module purge; module load gnu'})
+    #cmds.append('--prerun build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%{'cmd': 'module purge; module load gnu'})
     cmds.append('--cmd-clean "cd %s; make clean"'%outdir)
     cmds.append('--cmd-build "cd %s; make build"'%outdir)
     cmds.append('--cmd-run "cd %s; make run"'%outdir)

@@ -479,6 +479,16 @@ class Coverage(KGTool):
             for fileid, srcpath in attrs['totalfiles'].items():
                 if os.path.exists('%s/%s'%(path, fileid)):
                     attrs['usedfiles'][fileid] = srcpath
+
+                    if fileid not in attrs['linevisits']:
+                        attrs['linevisits'][fileid] = collections.OrderedDict()
+
+                    if fileid not in attrs['mpivisits']:
+                        attrs['mpivisits'][fileid] = collections.OrderedDict()
+
+                    if fileid not in attrs['ompvisits']:
+                        attrs['ompvisits'][fileid] = collections.OrderedDict()
+
                     self.visit('%s/%s'%(path, fileid), invokes, attrs, ctype=ctype, fileid=fileid)
 
         elif datatype == 'codeline':
@@ -491,6 +501,16 @@ class Coverage(KGTool):
                     if fileid not in attrs['usedblocks']:
                         attrs['usedblocks'][fileid] = []
                     attrs['usedblocks'][fileid].append(linenum)
+
+                    if linenum not in attrs['linevisits'][fileid]:
+                        attrs['linevisits'][fileid][linenum] = 0
+
+                    if linenum not in attrs['mpivisits'][fileid]:
+                        attrs['mpivisits'][fileid][linenum] = collections.OrderedDict()
+
+                    if linenum not in attrs['ompvisits'][fileid]:
+                        attrs['ompvisits'][fileid][linenum] = collections.OrderedDict()
+
                     self.visit('%s/%s'%(path, lineid), invokes, attrs, ctype=ctype, fileid=fileid, linenum=linenum)
 
         elif datatype == 'mpi':
@@ -502,6 +522,9 @@ class Coverage(KGTool):
                     if mpirank not in invokes:
                         invokes[mpirank] = collections.OrderedDict()
 
+                    if mpirank not in attrs['mpivisits'][fileid][linenum]:
+                        attrs['mpivisits'][fileid][linenum][mpirank] = 0
+
                     self.visit('%s/%s'%(path, mpirank), invokes, attrs, ctype=ctype, fileid=fileid, linenum=linenum, mpirank=mpirank)
 
         elif datatype == 'openmp':
@@ -512,6 +535,9 @@ class Coverage(KGTool):
                 if os.path.exists('%s/%s'%(path, ompthread)):
                     if ompthread not in invokes[mpirank]:
                         invokes[mpirank][ompthread] = collections.OrderedDict()
+
+                    if ompthread not in attrs['ompvisits'][fileid][linenum]:
+                        attrs['ompvisits'][fileid][linenum][ompthread] = 0
 
                     self.visit('%s/%s'%(path, ompthread), invokes, attrs, ctype=ctype, fileid=fileid, linenum=linenum, mpirank=mpirank, ompthread=ompthread)
 
@@ -527,34 +553,16 @@ class Coverage(KGTool):
                         numvisit = f.read().strip()
                         invokes[mpirank][ompthread][invoke].append((fileid, linenum, numvisit))
 
+                        numvisit = int(numvisit)
+
                         # line visits
-                        if fileid not in attrs['linevisits']:
-                            attrs['linevisits'][fileid] = collections.OrderedDict()
-                        if linenum not in attrs['linevisits'][fileid]:
-                            attrs['linevisits'][fileid][linenum] = int(numvisit)
-                        else:
-                            attrs['linevisits'][fileid][linenum] += int(numvisit)
+                        attrs['linevisits'][fileid][linenum] += numvisit
                
                         # mpi visits
-                        if fileid not in attrs['mpivisits']:
-                            attrs['mpivisits'][fileid] = collections.OrderedDict()
-                        if linenum not in attrs['mpivisits'][fileid]:
-                            attrs['mpivisits'][fileid][linenum] = collections.OrderedDict()
-                        if mpirank not in attrs['mpivisits'][fileid][linenum]:
-                            attrs['mpivisits'][fileid][linenum][mpirank] = int(numvisit)
-                        else:
-                            attrs['mpivisits'][fileid][linenum][mpirank] += int(numvisit)
-
+                        attrs['mpivisits'][fileid][linenum][mpirank] += numvisit
 
                         # omp visits
-                        if fileid not in attrs['ompvisits']:
-                            attrs['ompvisits'][fileid] = collections.OrderedDict()
-                        if linenum not in attrs['ompvisits'][fileid]:
-                            attrs['ompvisits'][fileid][linenum] = collections.OrderedDict()
-                        if ompthread not in attrs['ompvisits'][fileid][linenum]:
-                            attrs['ompvisits'][fileid][linenum][ompthread] = int(numvisit)
-                        else:
-                            attrs['ompvisits'][fileid][linenum][ompthread] += int(numvisit)
+                        attrs['ompvisits'][fileid][linenum][ompthread] += numvisit
 
         else:
             raise Exception('Unknown data type: %s'%datatype)
