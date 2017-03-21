@@ -4,7 +4,6 @@
 import os
 import re
 import glob
-import json
 import math
 import datetime
 import collections
@@ -187,92 +186,193 @@ class Coverage(KGTool):
 
                 kgutils.logger.info('Application is built/run with coverage instrumentation.')
 
-                # collect data
-                attrs = { 'totalfiles': {}, 'totalblocks': {}, 'usedfiles': {}, 'usedblocks': {}, \
-                    'numranks': '0', 'numthreads': '0', 'mpivisits': {}, 'ompvisits': {}, 'linevisits': {} }
-                invokes = {} # rank:thread:invoke:(fid, lnum)
+            def chunks(l, n):
+                for i in range(0, len(l), n):
+                    yield l[i:i + n]
 
-                # generate coverage file
-                self.visit('%s/%s/__data__'%(Config.path['outdir'], Config.path['coverage']), invokes, attrs)
+
+            def update(d, u):
+                for k, v in u.items():
+                    if isinstance(v, collections.Mapping):
+                        r = update(d.get(k, {}), v)
+                        d[k] = r
+                    else:
+                        d[k] = u[k]
+                return d
+
+            visits = {}  # fileid -> lineid -> ranknum -> threadnum -> invokenum -> [ timestamp, ... ]
+            filemap = {} # fileid -> filepath
+            linemap = {} # fileid -> lineid -> linenum
+            datafiles = glob.glob('%s/coverage.data*'%Config.path['coverage'])
+            kgutils.logger.info('%d coverage data files are found.'%len(datafiles))
+
+            nprocs = min( len(datafiles), multiprocessing.cpu_count())
+
+            if nprocs == 0:
+                kgutils.logger.warn('No coverage data files are found.')
+            else:
+                chunks = [ chunk for chunk in chunks(datafiles, int(math.ceil(len(datafiles)/nprocs))) ]
+                inqs = []
+                outqs = []
+                for _ in range(nprocs):
+                    inqs.append(multiprocessing.Queue())
+                    outqs.append(multiprocessing.Queue())
+
+                procs = []
+                for idx in range(nprocs):
+                    proc = multiprocessing.Process(target=readdatafiles, args=(inqs[idx], outqs[idx]))
+                    procs.append(proc)
+                    proc.start()
+
+                for inq, chunk in zip(inqs,chunks):
+                    inq.put(chunk)
+
+                for outq in outqs:
+                    visit, fmap, lmap = outq.get()
+                    update(visits, visit)
+                    update(filemap, fmap)
+                    update(linemap, lmap)
+
+                for idx in range(nprocs):
+                    procs[idx].join()
+
+                filesection = OrderedDict()
+                blocksection = OrderedDict()
+                if os.path.exists('%s/kcover_filemap.txt'%Config.path['coverage']):
+                    with open('%s/kcover_filemap.txt'%Config.path['coverage'], 'r') as f:
+                        for line in f:
+                            fid, fpath, lines = line.split(' ', 2)
+                            filesection[int(fid)] = fpath.strip()
+                            blocksection[int(fid)] = lines.strip().split()
+                    number_of_files_having_condblocks = len(filesection)
+                    number_of_condblocks_exist = sum( len(lines) for lines in blocksection.values() )
+                else:
+                    for fid, fpath in filemap.items():
+                        filesection[fid] = fpath
+
+                    for fid, lines in linemap.items():
+                        blocksection[fid] = ' '.join([ str(lnum) for lid, lnum in lines.items() ])
+
+                    number_of_files_having_condblocks = len(filemap)
+                    number_of_condblocks_exist = sum( len(lines) for lines in linemap.values())
+
+                number_of_files_invoked = len(visits)
+                try:
+                    number_of_condblocks_invoked = sum( len(lineids) for  lineids in visits.values() )
+                except: import pdb; pdb.set_trace()
 
                 with open(Config.coveragefile, 'w') as fd:
                     # summary section
                     fd.write('[summary]\n')
-                    fd.write('number_of_files_having_condblocks = %d\n'%len(attrs['totalfiles']))
-                    fd.write('number_of_files_invoked = %d\n'%len(attrs['usedfiles']))
-                    fd.write('number_of_condblocks_exist = %d\n'%sum( [ len(lines) for fid, lines in attrs['totalblocks'].items() ] ))
-                    fd.write('number_of_condblocks_invoked = %d\n'%sum( [ len(lines) for fid, lines in attrs['usedblocks'].items() ] ))
+                    fd.write('number_of_files_having_condblocks = %d\n'%number_of_files_having_condblocks)
+                    fd.write('number_of_files_invoked = %d\n'%number_of_files_invoked)
+                    fd.write('number_of_condblocks_exist = %d\n'%number_of_condblocks_exist)
+                    fd.write('number_of_condblocks_invoked = %d\n'%number_of_condblocks_invoked)
                     fd.write('\n')
 
                     # file section
                     fd.write('[file]\n')
                     fd.write('; <file number> = <path to file>\n')
                     #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                    for fileid, filepath in attrs['totalfiles'].items():
-                        fd.write('%s = %s/%s/%s.kgen\n'%(fileid, Config.path['outdir'], Config.path['coverage'], os.path.basename(filepath)))
-                    fd.write('used_files = %s\n'%', '.join([ fid for fid in attrs['usedfiles'] ]))
+                    for fileid, filepath in filesection.items():
+                        fd.write('%d = %s.kgen\n'%(fileid, filepath))
                     fd.write('\n')
 
                     # block section
                     fd.write('[block]\n')
                     fd.write('; <file number> =  <line number> ...\n')
                     #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                    for fileid, lines in attrs['totalblocks'].items():
-                        fd.write('%s = %s\n'%(fileid, ', '.join(lines)))
-                    fd.write('used_blocks = %s\n'%', '.join([ '%s:%s'%(fid,lnum) for lnum in lines for fid, lines in attrs['usedblocks'].items() ]))
+                    for fileid, lines in blocksection.items():
+                        fd.write('%d = %s\n'%(fileid, ' '.join(lines)))
                     fd.write('\n')
 
 
-                    # invoke section
-                    fd.write('[invoke]\n')
-                    fd.write('; <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number><num of invocations> ...\n')
-
-                    for ranknum, threadnums in invokes.items():
-                        for threadnum, invokenums in threadnums.items():
-                            for invokenum, triples in invokenums.items():
-                                fd.write('%s %s %s = %s\n'%(ranknum, threadnum, invokenum, \
-                                    ', '.join( [ '%s:%s:%s'%(fid, lnum, nivks) for fid, lnum, nivks in triples ] )))
-
                 #kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
                 kgutils.logger.info('    ***** Within "%s" kernel *****:'%Config.kernel['name'])
-                kgutils.logger.info('    * %d original source files have conditional blocks.'%len(attrs['totalfiles']))
-                kgutils.logger.info('    * %d original source files are invoked at least once.'%len(attrs['usedfiles']))
-                kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%\
-                    sum( [ len(lines) for fid, lines in attrs['totalblocks'].items() ] ))
+                kgutils.logger.info('    * %d original source files have conditional blocks.'%number_of_files_having_condblocks)
+                kgutils.logger.info('    * %d original source files are invoked at least once.'%number_of_files_invoked)
+                kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%number_of_condblocks_exist)
                 kgutils.logger.info('    * %d conditional blocks are executed at least once among all the conditional blocks.'%\
-                    sum( [ len(lines) for fid, lines in attrs['usedblocks'].items() ] ))
+                    number_of_condblocks_invoked )
 
+                # visits: fileid -> lineid -> ranknum -> threadnum -> invokenum -> [ timestamp, ... ]
+                for fileid, lines in visits.items():
+                    visitinfo = {}
+                    for lineid, ranks in lines.items():
+                        rankvisits = {}
+                        threadvisits = {}
+                        for rank, threads in ranks.items(): 
+                            #rankvisits[rank] = sum( [ sum( len(ts) for ts in ivk.values()) for ivk in threads.values() ] )
+                            rankvisits[rank] = sum([ sum( len(ivk.values()) for ivk in threads.values() ) ])
+                            for tid, ivk in threads.items():
+                                if tid in threadvisits:
+                                    #threadvisits[tid] += sum(len(ts) for ts in ivk.values())
+                                    threadvisits[tid] += sum(len(ivk.values()))
+                                else:
+                                    #threadvisits[tid] = sum(len(ts) for ts in ivk.values())
+                                    threadvisits[tid] = len(ivk.values())
+                        totalvisits = sum(rankvisits.values())
 
-                for fileid, filepath in attrs['usedfiles'].items():
-                    basefile = '%s/%s/%s.kgen'%(Config.path['outdir'], Config.path['coverage'], os.path.basename(filepath))
+                        visitinfo[lineid] = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
+                            '!! Total number of visits: %d'%totalvisits ]
+                        if Config.mpi['enabled']:
+                            visitinfo[lineid].append('!! MPI rank(visits)      : %s' % ' '.join(['%d(%d)'%(r,i) for r,i in rankvisits.items()]))
+                        if Config.openmp['enabled']:
+                            visitinfo[lineid].append('!! OpenMP thread(visits) : %s' % ' '.join(['%d(%d)'%(t,i) for t,i in threadvisits.items()]))
+                        visitinfo[lineid].append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
+
+                    basefile = '%s/%s.kgen'%(os.path.abspath(Config.path['coverage']), os.path.basename(filemap[fileid]))
                     with open(basefile, 'r') as fsrc:
                         srclines = fsrc.readlines()
 
                     filesummary = [ \
                         '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
-                        '!! %d conditional blocks exist in this file'%len(attrs['totalblocks'][fileid]), \
-                        '!! %d conditional blokcs are executed at least once among all the conditional blocks.'%len(attrs['usedblocks'][fileid]), \
+                        '!! %d conditional blocks exist in this file'%len(linemap[fileid]), \
+                        '!! %d conditional blokcs are executed at least once among all the conditional blocks.'%len(lines), \
                         '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' \
                     ]
                     srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
 
-                    for linenum in attrs['usedblocks'][fileid]:
-                        linevisit = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' ]
-                        linevisit.append('!! Total number of visits: %d'%attrs['linevisits'][fileid][linenum])
-                        if Config.mpi['enabled']:
-                            linevisit.append('!! MPI rank(visits)      : %s' % ' '.join( \
-                                ['%s(%d)'%(r,i) for r,i in attrs['mpivisits'][fileid][linenum].items()]))
-                        if Config.openmp['enabled']:
-                            linevisit.append('!! OpenMP thread(visits) : %s' % ' '.join( \
-                                ['%s(%d)'%(t,i) for t,i in attrs['mpivisits'][fileid][linenum].items()]))
-                        linevisit.append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
+                    for lineid, linesummary in visitinfo.items():
+                        srclines[linemap[fileid][lineid]-1] = '%s%s\n'%(srclines[linemap[fileid][lineid]-1], '\n'.join(linesummary))
 
-                        srclines[int(linenum)-1] = '%s%s\n'%(srclines[int(linenum)-1], '\n'.join(linevisit))
-
-                    coveragefile = '%s/%s/%s.coverage'%(Config.path['outdir'], Config.path['coverage'], os.path.basename(filepath))
+                    coveragefile = '%s/%s.coverage'%(os.path.abspath(Config.path['coverage']), os.path.basename(filemap[fileid]))
                     with open(coveragefile, 'w') as fdst:
                         fdst.write(''.join(srclines))
 
+                # <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number> ...  <first timestamp>:<last timestamp>
+                invokes = {}
+                for fileid, lines in visits.items():
+                    for lineid, ranknums in lines.items():
+                        linenum = linemap[fileid][lineid]
+                        for ranknum, threadnums in ranknums.items():
+                            if ranknum not in invokes:
+                                invokes[ranknum] = {}
+                            for threadnum, invokenums in threadnums.items():
+                                if threadnum not in invokes[ranknum]:
+                                    invokes[ranknum][threadnum] = {}
+                                for invokenum, timestamps in invokenums.items():
+                                    if invokenum not in invokes[ranknum][threadnum]:
+                                        invokes[ranknum][threadnum][invokenum] = ( [ (fileid, linenum) ], [ min(timestamps), max(timestamps) ] )
+                                    else:
+                                        pair = invokes[ranknum][threadnum][invokenum][0]
+                                        pair.append( (fileid, linenum) )
+
+                                        minmax = invokes[ranknum][threadnum][invokenum][1]
+                                        minmax[0] = min( minmax[0], min(timestamps))
+                                        minmax[1] = max( minmax[1], max(timestamps))
+
+                with open(Config.coveragefile, 'a') as fd:
+
+                    # invoke section
+                    fd.write('[invoke]\n')
+                    fd.write('; <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number> ...  <first timestamp>:<last timestamp>\n')
+
+                    for ranknum, threadnums in invokes.items():
+                        for threadnum, invokenums in threadnums.items():
+                            for invokenum, (pair, minmax) in invokenums.items():
+                                fd.write('%d %d %d = %s %f:%f\n'%(ranknum, threadnum, invokenum, \
+                                    ' '.join([ '%d:%d'%(fid, lnum) for fid, lnum in pair ]), minmax[0], minmax[1]))
 
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
@@ -295,24 +395,22 @@ class Coverage(KGTool):
             try:
                 filemap = {}
                 for opt in cfg.options('file'):
-                    if opt.isdigit():
-                        filemap[opt] = cfg.get('file', opt) 
+                    filemap[int(opt)] = cfg.get('file', opt) 
 
                 blockmap = {}
                 for opt in cfg.options('block'):
-                    if opt.isdigit():
-                        blockmap[opt] =  tuple( linenum for linenum in cfg.get('block', opt).split() )
+                    blockmap[int(opt)] =  tuple( int(linenum) for linenum in cfg.get('block', opt).split() )
 
-                # <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number>:<num invokes> ... 
+                # <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number> ...  <first timestamp>:<last timestamp>
                 invokemap = {}
                 idx = 0
                 for opt in cfg.options('invoke'):
                     idx += 1
-                    ranknum, threadnum, invokenum = tuple( num for num in opt.split() )
-                    optval = cfg.get('invoke', opt).split(',')
-                    triples = tuple( triple.strip().split(':') for triple in optval )
+                    ranknum, threadnum, invokenum = tuple( int(num) for num in opt.split() )
+                    optval = cfg.get('invoke', opt).split()
+                    pairs = tuple( pair.split(':') for pair in optval[:-1])
+                    ts = cfg.get('invoke', opt).split()[-1].split(':')
 
-                    invokenum = int(invokenum)
                     if invokenum not in invokemap:
                         invokemap[invokenum] = {}
                     if ranknum not in invokemap[invokenum]:
@@ -323,14 +421,13 @@ class Coverage(KGTool):
 
                     #threadnums = invokemap[invokenum][ranknum][threadnum]
                     
-                    for fidstr, lnumstr, numinvokes in triples:
-                        fileid = fidstr
-                        linenum = lnumstr
+                    for fidstr, lnumstr in pairs:
+                        fileid = int(fidstr)
+                        linenum = int(lnumstr)
                         if fileid not in threadnums:
-                            threadnums[fileid] = {}
+                            threadnums[fileid] = []
                         if linenum not in threadnums[fileid]:
-                            threadnums[fileid][linenum] = 0
-                        threadnums[fileid][linenum] += int(numinvokes)
+                            threadnums[fileid].append(linenum)
 
                     if idx % 100000 == 0:
                         print 'Processed %d items: %s'%(idx, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
@@ -344,19 +441,19 @@ class Coverage(KGTool):
             for invokenum in sorted(invokemap.keys()):
                 if len(collected) > THREASHOLD_NUM: break
                 ranknums = invokemap[invokenum]
-                for ranknum in ranknums.keys():
+                for ranknum in sorted(ranknums.keys()):
                     if len(collected) > THREASHOLD_NUM: break
                     threadnums = invokemap[invokenum][ranknum]
-                    for threadnum in threadnums.keys():
+                    for threadnum in sorted(threadnums.keys()):
                         if len(collected) > THREASHOLD_NUM: break
                         fileids = invokemap[invokenum][ranknum][threadnum]
-                        for fileid in fileids.keys():
+                        for fileid in sorted(fileids.keys()):
                             if len(collected) > THREASHOLD_NUM: break
-                            lnums = invokemap[invokenum][ranknum][threadnum][fileid]
-                            for lnum, numinvokes in lnums.items():
+                            linenums = invokemap[invokenum][ranknum][threadnum][fileid]
+                            for linenum in linenums:
                                 if len(collected) > THREASHOLD_NUM: break
-                                if (fileid, lnum) not in collected:
-                                    collected.append((fileid, lnum))
+                                if (fileid, linenum) not in collected:
+                                    collected.append((fileid, linenum))
                                     if (ranknum, threadnum, invokenum) not in triples:
                                         triples[(ranknum, threadnum, invokenum)] = None
 
@@ -454,111 +551,3 @@ class Coverage(KGTool):
                 self.write(f, 'clean:')
                 self.write(f, Config.cmd_clean['cmds'], t=True)
             self.write(f, '')
-
-    def visit(self, path, invokes, attrs, ctype=None, fileid=None, linenum=None, mpirank=None, ompthread=None):
-
-        if not os.path.exists('%s/metadata.json'%path):
-            return
-
-        metadata = None
-        with open('%s/metadata.json'%path, 'r') as metafile:
-            metadata = json.load(metafile)
-
-        if metadata is None:
-            return
-
-        datatype = metadata.get('datatype', 'No datatype')
-        if datatype == 'coverage':
-            ctypes = metadata.get('datamap', {})
-            for ctype, cname in ctypes.items():
-                if os.path.exists('%s/%s'%(path, ctype)):
-                    self.visit('%s/%s'%(path, ctype), invokes, attrs, ctype=ctype)
-
-        elif datatype == 'srcfile':
-            attrs['totalfiles'] = metadata.get('datamap', {})
-            for fileid, srcpath in attrs['totalfiles'].items():
-                if os.path.exists('%s/%s'%(path, fileid)):
-                    attrs['usedfiles'][fileid] = srcpath
-                    self.visit('%s/%s'%(path, fileid), invokes, attrs, ctype=ctype, fileid=fileid)
-
-        elif datatype == 'codeline':
-            if fileid not in attrs['totalblocks']:
-                attrs['totalblocks'][fileid] = []
-            lineids = metadata.get('datamap', {})
-            for lineid, linenum in lineids.items():
-                attrs['totalblocks'][fileid].append(linenum)
-                if os.path.exists('%s/%s'%(path, lineid)):
-                    if fileid not in attrs['usedblocks']:
-                        attrs['usedblocks'][fileid] = []
-                    attrs['usedblocks'][fileid].append(linenum)
-                    self.visit('%s/%s'%(path, lineid), invokes, attrs, ctype=ctype, fileid=fileid, linenum=linenum)
-
-        elif datatype == 'mpi':
-            numranks = metadata.get('numranks', '0')
-            attrs['numranks'] = numranks
-            for mpirank in range(int(numranks)):
-                mpirank = str(mpirank)
-                if os.path.exists('%s/%s'%(path, mpirank)):
-                    if mpirank not in invokes:
-                        invokes[mpirank] = collections.OrderedDict()
-
-                    self.visit('%s/%s'%(path, mpirank), invokes, attrs, ctype=ctype, fileid=fileid, linenum=linenum, mpirank=mpirank)
-
-        elif datatype == 'openmp':
-            numthreads = metadata.get('numthreads', '0')
-            attrs['numthreads'] = numthreads
-            for ompthread in range(int(numthreads)):
-                ompthread = str(ompthread)
-                if os.path.exists('%s/%s'%(path, ompthread)):
-                    if ompthread not in invokes[mpirank]:
-                        invokes[mpirank][ompthread] = collections.OrderedDict()
-
-                    self.visit('%s/%s'%(path, ompthread), invokes, attrs, ctype=ctype, fileid=fileid, linenum=linenum, mpirank=mpirank, ompthread=ompthread)
-
-        elif datatype == 'invocation':
-            for dfile in sorted(glob.glob('%s/*'%path)):
-                invoke = dfile.split('/')[-1]
-                if invoke.isdigit():
-                    if invoke not in invokes[mpirank][ompthread]:
-                        invokes[mpirank][ompthread][invoke] = []
-                    with open('%s/%s'%(path, invoke), 'r') as f:
-
-                        # invokes
-                        numvisit = f.read().strip()
-                        invokes[mpirank][ompthread][invoke].append((fileid, linenum, numvisit))
-
-                        # line visits
-                        if fileid not in attrs['linevisits']:
-                            attrs['linevisits'][fileid] = collections.OrderedDict()
-                        if linenum not in attrs['linevisits'][fileid]:
-                            attrs['linevisits'][fileid][linenum] = int(numvisit)
-                        else:
-                            attrs['linevisits'][fileid][linenum] += int(numvisit)
-               
-                        # mpi visits
-                        if fileid not in attrs['mpivisits']:
-                            attrs['mpivisits'][fileid] = collections.OrderedDict()
-                        if linenum not in attrs['mpivisits'][fileid]:
-                            attrs['mpivisits'][fileid][linenum] = collections.OrderedDict()
-                        if mpirank not in attrs['mpivisits'][fileid][linenum]:
-                            attrs['mpivisits'][fileid][linenum][mpirank] = int(numvisit)
-                        else:
-                            attrs['mpivisits'][fileid][linenum][mpirank] += int(numvisit)
-
-
-                        # omp visits
-                        if fileid not in attrs['ompvisits']:
-                            attrs['ompvisits'][fileid] = collections.OrderedDict()
-                        if linenum not in attrs['ompvisits'][fileid]:
-                            attrs['ompvisits'][fileid][linenum] = collections.OrderedDict()
-                        if ompthread not in attrs['ompvisits'][fileid][linenum]:
-                            attrs['ompvisits'][fileid][linenum][ompthread] = int(numvisit)
-                        else:
-                            attrs['ompvisits'][fileid][linenum][ompthread] += int(numvisit)
-
-        else:
-            raise Exception('Unknown data type: %s'%datatype)
-
-
-
-

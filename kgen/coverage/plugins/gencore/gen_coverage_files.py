@@ -22,7 +22,7 @@ class Gen_Coverage_File(Kgen_Plugin):
     def get_linepairs(self, fileid):
         for filepath, (fid, lines) in self.paths.items():
             if fileid == fid:
-                return [ '\'%s\':\'%s\''%(str(lineid), str(linenum)) for linenum, lineid in lines.items() ]
+                return [ '""%s"":""%s""'%(str(lineid), str(linenum)) for linenum, lineid in lines.items() ]
 
     def get_linenumbers(self, fileid):
         for filepath, (fid, lines) in self.paths.items():
@@ -262,7 +262,7 @@ class Gen_Coverage_File(Kgen_Plugin):
 
         linemap = []
         for fileid in range(maxfiles):
-            linemap.append( '"%s"'%' '.join(self.get_linepairs(fileid)))
+            linemap.append( '"%s"'%', '.join(self.get_linepairs(fileid)))
 
         attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER', \
             'DIMENSION(0:%d)'%(maxfiles-1) ], 'entity_decls': ['linemap = (/ %s /)'%',&\n&'.join(linemap)]}
@@ -398,8 +398,8 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Open, attrs=attrs)
         datapath_json = []
-        datapath_json.append(u'\'datatype\':\'coverage\'')
-        datapath_json.append(u'\'datamap\':{%d:\'%s\'}'%(getinfo('coverage_typeid'), getinfo('coverage_typename')))
+        datapath_json.append(u'""datatype"":""coverage""')
+        datapath_json.append(u'""datamap"":{""%d"":""%s""}'%(getinfo('coverage_typeid'), getinfo('coverage_typename')))
         attrs = {'specs': [ 'UNIT=dataunit', 'FMT="(A)"' ], 'items': [ u'"{ %s }"'%', '.join(datapath_json) ]}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Write, attrs=attrs)
 
@@ -412,9 +412,9 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Open, attrs=attrs)
 
         codepath_json = []
-        codepath_json.append(u'\'datatype\':\'srcfile\'')
-        filemapstr = ',&\n&'.join([ '\'%d\':\'%s\''%(fid,fpath) for fpath, (fid, lines) in self.paths.items() ])
-        codepath_json.append(u'\'datamap\':{%s}'%filemapstr)
+        codepath_json.append(u'""datatype"":""srcfile""')
+        filemapstr = ',&\n&'.join([ '""%d"":""%s""'%(fid,fpath) for fpath, (fid, lines) in self.paths.items() ])
+        codepath_json.append(u'""datamap"":{%s}'%filemapstr)
         attrs = {'specs': [ 'UNIT=codeunit', 'FMT="(A)"' ], 'items': [ u'"{ %s }"'%', '.join(codepath_json) ]}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Write, attrs=attrs)
 
@@ -432,7 +432,7 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(iffilejson, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=fileunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'codeline\', \'datamap\':{ " //  linemap(fileid) // " }}"' ]}
+        attrs = {'specs': [ 'UNIT=fileunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""codeline"", ""datamap"":{ " //  linemap(fileid) // " }}"' ]}
         part_append_gensnode(iffilejson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=fileunit']}
@@ -458,11 +458,11 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             attrs = {'specs': [ 'numranksstr', '"(I10)"' ], 'items': [ 'numranks' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'mpi\', \'numranks\':" // TRIM(ADJUSTL(numranksstr)) // "}"' ]}
+            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""mpi"", ""numranks"":"" // TRIM(ADJUSTL(numranksstr)) // ""}"' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'mpi\', \'numranks\':1}"' ]}
+            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""mpi"", ""numranks"":""1""}"' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=lineunit']}
@@ -486,11 +486,11 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             attrs = {'specs': [ 'numthreadsstr', '"(I6)"' ], 'items': [ 'OMP_GET_THREAD_NUM()' ]}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'openmp\', \'numrthreads\':" // TRIM(ADJUSTL(numthreadsstr)) // "}"' ]}
+            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""openmp"", ""numrthreads"":"" // TRIM(ADJUSTL(numthreadsstr)) // ""}"' ]}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'openmp\', \'numthreads\':1}"']}
+            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""openmp"", ""numthreads"":""1""}"']}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=mpiunit']}
@@ -507,7 +507,7 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             'STATUS="NEW"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(ifompjson, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=ompunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'invocation\'}"']}
+        attrs = {'specs': [ 'UNIT=ompunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""invocation""}"']}
         part_append_gensnode(ifompjson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=ompunit']}
