@@ -397,9 +397,10 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
         attrs = {'specs': ['NEWUNIT=dataunit', 'FILE="%s/%s"'%(datapath, META), \
             'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Open, attrs=attrs)
-
-        attrs = {'specs': [ 'UNIT=dataunit', 'FMT="(A)"' ], 'items': [ u'"{\'datamap\':{%d:\'%s\'}}"'%(getinfo('coverage_typeid'), \
-            getinfo('coverage_typename')) ]}
+        datapath_json = []
+        datapath_json.append(u'\'datatype\':\'coverage\'')
+        datapath_json.append(u'\'datamap\':{%d:\'%s\'}'%(getinfo('coverage_typeid'), getinfo('coverage_typename')))
+        attrs = {'specs': [ 'UNIT=dataunit', 'FMT="(A)"' ], 'items': [ u'"{ %s }"'%', '.join(datapath_json) ]}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=dataunit']}
@@ -410,8 +411,11 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Open, attrs=attrs)
 
+        codepath_json = []
+        codepath_json.append(u'\'datatype\':\'srcfile\'')
         filemapstr = ',&\n&'.join([ '\'%d\':\'%s\''%(fid,fpath) for fpath, (fid, lines) in self.paths.items() ])
-        attrs = {'specs': [ 'UNIT=codeunit', 'FMT="(A)"' ], 'items': [ u'"{\'datamap\':{%s}}"'%filemapstr ]}
+        codepath_json.append(u'\'datamap\':{%s}'%filemapstr)
+        attrs = {'specs': [ 'UNIT=codeunit', 'FMT="(A)"' ], 'items': [ u'"{ %s }"'%', '.join(codepath_json) ]}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=codeunit']}
@@ -428,7 +432,7 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(iffilejson, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=fileunit', 'FMT="(A)"' ], 'items': [ u'"{\'datamap\':{ " //  linemap(fileid) // " }}"' ]}
+        attrs = {'specs': [ 'UNIT=fileunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'codeline\', \'datamap\':{ " //  linemap(fileid) // " }}"' ]}
         part_append_gensnode(iffilejson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=fileunit']}
@@ -454,11 +458,11 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             attrs = {'specs': [ 'numranksstr', '"(I10)"' ], 'items': [ 'numranks' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{\'numranks\':" // TRIM(ADJUSTL(numranksstr)) // "}"' ]}
+            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'mpi\', \'numranks\':" // TRIM(ADJUSTL(numranksstr)) // "}"' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{\'numranks\':1}"' ]}
+            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'mpi\', \'numranks\':1}"' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=lineunit']}
@@ -482,28 +486,29 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             attrs = {'specs': [ 'numthreadsstr', '"(I6)"' ], 'items': [ 'OMP_GET_THREAD_NUM()' ]}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{\'numrthreads\':" // TRIM(ADJUSTL(numthreadsstr)) // "}"' ]}
+            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'openmp\', \'numrthreads\':" // TRIM(ADJUSTL(numthreadsstr)) // "}"' ]}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{\'numthreads\':1}"']}
+            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'openmp\', \'numthreads\':1}"']}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=mpiunit']}
         part_append_gensnode(ifmpijson, EXEC_PART, statements.Close, attrs=attrs)
 
         # in openmp id
-        attrs = {'specs': ['FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/" // TRIM(ADJUSTL(linestr)) // \
-"/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(threadstr)) // "/%s"'%(codepath, META), 'EXIST=istrue']}
+        attrs = {'specs': ['FILE=TRIM(ADJUSTL(filepath)) // "/%s"'%META, 'EXIST=istrue']}
         part_append_gensnode(coversubr, EXEC_PART, statements.Inquire, attrs=attrs)
 
         attrs = {'expr': '.NOT. istrue'}
         ifompjson = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'specs': ['NEWUNIT=ompunit', 'FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/" // TRIM(ADJUSTL(linestr)) // \
-"/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(threadstr)) // "/%s"'%(codepath, META), \
-            'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
+        attrs = {'specs': ['NEWUNIT=ompunit', 'FILE=TRIM(ADJUSTL(filepath)) // "/%s"'%META, \
+            'STATUS="NEW"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(ifompjson, EXEC_PART, statements.Open, attrs=attrs)
+
+        attrs = {'specs': [ 'UNIT=ompunit', 'FMT="(A)"' ], 'items': [ u'"{\'datatype\':\'invocation\'}"']}
+        part_append_gensnode(ifompjson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=ompunit']}
         part_append_gensnode(ifompjson, EXEC_PART, statements.Close, attrs=attrs)
@@ -519,21 +524,17 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
         ifexist = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'specs': ['NEWUNIT=invokeunit', 'FILE=TRIM(ADJUSTL(filepath)) // "/" // TRIM(ADJUSTL(invokestr))', \
-            'STATUS="REPLACE"', 'FORM="FORMATTED"', 'ACTION="READWRITE"','IOSTAT=ierror']}
-            #'STATUS="REPLACE"', 'ACCESS="DIRECT"', 'FORM="FORMATTED"', 'ACTION="READWRITE"','IOSTAT=ierror']}
+            'STATUS="OLD"', 'FORM="FORMATTED"', 'ACCESS="DIRECT"', 'ACTION="READWRITE"', 'RECL=16', 'IOSTAT=ierror']}
         part_append_gensnode(ifexist, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=invokeunit', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
+        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=1', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
         part_append_gensnode(ifexist, EXEC_PART, statements.Read, attrs=attrs)
 
         attrs = {'variable': 'visit', 'sign': '=', 'expr': 'visit + 1'}
         part_append_gensnode(ifexist, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=invokeunit', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
+        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=1', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
         part_append_gensnode(ifexist, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'specs': [ 'UNIT=invokeunit' ]}
-        part_append_gensnode(ifexist, EXEC_PART, statements.Flush, attrs=attrs)
 
         attrs = {'specs': ['UNIT=invokeunit']}
         part_append_gensnode(ifexist, EXEC_PART, statements.Close, attrs=attrs)
@@ -541,15 +542,11 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
         part_append_gensnode(ifexist, EXEC_PART, statements.Else)
 
         attrs = {'specs': ['NEWUNIT=invokeunit', 'FILE=TRIM(ADJUSTL(filepath)) // "/" // TRIM(ADJUSTL(invokestr))', \
-            'STATUS="NEW"', 'FORM="FORMATTED"', 'ACTION="WRITE"', 'IOSTAT=ierror']}
-            #'STATUS="NEW"', 'ACCESS="DIRECT"', 'FORM="FORMATTED"', 'ACTION="WRITE"','IOSTAT=ierror']}
+            'STATUS="NEW"', 'FORM="FORMATTED"', 'ACCESS="DIRECT"', 'ACTION="WRITE"', 'RECL=16', 'IOSTAT=ierror']}
         part_append_gensnode(ifexist, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=invokeunit', 'FMT="(I16)"' ], 'items': [ '1' ]}
+        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=1', 'FMT="(A16)"' ], 'items': [ '"1"' ]}
         part_append_gensnode(ifexist, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'specs': [ 'UNIT=invokeunit' ]}
-        part_append_gensnode(ifexist, EXEC_PART, statements.Flush, attrs=attrs)
 
         attrs = {'specs': ['UNIT=invokeunit']}
         part_append_gensnode(ifexist, EXEC_PART, statements.Close, attrs=attrs)

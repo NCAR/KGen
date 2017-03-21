@@ -988,6 +988,10 @@ class Config(object):
             except:
                 inc = None
 
+        if inc is None:
+            inc = KgenConfigParser(allow_no_value=True)
+            inc.read('%s/generic_Linux'%KGEN_MACHINE)
+
         return inc
 
     def read_machinefile(self, machine, kernel_option, prerun):
