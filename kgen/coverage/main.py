@@ -113,6 +113,19 @@ class Coverage(KGTool):
             if len(glob.glob('%s/coverage.data.*'%Config.path['coverage'])) > 0 and Config.coverage['reuse_rawdata']:
                 kgutils.logger.info('Raw data generation is skipped.')
             else:
+
+                # create __data__
+                if not os.path.exists('%s/__data__'%Config.path['coverage']):
+                    os.makedirs('%s/__data__'%Config.path['coverage'])
+
+                if not os.path.exists('%s/__data__/__resource__'%Config.path['coverage']):
+                    os.makedirs('%s/__data__/__resource__'%Config.path['coverage'])
+
+                # generate linemap files in __data__/__resource__/linemap
+                if os.path.exists('%s/__data__/__resource__/linemap'%Config.path['coverage']):
+                    shutil.rmtree('%s/__data__/__resource__/linemap'%Config.path['coverage'])
+                os.makedirs('%s/__data__/__resource__/linemap'%Config.path['coverage'])
+
                 # generate instrumentation
                 for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
                     if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):

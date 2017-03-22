@@ -22,7 +22,7 @@ class Gen_Coverage_File(Kgen_Plugin):
     def get_linepairs(self, fileid):
         for filepath, (fid, lines) in self.paths.items():
             if fileid == fid:
-                return [ '""%s"":""%s""'%(str(lineid), str(linenum)) for linenum, lineid in lines.items() ]
+                return [ '"%s":"%s"'%(str(lineid), str(linenum)) for linenum, lineid in lines.items() ]
 
     def get_linenumbers(self, fileid):
         for filepath, (fid, lines) in self.paths.items():
@@ -66,7 +66,7 @@ class Gen_Coverage_File(Kgen_Plugin):
         #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
         #    block_statements.If, None, self.addstmts_ifstmt)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            getinfo('topblock_stmt'), None, self.save_paths)
+            getinfo('topblock_stmt'), None, self.save_maps)
 
         # when finish process
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.FINISH_PROCESS, \
@@ -127,10 +127,24 @@ class Gen_Coverage_File(Kgen_Plugin):
     # printing paths
     ##################################
 
-    def save_paths(self, node):
-        with open('%s/kcover_filemap.txt'%getinfo('coverage_path'), 'w') as f:
-            for filepath, (fileid, lines) in self.paths.items():
-                f.write('%d %s %s\n'%(fileid, filepath, ' '.join([str(linenum) for linenum in lines.keys()])))
+    def save_maps(self, node):
+
+        # generate metadata.json for filemap
+        with open('%s/__data__/__resource__/filemap.json'%getinfo('coverage_path'), 'w') as fm:
+            fm.write(u'{"datatype": "srcfile", "datamap": {\n')
+            for fpath, (fid, lines) in self.paths.items():
+                if fid > 0:
+                    fm.write(u', "%d": "%s"\n'%(fid, fpath))
+                else:
+                    fm.write(u'"%d": "%s"\n'%(fid, fpath))
+            fm.write(u'}}\n')
+
+        # generate metadata.json for linemap
+        for fileid in range(len(self.paths)):
+            with open(u'%s/__data__/__resource__/linemap/%d'%(getinfo('coverage_path'), fileid), 'w') as lm:
+                lm.write(u'{"datatype": "codeline", "datamap": {\n')
+                lm.write(u'%s\n'%', '.join(self.get_linepairs(fileid)))
+                lm.write(u'}}\n')
         #setinfo('coverage_paths', self.paths)
 
     ##################################
@@ -246,9 +260,7 @@ class Gen_Coverage_File(Kgen_Plugin):
     def add_coverage(self, node):
         self.logger.debug('Begin add_coverage')
 
-        maxfiles = len(self.paths)
-
-        if maxfiles == 0:
+        if len(self.paths) == 0:
             self.logger.warn('There is no valid conditional block.')
             return
 
@@ -259,29 +271,6 @@ class Gen_Coverage_File(Kgen_Plugin):
         # add subroutine
         attrs = {'name': 'gen_coverage', 'args': ['fileid', 'lineid']}
         coversubr = part_append_gensnode(node.kgen_parent, UNIT_PART, block_statements.Subroutine, attrs=attrs)
-  
-        lmap = []
-        spath = []
-        for fileid in range(maxfiles):
-
-            attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER' ], \
-                'entity_decls': [ 'srcpath_%d = """%s"""'%(fileid, self.get_filepath(fileid)) ]}
-            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
-
-            attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER' ], \
-                'entity_decls': [ 'linemap_%d = %s'%(fileid, '"%s"'%', '.join(self.get_linepairs(fileid))) ]}
-            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
-
-            spath.append('srcpath_%d'%fileid)
-            lmap.append('linemap_%d'%fileid)
-
-        attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER', 'DIMENSION(0:%d)'%(maxfiles-1)], \
-            'entity_decls': ['linemap = (/ %s /)'%', '.join(lmap)]}
-        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
-
-        attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER', 'DIMENSION(0:%d)'%(maxfiles-1)], \
-            'entity_decls': [ 'srcpaths = (/ %s /)'%', '.join(spath)]}
-        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         part_append_comment(coversubr, DECL_PART, '')
 
@@ -389,11 +378,11 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'specs': [ 'threadstr', '"(I1)"' ], 'items': [ '0' ]}
             part_append_gensnode(coversubr, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': [ 'filepath', '*' ], 'items': [ '"%s/" // TRIM(ADJUSTL(filestr)) // "/" // \
-TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(threadstr))'%codepath ]}
+        attrs = {'specs': [ 'filepath', '*' ], 'items': [ '\'%s/\' // TRIM(ADJUSTL(filestr)) // \'/\' // \
+TRIM(ADJUSTL(linestr)) // \'/\' // TRIM(ADJUSTL(rankstr)) // \'/\' // TRIM(ADJUSTL(threadstr))'%codepath ]}
         part_append_gensnode(coversubr, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': ['FILE=TRIM(ADJUSTL(filepath)) // "/%s"'%META, 'EXIST=istrue']}
+        attrs = {'specs': ['FILE=TRIM(ADJUSTL(filepath)) // \'/%s\''%META, 'EXIST=istrue']}
         part_append_gensnode(coversubr, EXEC_PART, statements.Inquire, attrs=attrs)
 
         attrs = {'expr': '.NOT. istrue'}
@@ -413,45 +402,23 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Open, attrs=attrs)
         datapath_json = []
-        datapath_json.append(u'""datatype"":""coverage""')
-        datapath_json.append(u'""datamap"":{""%d"":""%s""}'%(getinfo('coverage_typeid'), getinfo('coverage_typename')))
-        attrs = {'specs': [ 'UNIT=dataunit', 'FMT="(A)"' ], 'items': [ u'"{ %s }"'%', '.join(datapath_json) ]}
+        datapath_json.append(u'"datatype":"coverage"')
+        datapath_json.append(u'"datamap":{"%d":"%s"}'%(getinfo('coverage_typeid'), getinfo('coverage_typename')))
+        attrs = {'specs': [ 'UNIT=dataunit', 'FMT="(A)"' ], 'items': [ u'\'{%s}\''%','.join(datapath_json) ]}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=dataunit']}
         part_append_gensnode(ifkgeninit, EXEC_PART, statements.Close, attrs=attrs)
 
         # in codepath
-        attrs = {'specs': ['NEWUNIT=codeunit', 'FILE="%s/%s"'%(codepath, META), \
-            'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
-        part_append_gensnode(ifkgeninit, EXEC_PART, statements.Open, attrs=attrs)
-
-        codepath_json = []
-        codepath_json.append(u'""datatype"":""srcfile""')
-        filemapstr = ',&\n&'.join([ '""%d"":""%s""'%(fid,fpath) for fpath, (fid, lines) in self.paths.items() ])
-        codepath_json.append(u'""datamap"":{%s}'%filemapstr)
-        attrs = {'specs': [ 'UNIT=codeunit', 'FMT="(A)"' ], 'items': [ u'"{ %s }"'%', '.join(codepath_json) ]}
-        part_append_gensnode(ifkgeninit, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'specs': ['UNIT=codeunit']}
-        part_append_gensnode(ifkgeninit, EXEC_PART, statements.Close, attrs=attrs)
+        attrs = {'designator': 'SYSTEM', 'items': [ '"cp -f %s/__data__/__resource__/filemap.json %s/__data__/%s/metadata.json"'% \
+            ( getinfo('coverage_path'), getinfo('coverage_path'), getinfo('coverage_typeid')) ]}
+        part_append_gensnode(ifkgeninit, EXEC_PART, statements.Call, attrs=attrs)
 
         # in file id
-        attrs = {'specs': ['FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/%s"'%(codepath, META), 'EXIST=istrue']}
-        part_append_gensnode(coversubr, EXEC_PART, statements.Inquire, attrs=attrs)
-
-        attrs = {'expr': '.NOT. istrue'}
-        iffilejson = part_append_gensnode(coversubr, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'specs': ['NEWUNIT=fileunit', 'FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/%s"'%(codepath, META), \
-            'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
-        part_append_gensnode(iffilejson, EXEC_PART, statements.Open, attrs=attrs)
-
-        attrs = {'specs': [ 'UNIT=fileunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""codeline"", ""datamap"":{ " //  linemap(fileid) // " }}"' ]}
-        part_append_gensnode(iffilejson, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'specs': ['UNIT=fileunit']}
-        part_append_gensnode(iffilejson, EXEC_PART, statements.Close, attrs=attrs)
+        attrs = {'designator': 'SYSTEM', 'items': [ '"cp -f %s/__data__/__resource__/linemap/" // TRIM(ADJUSTL(filestr)) // \
+" %s/__data__/%s/" // TRIM(ADJUSTL(filestr)) // "/metadata.json"'% ( getinfo('coverage_path'), getinfo('coverage_path'), getinfo('coverage_typeid')) ]}
+        part_append_gensnode(ifkgeninit, EXEC_PART, statements.Call, attrs=attrs)
 
         # in line id
         attrs = {'specs': ['FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/" // TRIM(ADJUSTL(linestr)) // \
@@ -473,11 +440,11 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             attrs = {'specs': [ 'numranksstr', '"(I10)"' ], 'items': [ 'numranks' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""mpi"", ""numranks"":"" // TRIM(ADJUSTL(numranksstr)) // ""}"' ]}
+            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"mpi", "numranks":"\' // TRIM(ADJUSTL(numranksstr)) // \'"}\'' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""mpi"", ""numranks"":""1""}"' ]}
+            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"mpi", "numranks":"1"}\'' ]}
             part_append_gensnode(iflinejson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=lineunit']}
@@ -501,11 +468,11 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             attrs = {'specs': [ 'numthreadsstr', '"(I6)"' ], 'items': [ 'OMP_GET_THREAD_NUM()' ]}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""openmp"", ""numrthreads"":"" // TRIM(ADJUSTL(numthreadsstr)) // ""}"' ]}
+            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"openmp", "numrthreads":"\' // TRIM(ADJUSTL(numthreadsstr)) // \'"}\'' ]}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""openmp"", ""numthreads"":""1""}"']}
+            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"openmp", "numthreads":"1"}\'']}
             part_append_gensnode(ifmpijson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=mpiunit']}
@@ -522,7 +489,7 @@ TRIM(ADJUSTL(linestr)) // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(t
             'STATUS="NEW"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
         part_append_gensnode(ifompjson, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=ompunit', 'FMT="(A)"' ], 'items': [ u'"{""datatype"":""invocation""}"']}
+        attrs = {'specs': [ 'UNIT=ompunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"invocation"}\'']}
         part_append_gensnode(ifompjson, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=ompunit']}
