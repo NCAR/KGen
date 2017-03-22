@@ -333,6 +333,11 @@ class Config(object):
         self._attrs['coveragefile'] = 'coverage.ini'
         self._attrs['coverage'] = collections.OrderedDict()
         self._attrs['coverage']['reuse_rawdata'] = True
+        self._attrs['coverage']['types'] = collections.OrderedDict()
+        self._attrs['coverage']['types']['code'] = collections.OrderedDict()
+        self._attrs['coverage']['types']['code']['id'] = '0'
+        self._attrs['coverage']['types']['code']['name'] = 'code'
+        
 
         # set plugin parameters
         self._attrs['plugin']['priority']['cover.gencore'] = '%s/plugins/gencore'%KGEN_COVER

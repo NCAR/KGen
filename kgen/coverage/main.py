@@ -114,16 +114,14 @@ class Coverage(KGTool):
                 kgutils.logger.info('Raw data generation is skipped.')
             else:
 
-                # create __data__
-                if not os.path.exists('%s/__data__'%Config.path['coverage']):
-                    os.makedirs('%s/__data__'%Config.path['coverage'])
+                # rm data tree
+                if os.path.exists('%s/__data__'%Config.path['coverage']):
+                    shutil.rmtree('%s/__data__'%Config.path['coverage'])
 
-                if not os.path.exists('%s/__data__/__resource__'%Config.path['coverage']):
-                    os.makedirs('%s/__data__/__resource__'%Config.path['coverage'])
-
-                # generate linemap files in __data__/__resource__/linemap
-                if os.path.exists('%s/__data__/__resource__/linemap'%Config.path['coverage']):
-                    shutil.rmtree('%s/__data__/__resource__/linemap'%Config.path['coverage'])
+                # create data tree
+                os.makedirs('%s/__data__'%Config.path['coverage'])
+                os.makedirs('%s/__data__/%s'%(Config.path['coverage'], Config.coverage['types']['code']['id']))
+                os.makedirs('%s/__data__/__resource__'%Config.path['coverage'])
                 os.makedirs('%s/__data__/__resource__/linemap'%Config.path['coverage'])
 
                 # generate instrumentation
