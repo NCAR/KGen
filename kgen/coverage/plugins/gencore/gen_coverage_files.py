@@ -259,13 +259,28 @@ class Gen_Coverage_File(Kgen_Plugin):
         # add subroutine
         attrs = {'name': 'gen_coverage', 'args': ['fileid', 'lineid']}
         coversubr = part_append_gensnode(node.kgen_parent, UNIT_PART, block_statements.Subroutine, attrs=attrs)
-
-        linemap = []
+  
+        lmap = []
+        spath = []
         for fileid in range(maxfiles):
-            linemap.append( '"%s"'%', '.join(self.get_linepairs(fileid)))
 
-        attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER', \
-            'DIMENSION(0:%d)'%(maxfiles-1) ], 'entity_decls': ['linemap = (/ %s /)'%',&\n&'.join(linemap)]}
+            attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER' ], \
+                'entity_decls': [ 'srcpath_%d = """%s"""'%(fileid, self.get_filepath(fileid)) ]}
+            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
+
+            attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER' ], \
+                'entity_decls': [ 'linemap_%d = %s'%(fileid, '"%s"'%', '.join(self.get_linepairs(fileid))) ]}
+            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
+
+            spath.append('srcpath_%d'%fileid)
+            lmap.append('linemap_%d'%fileid)
+
+        attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER', 'DIMENSION(0:%d)'%(maxfiles-1)], \
+            'entity_decls': ['linemap = (/ %s /)'%', '.join(lmap)]}
+        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
+
+        attrs = {'type_spec': 'CHARACTER', 'selector':('*', None), 'attrspec': [ 'PARAMETER', 'DIMENSION(0:%d)'%(maxfiles-1)], \
+            'entity_decls': [ 'srcpaths = (/ %s /)'%', '.join(spath)]}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         part_append_comment(coversubr, DECL_PART, '')
