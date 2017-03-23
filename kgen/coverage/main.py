@@ -208,8 +208,6 @@ class Coverage(KGTool):
                     # generate coverage file
                     self.visit('%s/__data__'%coverage_abspath, invokes, attrs)
 
-                    print 'TTT', attrs
-
                     with open(Config.coveragefile, 'w') as fd:
                         # summary section
                         fd.write('[summary]\n')
@@ -550,7 +548,7 @@ class Coverage(KGTool):
                     self.visit('%s/%s'%(path, mpirank), invokes, attrs, ctype=ctype, fileid=fileid, linenum=linenum, mpirank=mpirank)
 
         elif datatype == 'openmp':
-            numthreads = metadata.get('numthreads', '0')
+            numthreads = metadata.get('numthreads', '"0"')
             attrs['numthreads'] = numthreads
             for ompthread in range(int(numthreads)):
                 ompthread = str(ompthread)
