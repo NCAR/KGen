@@ -6,6 +6,7 @@ import re
 import glob
 import json
 import math
+import shutil
 import datetime
 import collections
 import multiprocessing
@@ -26,7 +27,7 @@ END_DATA_MARKER = r'kgpathend'
 BEGIN_PATH_MARKER = r'kgdatabegin'
 END_PATH_MARKER = r'kgdataend'
 
-DEBUG = True
+_DEBUG = True
 
 def readdatafiles(inq, outq):
     visits = {}
@@ -104,25 +105,27 @@ class Coverage(KGTool):
 
         kgutils.logger.info('Starting KCover')
 
+        coverage_abspath = os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['coverage']))
+
         # create coverage directory
-        if not os.path.exists(Config.path['coverage']):
-            os.makedirs(Config.path['coverage'])
+        if not os.path.exists(coverage_abspath):
+            os.makedirs(coverage_abspath)
 
         # build app with instrumntation
         if not os.path.exists(Config.coveragefile) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
-            if len(glob.glob('%s/coverage.data.*'%Config.path['coverage'])) > 0 and Config.coverage['reuse_rawdata']:
+            if len(glob.glob('%s/coverage.data.*'%coverage_abspath)) > 0 and Config.coverage['reuse_rawdata']:
                 kgutils.logger.info('Raw data generation is skipped.')
             else:
 
                 # rm data tree
-                if os.path.exists('%s/__data__'%Config.path['coverage']):
-                    shutil.rmtree('%s/__data__'%Config.path['coverage'])
+                if os.path.exists('%s/__data__'%coverage_abspath):
+                    shutil.rmtree('%s/__data__'%coverage_abspath)
 
                 # create data tree
-                os.makedirs('%s/__data__'%Config.path['coverage'])
-                os.makedirs('%s/__data__/%s'%(Config.path['coverage'], Config.coverage['types']['code']['id']))
-                os.makedirs('%s/__data__/__resource__'%Config.path['coverage'])
-                os.makedirs('%s/__data__/__resource__/linemap'%Config.path['coverage'])
+                os.makedirs('%s/__data__'%coverage_abspath)
+                os.makedirs('%s/__data__/%s'%(coverage_abspath, Config.coverage['types']['code']['id']))
+                os.makedirs('%s/__data__/__resource__'%coverage_abspath)
+                os.makedirs('%s/__data__/__resource__/linemap'%coverage_abspath)
 
                 # generate instrumentation
                 for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
@@ -172,14 +175,14 @@ class Coverage(KGTool):
                         if slines is not None:
                             slines = kgutils.remove_multiblanklines(slines)
                             coverage_files.append(filename)
-                            with open('%s/%s'%(Config.path['coverage'], filename), 'wb') as fd:
+                            with open('%s/%s'%(coverage_abspath, filename), 'wb') as fd:
                                 fd.write(slines)
-                            with open('%s/%s.kgen'%(Config.path['coverage'], filename), 'wb') as ft:
+                            with open('%s/%s.kgen'%(coverage_abspath, filename), 'wb') as ft:
                                 ft.write('\n'.join(sfile.kgen_stmt.prep))
 
                 self.gen_makefile()
 
-                kgutils.logger.info('Instrumentation for coverage is generated at %s.'%os.path.abspath(Config.path['coverage']))
+                kgutils.logger.info('Instrumentation for coverage is generated at %s.'%coverage_abspath)
 
 
                 # TODO: wait until coverage data generation is completed
@@ -192,98 +195,105 @@ class Coverage(KGTool):
                         kgutils.run_shcmd(Config.state_switch['clean'])
 
                 # TEMP
-                out, err, retcode = kgutils.run_shcmd('make', cwd=Config.path['coverage'])
-                if retcode != 0:
+                out, err, retcode = kgutils.run_shcmd('make', cwd=coverage_abspath)
+                if retcode == 0:
+
+                    kgutils.logger.info('Application is built/run with coverage instrumentation.')
+
+                    # collect data
+                    attrs = { 'totalfiles': {}, 'totalblocks': {}, 'usedfiles': {}, 'usedblocks': {}, \
+                        'numranks': '0', 'numthreads': '0', 'mpivisits': {}, 'ompvisits': {}, 'linevisits': {} }
+                    invokes = {} # rank:thread:invoke:(fid, lnum)
+
+                    # generate coverage file
+                    self.visit('%s/__data__'%coverage_abspath, invokes, attrs)
+
+                    print 'TTT', attrs
+
+                    with open(Config.coveragefile, 'w') as fd:
+                        # summary section
+                        fd.write('[summary]\n')
+                        fd.write('number_of_files_having_condblocks = %d\n'%len(attrs['totalfiles']))
+                        fd.write('number_of_files_invoked = %d\n'%len(attrs['usedfiles']))
+                        fd.write('number_of_condblocks_exist = %d\n'%sum( [ len(lines) for fid, lines in attrs['totalblocks'].items() ] ))
+                        fd.write('number_of_condblocks_invoked = %d\n'%sum( [ len(lines) for fid, lines in attrs['usedblocks'].items() ] ))
+                        fd.write('\n')
+
+                        # file section
+                        fd.write('[file]\n')
+                        fd.write('; <file number> = <path to file>\n')
+                        #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
+                        for fileid, filepath in attrs['totalfiles'].items():
+                            fd.write('%s = %s/%s.kgen\n'%(fileid, coverage_abspath, os.path.basename(filepath)))
+                        fd.write('used_files = %s\n'%', '.join([ fid for fid in attrs['usedfiles'] ]))
+                        fd.write('\n')
+
+                        # block section
+                        fd.write('[block]\n')
+                        fd.write('; <file number> =  <line number> ...\n')
+                        #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
+                        for fileid, lines in attrs['totalblocks'].items():
+                            fd.write('%s = %s\n'%(fileid, ', '.join(lines)))
+                        fd.write('used_blocks = %s\n'%', '.join([ '%s:%s'%(fid,lnum) for lnum in lines for fid, lines in attrs['usedblocks'].items() ]))
+                        fd.write('\n')
+
+
+                        # invoke section
+                        fd.write('[invoke]\n')
+                        fd.write('; <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number><num of invocations> ...\n')
+
+                        for ranknum, threadnums in invokes.items():
+                            for threadnum, invokenums in threadnums.items():
+                                for invokenum, triples in invokenums.items():
+                                    fd.write('%s %s %s = %s\n'%(ranknum, threadnum, invokenum, \
+                                        ', '.join( [ '%s:%s:%s'%(fid, lnum, nivks) for fid, lnum, nivks in triples ] )))
+
+                    #kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
+                    kgutils.logger.info('    ***** Within "%s" kernel *****:'%Config.kernel['name'])
+                    kgutils.logger.info('    * %d original source files have conditional blocks.'%len(attrs['totalfiles']))
+                    kgutils.logger.info('    * %d original source files are invoked at least once.'%len(attrs['usedfiles']))
+                    kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%\
+                        sum( [ len(lines) for fid, lines in attrs['totalblocks'].items() ] ))
+                    kgutils.logger.info('    * %d conditional blocks are executed at least once among all the conditional blocks.'%\
+                        sum( [ len(lines) for fid, lines in attrs['usedblocks'].items() ] ))
+
+
+                    for fileid, filepath in attrs['usedfiles'].items():
+                        basefile = '%s/%s.kgen'%(coverage_abspath, os.path.basename(filepath))
+                        with open(basefile, 'r') as fsrc:
+                            srclines = fsrc.readlines()
+
+                        filesummary = [ \
+                            '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
+                            '!! %d conditional blocks exist in this file'%len(attrs['totalblocks'][fileid]), \
+                            '!! %d conditional blokcs are executed at least once among all the conditional blocks.'%len(attrs['usedblocks'][fileid]), \
+                            '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' \
+                        ]
+                        srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
+
+                        for linenum in attrs['usedblocks'][fileid]:
+                            linevisit = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' ]
+                            linevisit.append('!! Total number of visits: %d'%attrs['linevisits'][fileid][linenum])
+                            if Config.mpi['enabled']:
+                                linevisit.append('!! MPI rank(visits)      : %s' % ' '.join( \
+                                    ['%s(%d)'%(r,i) for r,i in attrs['mpivisits'][fileid][linenum].items()]))
+                            if Config.openmp['enabled']:
+                                linevisit.append('!! OpenMP thread(visits) : %s' % ' '.join( \
+                                    ['%s(%d)'%(t,i) for t,i in attrs['mpivisits'][fileid][linenum].items()]))
+                            linevisit.append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
+
+                            srclines[int(linenum)-1] = '%s%s\n'%(srclines[int(linenum)-1], '\n'.join(linevisit))
+
+                        coveragefile = '%s/%s.coverage'%(coverage_abspath, os.path.basename(filepath))
+                        with open(coveragefile, 'w') as fdst:
+                            fdst.write(''.join(srclines))
+
+                else:
+                    if not _DEBUG:
+                        if os.path.exists(Config.coveragefile):
+                            os.remove(Config.coveragefile)
+                        shutil.rmtree(coverage_abspath)
                     kgutils.logger.info('Failed to generate coverage information: %s'%err)
-
-                kgutils.logger.info('Application is built/run with coverage instrumentation.')
-
-                # collect data
-                attrs = { 'totalfiles': {}, 'totalblocks': {}, 'usedfiles': {}, 'usedblocks': {}, \
-                    'numranks': '0', 'numthreads': '0', 'mpivisits': {}, 'ompvisits': {}, 'linevisits': {} }
-                invokes = {} # rank:thread:invoke:(fid, lnum)
-
-                # generate coverage file
-                self.visit('%s/%s/__data__'%(Config.path['outdir'], Config.path['coverage']), invokes, attrs)
-
-                with open(Config.coveragefile, 'w') as fd:
-                    # summary section
-                    fd.write('[summary]\n')
-                    fd.write('number_of_files_having_condblocks = %d\n'%len(attrs['totalfiles']))
-                    fd.write('number_of_files_invoked = %d\n'%len(attrs['usedfiles']))
-                    fd.write('number_of_condblocks_exist = %d\n'%sum( [ len(lines) for fid, lines in attrs['totalblocks'].items() ] ))
-                    fd.write('number_of_condblocks_invoked = %d\n'%sum( [ len(lines) for fid, lines in attrs['usedblocks'].items() ] ))
-                    fd.write('\n')
-
-                    # file section
-                    fd.write('[file]\n')
-                    fd.write('; <file number> = <path to file>\n')
-                    #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                    for fileid, filepath in attrs['totalfiles'].items():
-                        fd.write('%s = %s/%s/%s.kgen\n'%(fileid, Config.path['outdir'], Config.path['coverage'], os.path.basename(filepath)))
-                    fd.write('used_files = %s\n'%', '.join([ fid for fid in attrs['usedfiles'] ]))
-                    fd.write('\n')
-
-                    # block section
-                    fd.write('[block]\n')
-                    fd.write('; <file number> =  <line number> ...\n')
-                    #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                    for fileid, lines in attrs['totalblocks'].items():
-                        fd.write('%s = %s\n'%(fileid, ', '.join(lines)))
-                    fd.write('used_blocks = %s\n'%', '.join([ '%s:%s'%(fid,lnum) for lnum in lines for fid, lines in attrs['usedblocks'].items() ]))
-                    fd.write('\n')
-
-
-                    # invoke section
-                    fd.write('[invoke]\n')
-                    fd.write('; <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number><num of invocations> ...\n')
-
-                    for ranknum, threadnums in invokes.items():
-                        for threadnum, invokenums in threadnums.items():
-                            for invokenum, triples in invokenums.items():
-                                fd.write('%s %s %s = %s\n'%(ranknum, threadnum, invokenum, \
-                                    ', '.join( [ '%s:%s:%s'%(fid, lnum, nivks) for fid, lnum, nivks in triples ] )))
-
-                #kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
-                kgutils.logger.info('    ***** Within "%s" kernel *****:'%Config.kernel['name'])
-                kgutils.logger.info('    * %d original source files have conditional blocks.'%len(attrs['totalfiles']))
-                kgutils.logger.info('    * %d original source files are invoked at least once.'%len(attrs['usedfiles']))
-                kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%\
-                    sum( [ len(lines) for fid, lines in attrs['totalblocks'].items() ] ))
-                kgutils.logger.info('    * %d conditional blocks are executed at least once among all the conditional blocks.'%\
-                    sum( [ len(lines) for fid, lines in attrs['usedblocks'].items() ] ))
-
-
-                for fileid, filepath in attrs['usedfiles'].items():
-                    basefile = '%s/%s/%s.kgen'%(Config.path['outdir'], Config.path['coverage'], os.path.basename(filepath))
-                    with open(basefile, 'r') as fsrc:
-                        srclines = fsrc.readlines()
-
-                    filesummary = [ \
-                        '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
-                        '!! %d conditional blocks exist in this file'%len(attrs['totalblocks'][fileid]), \
-                        '!! %d conditional blokcs are executed at least once among all the conditional blocks.'%len(attrs['usedblocks'][fileid]), \
-                        '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' \
-                    ]
-                    srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
-
-                    for linenum in attrs['usedblocks'][fileid]:
-                        linevisit = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' ]
-                        linevisit.append('!! Total number of visits: %d'%attrs['linevisits'][fileid][linenum])
-                        if Config.mpi['enabled']:
-                            linevisit.append('!! MPI rank(visits)      : %s' % ' '.join( \
-                                ['%s(%d)'%(r,i) for r,i in attrs['mpivisits'][fileid][linenum].items()]))
-                        if Config.openmp['enabled']:
-                            linevisit.append('!! OpenMP thread(visits) : %s' % ' '.join( \
-                                ['%s(%d)'%(t,i) for t,i in attrs['mpivisits'][fileid][linenum].items()]))
-                        linevisit.append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
-
-                        srclines[int(linenum)-1] = '%s%s\n'%(srclines[int(linenum)-1], '\n'.join(linevisit))
-
-                    coveragefile = '%s/%s/%s.coverage'%(Config.path['outdir'], Config.path['coverage'], os.path.basename(filepath))
-                    with open(coveragefile, 'w') as fdst:
-                        fdst.write(''.join(srclines))
-
 
         else:
             kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
@@ -393,11 +403,13 @@ class Coverage(KGTool):
 
     def gen_makefile(self):
 
+        coverage_abspath = os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['coverage']))
+
         org_files = [ filepath for filepath, (sfile, mods_used, units_used) in Config.used_srcfiles.iteritems() if sfile.used4coverage ]
         if not Config.topblock['stmt'].reader.id in org_files:
             org_files.append(Config.topblock['filepath'])
 
-        with open('%s/Makefile'%(Config.path['coverage']), 'wb') as f:
+        with open('%s/Makefile'%coverage_abspath, 'wb') as f:
 
             self.write(f, '# Makefile for KGEN-generated instrumentation')
             self.write(f, '')
@@ -440,8 +452,7 @@ class Coverage(KGTool):
             elif Config.state_switch['type']=='copy':
                 for org_file in org_files:
                     basename = os.path.basename(org_file)
-                    self.write(f, 'cp -f %s/%s/%s %s'%(Config.path['outdir'], Config.path['coverage'], \
-                        basename, Config.state_switch['directory']), t=True)
+                    self.write(f, 'cp -f %s/%s %s'%(coverage_abspath, basename, Config.state_switch['directory']), t=True)
             self.write(f, '')
 
             self.write(f, 'recover:')
