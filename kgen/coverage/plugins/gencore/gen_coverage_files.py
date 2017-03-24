@@ -338,7 +338,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_invokes']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['visit']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['visit', 'intvar']}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['lineunit', 'mpiunit', 'ompunit', 'invokeunit']}
@@ -515,9 +515,9 @@ TRIM(ADJUSTL(numthreadsstr)) // \'"}\'' ]}
 
         # in invoke
         if getinfo('is_openmp_app'):
-            attrs = {'specs': [ 'invokestr', '"(I16)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())' ]}
+            attrs = {'specs': [ 'invokestr', '"(I16)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM()) / 256 + 1' ]}
         else:
-            attrs = {'specs': [ 'invokestr', '"(I16)"' ], 'items': [ 'kgen_invokes' ]}
+            attrs = {'specs': [ 'invokestr', '"(I16)"' ], 'items': [ 'kgen_invokes / 256 + 1' ]}
         part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['FILE=TRIM(ADJUSTL(filepath)) // "/" // TRIM(ADJUSTL(invokestr))', 'EXIST=istrue']}
@@ -533,14 +533,25 @@ TRIM(ADJUSTL(numthreadsstr)) // \'"}\'' ]}
         attrs = {'expr': 'ierror .EQ. 0'}
         ifexistopen = part_append_gensnode(ifexist, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=1', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
-        part_append_gensnode(ifexistopen, EXEC_PART, statements.Read, attrs=attrs)
+        if getinfo('is_openmp_app'):
+            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes(OMP_GET_THREAD_NUM()), 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
+            part_append_gensnode(ifexistopen, EXEC_PART, statements.Read, attrs=attrs)
 
-        attrs = {'variable': 'visit', 'sign': '=', 'expr': 'visit + 1'}
-        part_append_gensnode(ifexistopen, EXEC_PART, statements.Assignment, attrs=attrs)
+            attrs = {'variable': 'visit', 'sign': '=', 'expr': 'visit + 1'}
+            part_append_gensnode(ifexistopen, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=1', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
-        part_append_gensnode(ifexistopen, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes(OMP_GET_THREAD_NUM()), 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
+            part_append_gensnode(ifexistopen, EXEC_PART, statements.Write, attrs=attrs)
+
+        else:
+            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes, 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
+            part_append_gensnode(ifexistopen, EXEC_PART, statements.Read, attrs=attrs)
+
+            attrs = {'variable': 'visit', 'sign': '=', 'expr': 'visit + 1'}
+            part_append_gensnode(ifexistopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes, 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
+            part_append_gensnode(ifexistopen, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=invokeunit']}
         part_append_gensnode(ifexistopen, EXEC_PART, statements.Close, attrs=attrs)
@@ -554,8 +565,18 @@ TRIM(ADJUSTL(numthreadsstr)) // \'"}\'' ]}
         attrs = {'expr': 'ierror .EQ. 0'}
         ifnotexistopen = part_append_gensnode(ifexist, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=1', 'FMT="(I16)"' ], 'items': [ '1' ]}
-        part_append_gensnode(ifnotexistopen, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'loopcontrol': 'intvar=1, 256'}
+        doobj = part_append_genknode(ifnotexistopen, EXEC_PART, block_statements.Do, attrs=attrs)
+
+        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=intvar', 'FMT="(I16)"' ], 'items': [ '0' ]}
+        part_append_gensnode(doobj, EXEC_PART, statements.Write, attrs=attrs)
+
+        if getinfo('is_openmp_app'):
+            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes(OMP_GET_THREAD_NUM()), 256) + 1)', 'FMT="(I16)"' ], 'items': [ '1' ]}
+            part_append_gensnode(ifnotexistopen, EXEC_PART, statements.Write, attrs=attrs)
+        else:
+            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes, 256) + 1)', 'FMT="(I16)"' ], 'items': [ '1' ]}
+            part_append_gensnode(ifnotexistopen, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=invokeunit']}
         part_append_gensnode(ifnotexistopen, EXEC_PART, statements.Close, attrs=attrs)
