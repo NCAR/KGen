@@ -7,7 +7,7 @@ import os
 import sys
 
 from kgconfig import Config
-from kgutils import logger
+from kgutils import logger, UserException
 from kggenfile import init_plugins, KERNEL_ID_0
 
 from compflag.main import CompFlag
@@ -54,4 +54,9 @@ def main():
         ext.run()
 
 if __name__ == '__main__':
-    sys.exit(main)
+    try:
+        sys.exit(main)
+    except UserException as e:
+        logger.critical(str(e))
+    except:
+        raise

@@ -12,6 +12,4 @@ prerun_build =
 prerun_run =
 prerun_kernel_build =
 prerun_kernel_run =
-compiler =
-compiler_flags =
 work_directory = /glade/scratch/$USER/kgen_workspace

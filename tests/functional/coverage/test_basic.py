@@ -45,6 +45,8 @@ def test_strace():
     cmds.append('%s/%s'%(outdir, CALLSITE))
     
     # run kgen
+    shcmds = ' '.join(cmds)
+    print 'SHCMD: %s'%shcmds
     out, err, retcode = run_shcmd(' '.join(cmds))
 
     print '\n******* STDOUT KGEN **********\n'

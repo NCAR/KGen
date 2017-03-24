@@ -455,6 +455,12 @@ class Config(object):
     def __getattr__(self, name):
         return self._attrs[name]
 
+#    def __getstate__(self):
+#        return 'TEST'
+#
+#    def __setstate__(self, state):
+#        print 'STATE: ', state
+
     def collect_mpi_params(self):
         #from parser.api import parse, walk
         import parser
@@ -733,7 +739,7 @@ class Config(object):
             self._attrs['machine']['inc'] = self.find_machine()
 
         if self._attrs['machine']['inc']:
-            self.read_machinefile(self._attrs['machine'], self._attrs['kernel_option'], self._attrs['prerun'])
+            self.read_machinefile(self._attrs['machine'], self._attrs['prerun'])
 
         if not os.path.exists(self._attrs['machine']['variable']['work_directory']):
             os.makedirs(self._attrs['machine']['variable']['work_directory'])
@@ -844,7 +850,7 @@ class Config(object):
             for line in opts.state_switch:
                 for run in line.split(','):
                     key, value = run.split('=', 1)
-                    if key in [ 'directory', 'type', 'clean' ] :
+                    if key in [ 'directory', 'type', 'clean', 'script' ] :
                         self._attrs['state_switch'][key] = dequote(value)
                     else:
                         raise UserException('Unknown state-switch option: %s' % run)
@@ -858,8 +864,11 @@ class Config(object):
                     elif len(split_kopt)==2:
                         if split_kopt[0] in [ 'FC', 'FC_FLAGS' ]:
                             self._attrs['kernel_option'][split_kopt[0]] = dequote(split_kopt[1])
-                        elif split_kopt[0] in [ 'add', 'remove' ]:
+                        elif split_kopt[0] == 'add':
                             self._attrs['kernel_option']['compiler'][split_kopt[0]].append(dequote(split_kopt[1]))
+                        elif split_kopt[0] == 'remove':
+                            if split_kopt[0] in self._attrs['kernel_option']['compiler']:
+                                self._attrs['kernel_option']['compiler'].remove(split_kopt[0])
                         elif split_kopt[0]=='link':
                             self._attrs['kernel_option']['linker']['add'].append(dequote(split_kopt[1]))
                         else:
@@ -999,7 +1008,7 @@ class Config(object):
 
         return inc
 
-    def read_machinefile(self, machine, kernel_option, prerun):
+    def read_machinefile(self, machine, prerun):
 
         # populate contents of the machine file
         try:
@@ -1018,10 +1027,6 @@ class Config(object):
                     prerun['kernel_build'] = inc.get('variable', 'prerun_kernel_build')
                 if inc.has_option('variable', 'prerun_kernel_run') and inc.get('variable', 'prerun_kernel_run'):
                     prerun['kernel_run'] = inc.get('variable', 'prerun_kernel_run')
-                if inc.has_option('variable', 'compiler') and inc.get('variable', 'compiler'):
-                    kernel_option['FC'] = inc.get('variable', 'compiler')
-                if inc.has_option('variable', 'compiler_flags') and inc.get('variable', 'compiler_flags'):
-                    kernel_option['FC_FLAGS'] = inc.get('variable', 'compiler_flags')
                 if inc.has_option('variable', 'work_directory') and inc.get('variable', 'work_directory'):
                     machine['variable']['work_directory'] = os.path.expandvars(inc.get('variable', 'work_directory'))
         except:

@@ -22,14 +22,17 @@ class CompFlag(kgtool.KGTool):
 
     def run(self):
 
-        # clean app.
-        if 'clean' not in Config.skip and Config.cmd_clean['cmds']:
-            kgutils.run_shcmd(Config.cmd_clean['cmds'])
+        # build app.
+        stracepath = '%s/%s'%(Config.path['outdir'], Config.stracefile)
+        includepath = '%s/%s'%(Config.path['outdir'], Config.includefile)
+
+        if not os.path.exists(stracepath) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
+
+            # clean app.
+            if 'clean' not in Config.skip and Config.cmd_clean['cmds']:
+                kgutils.run_shcmd(Config.cmd_clean['cmds'])
             if Config.state_switch['clean']:
                 kgutils.run_shcmd(Config.state_switch['clean'])
-
-        # build app.
-        if not os.path.exists(Config.stracefile) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
 
             #with open(SH%Config.cwd, 'w') as f:
             #    f.write(TEMP_SH%(Config.cmd_clean['cmds'], Config.prerun['build'], Config.cmd_build['cmds']))
@@ -41,27 +44,27 @@ class CompFlag(kgtool.KGTool):
             else:
                 cmdstr = Config.cmd_build['cmds']
 
-            bld_cmd = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- /bin/sh -c "%s"'%(Config.stracefile, cmdstr)
+            bld_cmd = 'strace -o %s -f -q -s 100000 -e trace=execve -v -- /bin/sh -c "%s"'%(stracepath, cmdstr)
 
-            kgutils.logger.info('Creating KGen strace logfile: %s'%Config.stracefile)
+            kgutils.logger.info('Creating KGen strace logfile: %s'%stracepath)
             try:
                 out, err, retcode = kgutils.run_shcmd(bld_cmd)
-                if retcode != 0 and os.path.exists(Config.stracefile):
-                    os.remove(Config.stracefile)
+                if retcode != 0 and os.path.exists(stracepath):
+                    os.remove(stracepath)
                     kgutils.logger.error('%s\n%s'%(err, out))
             except:
-                if os.path.exists(Config.stracefile):
-                    os.remove(Config.stracefile)
+                if os.path.exists(stracepath):
+                    os.remove(stracepath)
                 kgutils.logger.error('%s\n%s'%(err, out))
                 raise
         else:
-            kgutils.logger.info('Reusing KGen strace logfile: %s'%Config.stracefile)
+            kgutils.logger.info('Reusing KGen strace logfile: %s'%stracepath)
 
         # parse strace.log and generate include.ini
-        if not os.path.exists(Config.includefile) or 'all' in Config.rebuild or 'include' in Config.rebuild:
-            self._geninclude()
+        if not os.path.exists(includepath) or 'all' in Config.rebuild or 'include' in Config.rebuild:
+            self._geninclude(stracepath, includepath)
         else:
-            kgutils.logger.info('Reusing KGen include file: %s'%Config.includefile)
+            kgutils.logger.info('Reusing KGen include file: %s'%includepath)
 
     def _getpwd(self, env):
         for item in env:
@@ -69,9 +72,9 @@ class CompFlag(kgtool.KGTool):
                 return item[4:]
         return None
 
-    def _geninclude(self):
+    def _geninclude(self, stracepath, includepath):
 
-        kgutils.logger.info('Creating KGen include file: %s'%Config.includefile)
+        kgutils.logger.info('Creating KGen include file: %s'%includepath)
 
         cfg = configparser.RawConfigParser()
         cfg.optionxform = str
@@ -93,11 +96,11 @@ class CompFlag(kgtool.KGTool):
                 cfg.set('import', key, value)
 
 
-        if not os.path.exists(Config.stracefile):
+        if not os.path.exists(stracepath):
             raise Exception('No strace file is found.')
 
         flags = {}
-        with open(Config.stracefile, 'r') as f:
+        with open(stracepath, 'r') as f:
             line = f.readline()
             while(line):
                 pos_execve = line.find(STR_EX)
@@ -145,6 +148,6 @@ class CompFlag(kgtool.KGTool):
                         cfg.set(fname, name, value)
 
         if len(cfg.sections())>0:
-            with open(Config.includefile, 'w') as f:
+            with open(includepath, 'w') as f:
                 cfg.write(f)
 

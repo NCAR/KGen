@@ -149,13 +149,15 @@ class Extractor(KGTool):
             # clean app
             if Config.cmd_clean['cmds']:
                 kgutils.run_shcmd(Config.cmd_clean['cmds'])
-                if Config.state_switch['clean']:
-                    kgutils.run_shcmd(Config.state_switch['clean'])
+            if Config.state_switch['clean']:
+                kgutils.run_shcmd(Config.state_switch['clean'])
 
             # build and run app with state instrumentation
             out, err, retcode = kgutils.run_shcmd('make', cwd='%s/%s'%(Config.path['outdir'], Config.path['state']))
-            if retcode != 0:
-                kgutils.logger.info('Failed to generate state data: %s'%err)
+
+            out, err, retcode = kgutils.run_shcmd('make recover', cwd='%s/%s'%(Config.path['outdir'], Config.path['state']))
+            if Config.state_switch['clean']:
+                kgutils.run_shcmd(Config.state_switch['clean'])
 
             kgutils.logger.info('Application is built/run with state generation instrumentation.')
 

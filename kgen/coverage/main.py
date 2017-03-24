@@ -70,7 +70,6 @@ def readdatafiles(inq, outq):
             # data lines
             threadnums = visits[fileid][lineid][ranknum]
 
-            #import pdb; pdb.set_trace()
             for line in fc:
                 visit = line.strip().split()
                 threadnum, invokenum = tuple(int(num) for num in visit[:2])
@@ -110,24 +109,29 @@ class Coverage(KGTool):
         # create coverage directory
         if not os.path.exists(coverage_abspath):
             os.makedirs(coverage_abspath)
+        if not os.path.exists('%s/__data__'%coverage_abspath):
+            os.makedirs('%s/__data__'%coverage_abspath)
+        if not os.path.exists('%s/__data__/__resource__'%coverage_abspath):
+            os.makedirs('%s/__data__/__resource__'%coverage_abspath)
 
         # build app with instrumntation
-        if not os.path.exists(Config.coveragefile) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
-            if len(glob.glob('%s/coverage.data.*'%coverage_abspath)) > 0 and Config.coverage['reuse_rawdata']:
-                kgutils.logger.info('Raw data generation is skipped.')
+        if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
+
+            code_coverage_path = '%s/__data__/%s'%(coverage_abspath, Config.coverage['types']['code']['id'])
+            if os.path.exists(code_coverage_path) and len(glob.glob( '%s/*'%code_coverage_path )) > 1 and Config.coverage['reuse_rawdata']:
+                kgutils.logger.info('Reusing coverage raw data.')
             else:
+                kgutils.logger.info('Generating coverage raw data.')
 
-                # rm data tree
-                if os.path.exists('%s/__data__'%coverage_abspath):
-                    shutil.rmtree('%s/__data__'%coverage_abspath)
+                if os.path.exists(code_coverage_path):
+                    shutil.rmtree(code_coverage_path)
+                os.makedirs(code_coverage_path)
 
-                # create data tree
-                os.makedirs('%s/__data__'%coverage_abspath)
-                os.makedirs('%s/__data__/%s'%(coverage_abspath, Config.coverage['types']['code']['id']))
-                os.makedirs('%s/__data__/__resource__'%coverage_abspath)
+                if os.path.exists('%s/__data__/__resource__/linemap'%coverage_abspath):
+                    shutil.rmtree('%s/__data__/__resource__/linemap'%coverage_abspath)
                 os.makedirs('%s/__data__/__resource__/linemap'%coverage_abspath)
 
-                # generate instrumentation
+                # generate wrapper nodes
                 for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
                     if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
                         sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
@@ -184,31 +188,36 @@ class Coverage(KGTool):
 
                 kgutils.logger.info('Instrumentation for coverage is generated at %s.'%coverage_abspath)
 
-
                 # TODO: wait until coverage data generation is completed
                 # use -K option fir bsub to wait for job completion
 
                 # clean app
                 if Config.cmd_clean['cmds']:
                     kgutils.run_shcmd(Config.cmd_clean['cmds'])
-                    if Config.state_switch['clean']:
-                        kgutils.run_shcmd(Config.state_switch['clean'])
+                if Config.state_switch['clean']:
+                    kgutils.run_shcmd(Config.state_switch['clean'])
 
                 # TEMP
                 out, err, retcode = kgutils.run_shcmd('make', cwd=coverage_abspath)
-                if retcode == 0:
 
-                    kgutils.logger.info('Application is built/run with coverage instrumentation.')
+            if os.path.exists(code_coverage_path) and len(glob.glob( '%s/*'%code_coverage_path )) > 1 and Config.coverage['reuse_rawdata']:
 
-                    # collect data
-                    attrs = { 'totalfiles': {}, 'totalblocks': {}, 'usedfiles': {}, 'usedblocks': {}, \
-                        'numranks': '0', 'numthreads': '0', 'mpivisits': {}, 'ompvisits': {}, 'linevisits': {} }
-                    invokes = {} # rank:thread:invoke:(fid, lnum)
+                kgutils.logger.info('Generating coverage file: %s/%s'%(Config.path['outdir'], Config.coveragefile))
 
-                    # generate coverage file
-                    self.visit('%s/__data__'%coverage_abspath, invokes, attrs)
+                # collect data
+                attrs = { 'totalfiles': {}, 'totalblocks': {}, 'usedfiles': {}, 'usedblocks': {}, \
+                    'numranks': '0', 'numthreads': '0', 'mpivisits': {}, 'ompvisits': {}, 'linevisits': {} }
+                invokes = {} # rank:thread:invoke:(fid, lnum)
 
-                    with open(Config.coveragefile, 'w') as fd:
+                # generate coverage file
+                self.visit('%s/__data__'%coverage_abspath, invokes, attrs)
+
+                if len(invokes) == 0:
+                    if not _DEBUG:
+                        shutil.rmtree(code_coverage_path)
+                    kgutils.logger.warn('Code coverage data is not collected.')
+                else:
+                    with open('%s/%s'%(Config.path['outdir'], Config.coveragefile), 'w') as fd:
                         # summary section
                         fd.write('[summary]\n')
                         fd.write('number_of_files_having_condblocks = %d\n'%len(attrs['totalfiles']))
@@ -232,7 +241,12 @@ class Coverage(KGTool):
                         #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
                         for fileid, lines in attrs['totalblocks'].items():
                             fd.write('%s = %s\n'%(fileid, ', '.join(lines)))
-                        fd.write('used_blocks = %s\n'%', '.join([ '%s:%s'%(fid,lnum) for lnum in lines for fid, lines in attrs['usedblocks'].items() ]))
+
+                        used_block_pairs = []
+                        for f, ls in attrs['usedblocks'].items():
+                            for l in ls:
+                                used_block_pairs.append( (f,l) )
+                        fd.write('used_blocks = %s\n'%', '.join([ '%s:%s'%(f,l) for f,l in used_block_pairs ]))
                         fd.write('\n')
 
 
@@ -246,7 +260,6 @@ class Coverage(KGTool):
                                     fd.write('%s %s %s = %s\n'%(ranknum, threadnum, invokenum, \
                                         ', '.join( [ '%s:%s:%s'%(fid, lnum, nivks) for fid, lnum, nivks in triples ] )))
 
-                    #kgutils.logger.info('KGen coverage file is generated: %s'%Config.coveragefile)
                     kgutils.logger.info('    ***** Within "%s" kernel *****:'%Config.kernel['name'])
                     kgutils.logger.info('    * %d original source files have conditional blocks.'%len(attrs['totalfiles']))
                     kgutils.logger.info('    * %d original source files are invoked at least once.'%len(attrs['usedfiles']))
@@ -286,25 +299,29 @@ class Coverage(KGTool):
                         with open(coveragefile, 'w') as fdst:
                             fdst.write(''.join(srclines))
 
-                else:
-                    if not _DEBUG:
-                        if os.path.exists(Config.coveragefile):
-                            os.remove(Config.coveragefile)
-                        shutil.rmtree(coverage_abspath)
-                    kgutils.logger.info('Failed to generate coverage information: %s'%err)
+            else:
+                if not _DEBUG:
+                    if os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)):
+                        os.remove('%s/%s'%(Config.path['outdir'], Config.coveragefile))
+                    shutil.rmtree(code_coverage_path)
+                kgutils.logger.info('failed to generate coverage information: %s'%err)
 
+            out, err, retcode = kgutils.run_shcmd('make recover', cwd=coverage_abspath)
+
+            if Config.state_switch['clean']:
+                kgutils.run_shcmd(Config.state_switch['clean'])
         else:
-            kgutils.logger.info('Reusing KGen coverage file: %s'%Config.coveragefile)
+            kgutils.logger.info('Reusing KGen coverage file: %s/%s'%(Config.path['outdir'], Config.coveragefile))
 
-        if not os.path.exists(Config.coveragefile):
+        if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)):
             kgutils.logger.warn('No coverage file is found.')
         else:
             # read ini file
-            kgutils.logger.info('Reading %s'%Config.coveragefile)
+            kgutils.logger.info('Reading %s/%s'%(Config.path['outdir'], Config.coveragefile))
 
             cfg = configparser.ConfigParser()
             cfg.optionxform = str
-            cfg.read(Config.coveragefile)
+            cfg.read('%s/%s'%(Config.path['outdir'], Config.coveragefile))
 
             number_of_files_having_condblocks = int(cfg.get('summary', 'number_of_files_having_condblocks'))
             number_of_files_invoked = int(cfg.get('summary', 'number_of_files_invoked'))
@@ -476,6 +493,7 @@ class Coverage(KGTool):
             self.write(f, '')
 
     def visit(self, path, invokes, attrs, ctype=None, fileid=None, linenum=None, mpirank=None, ompthread=None):
+
 
         if not os.path.exists('%s/metadata.json'%path):
             return

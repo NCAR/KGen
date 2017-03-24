@@ -7,6 +7,4 @@ prerun_build =
 prerun_run =
 prerun_kernel_build =
 prerun_kernel_run =
-compiler = gfortran
-compiler_flags =
 work_directory = $HOME/kgen_workspace
