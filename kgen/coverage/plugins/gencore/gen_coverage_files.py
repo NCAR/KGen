@@ -290,7 +290,7 @@ class Gen_Coverage_File(Kgen_Plugin):
 
         part_append_comment(coversubr, DECL_PART, '')
 
-        attrs = {'type_spec': 'CHARACTER', 'selector':('4096', None), 'entity_decls': ['filepath']}
+        attrs = {'type_spec': 'CHARACTER', 'selector':('4096', None), 'entity_decls': ['datapath']}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'selector':('6', None), 'entity_decls': ['filestr']}
@@ -303,9 +303,6 @@ class Gen_Coverage_File(Kgen_Plugin):
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'selector':('6', None), 'entity_decls': ['threadstr']}
-        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
-
-        attrs = {'type_spec': 'CHARACTER', 'selector':('16', None), 'entity_decls': ['invokestr']}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         if getinfo('is_mpi_app'):
@@ -338,10 +335,10 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_invokes']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['visit', 'intvar']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': [ 'invokes', 'visits', 'intnum' ]}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['lineunit', 'mpiunit', 'ompunit', 'invokeunit']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['metaunit', 'dataunit']}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['istrue']}
@@ -395,191 +392,124 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'specs': [ 'threadstr', '"(I1)"' ], 'items': [ '0' ]}
             part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
-        # in code coverage
-
-        attrs = {'specs': [ 'filepath', '*' ], 'items': [ '\'%s/\' // TRIM(ADJUSTL(filestr)) // \'/\' // \
-TRIM(ADJUSTL(linestr)) // \'/\' // TRIM(ADJUSTL(rankstr)) // \'/\' // TRIM(ADJUSTL(threadstr))'%codepath ]}
-        part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'specs': ['FILE=TRIM(ADJUSTL(filepath)) // \'/%s\''%META, 'EXIST=istrue']}
+        # copy and append metafile
+        attrs = {'specs': ['FILE="%s/%s"'%(codepath, META), 'EXIST=istrue']}
         part_append_gensnode(topobj, EXEC_PART, statements.Inquire, attrs=attrs)
 
         attrs = {'expr': '.NOT. istrue'}
-        iffilepath = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        ifnotmeta = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'designator': 'SYSTEM', 'items': [ '"mkdir -p " // TRIM(ADJUSTL(filepath)) // ";" // \
-" while [ ! -d " // TRIM(ADJUSTL(filepath)) // " ]; do sleep 0.01; done"']}
-        part_append_gensnode(iffilepath, EXEC_PART, statements.Call, attrs=attrs)
+        attrs = {'designator': 'SYSTEM', 'items': [ '"mkdir -p %s"'%codepath]}
+        part_append_gensnode(ifnotmeta, EXEC_PART, statements.Call, attrs=attrs)
 
-        # in file id
-        attrs = {'specs': [ 'metapath', '*' ], 'items': [ '"%s/__data__/%s/" // TRIM(ADJUSTL(filestr))'%\
-            (getinfo('coverage_path'), getinfo('coverage_typeid')) ] }
-        part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'designator': 'SYSTEM', 'items': [ '"cp -f %s/__data__/__resource__/%s/%s %s"'%\
+            ( getinfo('coverage_path'), getinfo('coverage_typeid'), META, codepath ) ]}
+        part_append_gensnode(ifnotmeta, EXEC_PART, statements.Call, attrs=attrs)
 
-        attrs = {'specs': ['FILE="%s/__data__/%s/" // TRIM(ADJUSTL(filestr))'%(getinfo('coverage_path'), \
-            getinfo('coverage_typeid')), 'EXIST=istrue']}
-        part_append_gensnode(topobj, EXEC_PART, statements.Inquire, attrs=attrs)
-
-        attrs = {'expr': '.NOT. istrue'}
-        ifmetapath = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'designator': 'SYSTEM', 'items': [ '"cp -n %s/__data__/__resource__/linemap/" // TRIM(ADJUSTL(filestr)) // " %s/__data__/%s/" // \
-TRIM(ADJUSTL(filestr)) // "/metadata.json"'%( getinfo('coverage_path'), getinfo('coverage_path'), getinfo('coverage_typeid')) ]}
-        part_append_gensnode(ifmetapath, EXEC_PART, statements.Call, attrs=attrs)
-
-        # in line id
-        attrs = {'specs': ['FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/" // TRIM(ADJUSTL(linestr)) // "/%s"'%\
-            (codepath, META), 'EXIST=istrue']}
-        part_append_gensnode(topobj, EXEC_PART, statements.Inquire, attrs=attrs)
-
-        attrs = {'expr': '.NOT. istrue'}
-        iflinejson = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'specs': ['NEWUNIT=lineunit', 'FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/" // TRIM(ADJUSTL(linestr)) // \
-"/%s"'%(codepath, META), \
-            'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
-        part_append_gensnode(iflinejson, EXEC_PART, statements.Open, attrs=attrs)
-
-        attrs = {'expr': 'ierror .EQ. 0'}
-        iflineopen = part_append_gensnode(iflinejson, EXEC_PART, block_statements.IfThen, attrs=attrs)
-       
         if getinfo('is_mpi_app'):
+
             attrs = {'designator': 'MPI_COMM_SIZE', 'items': [ getinfo('mpi_comm'), 'numranks', 'ierror' ]}
-            part_append_gensnode(iflineopen, EXEC_PART, statements.Call, attrs=attrs)
+            part_append_gensnode(ifnotmeta, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'specs': [ 'numranksstr', '"(I10)"' ], 'items': [ 'numranks' ]}
-            part_append_gensnode(iflineopen, EXEC_PART, statements.Write, attrs=attrs)
-
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"mpi", "numranks":"\' // \
-TRIM(ADJUSTL(numranksstr)) // \'"}\'' ]}
-            part_append_gensnode(iflineopen, EXEC_PART, statements.Write, attrs=attrs)
+            part_append_gensnode(ifnotmeta, EXEC_PART, statements.Write, attrs=attrs)
 
         else:
-            attrs = {'specs': [ 'UNIT=lineunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"mpi", "numranks":"1"}\'' ]}
-            part_append_gensnode(iflineopen, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'specs': ['UNIT=lineunit']}
-        part_append_gensnode(iflineopen, EXEC_PART, statements.Close, attrs=attrs)
-
-        # in mpi id
-        attrs = {'specs': ['FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/" // TRIM(ADJUSTL(linestr)) // \
-"/" // TRIM(ADJUSTL(rankstr)) // "/%s"'%(codepath, META), 'EXIST=istrue']}
-        part_append_gensnode(topobj, EXEC_PART, statements.Inquire, attrs=attrs)
-
-        attrs = {'expr': '.NOT. istrue'}
-        ifmpijson = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'specs': ['NEWUNIT=mpiunit', 'FILE="%s/" // TRIM(ADJUSTL(filestr)) // "/" // TRIM(ADJUSTL(linestr)) // \
-"/" // TRIM(ADJUSTL(rankstr)) // "/%s"'%(codepath, META), \
-            'STATUS="REPLACE"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
-        part_append_gensnode(ifmpijson, EXEC_PART, statements.Open, attrs=attrs)
-
-        attrs = {'expr': 'ierror .EQ. 0'}
-        ifmpiopen = part_append_gensnode(ifmpijson, EXEC_PART, block_statements.IfThen, attrs=attrs)
+            attrs = {'specs': [ 'numranksstr', '"(I10)"' ], 'items': [ '1' ]}
+            part_append_gensnode(ifnotmeta, EXEC_PART, statements.Write, attrs=attrs)
 
         if getinfo('is_openmp_app'):
-
             attrs = {'specs': [ 'numthreadsstr', '"(I6)"' ], 'items': [ 'OMP_GET_NUM_THREADS()' ]}
-            part_append_gensnode(ifmpiopen, EXEC_PART, statements.Write, attrs=attrs)
-
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"openmp", "numthreads":"\' // \
-TRIM(ADJUSTL(numthreadsstr)) // \'"}\'' ]}
-            part_append_gensnode(ifmpiopen, EXEC_PART, statements.Write, attrs=attrs)
-
+            part_append_gensnode(ifnotmeta, EXEC_PART, statements.Write, attrs=attrs)
         else:
-            attrs = {'specs': [ 'UNIT=mpiunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"openmp", "numthreads":"1"}\'']}
-            part_append_gensnode(ifmpiopen, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'specs': [ 'numthreadsstr', '"(I1)"' ], 'items': [ '1' ]}
+            part_append_gensnode(ifnotmeta, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': ['UNIT=mpiunit']}
-        part_append_gensnode(ifmpiopen, EXEC_PART, statements.Close, attrs=attrs)
 
-        # in openmp id
-        attrs = {'specs': ['FILE=TRIM(ADJUSTL(filepath)) // "/%s"'%META, 'EXIST=istrue']}
-        part_append_gensnode(topobj, EXEC_PART, statements.Inquire, attrs=attrs)
+        attrs = {'specs': ['NEWUNIT=metaunit', 'FILE="%s/%s"'%(codepath, META), \
+            'STATUS="OLD"', 'ACTION="WRITE"', 'FORM="UNFORMATTED"', 'ACCESS="APPEND"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
+        part_append_gensnode(ifnotmeta, EXEC_PART, statements.Open, attrs=attrs)
 
-        attrs = {'expr': '.NOT. istrue'}
-        ifompjson = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        attrs = {'specs': [ 'UNIT=metaunit' ], 'items': [ u'\'"numranks":"\' // TRIM(ADJUSTL(numranksstr)) // \'",\'' ]}
+        part_append_gensnode(ifnotmeta, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': ['NEWUNIT=ompunit', 'FILE=TRIM(ADJUSTL(filepath)) // "/%s"'%META, \
-            'STATUS="NEW"', 'ACTION="WRITE"', 'FORM="FORMATTED"', 'ENCODING="UTF-8"', 'IOSTAT=ierror']}
-        part_append_gensnode(ifompjson, EXEC_PART, statements.Open, attrs=attrs)
+        attrs = {'specs': [ 'UNIT=metaunit' ], 'items': [ u'\'"numthreads":"\' // TRIM(ADJUSTL(numthreadsstr)) // \'"}\'' ]}
+        part_append_gensnode(ifnotmeta, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'expr': 'ierror .EQ. 0'}
-        ifompopen = part_append_gensnode(ifompjson, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        attrs = {'specs': ['UNIT=metaunit']}
+        part_append_gensnode(ifnotmeta, EXEC_PART, statements.Close, attrs=attrs)
 
-        attrs = {'specs': [ 'UNIT=ompunit', 'FMT="(A)"' ], 'items': [ u'\'{"datatype":"invocation"}\'']}
-        part_append_gensnode(ifompopen, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': ['UNIT=ompunit']}
-        part_append_gensnode(ifompopen, EXEC_PART, statements.Close, attrs=attrs)
-
-        # in invoke
-        if getinfo('is_openmp_app'):
-            attrs = {'specs': [ 'invokestr', '"(I16)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM()) / 256 + 1' ]}
-        else:
-            attrs = {'specs': [ 'invokestr', '"(I16)"' ], 'items': [ 'kgen_invokes / 256 + 1' ]}
+        # create data directory
+        attrs = {'specs': [ 'datapath', '*' ], 'items': [ '"%s/" // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(threadstr))'%codepath ]}
         part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': ['FILE=TRIM(ADJUSTL(filepath)) // "/" // TRIM(ADJUSTL(invokestr))', 'EXIST=istrue']}
+        attrs = {'specs': ['FILE=TRIM(ADJUSTL(datapath)) // "/" // TRIM(ADJUSTL(filestr)) // "." // TRIM(ADJUSTL(linestr))', 'EXIST=istrue']}
         part_append_gensnode(topobj, EXEC_PART, statements.Inquire, attrs=attrs)
 
         attrs = {'expr': 'istrue'}
         ifexist = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'specs': ['NEWUNIT=invokeunit', 'FILE=TRIM(ADJUSTL(filepath)) // "/" // TRIM(ADJUSTL(invokestr))', \
-            'STATUS="OLD"', 'FORM="FORMATTED"', 'ACCESS="DIRECT"', 'ACTION="READWRITE"', 'RECL=16', 'IOSTAT=ierror']}
+        attrs = {'specs': ['NEWUNIT=dataunit', 'FILE=TRIM(ADJUSTL(datapath)) // "/" // TRIM(ADJUSTL(filestr)) // "." // TRIM(ADJUSTL(linestr))', \
+            'STATUS="OLD"', 'ACTION="READWRITE"', 'FORM="FORMATTED"', 'ACCESS="DIRECT"', 'RECL=32', 'IOSTAT=ierror']}
         part_append_gensnode(ifexist, EXEC_PART, statements.Open, attrs=attrs)
 
         attrs = {'expr': 'ierror .EQ. 0'}
-        ifexistopen = part_append_gensnode(ifexist, EXEC_PART, block_statements.IfThen, attrs=attrs)
+        ifopen = part_append_gensnode(ifexist, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=dataunit', 'SIZE=intnum']}
+        part_append_gensnode(ifopen, EXEC_PART, statements.Inquire, attrs=attrs)
+
+        attrs = {'specs': [ 'UNIT=dataunit', 'REC=intnum/32', 'FMT="(2I16)"' ], 'items': [ 'invokes', 'visits' ]}
+        part_append_gensnode(ifopen, EXEC_PART, statements.Read, attrs=attrs)
 
         if getinfo('is_openmp_app'):
-            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes(OMP_GET_THREAD_NUM()), 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
-            part_append_gensnode(ifexistopen, EXEC_PART, statements.Read, attrs=attrs)
-
-            attrs = {'variable': 'visit', 'sign': '=', 'expr': 'visit + 1'}
-            part_append_gensnode(ifexistopen, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes(OMP_GET_THREAD_NUM()), 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
-            part_append_gensnode(ifexistopen, EXEC_PART, statements.Write, attrs=attrs)
-
+            attrs = {'expr': 'invokes .EQ. kgen_invokes(OMP_GET_THREAD_NUM())'}
         else:
-            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes, 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
-            part_append_gensnode(ifexistopen, EXEC_PART, statements.Read, attrs=attrs)
+            attrs = {'expr': 'invokes .EQ. kgen_invokes'}
+        ifmatch = part_append_gensnode(ifopen, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'variable': 'visit', 'sign': '=', 'expr': 'visit + 1'}
-            part_append_gensnode(ifexistopen, EXEC_PART, statements.Assignment, attrs=attrs)
+        attrs = {'variable': 'visits', 'sign': '=', 'expr': 'visits + 1'}
+        part_append_gensnode(ifmatch, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes, 256) + 1)', 'FMT="(I16)"' ], 'items': [ 'visit' ]}
-            part_append_gensnode(ifexistopen, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'specs': [ 'UNIT=dataunit', 'REC=intnum/32', 'FMT="(2I16)"' ], 'items': [ 'invokes', 'visits' ]}
+        part_append_gensnode(ifmatch, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': ['UNIT=invokeunit']}
-        part_append_gensnode(ifexistopen, EXEC_PART, statements.Close, attrs=attrs)
+        part_append_gensnode(ifmatch, EXEC_PART, statements.Else)
+
+        attrs = {'specs': [ 'UNIT=dataunit', 'REC=(intnum/32+1)', 'FMT="(2I16)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())', '1' ]}
+        part_append_gensnode(ifmatch, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'specs': ['UNIT=dataunit']}
+        part_append_gensnode(ifopen, EXEC_PART, statements.Close, attrs=attrs)
 
         part_append_gensnode(ifexist, EXEC_PART, statements.Else)
 
-        attrs = {'specs': ['NEWUNIT=invokeunit', 'FILE=TRIM(ADJUSTL(filepath)) // "/" // TRIM(ADJUSTL(invokestr))', \
-            'STATUS="NEW"', 'FORM="FORMATTED"', 'ACCESS="DIRECT"', 'ACTION="WRITE"', 'RECL=16', 'IOSTAT=ierror']}
+        attrs = {'specs': ['NEWUNIT=dataunit', 'FILE=TRIM(ADJUSTL(datapath)) // "/" // TRIM(ADJUSTL(filestr)) // "." // TRIM(ADJUSTL(linestr))', \
+            'STATUS="NEW"', 'ACTION="READWRITE"', 'FORM="FORMATTED"', 'ACCESS="DIRECT"', 'RECL=32', 'IOSTAT=ierror']}
         part_append_gensnode(ifexist, EXEC_PART, statements.Open, attrs=attrs)
 
+        attrs = {'expr': 'ierror .NE. 0'}
+        ifnotexist = part_append_gensnode(ifexist, EXEC_PART, block_statements.IfThen, attrs=attrs)
+ 
+        attrs = {'designator': 'SYSTEM', 'items': [ '"mkdir -p " // TRIM(ADJUSTL(datapath))']}
+        part_append_gensnode(ifnotexist, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'specs': ['NEWUNIT=dataunit', 'FILE=TRIM(ADJUSTL(datapath)) // "/" // TRIM(ADJUSTL(filestr)) // "." // TRIM(ADJUSTL(linestr))', \
+            'STATUS="NEW"', 'ACTION="READWRITE"', 'FORM="FORMATTED"', 'ACCESS="DIRECT"', 'RECL=32', 'IOSTAT=ierror']}
+        part_append_gensnode(ifnotexist, EXEC_PART, statements.Open, attrs=attrs)
+
         attrs = {'expr': 'ierror .EQ. 0'}
-        ifnotexistopen = part_append_gensnode(ifexist, EXEC_PART, block_statements.IfThen, attrs=attrs)
-
-        attrs = {'loopcontrol': 'intvar=1, 256'}
-        doobj = part_append_genknode(ifnotexistopen, EXEC_PART, block_statements.Do, attrs=attrs)
-
-        attrs = {'specs': [ 'UNIT=invokeunit', 'REC=intvar', 'FMT="(I16)"' ], 'items': [ '0' ]}
-        part_append_gensnode(doobj, EXEC_PART, statements.Write, attrs=attrs)
+        ifnewexist = part_append_gensnode(ifexist, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         if getinfo('is_openmp_app'):
-            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes(OMP_GET_THREAD_NUM()), 256) + 1)', 'FMT="(I16)"' ], 'items': [ '1' ]}
-            part_append_gensnode(ifnotexistopen, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'specs': [ 'UNIT=dataunit', 'REC=1', 'FMT="(2I16)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())', '1' ]}
         else:
-            attrs = {'specs': [ 'UNIT=invokeunit', 'REC=(MOD(kgen_invokes, 256) + 1)', 'FMT="(I16)"' ], 'items': [ '1' ]}
-            part_append_gensnode(ifnotexistopen, EXEC_PART, statements.Write, attrs=attrs)
+            attrs = {'specs': [ 'UNIT=dataunit', 'REC=1', 'FMT="(2I16)"' ], 'items': [ '0', '1' ]}
+        part_append_gensnode(ifnewexist, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'specs': ['UNIT=invokeunit']}
-        part_append_gensnode(ifnotexistopen, EXEC_PART, statements.Close, attrs=attrs)
+        attrs = {'specs': ['UNIT=dataunit']}
+        part_append_gensnode(ifnewexist, EXEC_PART, statements.Close, attrs=attrs)
 
         if getinfo('is_openmp_app'):
             part_append_comment(coversubr, EXEC_PART, 'END CRITICAL (kgen_cover)', style='openmp')
