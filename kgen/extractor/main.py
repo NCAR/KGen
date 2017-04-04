@@ -267,18 +267,18 @@ class Extractor(KGTool):
             self.write(f, '')
 
             if Config.kernel_option['FC']:
-                self.write(f, 'FC := %s'%Config.kernel_option['FC'])
+                #self.write(f, 'FC := %s'%Config.kernel_option['FC'])
                 self.write(f, 'FC_0 := %s'%Config.kernel_option['FC'])
             else:
-                self.write(f, 'FC := ')
+                #self.write(f, 'FC := ')
                 for i, compiler in enumerate(compilers):
                     self.write(f, 'FC_%d := %s'%(i, compiler))
 
             if Config.kernel_option['FC_FLAGS']:
-                self.write(f, 'FC_FLAGS := %s'%Config.kernel_option['FC_FLAGS'])
+                #self.write(f, 'FC_FLAGS := %s'%Config.kernel_option['FC_FLAGS'])
                 self.write(f, 'FC_FLAGS_SET_0 := %s'%Config.kernel_option['FC_FLAGS'])
             else:
-                self.write(f, 'FC_FLAGS := ')
+                #self.write(f, 'FC_FLAGS := ')
                 for i, options in enumerate(compiler_options):
                     opt_list = options.split()
                     L = len(opt_list)
@@ -330,11 +330,11 @@ class Extractor(KGTool):
 
             self.write(f, 'build: ${ALL_OBJS}')
 
-            fc_str = 'FC'
-            fc_flags_str = 'FC_FLAGS'
+            fc_str = 'FC_0'
+            fc_flags_str = 'FC_FLAGS_SET_0'
 
-            if len(compilers)>0 and Config.kernel_option['FC'] is None: fc_str += '_0'
-            if len(compiler_options)>0 and Config.kernel_option['FC_FLAGS'] is None: fc_flags_str += '_SET_0'
+            #if len(compilers)>0 and not Config.kernel_option['FC']: fc_str += '_0'
+            #if len(compiler_options)>0 and not Config.kernel_option['FC_FLAGS']: fc_flags_str += '_SET_0'
 
             self.write(f, '%s${%s} ${%s} %s %s -o kernel.exe $^'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
             self.write(f, '')

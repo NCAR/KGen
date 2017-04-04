@@ -274,7 +274,7 @@ class Config(object):
 
         # timing parameters
         self._attrs['timing'] = collections.OrderedDict()
-        self._attrs['timing']['repeat'] = '10'
+        self._attrs['timing']['repeat'] = '2'
 
         # verification parameters
         self._attrs['verify'] = collections.OrderedDict()
@@ -283,8 +283,8 @@ class Config(object):
 
         # make kernel parameters
         self._attrs['kernel_option'] = collections.OrderedDict()
-        self._attrs['kernel_option']['FC'] = 'gfortran'
-        self._attrs['kernel_option']['FC_FLAGS'] = '-g'
+        self._attrs['kernel_option']['FC'] =  ''
+        self._attrs['kernel_option']['FC_FLAGS'] = ''
         self._attrs['kernel_option']['compiler'] = collections.OrderedDict()
         self._attrs['kernel_option']['compiler']['add'] = []
         self._attrs['kernel_option']['compiler']['remove'] = []
@@ -860,17 +860,14 @@ class Config(object):
                 for kopt in line.split(','):
                     split_kopt = kopt.split('=', 1)
                     if len(split_kopt)==1:
-                        self._attrs['kernel_option']['compiler']['add'][split_kopt[0]] = None
+                        self._attrs['kernel_option']['compiler']['add'].append(dequote(split_kopt[0]))
                     elif len(split_kopt)==2:
                         if split_kopt[0] in [ 'FC', 'FC_FLAGS' ]:
                             self._attrs['kernel_option'][split_kopt[0]] = dequote(split_kopt[1])
-                        elif split_kopt[0] == 'add':
-                            self._attrs['kernel_option']['compiler'][split_kopt[0]].append(dequote(split_kopt[1]))
-                        elif split_kopt[0] == 'remove':
-                            if split_kopt[0] in self._attrs['kernel_option']['compiler']:
-                                self._attrs['kernel_option']['compiler'].remove(split_kopt[0])
+                        elif split_kopt[0] in ('add', 'remove'):
+                            self._attrs['kernel_option']['compiler'][split_kopt[0]].extend(dequote(split_kopt[1]).split(':'))
                         elif split_kopt[0]=='link':
-                            self._attrs['kernel_option']['linker']['add'].append(dequote(split_kopt[1]))
+                            self._attrs['kernel_option']['linker']['add'].extend(dequote(split_kopt[1]).split(':'))
                         else:
                             raise UserException('Unknown state-switch option: %s' % kopt)
 
