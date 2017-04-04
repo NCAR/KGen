@@ -434,7 +434,7 @@ class Config(object):
             sys.exit(-1)
 
         # set callsite filepath
-        self.callsite['filepath'] = callsite[0]
+        self.callsite['filepath'] = os.path.abspath(callsite[0])
 
         # set namepath if exists in command line argument
         if len(callsite)==2:

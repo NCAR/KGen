@@ -232,149 +232,157 @@ class Coverage(KGTool):
                 with open('%s/lines'%code_coverage_path, 'r') as f:
                     lines = json.load(f)
 
-                numranks = None
-                with open('%s/mpi'%code_coverage_path, 'r') as f:
-                    for idx, line in enumerate(f.read().split('\n')):
-                        if idx == 0: numranks = int(line)
-
-                numthreads = None
-                with open('%s/openmp'%code_coverage_path, 'r') as f:
-                    for idx, line in enumerate(f.read().split('\n')):
-                        if idx == 0: numthreads = int(line)
-
-
-                # collect data
-                usedfiles = [] # fid
-                usedlines = {} # fid=[linenum, ...]
-                mpivisits = {} # fileid:linenum:mpirank=visits
-                ompvisits = {} # fileid:linenum:omptid=visits
-                invokes = {} # mpirank:omptid:invoke=[(fileid, linenum, numvisits), ... ]
-
-                mpipaths = []
-                for item in os.listdir(code_coverage_path):
-                    if item.isdigit() and os.path.isdir(os.path.join(code_coverage_path,item)):
-                        mpipaths.append((code_coverage_path,item))
-
-                nprocs = min( len(mpipaths), multiprocessing.cpu_count()*1)
-
-                if nprocs == 0:
-                    kgutils.logger.warn('No coverage data files are found.')
+                if not os.path.exists('%s/mpi'%code_coverage_path) or not os.path.exists('%s/openmp'%code_coverage_path):
+                    kgutils.logger.error('Coverage raw data is not correct. Please rerun KGen after generating coverage raw data correctly.')
                 else:
-                    workload = [ chunk for chunk in chunks(mpipaths, int(math.ceil(len(mpipaths)/nprocs))) ]
-                    inqs = []
-                    outqs = []
-                    for _ in range(nprocs):
-                        inqs.append(multiprocessing.Queue())
-                        outqs.append(multiprocessing.Queue())
+                    numranks = None
+                    with open('%s/mpi'%code_coverage_path, 'r') as f:
+                        for idx, line in enumerate(f.read().split('\n')):
+                            if idx == 0: numranks = int(line)
 
-                    procs = []
-                    for idx in range(nprocs):
-                        proc = multiprocessing.Process(target=readdatafiles, args=(inqs[idx], outqs[idx]))
-                        procs.append(proc)
-                        proc.start()
-
-                    for inq, chunk in zip(inqs,workload):
-                        inq.put(chunk)
-
-                    for outq in outqs:
-                        invoke, usedfile, usedline, mpivisit, ompvisit = outq.get()
-                        update(invokes, invoke)
-                        for f in usedfile:
-                            if f not in usedfiles:
-                                usedfiles.append(f)
-                        update(usedlines, usedline)
-                        update(mpivisits, mpivisit)
-                        update(ompvisits, ompvisit)
-
-                    for idx in range(nprocs):
-                        procs[idx].join()
-
-                if len(invokes) == 0:
-                    if not _DEBUG:
-                        shutil.rmtree(code_coverage_path)
-                    kgutils.logger.warn('Code coverage data is not collected.')
-                else:
-                    with open('%s/%s'%(Config.path['outdir'], Config.coveragefile), 'w') as fd:
-                        # summary section
-                        fd.write('[summary]\n')
-                        fd.write('number_of_files_having_condblocks = %d\n'%len(files))
-                        fd.write('number_of_files_invoked = %d\n'%len(usedfiles))
-                        fd.write('number_of_condblocks_exist = %d\n'%sum( [ len(lmap) for fid, lmap in lines.items() ] ))
-                        fd.write('number_of_condblocks_invoked = %d\n'%sum( [ len(lids) for fid, lids in usedlines.items() ] ))
-                        fd.write('\n')
-
-                        # file section
-                        fd.write('[file]\n')
-                        fd.write('; <file number> = <path to file>\n')
-                        #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                        for fileid, filepath in files.items():
-                            fd.write('%s = %s/%s.kgen\n'%(fileid, coverage_abspath, os.path.basename(filepath)))
-                        fd.write('used_files = %s\n'%', '.join([ fid for fid in usedfiles ]))
-                        fd.write('\n')
-
-                        # block section
-                        fd.write('[block]\n')
-                        fd.write('; <file number> =  <line number> ...\n')
-                        #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
-                        for fileid, lmap in lines.items():
-                            fd.write('%s = %s\n'%(fileid, ', '.join([ lnum for lid,lnum in lmap.items() ])))
-
-                        used_line_pairs = []
-                        for fid, lids in usedlines.items():
-                            for lid in lids:
-                                used_line_pairs.append( (f,lid) )
-                        fd.write('used_lines = %s\n'%', '.join([ '%s:%s'%(fid,lines[fid][lid]) for fid,lid in used_line_pairs ]))
-                        fd.write('\n')
+                    numthreads = None
+                    # NOTE: numthreads could be smaller than actual number of omp threads as it depends on code regions.
+                    with open('%s/openmp'%code_coverage_path, 'r') as f:
+                        for idx, line in enumerate(f.read().split('\n')):
+                            if idx == 0: numthreads = int(line)
 
 
-                        # invoke section
-                        fd.write('[invoke]\n')
-                        fd.write('; <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number><num of invocations> ...\n')
+                    # collect data
+                    usedfiles = [] # fid
+                    usedlines = {} # fid=[linenum, ...]
+                    mpivisits = {} # fileid:linenum:mpirank=visits
+                    ompvisits = {} # fileid:linenum:omptid=visits
+                    invokes = {} # mpirank:omptid:invoke=[(fileid, linenum, numvisits), ... ]
 
-                        for ranknum, threadnums in invokes.items():
-                            for threadnum, invokenums in threadnums.items():
-                                for invokenum, triples in invokenums.items():
-                                    fd.write('%s %s %s = %s\n'%(ranknum, threadnum, invokenum, \
-                                        ', '.join( [ '%s:%s:%d'%(fid, lines[fid][lid], nivks) for fid, lid, nivks in triples ] )))
+                    mpipaths = []
+                    for item in os.listdir(code_coverage_path):
+                        if item.isdigit() and os.path.isdir(os.path.join(code_coverage_path,item)):
+                            mpipaths.append((code_coverage_path,item))
 
-                    kgutils.logger.info('    ***** Within "%s" kernel *****:'%Config.kernel['name'])
-                    kgutils.logger.info('    * %d original source files have conditional blocks.'%len(files))
-                    kgutils.logger.info('    * %d original source files are invoked at least once.'%len(usedfiles))
-                    kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%\
-                        sum( [ len(lmap) for fid, lmap in lines.items() ] ))
-                    kgutils.logger.info('    * %d conditional blocks are executed at least once among all the conditional blocks.'%\
-                        sum( [ len(lids) for fid, lids in usedlines.items() ] ))
+                    nprocs = min( len(mpipaths), multiprocessing.cpu_count()*1)
 
-                    for fid in usedfiles:
-                        basefile = '%s/%s.kgen'%(coverage_abspath, os.path.basename(files[fid]))
-                        with open(basefile, 'r') as fsrc:
-                            srclines = fsrc.readlines()
+                    if nprocs == 0:
+                        kgutils.logger.warn('No coverage data files are found.')
+                    else:
+                        workload = [ chunk for chunk in chunks(mpipaths, int(math.ceil(len(mpipaths)/nprocs))) ]
+                        inqs = []
+                        outqs = []
+                        for _ in range(nprocs):
+                            inqs.append(multiprocessing.Queue())
+                            outqs.append(multiprocessing.Queue())
 
-                        filesummary = [ \
-                            '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
-                            '!! %d conditional blocks exist in this file'%len(lines[fid]), \
-                            '!! %d conditional blokcs are executed at least once among all the conditional blocks.'%len(usedlines[fid]), \
-                            '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' \
-                        ]
-                        srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
+                        procs = []
+                        for idx in range(nprocs):
+                            proc = multiprocessing.Process(target=readdatafiles, args=(inqs[idx], outqs[idx]))
+                            procs.append(proc)
+                            proc.start()
 
-                        for lid in usedlines[fid]:
-                            linevisit = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' ]
-                            linevisit.append('!! Total number of visits: %d'% sum([visits for rank, visits in mpivisits[fid][lid].items() ]))
-                            if Config.mpi['enabled']:
-                                linevisit.append('!! MPI rank(visits)      : %s' % ' '.join( \
-                                    ['%s(%d)'%(r,i) for r,i in mpivisits[fid][lid].items()]))
-                            if Config.openmp['enabled']:
-                                linevisit.append('!! OpenMP thread(visits) : %s' % ' '.join( \
-                                    ['%s(%d)'%(t,i) for t,i in ompvisits[fid][lid].items()]))
-                            linevisit.append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
+                        for inq, chunk in zip(inqs,workload):
+                            inq.put(chunk)
 
-                            srclines[int(lines[fid][lid])-1] = '%s%s\n'%(srclines[int(lines[fid][lid])-1], '\n'.join(linevisit))
+                        for outq in outqs:
+                            invoke, usedfile, usedline, mpivisit, ompvisit = outq.get()
+                            update(invokes, invoke)
+                            for f in usedfile:
+                                if f not in usedfiles:
+                                    usedfiles.append(f)
+                            update(usedlines, usedline)
+                            update(mpivisits, mpivisit)
+                            update(ompvisits, ompvisit)
 
-                        coveragefile = '%s/%s.coverage'%(coverage_abspath, os.path.basename(filepath))
-                        with open(coveragefile, 'w') as fdst:
-                            fdst.write(''.join(srclines))
+                        for idx in range(nprocs):
+                            procs[idx].join()
 
+                    if len(invokes) == 0:
+                        if not _DEBUG:
+                            shutil.rmtree(code_coverage_path)
+                        kgutils.logger.warn('Code coverage data is not collected.')
+                    else:
+                        try:
+                            with open('%s/%s'%(Config.path['outdir'], Config.coveragefile), 'w') as fd:
+                                # summary section
+                                fd.write('[summary]\n')
+                                fd.write('number_of_files_having_condblocks = %d\n'%len(files))
+                                fd.write('number_of_files_invoked = %d\n'%len(usedfiles))
+                                fd.write('number_of_condblocks_exist = %d\n'%sum( [ len(lmap) for fid, lmap in lines.items() ] ))
+                                fd.write('number_of_condblocks_invoked = %d\n'%sum( [ len(lids) for fid, lids in usedlines.items() ] ))
+                                fd.write('\n')
+
+                                # file section
+                                fd.write('[file]\n')
+                                fd.write('; <file number> = <path to file>\n')
+                                #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
+                                for fileid, filepath in files.items():
+                                    fd.write('%s = %s/%s.kgen\n'%(fileid, coverage_abspath, os.path.basename(filepath)))
+                                fd.write('used_files = %s\n'%', '.join([ fid for fid in usedfiles ]))
+                                fd.write('\n')
+
+                                # block section
+                                fd.write('[block]\n')
+                                fd.write('; <file number> =  <line number> ...\n')
+                                #for path, (pathnum, lines) in Config.plugindb['coverage_paths'].items():
+                                for fileid, lmap in lines.items():
+                                    fd.write('%s = %s\n'%(fileid, ', '.join([ lnum for lid,lnum in lmap.items() ])))
+
+                                used_line_pairs = []
+                                for fid, lids in usedlines.items():
+                                    for lid in lids:
+                                        used_line_pairs.append( (fid,lid) )
+                                fd.write('used_lines = %s\n'%', '.join([ '%s:%s'%(fid,lines[fid][lid]) for fid,lid in used_line_pairs ]))
+                                fd.write('\n')
+
+
+                                # invoke section
+                                fd.write('[invoke]\n')
+                                fd.write('; <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number><num of invocations> ...\n')
+
+                                for ranknum, threadnums in invokes.items():
+                                    for threadnum, invokenums in threadnums.items():
+                                        for invokenum, triples in invokenums.items():
+                                            fd.write('%s %s %s = %s\n'%(ranknum, threadnum, invokenum, \
+                                                ', '.join( [ '%s:%s:%d'%(fid, lines[fid][lid], nivks) for fid, lid, nivks in triples ] )))
+
+                            kgutils.logger.info('    ***** Within "%s" kernel *****:'%Config.kernel['name'])
+                            kgutils.logger.info('    * %d original source files have conditional blocks.'%len(files))
+                            kgutils.logger.info('    * %d original source files are invoked at least once.'%len(usedfiles))
+                            kgutils.logger.info('    * %d conditional blocks exist in the original source files.'%\
+                                sum( [ len(lmap) for fid, lmap in lines.items() ] ))
+                            kgutils.logger.info('    * %d conditional blocks are executed at least once among all the conditional blocks.'%\
+                                sum( [ len(lids) for fid, lids in usedlines.items() ] ))
+
+                            for fid in usedfiles:
+                                basefile = '%s/%s.kgen'%(coverage_abspath, os.path.basename(files[fid]))
+                                with open(basefile, 'r') as fsrc:
+                                    srclines = fsrc.readlines()
+
+                                filesummary = [ \
+                                    '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', \
+                                    '!! %d conditional blocks exist in this file'%len(lines[fid]), \
+                                    '!! %d conditional blokcs are executed at least once among all the conditional blocks.'%len(usedlines[fid]), \
+                                    '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' \
+                                ]
+                                srclines[0] = '%s\n%s\n'%('\n'.join(filesummary), srclines[0])
+
+                                for lid in usedlines[fid]:
+                                    linevisit = [ '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' ]
+                                    linevisit.append('!! Total number of visits: %d'% sum([visits for rank, visits in mpivisits[fid][lid].items() ]))
+                                    if Config.mpi['enabled']:
+                                        linevisit.append('!! MPI rank(visits)      : %s' % ' '.join( \
+                                            ['%s(%d)'%(r,i) for r,i in mpivisits[fid][lid].items()]))
+                                    if Config.openmp['enabled']:
+                                        linevisit.append('!! OpenMP thread(visits) : %s' % ' '.join( \
+                                            ['%s(%d)'%(t,i) for t,i in ompvisits[fid][lid].items()]))
+                                    linevisit.append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
+
+                                    srclines[int(lines[fid][lid])-1] = '%s%s\n'%(srclines[int(lines[fid][lid])-1], '\n'.join(linevisit))
+
+                                coveragefile = '%s/%s.coverage'%(coverage_abspath, os.path.basename(files[fid]))
+                                with open(coveragefile, 'w') as fdst:
+                                    fdst.write(''.join(srclines))
+                        except Exception as e:
+                            if os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)):
+                                os.remove('%s/%s'%(Config.path['outdir'], Config.coveragefile))
+                            kgutils.logger.error(str(e))
             else:
                 if not _DEBUG:
                     if os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)):
