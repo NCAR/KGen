@@ -272,7 +272,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                 var = stmt.get_variable(localout_name)
                 if var.is_array():
                     if var.is_explicit_shape_array():
-                        attrspec.append('dimension(%s)'%','.join(var.shape))
+                        attrspec.append('dimension(%s)'%','.join([ ':'.join(slice) for slice in var.get_array_spec() ]))
                     else:
                         attrspec.append('dimension(%s)'%','.join([':']*var.rank))
                         if  'allocatable' not in attrspec and 'pointer' not in attrspec:
@@ -488,41 +488,32 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 #            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
 #            part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
 
+        attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
         if pobj:
-            attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
             part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
             if var.is_array() and stmt.is_numeric():
-                if isinstance(stmt, typedecl_statements.Real):
-                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
-                        'kgen_array_sum', 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
-                else:
-                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
-                        'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}
+                attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
+                    'kgen_array_sum', 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
                 part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(ename_prefix+entity_name), 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name)]}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(ename_prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name)]}
                 else:
                     attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(ename_prefix+entity_name), ename_prefix+entity_name]}
                 part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
-            attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
             namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
 
             if var.is_array() and stmt.is_numeric():
-                if isinstance(stmt, typedecl_statements.Real):
-                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
-                        'kgen_array_sum', 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
-                else:
-                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
-                        'kgen_array_sum', 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name), '.TRUE.']}
+                attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(ename_prefix+entity_name), \
+                    'kgen_array_sum', 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name), '.TRUE.']}
                 part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(ename_prefix+entity_name), 'REAL(SUM(%s), 8)'%(ename_prefix+entity_name)]}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(ename_prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name)]}
                 else:
                     attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(ename_prefix+entity_name),ename_prefix+entity_name]}
                 namedpart_append_genknode(kernel_id, partid, statements.Write, attrs=attrs)
@@ -592,7 +583,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(%s), 8)'%entity_name]}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
                 else:
                     attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
                 part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -600,7 +591,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
             namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(%s), 8)'%entity_name]}
+                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
                 else:
                     attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
                 namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)

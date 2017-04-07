@@ -219,6 +219,8 @@ class Coverage(KGTool):
 
                 # TEMP
                 out, err, retcode = kgutils.run_shcmd('make', cwd=coverage_abspath)
+                if retcode != 0:
+                    kgutils.logger.warn('Coverage raw data is not correctly generated.: %s'%err)
 
             if os.path.exists(code_coverage_path) and len(glob.glob( '%s/*'%code_coverage_path )) > 1 and Config.coverage['reuse_rawdata']:
 

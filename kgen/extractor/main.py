@@ -153,13 +153,14 @@ class Extractor(KGTool):
                 kgutils.run_shcmd(Config.state_switch['clean'])
 
             # build and run app with state instrumentation
+            kgutils.logger.info('Application is being built/run with state generation instrumentation.')
             out, err, retcode = kgutils.run_shcmd('make', cwd='%s/%s'%(Config.path['outdir'], Config.path['state']))
 
             out, err, retcode = kgutils.run_shcmd('make recover', cwd='%s/%s'%(Config.path['outdir'], Config.path['state']))
             if Config.state_switch['clean']:
                 kgutils.run_shcmd(Config.state_switch['clean'])
 
-            kgutils.logger.info('Application is built/run with state generation instrumentation.')
+            kgutils.logger.info('Application built/run is finished.')
 
     def write(self, f, line, n=True, t=False):
         nl = ''

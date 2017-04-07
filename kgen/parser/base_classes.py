@@ -492,7 +492,7 @@ class Variable(object):
                         try:
                             n = int(spec[1]) - int(spec[0])
                         except ValueError:
-                            n = '(%s)-(%s)' % (spec[1], spec[0]) 
+                            n = '(%s)-(%s)' % (spec[1], spec[0])
                         shape.append(str(n))
                 self.shape = shape
         return

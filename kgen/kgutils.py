@@ -160,7 +160,7 @@ class ProgramException(KGException):
 # Functions
 ##############################################
 
-def exit(msg):
+def kgenexit(msg):
     print msg
     sys.exit(-1)
 

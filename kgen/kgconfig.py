@@ -702,6 +702,7 @@ class Config(object):
 
 
         # parsing debugging options
+        # syntax: a.b.c=d,e,f
         if opts.debug:
             for dbg in opts.debug:
                 param_path, value = dbg.split('=')

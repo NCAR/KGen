@@ -62,7 +62,11 @@ class CompFlag(kgtool.KGTool):
 
         # parse strace.log and generate include.ini
         if not os.path.exists(includepath) or 'all' in Config.rebuild or 'include' in Config.rebuild:
-            self._geninclude(stracepath, includepath)
+            if stracepath:
+                self._geninclude(stracepath, includepath)
+            else:
+                kgutils.logger.error('strace logfile is not found at: %s'%stracepath)
+                kgutils.kgenexit('Please retry KGen after generting strace logfile.')
         else:
             kgutils.logger.info('Reusing KGen include file: %s'%includepath)
 

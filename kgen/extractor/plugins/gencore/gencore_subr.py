@@ -127,12 +127,8 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 ifpvarobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                 if stmt.is_numeric():
-                    if isinstance(stmt, typedecl_statements.Real):
-                        attrs = {'designator': 'kgen_array_sumcheck', 'items': ['printvar', \
-                            'kgen_array_sum', 'REAL(SUM(var, mask=(var .eq. var)), 8)', '.TRUE.']}
-                    else:
-                        attrs = {'designator': 'kgen_array_sumcheck', 'items': ['printvar', \
-                            'kgen_array_sum', 'REAL(SUM(var), 8)', '.TRUE.']}
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['printvar', \
+                        'kgen_array_sum', 'REAL(SUM(var, mask=(var .eq. var)), 8)', '.TRUE.']}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 attrs = {'items': ['"** KGEN DEBUG: " // printvar // "**" // NEW_LINE("A")', 'var']}
@@ -141,12 +137,8 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
 
                 if stmt.is_numeric():
-                    if isinstance(stmt, typedecl_statements.Real):
-                        attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"UNKNOWN"', \
-                            'kgen_array_sum', 'REAL(SUM(var, mask=(var .eq. var)), 8)', '.TRUE.']}
-                    else:
-                        attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"UNKNOWN"', \
-                            'kgen_array_sum', 'REAL(SUM(var), 8)', '.TRUE.']}
+                    attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"UNKNOWN"', \
+                        'kgen_array_sum', 'REAL(SUM(var, mask=(var .eq. var)), 8)', '.TRUE.']}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
 #
