@@ -7,6 +7,7 @@ import kgutils
 import kgparse
 import collections
 from kgconfig import Config
+import statements
 
 class Parser(kgtool.KGTool):
 
@@ -37,10 +38,13 @@ class Parser(kgtool.KGTool):
         for cs_stmt in Config.callsite['stmts']:
             #resolve cs_stmt
             f2003_search_unknowns(cs_stmt, cs_stmt.f2003)
-            for uname, req in cs_stmt.unknowns.iteritems():
-                cs_stmt.resolve(req)
-                if not req.res_stmts:
-                    raise kgutils.ProgramException('Resolution fail.')
+            if hasattr(cs_stmt, 'unknowns'):
+                for uname, req in cs_stmt.unknowns.iteritems():
+                    cs_stmt.resolve(req)
+                    if not req.res_stmts:
+                        raise kgutils.ProgramException('Resolution fail.')
+            else:
+                kgutils.logger.warn('Stmt does not have "unknowns" attribute: %s'%str(cs_stmt)) 
 
         # update state info of callsite and its upper blocks
         kganalyze.update_state_info(Config.parentblock['stmt'])

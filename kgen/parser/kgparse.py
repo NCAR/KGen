@@ -330,7 +330,8 @@ class SrcFile(object):
                             raise UserException('WARNING: callsite is not found')
                     elif dname=='write':
                         if clause:
-                            stmt.write_state = clause.split(',')
+                            stmt.write_state = tuple( c.strip() for c in clause.split(',') )
+                            Config.callsite['stmts'].append(stmt)
                     elif dname=='exclude':
                         next_fort_stmt = get_next_non_comment(stmt)
                         if next_fort_stmt:
