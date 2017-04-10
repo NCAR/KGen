@@ -324,7 +324,6 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'CHARACTER', 'selector':('10', None), 'entity_decls': ['numranksstr']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
-
         if getinfo('is_openmp_app'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM', 'OMP_GET_NUM_THREADS']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
@@ -332,12 +331,12 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d)'%(getinfo('openmp_maxthreads')-1) ], 'entity_decls': ['kgen_invokes']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'type_spec': 'CHARACTER', 'selector':('6', None), 'entity_decls': ['numthreadsstr']}
-            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
-
         else:
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_invokes']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+        attrs = {'type_spec': 'CHARACTER', 'selector':('6', None), 'entity_decls': ['numthreadsstr']}
+        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': [ 'invokes', 'visits', 'intnum' ]}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
@@ -456,7 +455,7 @@ class Gen_Coverage_File(Kgen_Plugin):
         part_append_gensnode(ifompopen, EXEC_PART, statements.Close, attrs=attrs)
 
         # create data directory
-        attrs = {'specs': [ 'datapath', '*' ], 'items': [ '"%s/" // "/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(threadstr))'%codepath ]}
+        attrs = {'specs': [ 'datapath', '*' ], 'items': [ '"%s/" // TRIM(ADJUSTL(rankstr)) // "/" // TRIM(ADJUSTL(threadstr))'%codepath ]}
         part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['FILE=TRIM(ADJUSTL(datapath)) // "/" // TRIM(ADJUSTL(filestr)) // "." // TRIM(ADJUSTL(linestr))', 'EXIST=istrue']}
@@ -492,7 +491,10 @@ class Gen_Coverage_File(Kgen_Plugin):
 
         part_append_gensnode(ifmatch, EXEC_PART, statements.Else)
 
-        attrs = {'specs': [ 'UNIT=dataunit', 'REC=(intnum/33+1)', 'FMT="(2I16,1A)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())', '1', 'NEW_LINE("A")' ]}
+        if getinfo('is_openmp_app'):
+            attrs = {'specs': [ 'UNIT=dataunit', 'REC=(intnum/33+1)', 'FMT="(2I16,1A)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())', '1', 'NEW_LINE("A")' ]}
+        else:
+            attrs = {'specs': [ 'UNIT=dataunit', 'REC=(intnum/33+1)', 'FMT="(2I16,1A)"' ], 'items': [ 'kgen_invokes', '1', 'NEW_LINE("A")' ]}
         part_append_gensnode(ifmatch, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=dataunit']}

@@ -40,6 +40,7 @@ def extractor():
     args.extend(['--cmd-build', 'cd %s; make build'%outdir])
     args.extend(['--cmd-run', 'cd %s; make run'%outdir])
     args.extend(['--invocation', '0:0:0'])
+    args.extend(['--kernel-option', 'FC=gfortran'])
     args.extend(['--outdir', outdir])
     args.extend(['-I', outdir])
     args.extend(['%s/%s'%(outdir, CALLSITE)])

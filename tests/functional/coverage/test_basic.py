@@ -38,6 +38,7 @@ def test_strace():
     cmds.append('--cmd-clean "cd %s; make -f Makefile.mpirun clean"'%outdir)
     cmds.append('--cmd-build "cd %s; make -f Makefile.mpirun build"'%outdir)
     cmds.append('--cmd-run "cd %s; make -f Makefile.mpirun run"'%outdir)
+    cmds.append('--kernel-option FC=gfortran')
     cmds.append('--outdir %s'%outdir)
     cmds.append('--mpi enable')
     cmds.append('--openmp enable')
