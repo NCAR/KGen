@@ -1,0 +1,18 @@
+[general]
+name = Cori
+id = cori
+
+[shell]
+command = hostname
+startswith = cori
+pattern = nid\d+
+
+[compiler]
+gnu = module swap PrgEnv-intel PrgEnv-gnu
+
+[variable]
+prerun_build =
+prerun_run =
+prerun_kernel_build =
+prerun_kernel_run =
+work_directory = $SCRATCH
