@@ -321,8 +321,8 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['myrank', 'numranks', 'ierror']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'type_spec': 'CHARACTER', 'selector':('10', None), 'entity_decls': ['numranksstr']}
-            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
+        attrs = {'type_spec': 'CHARACTER', 'selector':('10', None), 'entity_decls': ['numranksstr']}
+        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         if getinfo('is_openmp_app'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM', 'OMP_GET_NUM_THREADS']}

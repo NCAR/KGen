@@ -163,6 +163,10 @@ class Config(object):
         self._attrs['machine']['general'] = collections.OrderedDict()
         self._attrs['machine']['general']['name'] = 'Generic Machine'
         self._attrs['machine']['general']['id'] = 'generic'
+        self._attrs['machine']['compiler'] = collections.OrderedDict()
+        self._attrs['machine']['compiler']['gnu'] = ''
+        self._attrs['machine']['compiler']['intel'] = ''
+        self._attrs['machine']['compiler']['pgi'] = ''
         self._attrs['machine']['variable'] = collections.OrderedDict()
         self._attrs['machine']['variable']['work_directory'] = os.path.expandvars('${HOME}/kgen_workspace')
 
@@ -1027,6 +1031,13 @@ class Config(object):
                     prerun['kernel_run'] = inc.get('variable', 'prerun_kernel_run')
                 if inc.has_option('variable', 'work_directory') and inc.get('variable', 'work_directory'):
                     machine['variable']['work_directory'] = os.path.expandvars(inc.get('variable', 'work_directory'))
+            if inc.has_section('compiler'):
+                if inc.has_option('compiler', 'gnu') and inc.get('compiler', 'gnu'):
+                    machine['compiler']['gnu'] = inc.get('compiler', 'gnu')
+                if inc.has_option('compiler', 'intel') and inc.get('compiler', 'intel'):
+                    machine['compiler']['intel'] = inc.get('compiler', 'intel')
+                if inc.has_option('compiler', 'pgi') and inc.get('compiler', 'pgi'):
+                    machine['compiler']['pgi'] = inc.get('compiler', 'pgi')
         except:
             pass
 
