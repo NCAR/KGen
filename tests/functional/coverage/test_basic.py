@@ -13,8 +13,6 @@ KGEN_SRC = '%s/kgen'%ROOTDIR
 KGEN_APP = '%s/bin/kgen'%ROOTDIR
 sys.path.insert(0, KGEN_SRC)
 
-prerun_cmds = 'module purge; module load intel; module load impi'
-
 from kgutils import run_shcmd
 from kgconfig import Config
 
@@ -34,11 +32,13 @@ def test_strace():
     # create a kgen command
     cmds = []
     cmds.append(KGEN_APP)
-    cmds.append('--prerun build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%{'cmd': prerun_cmds})
+    if inc.has_section('compiler') and inc.has_option('compiler', 'intel') and inc.get('compiler', 'intel'):
+        cmds.extend(['--prerun', 'build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%\
+            {'cmd': inc.get('compiler', 'intel')}])
     cmds.append('--cmd-clean "cd %s; make -f Makefile.mpirun clean"'%outdir)
     cmds.append('--cmd-build "cd %s; make -f Makefile.mpirun build"'%outdir)
     cmds.append('--cmd-run "cd %s; make -f Makefile.mpirun run"'%outdir)
-    cmds.append('--kernel-option FC=gfortran')
+    cmds.append('--kernel-option FC=ifort')
     cmds.append('--outdir %s'%outdir)
     cmds.append('--mpi enable')
     cmds.append('--openmp enable')

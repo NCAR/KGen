@@ -33,8 +33,9 @@ def extractor():
         shutil.copy(filename, outdir)
 
     args = []
-    args.extend(['--prerun', 'build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%\
-        {'cmd': 'module purge; module load gnu'}])
+    if inc.has_section('compiler') and inc.has_option('compiler', 'gnu') and inc.get('compiler', 'gnu'):
+        args.extend(['--prerun', 'build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%\
+            {'cmd': inc.get('compiler', 'gnu')}])
     args.extend(['--cmd-clean', 'cd %s; make clean'%outdir])
     args.extend(['--cmd-build', 'cd %s; make build'%outdir])
     args.extend(['--cmd-run', 'cd %s; make run'%outdir])
@@ -76,6 +77,8 @@ def test_run(extractor):
 
         assert True
     else:
+        print ('ERROR: stdout', out)
+        print ('ERROR: stderr', err)
         assert False
 
 

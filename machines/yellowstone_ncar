@@ -7,6 +7,9 @@ command = hostname
 startswith = yslogin,pronghorn,caldera
 pattern = ys\d+
 
+[compiler]
+gnu = module purge; module load gnu
+
 [variable]
 prerun_build =
 prerun_run =
