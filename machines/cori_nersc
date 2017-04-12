@@ -8,7 +8,8 @@ startswith = cori
 pattern = nid\d+
 
 [compiler]
-gnu = module swap PrgEnv-intel PrgEnv-gnu
+gnu = module swap PrgEnv-intel PrgEnv-gnu; module load openmpi
+intel = module load impi
 
 [variable]
 prerun_build =
