@@ -41,11 +41,11 @@ def extractor():
     args.extend(['--cmd-run', 'cd %s; make run'%outdir])
     args.extend(['--kernel-option', 'FC=gfortran'])
     args.extend(['--invocation', '0:0:0'])
-    args.extend(['--debug', 'printvar=types_mod:exttypevar'])
     args.extend(['--outdir', outdir])
     args.extend(['-I', outdir])
     args.extend(['%s/%s'%(outdir, CALLSITE)])
     Config.parse(args)
+    #args.extend(['--debug', 'printvar=types_mod:exttypevar'])
 
     #args.extend(['--invocation', '0:0:0'])
 

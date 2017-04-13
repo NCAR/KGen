@@ -78,7 +78,6 @@ def update_state_info(parent):
                                                 kword = argobj.items[0].string
                                                 argidx = subpobj.args.index(kword)
                                             elif isinstance(arglist, Actual_Arg_Spec_List):
-                                                #if len(lineage)<(lidx+3): import pdb; pdb.set_trace()
                                                 argobj = lineage[lidx+2]
                                                 argidx = arglist.items.index(argobj)
                                                 if isinstance(argobj, Actual_Arg_Spec):
@@ -94,7 +93,6 @@ def update_state_info(parent):
                                                 kword = argobj.items[0].string
                                                 argidx = subpobj.args.index(kword)
                                             elif isinstance(arglist, Section_Subscript_List):
-                                                #if len(lineage)<(lidx+3): import pdb; pdb.set_trace()
                                                 argobj = lineage[lidx+2]
                                                 argidx = arglist.items.index(argobj)
                                                 if isinstance(argobj, Structure_Constructor_2):

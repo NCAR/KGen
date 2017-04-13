@@ -1,7 +1,7 @@
 '''KGen parser
 '''
 #import os.path
-#from kgen_utils import run_shcmd
+from kgutils import UserException
 from kgconfig import Config
 from statements import Comment
 from block_statements import Module, Program

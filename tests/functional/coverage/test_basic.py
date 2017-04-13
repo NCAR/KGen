@@ -40,14 +40,14 @@ def test_strace():
     cmds.append('--cmd-run "cd %s; make -f Makefile.mpirun run"'%outdir)
     cmds.append('--kernel-option FC=ifort')
     cmds.append('--outdir %s'%outdir)
+    cmds.append('--source alias=/glade/scratch:/glade2/scratch2')
     cmds.append('--mpi enable')
     cmds.append('--openmp enable')
     cmds.append('-I %s'%outdir)
     cmds.append('%s/%s'%(outdir, CALLSITE))
     
     # run kgen
-    shcmds = ' '.join(cmds)
-    print 'SHCMD: %s'%shcmds
+    print 'SHCMD: %s'%' \\ \n'.join(cmds)
     out, err, retcode = run_shcmd(' '.join(cmds))
 
     print '\n******* STDOUT KGEN **********\n'

@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import glob
+import shutil
 import collections
 import copy
 import optparse
@@ -218,6 +219,7 @@ class Config(object):
         self._attrs['include']['compiler'] = collections.OrderedDict()
         self._attrs['include']['import'] = collections.OrderedDict()
         self._attrs['include']['file'] = collections.OrderedDict()
+        self._attrs['include']['opt'] = None
 
         # exclude parameters
         self._attrs['exclude'] = collections.OrderedDict()
@@ -600,8 +602,8 @@ class Config(object):
                     pass
                 else: raise UserException('Wrong format include: %s'%inc)
 
-        if self.includefile:
-            self.process_include_option()
+        if opts.include_ini:
+            self._attrs['include']['opt'] = opts.include_ini
 
         if opts.exclude_ini:
             process_exclude_option(opts.exclude_ini, self._attrs['exclude'])
@@ -668,41 +670,41 @@ class Config(object):
                     if isfree: self._attrs['source']['isfree'] = isfree
                     if isstrict: self._attrs['source']['isstrict'] = isstrict
 
-        # dupulicate paths per each alias
-        if files is None:
-            newpath = set() 
-            for path in self._attrs['include']['path']:
-                newpath.add(path)
-                for p1, p2 in self._attrs['source']['alias'].iteritems():
-                    if path.startswith(p1):
-                        newpath.add(p2+path[len(p1):])
-                    elif path.startswith(p2):
-                        newpath.add(p1+path[len(p2):])
-            self._attrs['include']['path'] = list(newpath)
-
-        newfile =  collections.OrderedDict()
-        for path, value in self._attrs['include']['file'].iteritems():
-            newfile[path] = value
-            for p1, p2 in self._attrs['source']['alias'].iteritems():
-                if path.startswith(p1):
-                    newpath = p2+path[len(p1):]
-                    newfile[newpath] = copy.deepcopy(value) 
-                elif path.startswith(p2):
-                    newpath = p1+path[len(p2):]
-                    newfile[newpath] = copy.deepcopy(value) 
-        self._attrs['include']['file'] = newfile
-
-        for path, value in self._attrs['include']['file'].iteritems():
-            if value.has_key('path'):
-                newpath = set()
-                for path in value['path']:
-                    newpath.add(path)
-                    for p1, p2 in self._attrs['source']['alias'].iteritems():
-                        if path.startswith(p1):
-                            newpath.add(p2+path[len(p1):])
-                        elif path.startswith(p2):
-                            newpath.add(p1+path[len(p2):])
-                value['path'] = list(newpath)
+#        # dupulicate paths per each alias
+#        if files is None:
+#            newpath = set() 
+#            for path in self._attrs['include']['path']:
+#                newpath.add(path)
+#                for p1, p2 in self._attrs['source']['alias'].iteritems():
+#                    if path.startswith(p1):
+#                        newpath.add(p2+path[len(p1):])
+#                    elif path.startswith(p2):
+#                        newpath.add(p1+path[len(p2):])
+#            self._attrs['include']['path'] = list(newpath)
+#
+#        newfile =  collections.OrderedDict()
+#        for path, value in self._attrs['include']['file'].iteritems():
+#            newfile[path] = value
+#            for p1, p2 in self._attrs['source']['alias'].iteritems():
+#                if path.startswith(p1):
+#                    newpath = p2+path[len(p1):]
+#                    newfile[newpath] = copy.deepcopy(value) 
+#                elif path.startswith(p2):
+#                    newpath = p1+path[len(p2):]
+#                    newfile[newpath] = copy.deepcopy(value) 
+#        self._attrs['include']['file'] = newfile
+#
+#        for path, value in self._attrs['include']['file'].iteritems():
+#            if value.has_key('path'):
+#                newpath = set()
+#                for path in value['path']:
+#                    newpath.add(path)
+#                    for p1, p2 in self._attrs['source']['alias'].iteritems():
+#                        if path.startswith(p1):
+#                            newpath.add(p2+path[len(p1):])
+#                        elif path.startswith(p2):
+#                            newpath.add(p1+path[len(p2):])
+#                value['path'] = list(newpath)
 
 
         # parsing debugging options
@@ -939,10 +941,14 @@ class Config(object):
 
         incattrs = self.include
 
+        if incattrs['opt']:
+            self.includefile = os.path.basename(incattrs['opt'])
+            shutil.copy(incattrs['opt'], self.path['outdir'])
+
         # collect include configuration information
         Inc = KgenConfigParser(allow_no_value=True)
         #Inc.optionxform = str
-        Inc.read(self.includefile)
+        Inc.read('%s/%s'%(self.path['outdir'], self.includefile))
         for section in Inc.sections():
             lsection = section.lower().strip()
             #if lsection in [ 'type', 'rename', 'state', 'extern' ]:
@@ -981,6 +987,42 @@ class Config(object):
             else:
                 pass
                 #print '%s is either not suppored keyword or can not be found. Ignored.' % section
+
+        # dupulicate paths per each alias
+        newpath = set() 
+        for path in self._attrs['include']['path']:
+            newpath.add(path)
+            for p1, p2 in self._attrs['source']['alias'].iteritems():
+                if path.startswith(p1):
+                    newpath.add(p2+path[len(p1):])
+                elif path.startswith(p2):
+                    newpath.add(p1+path[len(p2):])
+        self._attrs['include']['path'] = list(newpath)
+
+        newfile =  collections.OrderedDict()
+        for path, value in self._attrs['include']['file'].iteritems():
+            newfile[path] = value
+            for p1, p2 in self._attrs['source']['alias'].iteritems():
+                if path.startswith(p1):
+                    newpath = p2+path[len(p1):]
+                    newfile[newpath] = copy.deepcopy(value) 
+                elif path.startswith(p2):
+                    newpath = p1+path[len(p2):]
+                    newfile[newpath] = copy.deepcopy(value) 
+        self._attrs['include']['file'] = newfile
+
+        for path, value in self._attrs['include']['file'].iteritems():
+            if value.has_key('path'):
+                newpath = set()
+                for path in value['path']:
+                    newpath.add(path)
+                    for p1, p2 in self._attrs['source']['alias'].iteritems():
+                        if path.startswith(p1):
+                            newpath.add(p2+path[len(p1):])
+                        elif path.startswith(p2):
+                            newpath.add(p1+path[len(p2):])
+                value['path'] = list(newpath)
+
 
 
     def find_machine(self):
