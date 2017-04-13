@@ -464,30 +464,6 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
         pobj = namedgen_read_istrue(kernel_id, partid, var, entity_name, ename_prefix=ename_prefix)
 
-#        pobj = None
-#        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
-#            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-#            namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
-#
-#            attrs = {'expr': 'kgen_istrue'}
-#            iftrueobj = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-#
-#            pobj = iftrueobj
-#
-#        if var.is_allocatable():
-#            attrs = {'expr': 'ALLOCATED( %s )'%(ename_prefix+entity_name)}
-#            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-#
-#            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
-#            part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
-#
-#        if var.is_pointer():
-#            attrs = {'expr': 'ASSOCIATED( %s )'%(ename_prefix+entity_name)}
-#            ifalloc = namedpart_append_genknode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-#
-#            attrs = {'items': ['%s'%(ename_prefix+entity_name)]}
-#            part_append_genknode(ifalloc, EXEC_PART, statements.Nullify, attrs=attrs)
-
         attrs = {'items': [ename_prefix+entity_name], 'specs': ['UNIT = kgen_unit']}
         if pobj:
             part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
@@ -499,9 +475,9 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(ename_prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name)]}
+                    attrs = {'items': ['"KGEN DEBUG: REAL(SUM( %s), 8) = "'%(ename_prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name)]}
                 else:
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(ename_prefix+entity_name), ename_prefix+entity_name]}
+                    attrs = {'items': ['"KGEN DEBUG: %s = "'%(ename_prefix+entity_name), ename_prefix+entity_name]}
                 part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             namedpart_append_genknode(kernel_id, partid, statements.Read, attrs=attrs)
@@ -513,104 +489,39 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(ename_prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name)]}
+                    attrs = {'items': ['"KGEN DEBUG: REAL(SUM( %s), 8) = "'%(ename_prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(ename_prefix+entity_name, ename_prefix+entity_name, ename_prefix+entity_name)]}
                 else:
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(ename_prefix+entity_name),ename_prefix+entity_name]}
+                    attrs = {'items': ['"KGEN DEBUG: %s = "'%(ename_prefix+entity_name),ename_prefix+entity_name]}
                 namedpart_append_genknode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, kernel_id, partid, entity_name, stmt, var):
-        kgenunit = 'UNIT = kgen_unit'
-
         pobj = namedgen_write_istrue(kernel_id, partid, var, entity_name)
 
-#        pobj = None
-#        # if isarray
-#        if var.is_array() and not var.is_explicit_shape_array():
-#            attrs = {'expr': 'SIZE(%s)==1'%entity_name}
-#            ifsizeobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-#
-#            attrs = {'expr': 'UBOUND(%s, 1)<LBOUND(%s, 1)'%(entity_name, entity_name)}
-#            ifarrobj = part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-#
-#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-#            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#            attrs = {'expr': 'UBOUND(%s, 1)==0 .AND. LBOUND(%s, 1)==0'%(entity_name, entity_name)}
-#            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
-#
-#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-#            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#            part_append_gensnode(ifarrobj, EXEC_PART, block_statements.Else, attrs=attrs)
-#
-#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
-#            part_append_gensnode(ifarrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#            part_append_gensnode(ifsizeobj, EXEC_PART, block_statements.Else, attrs=attrs)
-#
-#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.TRUE.'}
-#            part_append_gensnode(ifsizeobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#        # if allocatable
-#        if var.is_allocatable():
-#            attrs = {'expr': '.NOT. ALLOCATED(%s)'%entity_name}
-#            ifallocobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-#
-#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-#            part_append_gensnode(ifallocobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#        # if pointer
-#        if var.is_pointer():
-#            attrs = {'expr': '.NOT. ASSOCIATED(%s)'%entity_name}
-#            ifptrobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-#
-#            attrs = {'variable': 'kgen_istrue', 'sign': '=', 'expr': '.FALSE.'}
-#            part_append_gensnode(ifptrobj, EXEC_PART, statements.Assignment, attrs=attrs)
-#
-#
-#        if (var.is_array() and not var.is_explicit_shape_array()) or var.is_allocatable() or var.is_pointer():
-#
-#            attrs = {'items': ['kgen_istrue'], 'specs': ['UNIT = kgen_unit']}
-#            namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
-#
-#            attrs = {'expr': 'kgen_istrue'}
-#            iftrueobj = namedpart_append_gensnode(kernel_id, partid, block_statements.IfThen, attrs=attrs)
-#
-#            pobj = iftrueobj
-
-        attrs = {'items': [entity_name], 'specs': [kgenunit]}
+        attrs = {'items': [entity_name], 'specs': ['UNIT = kgen_unit']}
         if pobj:
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
+                    attrs = {'items': ['"KGEN DEBUG: REAL(SUM( %s), 8) = "'%entity_name, 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
                 else:
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
+                    attrs = {'items': ['"KGEN DEBUG: %s = "'%entity_name, entity_name]}
                 part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
         else:
             namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
             if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
                 if stmt.is_numeric() and var.is_array():
-                    attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%entity_name, 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
+                    attrs = {'items': ['"KGEN DEBUG: REAL(SUM(%s), 8) = "'%entity_name, 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
                 else:
-                    attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%entity_name, entity_name]}
+                    attrs = {'items': ['"KGEN DEBUG: %s = "'%entity_name, entity_name]}
                 namedpart_append_gensnode(kernel_id, partid, statements.Write, attrs=attrs)
 
     def create_read_call(self, kernel_id, partid, callname, entity_name, stmt, var, ename_prefix=''):
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit', '"%s%s"'%(ename_prefix, entity_name)]}
-            namedpart_append_genknode(kernel_id, partid, statements.Call, attrs=attrs)
-        else:
-            attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit']}
-            namedpart_append_genknode(kernel_id, partid, statements.Call, attrs=attrs)
-
+        pstr = '.TRUE.' if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')) else '.FALSE.'
+        attrs = {'designator': callname, 'items': [ename_prefix+entity_name, 'kgen_unit', '"%s%s"'%(ename_prefix, entity_name), pstr]}
+        namedpart_append_genknode(kernel_id, partid, statements.Call, attrs=attrs)
 
     def create_write_call(self, kernel_id, partid, callname, entity_name, stmt, var):
-        kgenunit = 'kgen_unit'
 
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'designator': callname, 'items': [entity_name, kgenunit, '"%s"'%entity_name]}
-            namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)
-        else:
-            attrs = {'designator': callname, 'items': [entity_name, kgenunit]}
-            namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)
+        pstr = '.TRUE.' if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')) else '.FALSE.'
+        attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%entity_name, pstr]}
+        namedpart_append_gensnode(kernel_id, partid, statements.Call, attrs=attrs)

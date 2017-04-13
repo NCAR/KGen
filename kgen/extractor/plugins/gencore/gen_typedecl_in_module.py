@@ -574,9 +574,9 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(prefix+entity_name, prefix+entity_name, prefix+entity_name)]}
+                attrs = {'items': ['"KGEN DEBUG: REAL(SUM(%s), 8) = "'%(prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(prefix+entity_name, prefix+entity_name, prefix+entity_name)]}
             else:
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(prefix+entity_name), prefix+entity_name]}
+                attrs = {'items': ['"KGEN DEBUG: %s = "'%(prefix+entity_name), prefix+entity_name]}
             part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_write_intrinsic(self, subrobj, entity_name, stmt, var):
@@ -588,26 +588,20 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"** KGEN DEBUG: " // "REAL(SUM(%s), 8) **"'%(prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
+                attrs = {'items': ['"KGEN DEBUG: REAL(SUM(%s), 8) = "'%(prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
             else:
-                attrs = {'items': ['"** KGEN DEBUG: " // "%s **" // NEW_LINE("A")'%(prefix+entity_name), entity_name]}
+                attrs = {'items': ['"KGEN DEBUG: %s = "'%(prefix+entity_name), entity_name]}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)
 
     def create_read_call(self, subrobj, callname, entity_name, stmt, var, prefix=''):
 
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'designator': callname, 'items': [prefix+entity_name, 'kgen_unit', '"%s"'%(prefix+entity_name)]}
-            part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
-        else:
-            attrs = {'designator': callname, 'items': [prefix+entity_name, 'kgen_unit']}
-            part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
+        pstr = '.TRUE.' if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')) else '.FALSE.'
+        attrs = {'designator': callname, 'items': [prefix+entity_name, 'kgen_unit', '"%s"'%(prefix+entity_name), pstr]}
+        part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 
     def create_write_call(self, subrobj, callname, entity_name, stmt, var, prefix=''):
 
-        if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
-            attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%(prefix+entity_name)]}
-            part_append_gensnode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
-        else:
-            attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit']}
-            part_append_gensnode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
+        pstr = '.TRUE.' if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')) else '.FALSE.'
+        attrs = {'designator': callname, 'items': [entity_name, 'kgen_unit', '"%s"'%(prefix+entity_name), pstr]}
+        part_append_gensnode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 
