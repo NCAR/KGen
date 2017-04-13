@@ -33,17 +33,19 @@ def extractor():
         shutil.copy(filename, outdir)
 
     args = []
-    args.extend(['--prerun', 'build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%\
-        {'cmd': 'module purge; module load gnu'}])
+    if inc.has_section('compiler') and inc.has_option('compiler', 'gnu') and inc.get('compiler', 'gnu'):
+        args.extend(['--prerun', 'build="%(cmd)s",run="%(cmd)s",kernel_build="%(cmd)s",kernel_run="%(cmd)s"'%\
+            {'cmd': inc.get('compiler', 'gnu')}])
     args.extend(['--cmd-clean', 'cd %s; make clean'%outdir])
     args.extend(['--cmd-build', 'cd %s; make build'%outdir])
     args.extend(['--cmd-run', 'cd %s; make run'%outdir])
-    args.extend(['--invocation', '0:0:0'])
     args.extend(['--kernel-option', 'FC=gfortran'])
     args.extend(['--outdir', outdir])
     args.extend(['-I', outdir])
     args.extend(['%s/%s'%(outdir, CALLSITE)])
     Config.parse(args)
+
+    #args.extend(['--invocation', '0:0:0'])
 
     Config.process_include_option()
     Config.collect_mpi_params()
@@ -70,12 +72,15 @@ def test_run(extractor):
     if retcode == 0:
         outlines = out.split('\n')
         if any( line.find('Verification FAILED') >= 0 for line in outlines ):
+            print ('FAILED: ', out)
             assert False
         if not any( line.find('Verification PASSED') >= 0 for line in outlines ):
             assert False
 
         assert True
     else:
+        print ('ERROR: stdout', out)
+        print ('ERROR: stderr', err)
         assert False
 
 

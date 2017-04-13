@@ -302,7 +302,7 @@ plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kerne
     'is_openmp_app', 'is_openmp_critical', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'repeat_count', 'dummy_stmt', \
     'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'coverage_file', 'coverage_path', 'logger', \
-    'coverage_typeid', 'coverage_typename' ]
+    'coverage_typeid', 'coverage_typename', 'traverse' ]
 
 def getinfo(name, plugin=None):
     if name in plugin_default_infolist: 
@@ -337,6 +337,7 @@ def getinfo(name, plugin=None):
         elif name=='coverage_typeid': return Config.coverage['types']['code']['id']
         elif name=='coverage_typename': return Config.coverage['types']['code']['name']
         elif name=='coverage_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['coverage']))
+        elif name=='traverse': return traverse
         elif name=='logger': return logger 
     elif Config.plugindb.has_key(name):
         return Config.plugindb[name]

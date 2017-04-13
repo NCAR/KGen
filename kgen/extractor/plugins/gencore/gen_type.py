@@ -1,6 +1,6 @@
 # gen_write_type.py
  
-from parser import statements, block_statements, typedecl_statements
+from parser import statements, block_statements, typedecl_statements, Fortran2003
 from kgplugin import Kgen_Plugin
 
 from gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
@@ -56,6 +56,8 @@ class Gen_Type(Kgen_Plugin):
             for uname, req in reqlist:
                 if len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_readname(req.res_stmts[0])
+
+                    # add use
                     checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
                         subrname in n.kgen_stmt.items
                     if (id(parent),subrname) not in self.kernel_created_use_items and not part_has_node(parent, USE_PART, checks):
@@ -63,6 +65,7 @@ class Gen_Type(Kgen_Plugin):
                         part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)
                         self.kernel_created_use_items.append((id(parent),subrname))
 
+                    # add access
                     checks = lambda n: isinstance(n.kgen_stmt, statements.Public) and n.kgen_stmt.items and subrname in n.kgen_stmt.items
                     if (id(parent),subrname) not in self.kernel_created_public_items and isinstance(parent.kgen_stmt, block_statements.Module) and \
                         not part_has_node(parent, DECL_PART, checks):
@@ -77,6 +80,8 @@ class Gen_Type(Kgen_Plugin):
             for uname, req in reqlist:
                 if len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_writename(req.res_stmts[0])
+
+                    # add use
                     checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
                         subrname in n.kgen_stmt.items
                     if (id(parent),subrname) not in self.state_created_use_items and not part_has_node(parent, USE_PART, checks):
@@ -85,6 +90,7 @@ class Gen_Type(Kgen_Plugin):
                         self.state_created_use_items.append((id(parent),subrname))
                         parent.kgen_stmt.top.used4genstate = True
 
+                    # add access
                     checks = lambda n: isinstance(n.kgen_stmt, statements.Public) and n.kgen_stmt.items and subrname in n.kgen_stmt.items
                     if (id(parent),subrname) not in self.state_created_public_items and isinstance(parent.kgen_stmt, block_statements.Module) and \
                         not part_has_node(parent, DECL_PART, checks):
@@ -92,6 +98,11 @@ class Gen_Type(Kgen_Plugin):
                         part_append_gensnode(parent, DECL_PART, statements.Public, attrs=attrs)
                         self.state_created_public_items.append((id(parent),subrname))
                         parent.kgen_stmt.top.used4genstate = True
+
+
+    def get_extends(self, node, bag, depth):
+        if isinstance(node, Fortran2003.Type_Attr_Spec) and isinstance(node.items[0], str) and node.items[0] == 'EXTENDS':
+            bag.append(node.items[1].string)
 
     def create_read_intrinsic(self, subrobj, entity_name, stmt, var):
 
@@ -226,9 +237,19 @@ class Gen_Type(Kgen_Plugin):
 
             part_append_comment(subrobj, DECL_PART, '')
 
-            #comp_part = get_part(node, TYPE_COMP_PART) 
+            parent_names = []
+            getinfo('traverse')(node.kgen_stmt.f2003, self.get_extends, parent_names)
+
+            extends = []
+            for parent_typename in parent_names:
+                for uname, req in node.kgen_stmt.unknowns.iteritems():
+                    if uname.firstpartname()== parent_typename:
+                        if len(req.res_stmts)>0:
+                            extends.extend(get_part(req.res_stmts[0].genkpair, TYPE_PART))
+                            break
+
             comp_part = get_part(node, TYPE_PART) 
-            for item in comp_part:
+            for item in extends + comp_part:
                 if not hasattr(item, 'kgen_stmt'): continue
                 if not isinstance(item.kgen_stmt, typedecl_statements.TypeDeclarationStatement): continue
 
@@ -248,6 +269,7 @@ class Gen_Type(Kgen_Plugin):
                         else: # intrinsic type
                             if var.is_explicit_shape_array():
                                 self.create_read_intrinsic(subrobj, entity_name, stmt, var)
+                                callname = None
                             else: # implicit array
                                 self.create_read_call(subrobj, callname, entity_name, stmt, var)
                     else: # scalar
@@ -270,6 +292,17 @@ class Gen_Type(Kgen_Plugin):
                                     self.create_read_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
                             self.create_read_intrinsic(subrobj, entity_name, stmt, var)
+                            callname = None
+
+                    if node.kgen_stmt.ancestors()[0] != item.kgen_stmt.ancestors()[0] and callname:
+                        # add use
+                        pnode = node.kgen_parent
+                        checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
+                            callname in n.kgen_stmt.items
+                        if (id(pnode),callname) not in self.state_created_use_items and not part_has_node(pnode, USE_PART, checks):
+                            attrs = {'name':item.kgen_stmt.ancestors()[0].name, 'isonly': True, 'items':[callname]}
+                            part_append_genknode(pnode, USE_PART, statements.Use, attrs=attrs)
+                            self.state_created_use_items.append((id(pnode),callname))
 
                 part_append_comment(subrobj, EXEC_PART, '')
 
@@ -322,9 +355,19 @@ class Gen_Type(Kgen_Plugin):
 
             part_append_comment(subrobj, DECL_PART, '')
 
-            #comp_part = get_part(node, TYPE_COMP_PART) 
+            parent_names = []
+            getinfo('traverse')(node.kgen_stmt.f2003, self.get_extends, parent_names)
+
+            extends = []
+            for parent_typename in parent_names:
+                for uname, req in node.kgen_stmt.unknowns.iteritems():
+                    if uname.firstpartname()== parent_typename:
+                        if len(req.res_stmts)>0:
+                            extends.extend(get_part(req.res_stmts[0].genspair, TYPE_PART))
+                            break
+
             comp_part = get_part(node, TYPE_PART) 
-            for item in comp_part:
+            for item in extends + comp_part:
                 if not hasattr(item, 'kgen_stmt'): continue
                 if not isinstance(item.kgen_stmt, typedecl_statements.TypeDeclarationStatement): continue
 
@@ -346,6 +389,7 @@ class Gen_Type(Kgen_Plugin):
                         else: # intrinsic type
                             if var.is_explicit_shape_array():
                                 self.create_write_intrinsic(subrobj, entity_name, stmt, var)
+                                callname = None
                             else: # implicit array
                                 self.create_write_call(subrobj, callname, entity_name, stmt, var)
                     else: # scalar
@@ -368,6 +412,18 @@ class Gen_Type(Kgen_Plugin):
                                     self.create_write_call(subrobj, callname, entity_name, stmt, var)
                         else: # intrinsic type
                             self.create_write_intrinsic(subrobj, entity_name, stmt, var)
+                            callname = None
+
+                    if node.kgen_stmt.ancestors()[0] != item.kgen_stmt.ancestors()[0] and callname:
+                        # add use
+                        pnode = node.kgen_parent
+                        checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.isonly and \
+                            callname in n.kgen_stmt.items
+                        if (id(pnode),callname) not in self.state_created_use_items and not part_has_node(pnode, USE_PART, checks):
+                            attrs = {'name':item.kgen_stmt.ancestors()[0].name, 'isonly': True, 'items':[callname]}
+                            part_append_gensnode(pnode, USE_PART, statements.Use, attrs=attrs)
+                            self.state_created_use_items.append((id(pnode),callname))
+                            pnode.kgen_stmt.top.used4genstate = True
 
                 part_append_comment(subrobj, EXEC_PART, '')
 
