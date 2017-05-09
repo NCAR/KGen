@@ -8,3 +8,4 @@ doc/sphinx/build
 *.zip
 *.pdf
 test/kapp/sys/ys/calc/calc_openmpi
+.cache

@@ -13,7 +13,7 @@ job_script = \
 #BSUB -a poe
 #BSUB -P STDD0002
 #BSUB -q premium
-#BSUB -W 0:20
+#BSUB -W 1:00
 #BSUB -x
 #BSUB -J KHOMME
 #BSUB -e homme.%%J.err

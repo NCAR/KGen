@@ -263,11 +263,11 @@ class KgenConfigParser(RawConfigParser):
         newline = line.strip()
 
         if len(newline)>0:
-            if newline[0]==';':
+            if newline[0]==';': # comment
                 return line
-            elif newline[0]=='[' and newline[-1]==']':
+            elif newline[0]=='[' and newline[-1]==']': # filepath
                 return line.replace(':', INTERNAL_NAMELEVEL_SEPERATOR)
-            else:
+            else: # else
                 pos = line.find('=')
                 if pos>0:
                     return line[:pos].replace(':', INTERNAL_NAMELEVEL_SEPERATOR) + line[pos:]
@@ -523,6 +523,10 @@ class Config(object):
         # setup config parameters
         self._attrs = OrderedDict()
         self.opt_handlers = OrderedDict()
+
+        # KGEN version
+        self._attrs['kgen'] = OrderedDict()
+        self._attrs['kgen']['version'] = [ 0, 7, '2' ]
 
         # KGEN operation mode
         self._attrs['check_mode'] = False

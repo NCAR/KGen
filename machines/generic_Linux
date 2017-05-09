@@ -1,0 +1,10 @@
+[general]
+name = Generic Linux Machine
+id = generic
+
+[variable]
+prerun_build =
+prerun_run =
+prerun_kernel_build =
+prerun_kernel_run =
+work_directory = $HOME/kgen_workspace

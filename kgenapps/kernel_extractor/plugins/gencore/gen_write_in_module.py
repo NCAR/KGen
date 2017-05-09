@@ -56,33 +56,40 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         if not hasattr(node, '__write_commonpart_statewrite'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_write_unit']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             if getinfo('is_openmp_app'):
-                attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_resetinvoke']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+                attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:%d)'%(getinfo('openmp_maxthreads')-1) ], 'entity_decls': ['kgen_resetinvoke']}
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d)'%(getinfo('openmp_maxthreads')-1) ], 'entity_decls': ['kgen_openmp_issave']}
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d, 0:%d)'%((len(getinfo('coverage_blocks'))-1), getinfo('openmp_maxthreads')-1) ], \
+                    'entity_decls': ['kgen_coverage_blocks']}
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             else:
                 attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_openmp_issave']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave', 'kgen_resetinvoke') ) ]}
-            part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
+                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d)'%len((getinfo('coverage_blocks'))-1) ], 'entity_decls': ['kgen_coverage_blocks']}
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave', 'kgen_resetinvoke', 'kgen_coverage_blocks') ) ]}
+            part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
             part_append_comment(pnode, DECL_PART, '')
             node.__write_commonpart_statewrite = True

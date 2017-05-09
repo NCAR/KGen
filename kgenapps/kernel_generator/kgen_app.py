@@ -10,25 +10,30 @@ KGEN_APP = os.path.dirname(os.path.realpath(__file__))
 KGEN_HOME = '%s/../..'%KGEN_APP
 KEXT_TOOL = '%s/kgenapps/kernel_extractor'%KGEN_HOME
 COMPFLAG_TOOL = '%s/kgenapps/compflag_detector'%KGEN_HOME
+COVERAGE_TOOL = '%s/kgenapps/coverage_detector'%KGEN_HOME
 
 sys.path.insert(0, '%s/base'%KGEN_HOME)
 sys.path.insert(0, COMPFLAG_TOOL)
+sys.path.insert(0, COVERAGE_TOOL)
 sys.path.insert(0, KEXT_TOOL)
 sys.path.insert(0, KGEN_APP)
 
 from kgen_utils import UserException, ProgramException, Logger, Config, run_shcmd
 from kgen_state import State
+from kgen_analyze import analyze
 
 def main():
     from compflag_tool import CompFlagDetect
+    from coverage_tool import CoverageDetect
     from kext_tool import KExtTool
 
-    version = [ 0, 7, '1' ]
+    version = [ 0, 7, '2' ]
     outdir = '.'
     retval = 0
 
     Logger.info('Starting KGen', stdout=True)
 
+    # add options for all of kgen tools
     try:
         # option parser
         parser = optparse.OptionParser(version='KGEN version %d.%d.%s'%tuple(version))
@@ -48,6 +53,9 @@ def main():
 
         # compflag options
         parser.add_option("--strace", dest="strace", action='store', type='string', default=None, help="strace options")
+
+        # coverage options
+        #parser.add_option("--strace", dest="strace", action='store', type='string', default=None, help="strace options")
 
         # kext options
         parser.add_option("--invocation", dest="invocation", action='append', type='string', default=None, help="(process, thread, invocation) pairs of kernel for data collection")
@@ -85,8 +93,11 @@ def main():
             print 'Usage: kgen [options] <target file path[:namepath]> --cmd-clean <commands> --cmd-build <commands> --cmd-run <commands>'
             sys.exit(-1)
 
-        kext_argv = []
+        # seletively copy user inputs for each kgen tools
         compflag_argv = []
+        coverage_argv = []
+        kext_argv = []
+        #kgen_argv = []
 
         # collect common options
         if opts.outdir:
@@ -94,6 +105,8 @@ def main():
             kext_argv.append(opts.outdir)
             compflag_argv.append('--build')
             compflag_argv.append('cwd="%s",clean="%s"'%(opts.outdir, opts.cmd_clean))
+            coverage_argv.append('--outdir')
+            coverage_argv.append(opts.outdir)
             outdir = opts.outdir
             if not os.path.exists(outdir):
                 os.mkdir(outdir)
@@ -102,14 +115,20 @@ def main():
             kext_argv.append(os.getcwd())
             compflag_argv.append('--build')
             compflag_argv.append('cwd="%s",clean="%s"'%(os.getcwd(), opts.cmd_clean))
+            coverage_argv.append('--outdir')
+            coverage_argv.append(os.getcwd())
             outdir = os.getcwd()
 
         if opts.prerun:
+            coverage_argv.append('--prerun')
+            coverage_argv.extend(opts.prerun)
             compflag_argv.append('--prerun')
             compflag_argv.extend(opts.prerun)
             kext_argv.append('--prerun')
             kext_argv.extend(opts.prerun)
         if opts.rebuild:
+            coverage_argv.append('--rebuild')
+            coverage_argv.extend(opts.rebuild)
             compflag_argv.append('--rebuild')
             compflag_argv.extend(opts.rebuild)
             kext_argv.append('--rebuild')
@@ -120,6 +139,8 @@ def main():
             kext_argv.append('--include-ini')
             kext_argv.append(opts.include_ini)
         if opts.debug:
+            coverage_argv.append('--debug')
+            coverage_argv.extend(opts.debug)
             compflag_argv.append('--debug')
             compflag_argv.extend(opts.debug)
             kext_argv.append('--debug')
@@ -131,6 +152,16 @@ def main():
             compflag_argv.append(opts.strace)
 
         compflag_argv.append(opts.cmd_build)
+
+        # collect coverage options
+
+        coverage_argv.append('--cmd-clean')
+        coverage_argv.append(opts.cmd_clean)
+        coverage_argv.append('--cmd-build')
+        coverage_argv.append(opts.cmd_build)
+        coverage_argv.append('--cmd-run')
+        coverage_argv.append(opts.cmd_run)
+        coverage_argv.append(args[0])
 
         # collect kext options
         if opts.invocation:
@@ -182,27 +213,85 @@ def main():
         compflag = CompFlagDetect()
         compflag.init(argv=compflag_argv)
         compflag.main()
-        flags = compflag.fini()
+        CF_flags = compflag.fini()
 
-        # run kext
+        Config.apply()
+
+        analyze()
+
+        #kext = KExtTool()
+        #kext.init()
+
+        # collect command line inputs and parse
+        #kgen_argv.extend(kext_argv)
+        #Config.apply(argv=kgen_argv)
+
+
+        if not opts.invocation:
+            coverage = CoverageDetect()
+            coverage.init(argv=coverage_argv)
+
+            #Logger.info('Program is analyzed', stdout=True)
+
+            coverage_argv.append(opts.cmd_clean)
+            coverage_argv.append(opts.cmd_build)
+            coverage_argv.append(opts.cmd_run)
+
+            # run coverage
+            coverage.main()
+
+            # parse coverage rebuild option
+            is_rebuild_coverage = False
+            if opts.rebuild:
+                for r in opts.rebuild:
+                    if isinstance(r, str):
+                        subopts = r.split(',')
+                        for subopt in subopts:
+                            if subopt in [ 'all', 'coverage' ]:
+                                is_rebuild_coverage = True
+                    if is_rebuild_coverage: break
+                             
+            # check if coverage file exist
+            has_coveragefile = False
+            if os.path.exists('%s/coverage'%outdir):
+                coveragefile = glob.glob('%s/coverage/%s.*'%(outdir, State.kernel['name']))
+                if len(coveragefile)>0:
+                    has_coveragefile = True
+                    
+            # generate coverage file
+            if is_rebuild_coverage or not has_coveragefile:
+                Logger.info('Generating coverage file at %s/coverage'%outdir, stdout=True) 
+                out, err, retcode = run_shcmd('make', cwd='%s/coverage'%outdir)
+                if retcode != 0:
+                    Logger.info('FAILED: %s'%err, stdout=True) 
+            else:
+                Logger.info('Reusing coverage at %s/coverage'%outdir, stdout=True) 
+
+            CV_flags = coverage.fini()
+
+            kext_argv.extend( [ '--invocation', CV_flags['invocation']] )
+
+
+        kext_argv.extend( [ '-i', CF_flags['incini'] ] )
+
         kext = KExtTool()
         kext.init()
-        kext_argv.extend( [ '-i', flags['incini'] ] )
-        Config.apply(argv=kext_argv)
+
+        # run kext
         kext.main()
         extracts = kext.fini()
         # extracts contain kernel files, state files
 
-        # parse rebuild option
-        is_rebuild = False
+        # parse kext rebuild option
+        is_rebuild_kext = False
         if opts.rebuild:
             for r in opts.rebuild:
                 if isinstance(r, str):
                     subopts = r.split(',')
                     for subopt in subopts:
                         if subopt in [ 'all', 'state' ]:
-                            is_rebuild = True
-                if is_rebuild: break
+                            is_rebuild_kext = True
+                if is_rebuild_kext: break
                          
         # check if state files exist
         has_statefiles = False
@@ -212,7 +301,7 @@ def main():
                 has_statefiles = True
                 
         # generate state
-        if is_rebuild or not has_statefiles:
+        if is_rebuild_kext or not has_statefiles:
             Logger.info('Generating state data files at %s/state.'%outdir, stdout=True) 
             out, err, retcode = run_shcmd('make clean', cwd='%s/state'%outdir)
             out, err, retcode = run_shcmd('make run', cwd='%s/state'%outdir)
