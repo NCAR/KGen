@@ -143,8 +143,8 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
 
                         part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
 
-                        pstr = '.TRUE.' if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')) else 'FALSE.'
-                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printname // (%s)"'%str_indexes, pstr]}
+                        pstr = '.TRUE.' if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')) else '.FALSE.'
+                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printname // "(%s)"'%str_indexes, pstr]}
                         part_append_genknode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 else: # intrinsic type
@@ -324,7 +324,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Else)
 
                         pstr = '.TRUE.' if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')) else '.FALSE.'
-                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printname // "(%s)"'%(entity_name, str_indexes), pstr]}
+                        attrs = {'designator': callname, 'items': ['var(%s)'%str_indexes, 'kgen_unit', 'printname // "(%s)"'%str_indexes, pstr]}
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Call, attrs=attrs)
 
                 else: # intrinsic type

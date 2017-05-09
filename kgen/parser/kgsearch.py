@@ -70,14 +70,14 @@ def f2003_search_unknowns(stmt, node, resolvers=None, gentype=None):
 
     if node is None: return
 
+    # save in unknowns dict in stmt
+    if not hasattr(stmt, 'unknowns'):
+        stmt.unknowns = OrderedDict()
+
     # skip searching if specified
     if ( hasattr(node, 'skip_search') and node.skip_search ) or \
         ( hasattr(node, 'parent') and hasattr(node.parent, 'skip_search') and node.parent.skip_search ):
         return
-
-    # save in unknowns dict in stmt
-    if not hasattr(stmt, 'unknowns'):
-        stmt.unknowns = OrderedDict()
 
     clsname = node.__class__.__name__
 
