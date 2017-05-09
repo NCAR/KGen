@@ -12,7 +12,7 @@ import collections
 import multiprocessing
 from collections import OrderedDict
 
-from kgtool import KGTool
+from kgtool import KGModelingTool
 from parser.kgparse import KGGenType
 from kggenfile import gensobj, KERNEL_ID_0, event_register, Gen_Statement, set_indent
 import kgutils
@@ -116,7 +116,7 @@ def readdatafiles(inq, outq):
 
     outq.put((invokes, usedfiles, usedlines, mpivisits, ompvisits))
 
-class Coverage(KGTool):
+class Coverage(KGModelingTool):
 
     def run(self):
 
@@ -124,18 +124,13 @@ class Coverage(KGTool):
 
         kgutils.logger.info('Starting KCover')
 
+        model_abspath = os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['model']))
         coverage_abspath = os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['coverage']))
 
-        # create coverage directory
-        if not os.path.exists(coverage_abspath):
-            os.makedirs(coverage_abspath)
-        if not os.path.exists('%s/__data__'%coverage_abspath):
-            os.makedirs('%s/__data__'%coverage_abspath)
-        if not os.path.exists('%s/__data__/__resource__'%coverage_abspath):
-            os.makedirs('%s/__data__/__resource__'%coverage_abspath)
+        # check if coverage should be invoked
 
-        # build app with instrumntation
-        if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
+        if not self.hasmodel('%s/%s'%(Config.path['outdir'], Config.modelfile), 'coverage') or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
+        #if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
 
             code_coverage_path = '%s/__data__/%s'%(coverage_abspath, Config.coverage['types']['code']['id'])
             if os.path.exists(code_coverage_path) and len(glob.glob( '%s/*'%code_coverage_path )) > 1 and Config.coverage['reuse_rawdata']:
@@ -224,7 +219,7 @@ class Coverage(KGTool):
 
             if os.path.exists(code_coverage_path) and len(glob.glob( '%s/*'%code_coverage_path )) > 1 and Config.coverage['reuse_rawdata']:
 
-                kgutils.logger.info('Generating coverage file: %s/%s'%(Config.path['outdir'], Config.coveragefile))
+                kgutils.logger.info('Generating model file: %s/%s'%(Config.path['outdir'], Config.modelfile))
 
                 files = None
                 with open('%s/files'%code_coverage_path, 'r') as f:
@@ -301,7 +296,7 @@ class Coverage(KGTool):
                         kgutils.logger.warn('Code coverage data is not collected.')
                     else:
                         try:
-                            with open('%s/%s'%(Config.path['outdir'], Config.coveragefile), 'w') as fd:
+                            with open('%s/%s'%(Config.path['outdir'], Config.modelfile), 'w') as fd:
                                 # summary section
                                 fd.write('[summary]\n')
                                 fd.write('number_of_files_having_condblocks = %d\n'%len(files))
@@ -378,17 +373,17 @@ class Coverage(KGTool):
 
                                     srclines[int(lines[fid][lid])-1] = '%s%s\n'%(srclines[int(lines[fid][lid])-1], '\n'.join(linevisit))
 
-                                coveragefile = '%s/%s.coverage'%(coverage_abspath, os.path.basename(files[fid]))
-                                with open(coveragefile, 'w') as fdst:
+                                modelfile = '%s/%s.coverage'%(coverage_abspath, os.path.basename(files[fid]))
+                                with open(modelfile, 'w') as fdst:
                                     fdst.write(''.join(srclines))
                         except Exception as e:
-                            if os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)):
-                                os.remove('%s/%s'%(Config.path['outdir'], Config.coveragefile))
+                            if os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)):
+                                os.remove('%s/%s'%(Config.path['outdir'], Config.modelfile))
                             kgutils.logger.error(str(e))
             else:
                 if not _DEBUG:
-                    if os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)):
-                        os.remove('%s/%s'%(Config.path['outdir'], Config.coveragefile))
+                    if os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)):
+                        os.remove('%s/%s'%(Config.path['outdir'], Config.modelfile))
                     shutil.rmtree(code_coverage_path)
                 kgutils.logger.info('failed to generate coverage information: %s'%err)
 
@@ -396,18 +391,19 @@ class Coverage(KGTool):
 
             if Config.state_switch['clean']:
                 kgutils.run_shcmd(Config.state_switch['clean'])
-        else:
-            kgutils.logger.info('Reusing KGen coverage file: %s/%s'%(Config.path['outdir'], Config.coveragefile))
+        else: # check if coverage should be invoked
+            kgutils.logger.info('Reusing KGen coverage file: %s/%s'%(Config.path['outdir'], Config.modelfile))
 
-        if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.coveragefile)):
+        # check if coverage data exists in model file
+        if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)):
             kgutils.logger.warn('No coverage file is found.')
         else:
             # read ini file
-            kgutils.logger.info('Reading %s/%s'%(Config.path['outdir'], Config.coveragefile))
+            kgutils.logger.info('Reading %s/%s'%(Config.path['outdir'], Config.modelfile))
 
             cfg = configparser.ConfigParser()
             cfg.optionxform = str
-            cfg.read('%s/%s'%(Config.path['outdir'], Config.coveragefile))
+            cfg.read('%s/%s'%(Config.path['outdir'], Config.modelfile))
 
             number_of_files_having_condblocks = int(cfg.get('summary', 'number_of_files_having_condblocks'))
             number_of_files_invoked = int(cfg.get('summary', 'number_of_files_invoked'))

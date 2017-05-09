@@ -200,6 +200,7 @@ class Config(object):
         self._attrs['path']['outdir'] = '.'
         self._attrs['path']['state'] = 'state'
         self._attrs['path']['kernel'] = 'kernel'
+        self._attrs['path']['model'] = 'model'
         self._attrs['path']['coverage'] = 'coverage'
 
         # source file parameters
@@ -241,7 +242,7 @@ class Config(object):
         # compiler flag information
         ###############################################################
 
-        # coverage parameters
+        # strace parameters
         self._attrs['stracefile'] = 'strace.log'
         self._attrs['strace'] = collections.OrderedDict()
 
@@ -332,17 +333,17 @@ class Config(object):
         self._attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXT
 
         ###############################################################
-        # coverage information
+        # model information
         ###############################################################
 
-        # coverage parameters
-        self._attrs['coveragefile'] = 'coverage.ini'
-        self._attrs['coverage'] = collections.OrderedDict()
-        self._attrs['coverage']['reuse_rawdata'] = True
-        self._attrs['coverage']['types'] = collections.OrderedDict()
-        self._attrs['coverage']['types']['code'] = collections.OrderedDict()
-        self._attrs['coverage']['types']['code']['id'] = '0'
-        self._attrs['coverage']['types']['code']['name'] = 'code'
+        # model parameters
+        self._attrs['modelfile'] = 'model.ini'
+        self._attrs['model'] = collections.OrderedDict()
+        self._attrs['model']['reuse_rawdata'] = True
+        self._attrs['model']['types'] = collections.OrderedDict()
+        self._attrs['model']['types']['code'] = collections.OrderedDict()
+        self._attrs['model']['types']['code']['id'] = '0'
+        self._attrs['model']['types']['code']['name'] = 'code'
         
 
         # set plugin parameters
@@ -409,7 +410,7 @@ class Config(object):
         self.parser.add_option("--verbose", dest="verbose_level", action='store', type='int', default=None, help="Set the verbose level for verification output")
         self.parser.add_option("--add-mpi-frame", dest="add_mpi_frame", action='store', type='string', default=None, help="Add MPI frame codes in kernel_driver")
 
-        self.parser.add_option("--noreuse-rawdata", dest="reuse_rawdata", action='store_false', default=True, help="Control raw data generation for coverage.")
+        self.parser.add_option("--noreuse-rawdata", dest="reuse_rawdata", action='store_false', default=True, help="Control raw data generation for modeling.")
 
         #self.parser.set_usage(cfg.usage)
 
@@ -920,8 +921,8 @@ class Config(object):
                 else:
                     print 'WARNING: %s is not supported add_mpi_frame parameter'%key
 
-        # generating coverage raw data
-        self._attrs['coverage']['reuse_rawdata'] = opts.reuse_rawdata 
+        # generating model raw data
+        self._attrs['model']['reuse_rawdata'] = opts.reuse_rawdata 
 
     def get_exclude_actions(self, section_name, *args ):
         if section_name=='namepath':

@@ -39,7 +39,16 @@ def main():
     # init plugins
     init_plugins([KERNEL_ID_0])
 
-    # coverage
+    # create model directory
+    model_abspath = os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['model']))
+    if not os.path.exists(model_abspath):
+        os.makedirs(model_abspath)
+    if not os.path.exists('%s/__data__'%model_abspath):
+        os.makedirs('%s/__data__'%model_abspath)
+    if not os.path.exists('%s/__data__/__resource__'%model_abspath):
+        os.makedirs('%s/__data__/__resource__'%model_abspath)
+
+    # model-coverage
     if 'coverage' in Config.skip:
         logger.info('Skipped coverage.') 
     else:
