@@ -396,6 +396,7 @@ class BinaryOpBase(Base):
     """
     def match(lhs_cls, op_pattern, rhs_cls, string, right=True, exclude_op_pattern = None,
               is_add = False):
+        # TODO: parsing error with bracket array contructor in Level 2 expr in Assignment stmt
         line, repmap = string_replace_map(string)
         if isinstance(op_pattern, str):
             if right:
@@ -420,8 +421,10 @@ class BinaryOpBase(Base):
         if exclude_op_pattern is not None:
             if exclude_op_pattern.match(op):
                 return
+
         lhs_obj = lhs_cls(repmap(lhs))
         rhs_obj = rhs_cls(repmap(rhs))
+
         return lhs_obj, op.replace(' ',''), rhs_obj
     match = staticmethod(match)
     def tostr(self):
@@ -2197,7 +2200,8 @@ class Ac_Implied_Do_Control(Base): # R471
         line, repmap = string_replace_map(string[i+1:].lstrip())
         t = line.split(',')
         if not (2<=len(t)<=3): return
-        t = [Scalar_Int_Expr(s.strip()) for s in t]
+        #t = [Scalar_Int_Expr(s.strip()) for s in t] # KGEN deletion
+        t = [Scalar_Int_Expr(repmap(s.strip())) for s in t] # KGEN addition
         return Ac_Do_Variable(s1), t
     match = staticmethod(match)
     def tostr(self): return '%s = %s' % (self.items[0], ', '.join(map(str,self.items[1])))

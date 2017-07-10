@@ -17,6 +17,8 @@ SRCROOT = os.path.dirname(os.path.realpath(__file__))
 KGEN_MACHINE = '%s/../machines'%SRCROOT
 KGEN_EXT = '%s/extractor'%SRCROOT
 KGEN_COVER = '%s/coverage'%SRCROOT
+KGEN_ETIME = '%s/elapsedtime'%SRCROOT
+KGEN_PAPI = '%s/papicounter'%SRCROOT
 
 #############################################################################
 ## CONFIG
@@ -202,6 +204,7 @@ class Config(object):
         self._attrs['path']['kernel'] = 'kernel'
         self._attrs['path']['model'] = 'model'
         self._attrs['path']['coverage'] = 'coverage'
+        self._attrs['path']['etime'] = 'elapsedtime'
 
         # source file parameters
         self._attrs['source'] = collections.OrderedDict()
@@ -344,10 +347,26 @@ class Config(object):
         self._attrs['model']['types']['code'] = collections.OrderedDict()
         self._attrs['model']['types']['code']['id'] = '0'
         self._attrs['model']['types']['code']['name'] = 'code'
-        
+        self._attrs['model']['types']['etime'] = collections.OrderedDict()
+        self._attrs['model']['types']['etime']['id'] = '1'
+        self._attrs['model']['types']['etime']['name'] = 'etime'
+        self._attrs['model']['types']['etime']['nbins'] = 20
+        self._attrs['model']['types']['etime']['ndata'] = 100
+        self._attrs['model']['types']['etime']['minval'] = None
+        self._attrs['model']['types']['etime']['maxval'] = None
+        self._attrs['model']['types']['etime']['timer'] = None
+        self._attrs['model']['types']['papi'] = collections.OrderedDict()
+        self._attrs['model']['types']['papi']['id'] = '2'
+        self._attrs['model']['types']['papi']['name'] = 'papi'
+        self._attrs['model']['types']['papi']['nbins'] = 20
+        self._attrs['model']['types']['papi']['ndata'] = 100
+        self._attrs['model']['types']['papi']['minval'] = None
+        self._attrs['model']['types']['papi']['maxval'] = None
 
         # set plugin parameters
         self._attrs['plugin']['priority']['cover.gencore'] = '%s/plugins/gencore'%KGEN_COVER
+        self._attrs['plugin']['priority']['etime.gencore'] = '%s/plugins/gencore'%KGEN_ETIME
+        self._attrs['plugin']['priority']['papi.gencore'] = '%s/plugins/gencore'%KGEN_PAPI
 
         ###############################################################
         # state information
@@ -411,6 +430,9 @@ class Config(object):
         self.parser.add_option("--add-mpi-frame", dest="add_mpi_frame", action='store', type='string', default=None, help="Add MPI frame codes in kernel_driver")
 
         self.parser.add_option("--noreuse-rawdata", dest="reuse_rawdata", action='store_false', default=True, help="Control raw data generation for modeling.")
+        self.parser.add_option("--repr-etime", dest="repr_etime", action='append', type='string', default=None, help="Specifying elapsedtime representativeness feature flags")
+        self.parser.add_option("--repr-papi", dest="repr_papi", action='append', type='string', default=None, help="Specifying papi counter representativeness feature flags")
+        self.parser.add_option("--repr-code", dest="repr_code", action='append', type='string', default=None, help="Specifying code coverage representativeness feature flags")
 
         #self.parser.set_usage(cfg.usage)
 
@@ -441,7 +463,7 @@ class Config(object):
             sys.exit(-1)
 
         # set callsite filepath
-        self.callsite['filepath'] = os.path.abspath(callsite[0])
+        self.callsite['filepath'] = os.path.realpath(callsite[0])
 
         # set namepath if exists in command line argument
         if len(callsite)==2:
@@ -456,8 +478,8 @@ class Config(object):
         # process extraction flags
         self._process_extract_flags(opts)
                 
-        # collect mpi params
-        #self.collect_mpi_params()
+        # process representativeness flags
+        self._process_repr_flags(opts)
 
     def __getattr__(self, name):
         return self._attrs[name]
@@ -622,6 +644,28 @@ class Config(object):
 
         files = None
         if opts.source:
+
+            isfree = None
+            isstrict = None
+
+            for line in opts.source:
+                flags = collections.OrderedDict()
+                for subflag in line.split(','):
+                    if subflag.find('=')>0:
+                        key, value = subflag.split('=')
+                        if key=='format':
+                            if value == 'free':
+                                isfree = True
+                            elif value == 'fixed':
+                                isfree = False
+                            self._attrs['source']['isfree'] = isfree
+                        elif key=='strict':
+                            if value == 'yes':
+                                isstrict = True
+                            elif value == 'no':
+                                isstrict = False
+                            self._attrs['source']['isstrict'] = isstrict
+
             for line in opts.source:
                 flags = collections.OrderedDict()
                 for subflag in line.split(','):
@@ -637,10 +681,10 @@ class Config(object):
                         elif key=='state':
                             for path in value.split(':'):
                                 if os.path.exists(path):
-                                    abspath = os.path.abspath(path)
-                                    self._attrs['source'][key].append(abspath)
+                                    realpath = os.path.realpath(path)
+                                    self._attrs['source'][key].append(realpath)
                                 else:
-                                    raise UserException('%s does not exist.'%os.path.abspath(path))
+                                    raise UserException('%s does not exist.'%os.path.realpath(path))
                         else:
                             flags[key] = value 
                     else:
@@ -648,25 +692,16 @@ class Config(object):
 
                 isfree = None
                 isstrict = None
-                if flags.has_key('format'):
-                    if flags['format']=='free': isfree = True 
-                    elif flags['format']=='fixed': isfree = False 
-                    else: raise UserException('format subflag of source flag should be either free or fixed.')
-
-                if flags.has_key('strict'):
-                    if flags['strict']=='yes': isstrict = True 
-                    elif flags['strict']=='no': isstrict = False 
-                    else: raise UserException('strict subflag of source flag should be either yes or no.')
 
                 if flags.has_key('file'):
                     subflags = collections.OrderedDict()
                     if isfree: subflags['isfree'] = isfree
                     if isstrict: subflags['isstrict'] = isstrict
                     for file in flags['file']:
-                        abspath = os.path.abspath(file)
+                        realpath = os.path.realpath(file)
                         if files is None: files = []
-                        files.append(abspath)
-                        self._attrs['source']['file'][abspath] = subflags
+                        files.append(realpath)
+                        self._attrs['source']['file'][realpath] = subflags
                 else:
                     if isfree: self._attrs['source']['isfree'] = isfree
                     if isstrict: self._attrs['source']['isstrict'] = isstrict
@@ -921,9 +956,44 @@ class Config(object):
                 else:
                     print 'WARNING: %s is not supported add_mpi_frame parameter'%key
 
+    def _process_repr_flags(self, opts):
+
         # generating model raw data
         self._attrs['model']['reuse_rawdata'] = opts.reuse_rawdata 
 
+        if opts.repr_etime:
+            for line in opts.repr_etime:
+                for eopt in line.split(','):
+                    split_eopt = eopt.split('=', 1)
+                    if len(split_eopt)==1:
+                        raise UserException('Unknown elapsed-time flag option: %s' % eopt)
+                    elif len(split_eopt)==2:
+                        if split_eopt[0] in [ 'minval', 'maxval' ]:
+                            self._attrs['model']['types']['etime'][split_eopt[0]] = float(split_eopt[1])
+                        elif split_eopt[0] in ('nbins', 'ndata'):
+                            self._attrs['model']['types']['etime'][split_eopt[0]] = int(split_eopt[1])
+                        elif split_eopt[0] in ('timer', ):
+                            self._attrs['model']['types']['etime'][split_eopt[0]] = split_eopt[1]
+                        else:
+                            raise UserException('Unknown elapsed-time flag option: %s' % eopt)
+
+        if opts.repr_papi:
+            for line in opts.repr_papi:
+                for popt in line.split(','):
+                    split_popt = popt.split('=', 1)
+                    if len(split_popt)==1:
+                        raise UserException('Unknown papi-counter flag option: %s' % popt)
+                    elif len(split_popt)==2:
+                        if split_popt[0] in [ 'minval', 'maxval' ]:
+                            self._attrs['model']['types']['papi'][split_popt[0]] = split_popt[1]
+                        elif split_popt[0] in ('nbins', 'ndata'):
+                            self._attrs['model']['types']['papi'][split_popt[0]] = int(split_popt[1])
+                        else:
+                            raise UserException('Unknown papi-counter flag option: %s' % popt)
+
+        if opts.repr_code:
+            raise UserException('Unknown code-coverage flag option: %s' % str(opts.repr_code))
+        
     def get_exclude_actions(self, section_name, *args ):
         if section_name=='namepath':
             if len(args)<1: return []
@@ -944,7 +1014,8 @@ class Config(object):
 
         if incattrs['opt']:
             self.includefile = os.path.basename(incattrs['opt'])
-            shutil.copy(incattrs['opt'], self.path['outdir'])
+            if not os.path.exists(os.path.join(self.path['outdir'], self.includefile)):
+                shutil.copy(incattrs['opt'], self.path['outdir'])
 
         # collect include configuration information
         Inc = KgenConfigParser(allow_no_value=True)
@@ -970,21 +1041,21 @@ class Config(object):
                 for option in Inc.options(section):
                     incattrs[lsection][option] = Inc.get(section, option).strip()
             elif os.path.isfile(section):
-                abspath = os.path.abspath(section)
-                if not incattrs['file'].has_key(abspath):
-                    incattrs['file'][abspath] = collections.OrderedDict()
-                    incattrs['file'][abspath]['path'] = ['.']
-                    incattrs['file'][abspath]['compiler'] = None 
-                    incattrs['file'][abspath]['compiler_options'] = None
-                    incattrs['file'][abspath]['macro'] = collections.OrderedDict()
+                realpath = os.path.realpath(section)
+                if not incattrs['file'].has_key(realpath):
+                    incattrs['file'][realpath] = collections.OrderedDict()
+                    incattrs['file'][realpath]['path'] = ['.']
+                    incattrs['file'][realpath]['compiler'] = None 
+                    incattrs['file'][realpath]['compiler_options'] = None
+                    incattrs['file'][realpath]['macro'] = collections.OrderedDict()
                 for option in Inc.options(section):
                     if option=='include':
                         pathlist = Inc.get(section, option).split(':')
-                        incattrs['file'][abspath]['path'].extend(pathlist)
+                        incattrs['file'][realpath]['path'].extend(pathlist)
                     elif option in [ 'compiler', 'compiler_options' ]:
-                        incattrs['file'][abspath][option] = Inc.get(section, option)
+                        incattrs['file'][realpath][option] = Inc.get(section, option)
                     else:
-                        incattrs['file'][abspath]['macro'][option] = Inc.get(section, option)
+                        incattrs['file'][realpath]['macro'][option] = Inc.get(section, option)
             else:
                 pass
                 #print '%s is either not suppored keyword or can not be found. Ignored.' % section

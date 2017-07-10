@@ -289,7 +289,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
             self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
                 block_statements.Module, self.has_externs_in_module, self.create_state_stmts_in_callsite) 
         else:
-            raise Exception('Dupulicated state extern subroutine name for module: %s. Please ensure that KGen-generated source file NOT re-used.'%node.name)
+            raise Exception('Dupulicated state extern subroutine name for module: %s. Please ensure that KGen-generated source file is NOT re-used.'%node.name)
 
     def create_kernel_stmts_in_callsite(self, node):
         if not self.kernel_externs_subrs[node][0] in self.kernel_callsite_use_stmts:

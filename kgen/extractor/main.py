@@ -214,20 +214,6 @@ class Extractor(KGTool):
             else:
                 depends[basename] = ' '.join(dep)
 
-        # link flags and objects
-        link_flags = ' '.join(Config.kernel_option['linker']['add'])
-        objects = ''
-        if Config.include.has_key('import'):
-            for path, import_type in Config.include['import'].iteritems():
-                if import_type.startswith('library'):
-                    inc = '-L'+path
-                    pos1 = import_type.find('(')
-                    pos2 = import_type.find(')')
-                    lib = '-l'+import_type[(pos1+1):pos2].strip()
-                    link_flags += ' %s %s'%(inc, lib)
-                elif import_type=='object':
-                    objects += ' %s'%os.path.basename(path)
-
         # find fc flag sets
         compilers = OrderedDict()
         compiler_options = OrderedDict()
@@ -262,6 +248,22 @@ class Extractor(KGTool):
                         compiler_options[opts].append(base)
                 else:
                     compiler_options[opts] = [ base, '%s.f90'%Config.kernel_driver['name'] ]
+
+        # link flags and objects
+        link_flags = ' '.join(Config.kernel_option['linker']['add'])
+        objects = ''
+        if Config.include.has_key('import'):
+            for path, import_type in Config.include['import'].iteritems():
+                if import_type == 'library' or import_type == 'shared_library':
+                    inc = '-L'+path
+                    pos1 = import_type.find('(')
+                    pos2 = import_type.find(')')
+                    lib = '-l'+import_type[(pos1+1):pos2].strip()
+                    link_flags += ' %s %s'%(inc, lib)
+                elif import_type == 'static-library':
+                    link_flags += ' %s'%path
+                elif import_type=='object':
+                    objects += ' %s'%os.path.basename(path)
 
         with open('%s/%s/Makefile'%(Config.path['outdir'], Config.path['kernel']), 'wb') as f:
             self.write(f, '# Makefile for KGEN-generated kernel')
@@ -337,7 +339,7 @@ class Extractor(KGTool):
             #if len(compilers)>0 and not Config.kernel_option['FC']: fc_str += '_0'
             #if len(compiler_options)>0 and not Config.kernel_option['FC_FLAGS']: fc_flags_str += '_SET_0'
 
-            self.write(f, '%s${%s} ${%s} %s %s -o kernel.exe $^'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
+            self.write(f, '%s${%s} ${%s} -o kernel.exe $^ %s %s'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
             self.write(f, '')
 
             for dep_base in dep_bases:
@@ -384,7 +386,7 @@ class Extractor(KGTool):
             self.write(f, '# Makefile for KGEN-generated instrumentation')
             self.write(f, '')
 
-            cwd = os.path.abspath(Config.cwd)
+            cwd = os.path.realpath(Config.cwd)
 
             prerun_build_str = ''
             if Config.prerun['build']:
@@ -418,21 +420,25 @@ class Extractor(KGTool):
             if Config.state_switch['type']=='replace':
                 for org_file in org_files:
                     basename = os.path.basename(org_file)
+                    self.write(f, 'rm -f %s'%org_file, t=True)
                     self.write(f, 'cp -f %(f1)s %(f2)s'%{'f1':basename, 'f2':org_file}, t=True)
             elif Config.state_switch['type']=='copy':
                 for org_file in org_files:
                     basename = os.path.basename(org_file)
+                    self.write(f, 'rm -f %s/%s'%(Config.state_switch['directory'], basename), t=True)
                     self.write(f, 'cp -f %s/%s/%s %s'%(Config.path['outdir'], Config.path['state'], \
                         basename, Config.state_switch['directory']), t=True)
             self.write(f, '')
 
             self.write(f, 'recover:')
             for org_file in org_files:
+                self.write(f, 'rm -f %s'%org_file, t=True)
                 self.write(f, 'cp -f %s.kgen_org %s'%(os.path.basename(org_file), org_file), t=True)
             self.write(f, '')
 
             self.write(f, 'recover_from_srcdir:')
             for org_file in org_files:
+                self.write(f, 'rm -f %s'%org_file, t=True)
                 self.write(f, 'cp -f %(f)s.kgen_org %(f)s'%{'f':org_file}, t=True)
             self.write(f, '')
 

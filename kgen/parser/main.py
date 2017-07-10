@@ -16,6 +16,9 @@ class Parser(kgtool.KGTool):
         import kganalyze
 
         # preprocess if required
+        for key, value in Config.include['import'].items():
+            if value == 'source':
+                kgparse.SrcFile(key)
 
         # read source file that contains callsite stmt
         cs_file = kgparse.SrcFile(Config.callsite['filepath'])
@@ -32,7 +35,7 @@ class Parser(kgtool.KGTool):
 
         # populate top block parameters
         Config.topblock['stmt'] = ancs[0]
-        Config.topblock['filepath'] = os.path.abspath(Config.topblock['stmt'].reader.id)
+        Config.topblock['filepath'] = os.path.realpath(Config.topblock['stmt'].reader.id)
 
         # resolve
         for cs_stmt in Config.callsite['stmts']:

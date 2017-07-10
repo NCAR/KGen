@@ -29,7 +29,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
         if len(parts) == 0:
             raise Exception('Wrong number of parts.')
 
-        match = re.match(r'\w+[^\w]*', parts[0]) 
+        match = re.match(r'\w+[^\w]*', parts[0].strip()) 
         if match:
             varname = match.group(0)
             for unknown, res in stmt.unknowns.items():
@@ -39,7 +39,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
                         return res_stmt.a.variables[varname]
                     else:
                         return self.get_orgstmt(parts[1:], res_stmt)
-        raise Exception('No matched statment is found.')
+        else:
+            raise Exception('No matched statment is found.')
 
     def add_useonlyname(self, ancs, unk, res_stmts):
         raise Exception('TODO: support for importing selector')
@@ -126,7 +127,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 # search through use stmts until the leaf stmt
                 partstmt = node.kgen_stmt
 
-                match = re.match(r'\w+[^\w]*', parts[0]) 
+                match = re.match(r'\w+[^\w]*', parts[0].strip()) 
                 if match:
                     varname = match.group(0)
                     for unknown, res in partstmt.unknowns.items():
@@ -236,7 +237,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
                 # search through use stmts until the leaf stmt
                 partstmt = node.kgen_stmt
 
-                match = re.match(r'\w+[^\w]*', parts[0]) 
+                match = re.match(r'\w+[^\w]*', parts[0].strip()) 
                 if match:
                     varname = match.group(0)
                     for unknown, res in partstmt.unknowns.items():
@@ -244,8 +245,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
                             partstmt = res.res_stmts[0]
                             break
 
-                var = self.get_orgstmt(parts[1:], partstmt)
-                vars.append((varstr, var))
+                    var = self.get_orgstmt(parts[1:], partstmt)
+                    vars.append((varstr, var))
             else:
                 match = re.match(r'\w+[^\w]*', varstr.strip()) 
                 if match:

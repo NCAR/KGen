@@ -578,7 +578,10 @@ class Print(Statement):
 
     # start of KGEN addition
     def tokgen(self):
-        return 'PRINT %s' % (', '.join([self.format]+self.items))
+        if hasattr(self, 'format'):
+            return 'PRINT %s' % (', '.join([self.format]+self.items))
+        else:
+            return 'PRINT *, %s' % (', '.join(self.items))
     # end of KGEN addition
 
     def analyze(self): return

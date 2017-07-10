@@ -135,13 +135,13 @@ class SrcFile(object):
             #if not match:
             #    match = re.match(r'\s*#include\s*("[^"]+"|\<[^\']+\>)\s*\Z', line, re.I)
             if match:
-                if Config.include['file'].has_key(self.abspath):
-                    include_dirs = Config.include['file'][self.abspath]['path']+Config.include['path']
+                if Config.include['file'].has_key(self.realpath):
+                    include_dirs = Config.include['file'][self.realpath]['path']+Config.include['path']
                 else:
                     include_dirs = Config.include['path']
                 filename = match.group(1)[1:-1].strip()
                 path = filename
-                for incl_dir in include_dirs+[os.path.dirname(self.abspath)]:
+                for incl_dir in include_dirs+[os.path.dirname(self.realpath)]:
                     path = os.path.join(incl_dir, filename)
                     if os.path.exists(path):
                         break
@@ -150,7 +150,7 @@ class SrcFile(object):
                         included_lines = f.read()
                         insert_lines.extend(self.handle_include(included_lines.split('\n')))
                 else:
-                    raise UserException('Can not find %s in include paths of %s.'%(filename, self.abspath))
+                    raise UserException('Can not find %s in include paths of %s.'%(filename, self.realpath))
             else:
                 insert_lines.append(line)
 
@@ -161,28 +161,27 @@ class SrcFile(object):
         # set default values
         self.tree = None
         self.srcpath = srcpath
-        self.abspath = os.path.abspath(self.srcpath)
+        self.realpath = os.path.realpath(self.srcpath)
 
         
         # set source file format
-        isfree = True
-        isstrict = False
-        if self.abspath in Config.source['file'].keys():
-            if Config.source['file'][self.abspath].has_key('isfree'):
-                isfree = Config.source['file'][self.abspath]['isfree']
-            if Config.source['file'][self.abspath].has_key('isstrict'):
-                isstrict = Config.source['file'][self.abspath]['isstrict']
+        isfree = None
+        isstrict = None
+        if self.realpath in Config.source['file'].keys():
+            if Config.source['file'][self.realpath].has_key('isfree'):
+                isfree = Config.source['file'][self.realpath]['isfree']
+            if Config.source['file'][self.realpath].has_key('isstrict'):
+                isstrict = Config.source['file'][self.realpath]['isstrict']
         else:
-            if Config.source['isstrict']: isstrict = Config.source['isstrict']
-            if Config.source['isfree']: isfree = Config.source['isfree']
-
+            isstrict = Config.source['isstrict']
+            isfree = Config.source['isfree']
         # prepare include paths and macro definitions
         path_src = []
         macros_src = []
-        if Config.include['file'].has_key(self.abspath):
-            path_src = Config.include['file'][self.abspath]['path']+[os.path.dirname(self.abspath)]
+        if Config.include['file'].has_key(self.realpath):
+            path_src = Config.include['file'][self.realpath]['path']+[os.path.dirname(self.realpath)]
             path_src = [ path for path in path_src if len(path)>0 ]
-            for k, v in Config.include['file'][self.abspath]['macro'].iteritems():
+            for k, v in Config.include['file'][self.realpath]['macro'].iteritems():
                 if v:
                     macros_src.append('-D%s=%s'%(k,v))
                 else:
@@ -200,11 +199,11 @@ class SrcFile(object):
         logger.info('Reading %s'%self.srcpath)
 
         new_lines = []
-        with open(self.abspath, 'r') as f:
+        with open(self.realpath, 'r') as f:
             if preprocess:
                 pp = Config.bin['pp']
                 if pp.endswith('fpp'):
-                    if isfree: srcfmt = ' -free'
+                    if isfree is None or isfree: srcfmt = ' -free'
                     else: srcfmt = ' -fixed'
                     flags = Config.bin['fpp_flags'] + srcfmt
                 elif pp.endswith('cpp'):
@@ -219,9 +218,9 @@ class SrcFile(object):
 
         # add include paths
         include_dirs = Config.include['path'][:]
-        if Config.include['file'].has_key(self.abspath) and Config.include['file'][self.abspath].has_key('path'):
-            include_dirs.extend(Config.include['file'][self.abspath]['path'])
-            include_dirs.append(os.path.dirname(self.abspath))
+        if Config.include['file'].has_key(self.realpath) and Config.include['file'][self.realpath].has_key('path'):
+            include_dirs.extend(Config.include['file'][self.realpath]['path'])
+            include_dirs.append(os.path.dirname(self.realpath))
 
         # fparse
         self.tree = api.parse('\n'.join(new_lines), ignore_comments=False, analyze=True, isfree=isfree, \
@@ -235,7 +234,7 @@ class SrcFile(object):
             stmt.parse_f2003()
 
         # rename reader.id
-        self.tree.reader.id = self.abspath
+        self.tree.reader.id = self.realpath
 
         # collect module information
         for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
@@ -243,7 +242,7 @@ class SrcFile(object):
                 Config.modules[mod_name] = collections.OrderedDict()
                 Config.modules[mod_name]['stmt'] = mod_stmt
                 Config.modules[mod_name]['file'] = self
-                Config.modules[mod_name]['path'] = self.abspath
+                Config.modules[mod_name]['path'] = self.realpath
         
         # collect program unit information
         for item in self.tree.content:
@@ -253,7 +252,7 @@ class SrcFile(object):
                 Config.program_units[item.reader.id].append(item)
 
         # create a tuple for file dependency
-        Config.srcfiles[self.abspath] = ( self, [], [] )
+        Config.srcfiles[self.realpath] = ( self, [], [] )
 
         self.process_directive()
 

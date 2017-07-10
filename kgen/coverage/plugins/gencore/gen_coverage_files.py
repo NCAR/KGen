@@ -131,22 +131,22 @@ class Gen_Coverage_File(Kgen_Plugin):
     def save_maps(self, node):
 
         # generate metadata.json for coverage
-        if os.path.exists('%s/__data__/coveragetypes'%getinfo('coverage_path')):
+        if os.path.exists('%s/__data__/modeltypes'%getinfo('model_path')):
             json_data = None
-            with open('%s/__data__/coveragetypes'%getinfo('coverage_path'), 'r') as cm:
+            with open('%s/__data__/modeltypes'%getinfo('model_path'), 'r') as cm:
                 json_data = json.load(cm)
                 if u'"%s"'%getinfo('coverage_typeid') not in json_data[u'datamap']:
                     json_data[u'datamap'][u'"%s"'%getinfo('coverage_typeid')] = u'"%s"'%getinfo('coverage_typename')
 
-            with open('%s/__data__/coveragetypes'%getinfo('coverage_path'), 'w') as cm:
+            with open('%s/__data__/modeltypes'%getinfo('model_path'), 'w') as cm:
                 cm.write(json.dumps(json_data))
         else:
-            with open('%s/__data__/coveragetypes'%getinfo('coverage_path'), 'w') as fm:
-                fm.write(u'{"datatype": "coverage", "datamap": { "%s": "%s" }}\n'%\
+            with open('%s/__data__/modeltypes'%getinfo('model_path'), 'w') as fm:
+                fm.write(u'{"datatype": "model", "datamap": { "%s": "%s" }}\n'%\
                     (getinfo('coverage_typeid'), getinfo('coverage_typename')))
 
         # generate metadata.json for filemap
-        with open('%s/__data__/%s/files'%(getinfo('coverage_path'), getinfo('coverage_typeid')), 'w') as fm:
+        with open('%s/__data__/%s/files'%(getinfo('model_path'), getinfo('coverage_typeid')), 'w') as fm:
             fm.write(u'{\n')
             files = []
             for fpath, (fid, lines) in self.paths.items():
@@ -154,7 +154,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             fm.write(', \n'.join(files))
             fm.write(u'\n}')
 
-        with open('%s/__data__/%s/lines'%(getinfo('coverage_path'), getinfo('coverage_typeid')), 'w') as fm:
+        with open('%s/__data__/%s/lines'%(getinfo('model_path'), getinfo('coverage_typeid')), 'w') as fm:
             fm.write(u'{\n')
             lines = []
             for fileid in range(len(self.paths)):
@@ -172,7 +172,7 @@ class Gen_Coverage_File(Kgen_Plugin):
 
         if hasattr(node, 'kgen_stmt') and node.kgen_stmt and \
             isinstance(node.kgen_stmt, block_statements.SubProgramStatement):        
-            if node.kgen_stmt.prefix.lower().find('pure') >= 0:
+            if node.kgen_stmt.is_pure() or node.kgen_stmt.is_elemental():
                 return True
 
         if hasattr(node, 'kgen_parent'):
@@ -357,7 +357,7 @@ class Gen_Coverage_File(Kgen_Plugin):
 
         ############# exec_part ########################
 
-        datapath = '%s/__data__'%getinfo('coverage_path')
+        datapath = '%s/__data__'%getinfo('model_path')
         codepath = '%s/%s'%(datapath, getinfo('coverage_typeid'))
 
         if getinfo('is_openmp_app'):

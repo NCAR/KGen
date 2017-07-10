@@ -1179,6 +1179,16 @@ class BeginStatement(Statement):
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
 
+# TODO: With this, KGen fails to resolve for variables defined in different module
+#                if isinstance(self, SubProgramStatement) and any( request.uname.firstpartname() == arg for arg in self.args ):
+#                    if TypeDeclarationStatement in request.resolvers:
+#                        logger.debug('The request is being resolved by dummy argument of a subprogram')
+#                        request.res_stmts.append(subp)
+#                        request.state = ResState.RESOLVED
+#                        self.add_geninfo(request.uname, request)
+#                        #self.check_spec_stmts(request.uname, request)
+#                        logger.debug('%s is resolved'%request.uname.firstpartname())
+
             # check if subprogram stmt in Interface block can resolve
             if request.state != ResState.RESOLVED and isinstance(request.originator, SpecificBinding) and \
                 hasattr(self.a, 'module_interface') and Interface in request.resolvers:

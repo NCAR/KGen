@@ -1144,3 +1144,18 @@ def search_Type_Guard_Stmt(stmt, node, gentype=None):
     #show_tree(node)
     #import pdb ;pdb.set_trace()
 
+def search_Implicit_Spec(stmt, node, gentype=None):
+    """
+    <implicit-spec> = <declaration-type-spec> ( <letter-spec-list> )
+    """
+    get_name_or_defer(stmt, node.items[0], res_typespec)
+    get_name_or_defer(stmt, node.items[1], res_typespec)
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+
+def search_Letter_Spec(stmt, node, gentype=None):
+    pass
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+    
+

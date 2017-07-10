@@ -302,13 +302,13 @@ plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kerne
     'is_openmp_app', 'is_openmp_critical', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'repeat_count', 'dummy_stmt', \
     'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'model_file', 'model_path', 'logger', \
-    'model_typeid', 'model_typename', 'traverse' ]
+    'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer' ]
 
 def getinfo(name, plugin=None):
     if name in plugin_default_infolist: 
         if name=='kernel_name': return Config.kernel['name']
         elif name=='kgen_version': return '%d.%d.%s'%tuple(Config.kgen['version'])
-        elif name=='kernel_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
+        elif name=='kernel_path': return os.path.realpath('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
         elif name=='kernel_driver_name': return Config.kernel_driver['name']
         elif name=='kernel_driver_callsite_args': return Config.kernel_driver['callsite_args']
         elif name=='is_openmp_app': return Config.openmp['enabled']
@@ -334,9 +334,12 @@ def getinfo(name, plugin=None):
         elif name=='verify_tol': return Config.verify['tolerance']
         elif name=='walk_stmts': return api.walk
         elif name=='model_file': return Config.modelfile
-        elif name=='model_typeid': return Config.model['types']['code']['id']
-        elif name=='model_typename': return Config.model['types']['code']['name']
-        elif name=='model_path': return os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['model']))
+        elif name=='coverage_typeid': return Config.model['types']['code']['id']
+        elif name=='coverage_typename': return Config.model['types']['code']['name']
+        elif name=='etime_typeid': return Config.model['types']['etime']['id']
+        elif name=='etime_typename': return Config.model['types']['etime']['name']
+        elif name=='etime_timer': return Config.model['types']['etime']['timer']
+        elif name=='model_path': return os.path.realpath('%s/%s'%(Config.path['outdir'], Config.path['model']))
         elif name=='traverse': return traverse
         elif name=='logger': return logger 
     elif Config.plugindb.has_key(name):

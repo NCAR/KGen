@@ -13,6 +13,8 @@ from kggenfile import init_plugins, KERNEL_ID_0
 from compflag.main import CompFlag
 from parser.main import Parser
 from coverage.main import Coverage
+from elapsedtime.main import ElapsedTime
+#from papicounter.main import PapiCounter
 from extractor.main import Extractor
 
 def main():
@@ -40,13 +42,13 @@ def main():
     init_plugins([KERNEL_ID_0])
 
     # create model directory
-    model_abspath = os.path.abspath('%s/%s'%(Config.path['outdir'], Config.path['model']))
-    if not os.path.exists(model_abspath):
-        os.makedirs(model_abspath)
-    if not os.path.exists('%s/__data__'%model_abspath):
-        os.makedirs('%s/__data__'%model_abspath)
-    if not os.path.exists('%s/__data__/__resource__'%model_abspath):
-        os.makedirs('%s/__data__/__resource__'%model_abspath)
+    model_realpath = os.path.realpath('%s/%s'%(Config.path['outdir'], Config.path['model']))
+    if not os.path.exists(model_realpath):
+        os.makedirs(model_realpath)
+    if not os.path.exists('%s/__data__'%model_realpath):
+        os.makedirs('%s/__data__'%model_realpath)
+    if not os.path.exists('%s/__data__/__resource__'%model_realpath):
+        os.makedirs('%s/__data__/__resource__'%model_realpath)
 
     # model-coverage
     if 'coverage' in Config.skip:
@@ -54,6 +56,25 @@ def main():
     else:
         cover = Coverage()
         cover.run()
+
+    # model-etime
+    if 'elapsedtime' in Config.skip:
+        logger.info('skipped elapsedtime.') 
+    else:
+        pass
+        etime = ElapsedTime()
+        etime.run()
+
+    # model-papi
+    if 'papi' in Config.skip:
+        logger.info('skipped papi.') 
+    else:
+        pass
+        #papi = PapiCounter()
+        #papi.run()
+
+    if len(Config.invocation['triples']) == 0:
+        Config.invocation['triples'].append( ( ('0', '0'), ('0', '0'), ('0', '0') ) )
 
     # extract
     if 'extract' in Config.skip:
