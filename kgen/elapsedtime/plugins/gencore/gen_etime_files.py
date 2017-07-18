@@ -391,7 +391,7 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
             attrs = {'expr': 'ierror .EQ. 0'}
             ifopen = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'specs': ['UNIT=dataunit(OMP_GET_THREAD_NUM())', 'FMT="(I16,1X,ES,1X,ES,1X,ES)"' ], \
+            attrs = {'specs': ['UNIT=dataunit(OMP_GET_THREAD_NUM())', 'FMT="(I16,1X,ES34.16,1X,ES34.16,1X,ES34.16)"' ], \
                 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())', 'kgen_timer(OMP_GET_THREAD_NUM(), 0)', \
                 'kgen_timer(OMP_GET_THREAD_NUM(), 1)', 'kgen_timer(OMP_GET_THREAD_NUM(), 2)' ]}
             part_append_gensnode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
@@ -417,7 +417,7 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
             attrs = {'expr': 'ierror .EQ. 0'}
             ifopen = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'specs': ['UNIT=dataunit', 'FMT="(I16,1X,ES,1X,ES,1X,ES)"' ], \
+            attrs = {'specs': ['UNIT=dataunit', 'FMT="(I16,1X,ES34.16,1X,ES34.16,1X,ES34.16)"' ], \
                 'items': [ 'kgen_invokes', 'kgen_timer(0)', \
                 'kgen_timer(1)', 'kgen_timer(2)' ]}
             part_append_gensnode(ifopen, EXEC_PART, statements.Write, attrs=attrs)

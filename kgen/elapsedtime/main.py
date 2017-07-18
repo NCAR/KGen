@@ -156,24 +156,31 @@ class ElapsedTime(KGModelingTool):
                 # generate wrapper nodes
                 for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
 
-                    sfile = None
-                    if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
+                    if os.path.realpath(filepath) == os.path.realpath(Config.callsite['filepath']):
                         sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
-                    elif os.path.realpath(filepath) == os.path.realpath(Config.callsite['filepath']):
-                        sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
-
-                    
-                    if sfile is not None:
-                        if os.path.realpath(filepath) == os.path.realpath(Config.callsite['filepath']):
-                            sfile.used4etime = True
-                        else:
-                            sfile.used4etime = False
-
+                        sfile.used4etime = True
                         self.genfiles.append((sfile, filepath))
                         Config.used_srcfiles[filepath] = (sfile, mods_used, units_used)
 
-                    if sfile is None:
-                        raise kgutils.ProgramException('Kernel source file is not generated for %s.'%filepath)
+#                    sfile = None
+#                    if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
+#                        sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
+#                    elif os.path.realpath(filepath) == os.path.realpath(Config.callsite['filepath']):
+#                        sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
+#
+#                    
+#                    if sfile is not None:
+#                        if os.path.realpath(filepath) == os.path.realpath(Config.callsite['filepath']):
+#                            sfile.used4etime = True
+#                        else:
+#                            sfile.used4etime = False
+#
+#                        self.genfiles.append((sfile, filepath))
+#                        Config.used_srcfiles[filepath] = (sfile, mods_used, units_used)
+#
+#                    if sfile is None:
+#                        import pdb; pdb.set_trace()
+#                        raise kgutils.ProgramException('Kernel source file is not generated for %s.'%filepath)
 
                 # process each nodes in the tree
                 for plugin_name in event_register.keys():
@@ -204,6 +211,7 @@ class ElapsedTime(KGModelingTool):
                 etime_files = []
                 #import pdb; pdb.set_trace()
                 for sfile, filepath in self.genfiles:
+                    #import pdb; pdb.set_trace()
                     filename = os.path.basename(filepath)
                     if sfile.used4etime:
                         set_indent('')

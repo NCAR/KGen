@@ -55,42 +55,42 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         if not hasattr(node, '__write_commonpart_statewrite'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_write_unit']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             if getinfo('is_openmp_app'):
                 attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_resetinvoke']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             else:
                 attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
                 attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_openmp_issave']}
-                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave', 'kgen_resetinvoke') ) ]}
-            part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
+            part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
             part_append_comment(pnode, DECL_PART, '')
             node.__write_commonpart_statewrite = True
 
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
-        part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_write_filepath_L%d'%lineno], 'selector':('1024', None)}
-        part_append_genknode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
+        part_append_gensnode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
         idx = index + 1
 
@@ -113,16 +113,16 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         # file open
         attrs = {'specs': ['kgen_write_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s/%s.L%d."'%(getinfo('kernel_path'), filename, lineno) ] + l}
-        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['NEWUNIT=kgen_write_unit', 'FILE=kgen_write_filepath_L%d'%lineno, 'STATUS="NEW"', 'ACCESS="STREAM"', \
             'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
-        part_append_genknode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
+        part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
 
 
         vars = []
         for varstr in node.kgen_stmt.write_state:
-            parts = varstr.split('%')
+            parts = varstr.lower().split('%')
             if len(parts) > 1:
                 # search through use stmts until the leaf stmt
                 partstmt = node.kgen_stmt
@@ -162,27 +162,27 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
                     for rank in range(var.rank):
                         attrs = {'items': [ 'LBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
-                        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+                        part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
                         attrs = {'items': [ 'UBOUND( %s, %d )'%(newvarstr, rank+1) ], 'specs': ['UNIT = kgen_write_unit']}
-                        part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+                        part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
                     attrs = {'items': [ newvarstr ] , 'specs': ['UNIT = kgen_write_unit']}
-                    part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
             else: # scalar
                 if stmt.is_derived() or is_class_derived:
                     raise Exception('Derived type is not supported for manual state generation yet.')
                 else: # intrinsic type
                     attrs = {'items': [var.name], 'specs': ['UNIT = kgen_write_unit']}
-                    part_append_genknode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
+                    part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
 
         # file close
         attrs = {'specs': ['UNIT=kgen_write_unit']}
-        part_append_genknode(ifsave, EXEC_PART, statements.Close, attrs=attrs)
+        part_append_gensnode(ifsave, EXEC_PART, statements.Close, attrs=attrs)
 
         attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_writesubp_invoke_L%d + 1'%lineno}
-        part_append_genknode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
+        part_append_gensnode(ifsave, EXEC_PART, statements.Assignment, attrs=attrs)
 
         part_insert_comment(node.kgen_parent, EXEC_PART, idx+1, '')
 
@@ -232,7 +232,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
         # collect variables for manual state generation
         vars = []
         for varstr in node.kgen_stmt.write_state:
-            parts = varstr.split('%')
+            parts = varstr.lower().split('%')
             if len(parts) > 1:
                 # search through use stmts until the leaf stmt
                 partstmt = node.kgen_stmt

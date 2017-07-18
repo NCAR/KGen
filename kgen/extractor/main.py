@@ -264,6 +264,7 @@ class Extractor(KGTool):
                     link_flags += ' %s'%path
                 elif import_type=='object':
                     objects += ' %s'%os.path.basename(path)
+                    shutil.copy(path, '%s/%s'%(Config.path['outdir'], Config.path['kernel']))
 
         with open('%s/%s/Makefile'%(Config.path['outdir'], Config.path['kernel']), 'wb') as f:
             self.write(f, '# Makefile for KGEN-generated kernel')

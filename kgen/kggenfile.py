@@ -834,6 +834,10 @@ class Gen_Statement(object):
         elif self.kgen_isvalid:
             cur_indent = self.kgen_gen_attrs['indent']
             if self.kgen_stmt:
+
+                if hasattr(self, 'skip_tostring') and self.skip_tostring:
+                    return
+
                 lines_str = None
                 unres_str = self.str_unresolved(self.kgen_stmt)
 
@@ -904,8 +908,9 @@ class Gen_Statement(object):
         raise ProgramException('Inherited class should implement tokgen().')
 
 class GenK_Statement(Gen_Statement):
-    kgen_file_type = FILE_TYPE.KERNEL
     def __init__(self, parent, stmt, match_class, kernel_id, attrs=None):
+
+        self.kgen_file_type = FILE_TYPE.KERNEL
 
         def process_exclude(node, bag, depth):
             if isinstance(node, Fortran2003.Name):
@@ -939,9 +944,16 @@ class GenK_Statement(Gen_Statement):
     def flatten(self, kernel_id, plugins):
         return self.statement_flatten(kernel_id, plugins)
 
+    def tostring(self):
+        if hasattr(self, 'kgen_stmt') and hasattr(self.kgen_stmt, 'f2003') and hasattr(self.kgen_stmt.f2003, 'after_exclude'):
+            self.skip_tostring = self.kgen_stmt.f2003.after_exclude
+        return super(GenK_Statement, self).tostring()
+
 class GenS_Statement(Gen_Statement):
-    kgen_file_type = FILE_TYPE.STATE
     def __init__(self, parent, stmt, match_class, kernel_id, attrs=None):
+
+        self.kgen_file_type = FILE_TYPE.STATE
+
         super(GenS_Statement, self).__init__(parent, stmt, match_class, kernel_id, attrs=attrs)
 
         if stmt: stmt.genspair = self

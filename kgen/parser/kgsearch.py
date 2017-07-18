@@ -151,6 +151,8 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
 
     from kgutils import KGName, pack_innamepath, match_namepath
     from kgparse import ResState
+    from kgextra import Intrinsic_Procedures
+    from base_classes import is_except
 
     if node is None: return
 
@@ -159,40 +161,40 @@ def get_name_or_defer(stmt, node, resolvers, defer=True, gentype=None):
 
     if isinstance(node, Fortran2003.Name):
 
-#        # skip if intrinsic
-#        if node.string.lower() in Intrinsic_Procedures:
-#            if  Config.search['skip_intrinsic'] and not is_except(node, stmt):
-#                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
-#                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
-#                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
-#                    logger.debug('Intrinsic procedure name of "%s" is used for name resolution'% \
-#                        (node.string.lower()))
-#                    logger.debug('\tnear "%s"'% stmt.item.line)
-#                    logger.debug('\tin %s'% stmt.reader.id)
-#                else:
-#                    #if node.string.lower()!='null':
-#                    #    logger.debug('Intrinsic procedure name of "%s" is skipped from name resolution'% \
-#                    #        (node.string.lower()))
-#                    #logger.debug('\tnear "%s"'% stmt.item.line)
-#                    #logger.debug('\tin %s'% stmt.reader.id)
-#                    return
-#    
-#            elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
-#                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
-#                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
-#                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
-#                    #logger.debug('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
-#                    #    (node.string.lower()))
-#                    #logger.debug('\tnear "%s"'% stmt.item.line)
-#                    #logger.debug('\tin %s'% stmt.reader.id)
-#                    pass
-#                else:
-#                    if node.string.lower()!='null':
-#                        logger.debug('Intrinsic procedure name of "%s" is skipped from name resolution'% \
-#                            (node.string.lower()))
-#                    logger.debug('\tnear "%s"'% stmt.item.line)
-#                    logger.debug('\tin %s'% stmt.reader.id)
-#                    return
+        # skip if intrinsic
+        if node.string.lower() in Intrinsic_Procedures:
+            if  Config.search['skip_intrinsic'] and not is_except(node, stmt):
+                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
+                    logger.debug('Intrinsic procedure name of "%s" is used for name resolution'% \
+                        (node.string.lower()))
+                    logger.debug('\tnear "%s"'% stmt.item.line)
+                    logger.debug('\tin %s'% stmt.reader.id)
+                else:
+                    #if node.string.lower()!='null':
+                    #    logger.debug('Intrinsic procedure name of "%s" is skipped from name resolution'% \
+                    #        (node.string.lower()))
+                    #logger.debug('\tnear "%s"'% stmt.item.line)
+                    #logger.debug('\tin %s'% stmt.reader.id)
+                    return
+    
+            elif not Config.search['skip_intrinsic'] and is_except(node, stmt): 
+                if hasattr(node, 'parent') and not isinstance(node.parent, Fortran2003.Part_Ref) and \
+                    not (isinstance(node.parent, Fortran2003.Function_Reference) and node.string.lower()=='null') and \
+                    not (isinstance(node.parent, Fortran2003.Specific_Binding) and node.string.lower()=='null'):
+                    #logger.debug('Intrinsic procedure name of "%s" is NOT skipped from name resolution'% \
+                    #    (node.string.lower()))
+                    #logger.debug('\tnear "%s"'% stmt.item.line)
+                    #logger.debug('\tin %s'% stmt.reader.id)
+                    pass
+                else:
+                    if node.string.lower()!='null':
+                        logger.debug('Intrinsic procedure name of "%s" is skipped from name resolution'% \
+                            (node.string.lower()))
+                    logger.debug('\tnear "%s"'% stmt.item.line)
+                    logger.debug('\tin %s'% stmt.reader.id)
+                    return
 
         # skip if excluded
         #if Config.exclude.has_key('namepath') and stmt.__class__ in execution_part:

@@ -74,13 +74,13 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
-        part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage']}
-        part_append_gensnode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+        part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
         attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
-        part_append_gensnode(node, DECL_PART, statements.Common, attrs=attrs)
+        part_append_genknode(node, DECL_PART, statements.Common, attrs=attrs)
 
         part_append_comment(node, DECL_PART, '')
 
@@ -182,7 +182,7 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         idx += 1
 
         attrs = {'variable': 'kgen_warmupstage', 'sign': '=', 'expr': '.TRUE.'}
-        part_insert_gensnode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=idx)
+        part_insert_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=idx)
         idx += 1
 #
 #        kernel_stmts = getinfo('callsite_stmts')

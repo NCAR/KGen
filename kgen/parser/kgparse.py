@@ -330,11 +330,12 @@ class SrcFile(object):
                     elif dname=='write':
                         if clause:
                             stmt.write_state = tuple( c.strip() for c in clause.split(',') )
-                            Config.callsite['stmts'].append(stmt)
+                            #Config.callsite['stmts'].append(stmt)
                     elif dname=='exclude':
                         next_fort_stmt = get_next_non_comment(stmt)
                         if next_fort_stmt:
                             next_fort_stmt.f2003.skip_search = True
+                            next_fort_stmt.f2003.after_exclude = True
                         else:
                             raise UserException('WARNING: exclude target is not found')
 
