@@ -1000,9 +1000,10 @@ class Gen_BeginStatement(object):
             insert_order = self.kgen_part_order[:]
             #if isinstance(stmt, block_statements.Interface) and stmt.content[0].name=='mpas_decomp_function':
             #    import pdb; pdb.set_trace()
+            deferred_stmts = []
             for node in stmt.content[:-1]:
                 item = genobj(self, node, self.kgen_kernel_id)
-                insert_order = self.insert_in_order(item, insert_order)
+                insert_order = self.insert_in_order(item, insert_order, deferred_stmts)
 
             if isinstance(stmt.content[-1], base_classes.EndStatement):
                 self.kgen_end_obj = genobj(self, stmt.content[-1], self.kgen_kernel_id)
@@ -1011,7 +1012,7 @@ class Gen_BeginStatement(object):
                     self.kgen_end_obj.blocktype = self.kgen_end_obj.kgen_stmt.blocktype
             else:
                 item = genobj(self, stmt.content[-1], self.kgen_kernel_id)
-                self.insert_in_order(item, insert_order)
+                self.insert_in_order(item, insert_order, deferred_stmts)
 
     def beginstatement_tostring(self):
         lines = []
@@ -1115,10 +1116,13 @@ class Gen_BeginStatement(object):
                     flatten_part.append(node)
             setattr(self, get_partname(name, False), flatten_part)
 
-    def insert_in_order(self, item, insert_order):
+    def insert_in_order(self, item, insert_order, deferred_stmts ):
 
         if item.kgen_stmt.__class__ is statements.Comment:
-            append_item_in_part(self, insert_order[0], item)
+            if item.kgen_stmt.content.lower().startswith('$omp'): 
+                deferred_stmts.append(item)
+            else:
+                append_item_in_part(self, insert_order[0], item)
             return insert_order
 
         new_order = []
@@ -1137,7 +1141,12 @@ class Gen_BeginStatement(object):
                         #import pdb; pdb.set_trace()
                         raise ProgramException('Wrong sequence for StmtFuncStatement: %s'%item.kgen_stmt.__class__)
                 elif item.kgen_stmt.__class__ in part_classes[name]:
+
                     matched = True
+
+                    while deferred_stmts:
+                        append_item_in_part(self, name, deferred_stmts.pop(0))
+                        
                     append_item_in_part(self, name, item)
             if matched:
                 new_order.append(name)

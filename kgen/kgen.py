@@ -50,28 +50,27 @@ def main():
     if not os.path.exists('%s/__data__/__resource__'%model_realpath):
         os.makedirs('%s/__data__/__resource__'%model_realpath)
 
-    # model-coverage
-    if 'coverage' in Config.skip:
-        logger.info('Skipped coverage.') 
-    else:
-        cover = Coverage()
-        cover.run()
+#    # model-coverage
+#    if 'coverage' in Config.skip:
+#        logger.info('Skipped coverage.') 
+#    else:
+#        cover = Coverage()
+#        cover.run()
 
     # model-etime
     if 'elapsedtime' in Config.skip:
         logger.info('skipped elapsedtime.') 
     else:
-        pass
         etime = ElapsedTime()
         etime.run()
 
-    # model-papi
-    if 'papi' in Config.skip:
-        logger.info('skipped papi.') 
-    else:
-        pass
-        #papi = PapiCounter()
-        #papi.run()
+#    # model-papi
+#    if 'papi' in Config.skip:
+#        logger.info('skipped papi.') 
+#    else:
+#        pass
+#        papi = PapiCounter()
+#        papi.run()
 
     if len(Config.invocation['triples']) == 0:
         Config.invocation['triples'].append( ( ('0', '0'), ('0', '0'), ('0', '0') ) )

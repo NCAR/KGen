@@ -50,6 +50,14 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
                     (getinfo('etime_typeid'), getinfo('etime_typename')))
 
 
+    def has_mpifh(self, stmt):
+        retval = False
+        if hasattr(stmt, 'a') and hasattr(stmt.a, 'variable_names') and 'mpi_wtime' in stmt.a.variable_names:
+            retval = True
+        elif hasattr(stmt, 'parent'):
+            retval = self.has_mpifh(stmt.parent)
+        return retval
+
     def insert_timing_stmts(self, timer, kernel_id, part_before, part_after, isopenmp=False):
 
         if timer == 'mpiwtime':
@@ -195,8 +203,9 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
             part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             if getinfo('etime_timer') is None or getinfo('etime_timer') == 'mpiwtime':
-                attrs = {'type_spec': 'REAL', 'selector': (None, '8'), 'entity_decls': ['MPI_WTIME', 'MPI_WTICK']}
-                part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                if not self.has_mpifh(node.kgen_stmt):
+                    attrs = {'type_spec': 'REAL', 'selector': (None, '8'), 'entity_decls': ['MPI_WTIME', 'MPI_WTICK']}
+                    part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         if getinfo('is_openmp_app'):
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}

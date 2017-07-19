@@ -413,19 +413,13 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         part_append_gensnode(cblock, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         if getinfo('is_openmp_app'):
-            attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_resetinvoke = .TRUE.']}
-            part_append_gensnode(cblock, DECL_PART, typedecl_statements.Logical, attrs=attrs)
-
             attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave = -1']}
             part_append_gensnode(cblock, DECL_PART, typedecl_statements.Integer, attrs=attrs)
         else:
-            attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke = .TRUE.']}
-            part_append_gensnode(cblock, DECL_PART, typedecl_statements.Logical, attrs=attrs)
-
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_openmp_issave = -1']}
             part_append_gensnode(cblock, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave', 'kgen_resetinvoke') ) ]}
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave') ) ]}
         part_append_gensnode(cblock, DECL_PART, statements.Common, attrs=attrs)
 
     def create_callsite_parts1(self, node):
@@ -483,7 +477,7 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
 
-        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave', 'kgen_resetinvoke') ) ]}
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave') ) ]}
         namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, statements.Common, 0, attrs=attrs)
 
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank']}
@@ -492,15 +486,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         if getinfo('is_openmp_app'):
             attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
             namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
-
-            attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_resetinvoke']}
-            namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
         else:
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_openmp_issave']}
             namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Integer, 0, attrs=attrs)
-
-            attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_resetinvoke']}
-            namedpart_insert_gensnode(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, typedecl_statements.Logical, 0, attrs=attrs)
 
         namedpart_insert_comment(node.kgen_kernel_id, STATE_PBLOCK_DECL_PART, 0, 'kgen variables')
 
@@ -679,15 +667,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'variable': 'kgen_openmp_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': 'kgen_invoke(OMP_GET_THREAD_NUM())'}
             part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.TRUE.'}
-            part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
-
             part_append_gensnode(ifsave2, EXEC_PART, statements.Else, attrs=attrs)
 
             attrs = {'variable': 'kgen_openmp_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '-1'}
-            part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
 
             if not getinfo('is_openmp_critical'):
@@ -732,15 +714,9 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'variable': 'kgen_openmp_issave', 'sign': '=', 'expr': 'kgen_invoke(0)'}
             part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.TRUE.'}
-            part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
-
             part_append_gensnode(ifsave2, EXEC_PART, statements.Else, attrs=attrs)
 
             attrs = {'variable': 'kgen_openmp_issave', 'sign': '=', 'expr': '-1'}
-            part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
             part_append_gensnode(ifsave2, EXEC_PART, statements.Assignment, attrs=attrs)
 
         namedpart_create_subpart(ifsave, STATE_PBLOCK_WRITE_IN_ARGS, EXEC_PART)
@@ -781,9 +757,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             attrs = {'variable': 'kgen_openmp_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '-1'}
             namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
-            attrs = {'variable': 'kgen_resetinvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
-            namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
-
             attrs = {'expr': 'kgen_issave(OMP_GET_THREAD_NUM())'}
             ifsave2 = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
 
@@ -792,9 +765,6 @@ class Gen_S_Callsite_File(Kgen_Plugin):
 
         else:
             attrs = {'variable': 'kgen_openmp_issave', 'sign': '=', 'expr': '-1'}
-            namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
-
-            attrs = {'variable': 'kgen_resetinvoke', 'sign': '=', 'expr': '.FALSE.'}
             namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
             attrs = {'expr': 'kgen_issave(0)'}
