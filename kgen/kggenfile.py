@@ -926,7 +926,7 @@ class GenK_Statement(Gen_Statement):
 
             if not hasattr(stmt, 'geninfo') and not hasattr(stmt, 'unknowns'):
                 self.kgen_isvalid = False
-            elif stmt and hasattr(stmt, 'f2003') and Config.exclude.has_key('namepath'):
+            elif hasattr(stmt, 'f2003') and Config.exclude.has_key('namepath'):
                 bag = {'excludes': Config.exclude['namepath'], 'matched': False, 'stmt':stmt}
                 traverse(stmt.f2003, process_exclude, bag)
                 if bag['matched']:

@@ -581,7 +581,8 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
             logger.debug('%s is already resolved'%request.uname.firstpartname())
             return
 
-        if request.uname.firstpartname()==self.name:
+        if request.uname.firstpartname()==self.name or \
+            ( hasattr(self, 'absinf_procname') and request.uname.firstpartname() == self.absinf_procname ):
             logger.debug('The request is being resolved by an interface')
             request.res_stmt = self
             request.state = ResState.RESOLVED
@@ -629,10 +630,16 @@ class Interface(BeginStatement, HasAttributes, HasImplicitStmt, HasUseStmt,
     def analyze(self):
         content = self.content[:]
 
+        absinf_subp_processed = False # KGEN addition
+
         while content:
             stmt = content.pop(0)
             if isinstance(stmt, self.end_stmt_cls):
                 break
+
+            if self.isabstract and not absinf_subp_processed and isinstance(stmt, SubProgramStatement):
+                self.absinf_procname = stmt.name
+
             stmt.analyze()
             #assert isinstance(stmt, SubProgramStatement),`stmt.__class__.__name__`
         if content:

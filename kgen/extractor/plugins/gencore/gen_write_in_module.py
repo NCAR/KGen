@@ -43,7 +43,30 @@ class Gen_Write_In_Module(Kgen_Plugin):
             raise Exception('No matched statment is found.')
 
     def add_useonlyname(self, ancs, unk, res_stmts):
-        raise Exception('TODO: support for importing selector')
+
+        if isinstance(res_stmts[-1], statements.Use):
+            pstmt = ancs[-1]
+            usestmt = res_stmts[-1] 
+            name = unk.firstpartname()
+
+            processed = False
+
+            if usestmt.name in pstmt.use_stmts.keys():
+                for ustmt in pstmt.use_stmts[usestmt.name]:
+                    if not ustmt.isonly:
+                        processed = True
+                        break
+                    if name in ustmt.norenames:
+                        processed = True
+                        break
+                    if name in [ newname for oldname, newname in ustmt.renames ]: 
+                        processed = True
+                        break
+            if not processed:
+                attrs = {'name': usestmt.name, 'isonly': True, 'items':[name]}
+                part_append_genknode(pstmt.genkpair, USE_PART, statements.Use, attrs=attrs)
+        else:
+            raise Exception('TODO: support for importing selector')
 
     def write_state(self, node):
         index, partname, part = get_part_index(node)

@@ -192,6 +192,12 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'expr': 'kgen_ierr == 0'}
         ifopen = part_append_genknode(ifread, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
+        attrs = {'items': ['""']}
+        part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'items': ['"***************** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' *****************"']}
+        part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
+
         attrs = {'variable': 'kgen_evalstage', 'sign': '=', 'expr': '.TRUE.'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
 
@@ -245,11 +251,8 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'variable': 'kgen_mainstage', 'sign': '=', 'expr': '.TRUE.'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'items': ['""']}
-        part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'items': ['"***************** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' *****************"']}
-        part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
+        #attrs = {'items': ['"***************** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' *****************"']}
+        #part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'variable': 'kgen_count', 'sign': '=', 'expr': 'kgen_count + 1'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
