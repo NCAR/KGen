@@ -1006,6 +1006,10 @@ class Gen_BeginStatement(object):
                 insert_order = self.insert_in_order(item, insert_order, deferred_stmts)
 
             if isinstance(stmt.content[-1], base_classes.EndStatement):
+
+                while deferred_stmts:
+                    append_item_in_part(self, name, deferred_stmts.pop(0))
+
                 self.kgen_end_obj = genobj(self, stmt.content[-1], self.kgen_kernel_id)
                 self.kgen_end_obj.kgen_isvalid = self.kgen_isvalid
                 if hasattr(self.kgen_end_obj.kgen_stmt, 'blocktype'):
@@ -1013,6 +1017,9 @@ class Gen_BeginStatement(object):
             else:
                 item = genobj(self, stmt.content[-1], self.kgen_kernel_id)
                 self.insert_in_order(item, insert_order, deferred_stmts)
+
+                while deferred_stmts:
+                    append_item_in_part(self, name, deferred_stmts.pop(0))
 
     def beginstatement_tostring(self):
         lines = []

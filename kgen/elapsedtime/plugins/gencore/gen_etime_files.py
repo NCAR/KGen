@@ -107,11 +107,11 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
                 attrs = {'designator': 'CPU_TIME', 'items': ['kgen_start(OMP_GET_THREAD_NUM())']}
                 namedpart_append_gensnode(kernel_id, part_before, statements.Call, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 0)', 'sign': '=', 'expr': 'kgen_start(OMP_GET_THREAD_NUM())'}
-                namedpart_append_gensnode(kernel_id, part_before, statements.Assignment, attrs=attrs)
-
                 attrs = {'designator': 'CPU_TIME', 'items': ['kgen_stop(OMP_GET_THREAD_NUM())']}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Call, attrs=attrs)
+
+                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 0)', 'sign': '=', 'expr': 'kgen_start(OMP_GET_THREAD_NUM())'}
+                namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
 
                 attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 1)', 'sign': '=', 'expr': 'kgen_stop(OMP_GET_THREAD_NUM())'}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
@@ -123,11 +123,11 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
                 attrs = {'designator': 'CPU_TIME', 'items': ['kgen_start']}
                 namedpart_append_gensnode(kernel_id, part_before, statements.Call, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(0)', 'sign': '=', 'expr': 'kgen_start'}
-                namedpart_append_gensnode(kernel_id, part_before, statements.Assignment, attrs=attrs)
-
                 attrs = {'designator': 'CPU_TIME', 'items': ['kgen_stop']}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Call, attrs=attrs)
+
+                attrs = {'variable': 'kgen_timer(0)', 'sign': '=', 'expr': 'kgen_start'}
+                namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
 
                 attrs = {'variable': 'kgen_timer(1)', 'sign': '=', 'expr': 'kgen_stop'}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
@@ -142,32 +142,32 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
                 attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock(OMP_GET_THREAD_NUM())', 'kgen_rate_clock(OMP_GET_THREAD_NUM())']}
                 namedpart_append_gensnode(kernel_id, part_before, statements.Call, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 0)', 'sign': '=', 'expr': 'REAL(kgen_start_clock(OMP_GET_THREAD_NUM())) / REAL(kgen_rate_clock(OMP_GET_THREAD_NUM()))'}
-                namedpart_append_gensnode(kernel_id, part_before, statements.Assignment, attrs=attrs)
-
                 attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock(OMP_GET_THREAD_NUM())', 'kgen_rate_clock(OMP_GET_THREAD_NUM())']}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Call, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 1)', 'sign': '=', 'expr': 'REAL(kgen_stop_clock(OMP_GET_THREAD_NUM())) / REAL(kgen_rate_clock(OMP_GET_THREAD_NUM()))'}
+                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 0)', 'sign': '=', 'expr': 'DBLE(kgen_start_clock(OMP_GET_THREAD_NUM())) / DBLE(kgen_rate_clock(OMP_GET_THREAD_NUM()))'}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 2)', 'sign': '=', 'expr': '1.0 / REAL(kgen_rate_clock(OMP_GET_THREAD_NUM()))'}
+                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 1)', 'sign': '=', 'expr': 'DBLE(kgen_stop_clock(OMP_GET_THREAD_NUM())) / DBLE(kgen_rate_clock(OMP_GET_THREAD_NUM()))'}
+                namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
+
+                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 2)', 'sign': '=', 'expr': '1.0 / DBLE(kgen_rate_clock(OMP_GET_THREAD_NUM()))'}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
             else:
 
                 attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock', 'kgen_rate_clock']}
                 namedpart_append_gensnode(kernel_id, part_before, statements.Call, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(0)', 'sign': '=', 'expr': 'REAL(kgen_start_clock) / REAL(kgen_rate_clock)'}
-                namedpart_append_gensnode(kernel_id, part_before, statements.Assignment, attrs=attrs)
-
                 attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Call, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(1)', 'sign': '=', 'expr': 'REAL(kgen_stop_clock) / REAL(kgen_rate_clock)'}
+                attrs = {'variable': 'kgen_timer(0)', 'sign': '=', 'expr': 'DBLE(kgen_start_clock) / DBLE(kgen_rate_clock)'}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
 
-                attrs = {'variable': 'kgen_timer(2)', 'sign': '=', 'expr': '1.0 / REAL(kgen_rate_clock)'}
+                attrs = {'variable': 'kgen_timer(1)', 'sign': '=', 'expr': 'DBLE(kgen_stop_clock) / DBLE(kgen_rate_clock)'}
+                namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
+
+                attrs = {'variable': 'kgen_timer(2)', 'sign': '=', 'expr': '1.0 / DBLE(kgen_rate_clock)'}
                 namedpart_append_gensnode(kernel_id, part_after, statements.Assignment, attrs=attrs)
 
         else:
@@ -190,6 +190,9 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
         attrs = {'type_spec': 'CHARACTER', 'selector':('4096', None), 'entity_decls': ['datapath']}
         part_append_gensnode(node, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['ierror']}
+        part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
         if getinfo('is_mpi_app'):
 
             for mod_name, use_names in getinfo('mpi_use'):
@@ -199,7 +202,7 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
             attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'SAVE' ], 'entity_decls': ['kgen_initialized = .FALSE.']}
             part_append_gensnode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['myrank', 'ierror']}
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['myrank']}
             part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             if getinfo('etime_timer') is None or getinfo('etime_timer') == 'mpiwtime':

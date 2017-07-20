@@ -74,7 +74,7 @@ class Simple_Timing(Kgen_Plugin):
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 
-        attrs = {'variable': 'kgen_elapsed_time', 'sign': '=', 'expr': '1.0e6*(kgen_stop_clock - kgen_start_clock)/REAL(kgen_rate_clock*kgen_maxiter)'}
+        attrs = {'variable': 'kgen_elapsed_time', 'sign': '=', 'expr': '1.0e6*(kgen_stop_clock - kgen_start_clock)/DBLE(kgen_rate_clock*kgen_maxiter)'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_elapsed_time']}

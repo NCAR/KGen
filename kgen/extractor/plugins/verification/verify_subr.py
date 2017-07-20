@@ -342,10 +342,10 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'buf2', 'sign': '=', 'expr': 'buf1'}
                     part_append_genknode(whereobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'variable': 'nrmsdiff', 'sign': '=', 'expr': 'SQRT(SUM(buf1)/REAL(n))'}
+                    attrs = {'variable': 'nrmsdiff', 'sign': '=', 'expr': 'SQRT(SUM(buf1)/DBLE(n))'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'variable': 'rmsdiff', 'sign': '=', 'expr': 'SQRT(SUM(buf2)/REAL(n))'}
+                    attrs = {'variable': 'rmsdiff', 'sign': '=', 'expr': 'SQRT(SUM(buf2)/DBLE(n))'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
                     attrs = {'expr': 'nrmsdiff > kgen_tolerance'}

@@ -14,7 +14,7 @@ class KAppSysYSPsradTest(KAppSysYSTest):
 
         # check if psrad exists in appsrc dir
         if not os.path.exists(appsrc):
-            shutil.copytree('/glade/u/tdd/asap/contrib/echam-PSrad', appsrc)
+            shutil.copytree('/glade/p/tdd/asap/contrib/echam-PSrad', appsrc)
 
         # copy psrad src into test specific src dir
         tmpsrc = '%s/psrad_work'%systestdir

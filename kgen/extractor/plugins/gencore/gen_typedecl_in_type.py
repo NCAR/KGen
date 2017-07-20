@@ -152,13 +152,13 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     part_append_genknode(pobj, EXEC_PART, statements.Read, attrs=attrs)
 
                     if stmt.is_numeric():
-                        attrs = {'designator': 'kgen_array_sumcheck', 'items': ['printname', 'kgen_array_sum', 'REAL(SUM(var, mask=(var .eq. var)), 8)', '.TRUE.']}
+                        attrs = {'designator': 'kgen_array_sumcheck', 'items': ['printname', 'kgen_array_sum', 'DBLE(SUM(var, mask=(var .eq. var)))', '.TRUE.']}
                         part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
                     attrs = {'expr': 'PRESENT( printvar ) .AND. printvar'}
                     ifpvarobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
                     if stmt.is_numeric():
-                        attrs = {'items': ['"KGEN DEBUG: REAL(SUM(" // printname // "), 8) = "', 'REAL(SUM(var, mask=(var .eq. var)), 8)']}
+                        attrs = {'items': ['"KGEN DEBUG: DBLE(SUM(" // printname // ")) = "', 'DBLE(SUM(var, mask=(var .eq. var)))']}
                     else:
                         attrs = {'items': ['"KGEN DEBUG: " // printname // " = "', 'var']}
                     part_append_genknode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -168,7 +168,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                         part_append_genknode(ifpvarobj, EXEC_PART, statements.Else)
 
                         if stmt.is_numeric():
-                            attrs = {'items': ['"KGEN DEBUG: REAL(SUM(" // printname // "), 8) = "', 'REAL(SUM(var, mask=(var .eq. var)), 8)']}
+                            attrs = {'items': ['"KGEN DEBUG: DBLE(SUM(" // printname // ")) = "', 'DBLE(SUM(var, mask=(var .eq. var)))']}
                         else:
                             attrs = {'items': ['"KGEN DEBUG: " // printname // " = "', 'var']}
                         part_append_genknode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -335,7 +335,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     ifpvarobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     if stmt.is_numeric():
-                        attrs = {'items': ['"KGEN DEBUG: REAL(SUM(" // printname // "), 8) = "', 'REAL(SUM(var, mask=(var .eq. var)), 8)']}
+                        attrs = {'items': ['"KGEN DEBUG: DBLE(SUM(" // printname // ") = "', 'DBLE(SUM(var, mask=(var .eq. var)))']}
                     else:
                         attrs = {'items': ['"KGEN DEBUG: " // printname // " = "', 'var']}
                     part_append_gensnode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -345,7 +345,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Else)
 
                         if stmt.is_numeric():
-                            attrs = {'items': ['"KGEN DEBUG: " // "REAL(SUM(" // printname // "), 8) = "', 'REAL(SUM(var, mask=(var .eq. var)), 8)']}
+                            attrs = {'items': ['"KGEN DEBUG: " // "DBLE(SUM(" // printname // ")) = "', 'DBLE(SUM(var, mask=(var .eq. var)))']}
                         else:
                             attrs = {'items': ['"KGEN DEBUG: " // printname // " = "', 'var']}
                         part_append_gensnode(ifpvarobj, EXEC_PART, statements.Write, attrs=attrs)

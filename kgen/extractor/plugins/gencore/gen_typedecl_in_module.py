@@ -569,12 +569,12 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         if var.is_array() and stmt.is_numeric():
             attrs = {'designator': 'kgen_array_sumcheck', 'items': ['"%s"'%(prefix+entity_name), \
-                'kgen_array_sum', 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(prefix+entity_name, prefix+entity_name, prefix+entity_name), '.TRUE.']}
+                'kgen_array_sum', 'DBLE(SUM(%s, mask=(%s .eq. %s)))'%(prefix+entity_name, prefix+entity_name, prefix+entity_name), '.TRUE.']}
             part_append_genknode(pobj, EXEC_PART, statements.Call, attrs=attrs)
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"KGEN DEBUG: REAL(SUM(%s), 8) = "'%(prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(prefix+entity_name, prefix+entity_name, prefix+entity_name)]}
+                attrs = {'items': ['"KGEN DEBUG: DBLE(SUM(%s)) = "'%(prefix+entity_name), 'DBLE(SUM(%s, mask=(%s .eq. %s)))'%(prefix+entity_name, prefix+entity_name, prefix+entity_name)]}
             else:
                 attrs = {'items': ['"KGEN DEBUG: %s = "'%(prefix+entity_name), prefix+entity_name]}
             part_append_genknode(pobj, EXEC_PART, statements.Write, attrs=attrs)
@@ -588,7 +588,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         if any(match_namepath(pattern, pack_exnamepath(stmt, entity_name), internal=False) for pattern in getinfo('print_var_names')):
             if stmt.is_numeric() and var.is_array():
-                attrs = {'items': ['"KGEN DEBUG: REAL(SUM(%s), 8) = "'%(prefix+entity_name), 'REAL(SUM(%s, mask=(%s .eq. %s)), 8)'%(entity_name, entity_name, entity_name)]}
+                attrs = {'items': ['"KGEN DEBUG: DBLE(SUM(%s)) = "'%(prefix+entity_name), 'DBLE(SUM(%s, mask=(%s .eq. %s)))'%(entity_name, entity_name, entity_name)]}
             else:
                 attrs = {'items': ['"KGEN DEBUG: %s = "'%(prefix+entity_name), entity_name]}
             part_append_gensnode(pobj, EXEC_PART, statements.Write, attrs=attrs)

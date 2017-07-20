@@ -333,7 +333,7 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['""']}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"Average call time (usec): ", kgen_total_time / REAL(kgen_count)'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
+        attrs = {'items': ['"Average call time (usec): ", kgen_total_time / DBLE(kgen_count)'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Minimum call time (usec): ", kgen_min_time'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
