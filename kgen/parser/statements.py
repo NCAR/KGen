@@ -3129,6 +3129,8 @@ class Comment(Statement):
             if hasattr(self, 'style') and self.style:
                 if self.style=='openmp':
                     return '!$OMP %s'%self.comment
+                elif self.style=='rawtext':
+                    return self.comment
                 else:
                     return '!%s'%self.comment
             else:

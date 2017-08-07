@@ -300,9 +300,9 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
 
 plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kernel_driver_name', 'kernel_driver_callsite_args', \
     'is_openmp_app', 'is_openmp_critical', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
-    'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'repeat_count', 'dummy_stmt', \
+    'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'dummy_stmt', 'is_papi_enabled', \
     'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'model_file', 'model_path', 'logger', \
-    'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer' ]
+    'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer', 'papi_event', 'papi_header_file' ]
 
 def getinfo(name, plugin=None):
     if name in plugin_default_infolist: 
@@ -326,7 +326,7 @@ def getinfo(name, plugin=None):
         elif name=='parentblock_stmt': return Config.parentblock['stmt']
         elif name=='topblock_stmt': return Config.topblock['stmt']
         elif name=='verbose_level': return Config.verify['verboselevel']
-        elif name=='repeat_count': return Config.timing['repeat']
+        #elif name=='repeat_count': return Config.timing['repeat']
         elif name=='dummy_stmt': return statements.DummyStatement()
         elif name=='add_mpi_frame': return Config.add_mpi_frame['enabled']
         elif name=='mpi_frame_np': return Config.add_mpi_frame['np']
@@ -340,6 +340,9 @@ def getinfo(name, plugin=None):
         elif name=='etime_typename': return Config.model['types']['etime']['name']
         elif name=='etime_timer': return Config.model['types']['etime']['timer']
         elif name=='model_path': return os.path.realpath('%s/%s'%(Config.path['outdir'], Config.path['model']))
+        elif name=='is_papi_enabled': return Config.model['types']['papi']['enabled']
+        elif name=='papi_header_file': return None if Config.model['types']['papi']['header'] is None else os.path.basename(Config.model['types']['papi']['header'])
+        elif name=='papi_event': return Config.model['types']['papi']['event']
         elif name=='traverse': return traverse
         elif name=='logger': return logger 
     elif Config.plugindb.has_key(name):
@@ -767,14 +770,21 @@ class Gen_Statement(object):
         stripline = line.strip()
         ompline = stripline.upper().replace(' ', '')
         isomp = False
+        isdir = False
         if len(ompline)>4 and stripline[:5]=='!$OMP':
             isomp = True
+        elif len(stripline)>0 and stripline[0]=='#':
+            isdir = True
         elif len(stripline)>0 and stripline[0]=='!':
             iscomment = True
         else:
             iscomment = False
 
-        tmpline = indent[:]
+        if isdir:
+            tmpline = ''
+        else:
+            tmpline = indent[:]
+
         for l in splitline:
             if not l: l = ' '
             l += ' '

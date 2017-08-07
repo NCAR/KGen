@@ -50,16 +50,20 @@ def main():
     if not os.path.exists('%s/__data__/__resource__'%model_realpath):
         os.makedirs('%s/__data__/__resource__'%model_realpath)
 
-#    # model-coverage
-#    if 'coverage' in Config.skip:
-#        logger.info('Skipped coverage.') 
-#    else:
-#        cover = Coverage()
-#        cover.run()
+    # model-coverage
+    if 'coverage' in Config.skip:
+        logger.info('Skipped coverage.') 
+    elif not Config.model['types']['code']['enabled']:
+        logger.info('Disabled coverage.') 
+    else:
+        cover = Coverage()
+        cover.run()
 
     # model-etime
     if 'elapsedtime' in Config.skip:
         logger.info('skipped elapsedtime.') 
+    elif not Config.model['types']['etime']['enabled']:
+        logger.info('Disabled elapsedtime.') 
     else:
         etime = ElapsedTime()
         etime.run()
@@ -67,8 +71,9 @@ def main():
 #    # model-papi
 #    if 'papi' in Config.skip:
 #        logger.info('skipped papi.') 
+#    elif not Config.model['types']['papi']['enabled']:
+#        logger.info('Disabled papi.') 
 #    else:
-#        pass
 #        papi = PapiCounter()
 #        papi.run()
 

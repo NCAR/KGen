@@ -87,15 +87,27 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr_list', 'kgen_unit_list']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_unit', 'kgen_count', 'kgen_count_verified']}
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr', 'kgen_unit', 'kgen_case_count', 'kgen_count_verified']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_filepath'], 'selector':('1024', None)}
         part_append_genknode(node, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
+        if getinfo('is_papi_enabled'):
+            part_append_comment(node, DECL_PART, '#ifdef KGEN_PAPI', style='rawtext')
+
+            attrs = {'type_spec': 'INTEGER', 'selector': (None, '8'), 'entity_decls': \
+                ['kgen_measure', 'kgen_total_count', 'kgen_min_count', 'kgen_max_count'], }
+            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            part_append_comment(node, DECL_PART, '#else', style='rawtext')
+
         attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': \
-            ['kgen_elapsed_time', 'kgen_total_time', 'kgen_min_time', 'kgen_max_time'], }
-        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            ['kgen_measure', 'kgen_total_time', 'kgen_min_time', 'kgen_max_time'], }
+        part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
+        if getinfo('is_papi_enabled'):
+            part_append_comment(node, DECL_PART, '#endif', style='rawtext')
 
         attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
@@ -120,6 +132,21 @@ class Gen_K_Driver(Kgen_Plugin):
             part_append_comment(node, EXEC_PART, 'END IF')
             part_append_comment(node, EXEC_PART, '')
 
+
+        if getinfo('is_papi_enabled'):
+            part_append_comment(node, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
+
+            attrs = {'variable': 'kgen_total_count', 'sign': '=', 'expr': '0_8'}
+            part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'kgen_min_count', 'sign': '=', 'expr': 'HUGE(0_8)'}
+            part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'kgen_max_count', 'sign': '=', 'expr': '0_8'}
+            part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            part_append_comment(node, EXEC_PART, '#else', style='rawtext')
+
         attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
@@ -129,7 +156,10 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'variable': 'kgen_max_time', 'sign': '=', 'expr': '0.0_kgen_dp'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'kgen_count', 'sign': '=', 'expr': '0'}
+        if getinfo('is_papi_enabled'):
+            part_append_comment(node, EXEC_PART, '#endif', style='rawtext')
+
+        attrs = {'variable': 'kgen_case_count', 'sign': '=', 'expr': '0'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'variable': 'kgen_count_verified', 'sign': '=', 'expr': '0'}
@@ -254,7 +284,7 @@ class Gen_K_Driver(Kgen_Plugin):
         #attrs = {'items': ['"***************** Verification against \'" // trim(adjustl(kgen_filepath)) // "\' *****************"']}
         #part_append_genknode(ifopen, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'variable': 'kgen_count', 'sign': '=', 'expr': 'kgen_count + 1'}
+        attrs = {'variable': 'kgen_case_count', 'sign': '=', 'expr': 'kgen_case_count + 1'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'variable': 'kgen_isverified', 'sign': '=', 'expr': '.FALSE.'}
@@ -279,14 +309,32 @@ class Gen_K_Driver(Kgen_Plugin):
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, '')
         namedpart_append_comment(node.kgen_kernel_id, DRIVER_CALLSITE_PART, 'callsite part')
 
-        attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_elapsed_time'}
+
+        if getinfo('is_papi_enabled'):
+            part_append_comment(ifopen, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
+
+            attrs = {'variable': 'kgen_total_count', 'sign': '=', 'expr': 'kgen_total_count + kgen_measure'}
+            part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'kgen_min_count', 'sign': '=', 'expr': 'MIN( kgen_min_count, kgen_measure )'}
+            part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            attrs = {'variable': 'kgen_max_count', 'sign': '=', 'expr': 'MAX( kgen_max_count, kgen_measure )'}
+            part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+            part_append_comment(ifopen, EXEC_PART, '#else', style='rawtext')
+
+        attrs = {'variable': 'kgen_total_time', 'sign': '=', 'expr': 'kgen_total_time + kgen_measure'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'kgen_min_time', 'sign': '=', 'expr': 'MIN( kgen_min_time, kgen_elapsed_time )'}
+        attrs = {'variable': 'kgen_min_time', 'sign': '=', 'expr': 'MIN( kgen_min_time, kgen_measure )'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'kgen_max_time', 'sign': '=', 'expr': 'MAX( kgen_max_time, kgen_elapsed_time )'}
+        attrs = {'variable': 'kgen_max_time', 'sign': '=', 'expr': 'MAX( kgen_max_time, kgen_measure )'}
         part_append_genknode(ifopen, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        if getinfo('is_papi_enabled'):
+            part_append_comment(ifopen, EXEC_PART, '#endif', style='rawtext')
 
         attrs = {'expr': 'kgen_isverified'}
         ifverified = part_append_genknode(ifopen, EXEC_PART, block_statements.IfThen, attrs=attrs)
@@ -316,7 +364,7 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['"****************************************************"'], 'specs': [ '*', '"(A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'expr': 'kgen_count == 0'}
+        attrs = {'expr': 'kgen_case_count == 0'}
         ifcount = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['"No data file is verified."'] }
@@ -324,7 +372,7 @@ class Gen_K_Driver(Kgen_Plugin):
 
         part_append_genknode(ifcount, EXEC_PART, statements.Else)
 
-        attrs = {'items': ['"Total number of verification cases  "', '":"', 'kgen_count'], 'specs': [ '*', '"(4X, A36, A1, I6)"' ]}
+        attrs = {'items': ['"Total number of verification cases  "', '":"', 'kgen_case_count'], 'specs': [ '*', '"(4X, A36, A1, I6)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Number of verification-passed cases "', '":"', 'kgen_count_verified'], 'specs': [ '*', '"(4X, A36, A1, I6)"' ]}
@@ -336,7 +384,21 @@ class Gen_K_Driver(Kgen_Plugin):
         attrs = {'items': ['""']}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"Average call time (usec): ", kgen_total_time / DBLE(kgen_count)'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
+        if getinfo('is_papi_enabled'):
+            part_append_comment(ifcount, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
+
+            attrs = {'items': ['"Average %s: ", NINT(kgen_total_count / DBLE(kgen_case_count))'%getinfo('papi_event')], 'specs': [ '*', '"(4X, A, I16)"' ]}
+            part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"Minimum %s: ", kgen_min_count'%getinfo('papi_event')], 'specs': [ '*', '"(4X, A, I16)"' ]}
+            part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"Maximum %s: ", kgen_max_count'%getinfo('papi_event')], 'specs': [ '*', '"(4X, A, I16)"' ]}
+            part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+            part_append_comment(ifcount, EXEC_PART, '#else', style='rawtext')
+
+        attrs = {'items': ['"Average call time (usec): ", kgen_total_time / DBLE(kgen_case_count)'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Minimum call time (usec): ", kgen_min_time'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
@@ -344,6 +406,9 @@ class Gen_K_Driver(Kgen_Plugin):
 
         attrs = {'items': ['"Maximum call time (usec): ", kgen_max_time'], 'specs': [ '*', '"(4X, A, E10.3)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
+
+        if getinfo('is_papi_enabled'):
+            part_append_comment(ifcount, EXEC_PART, '#endif', style='rawtext')
 
         attrs = {'items': ['"****************************************************"'], 'specs': [ '*', '"(A)"' ]}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)

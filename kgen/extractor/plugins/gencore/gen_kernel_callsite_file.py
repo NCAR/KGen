@@ -36,7 +36,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
     def set_args(self, node):
 
-        node.new_args = getinfo('kernel_driver_callsite_args')
+        callsite_args = getinfo('kernel_driver_callsite_args')[:]
+
+        node.new_args = callsite_args
         node.tosubr = True
         node.kgen_use_tokgen = True
 
@@ -60,9 +62,24 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_unit']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'REAL', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['kgen_elapsed_time'], \
+        if getinfo('is_papi_enabled'):
+            part_append_comment(node, DECL_PART, '#ifdef KGEN_PAPI', style='rawtext')
+
+            if getinfo('papi_header_file') is not None:
+                part_append_comment(node, DECL_PART, '#include <%s>'%getinfo('papi_header_file'), style='rawtext')
+                
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['kgen_measure'], \
+                'selector': (None, '8')}
+            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            part_append_comment(node, DECL_PART, '#else', style='rawtext')
+
+        attrs = {'type_spec': 'REAL', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['kgen_measure'], \
             'selector': (None, 'kgen_dp')}
-        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
+
+        if getinfo('is_papi_enabled'):
+            part_append_comment(node, DECL_PART, '#endif', style='rawtext')
 
         attrs = {'type_spec': 'LOGICAL', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['kgen_isverified']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)

@@ -409,12 +409,6 @@ Use 0 for "non MPI application" and use 0 for "non OpenMP application" in the fi
     meaning : options to let KGen skip searching for names of intrinsic-procedures. At minimum, one of skip or noskip should be provided. With except sub-flag, user can specify which namepath should be considered as exception.  With add-intrinsic sub-flag, user can add new intrinsic function names. default: --intrinsic skip
     example) --intrinsic skip,except=mod_A.subr_B.sum
 
-[--timing]
-::
-
-    meaning : provides information about performance measurement. One sub-flag is defined in this version: repeat. repeat provides the number of invocations to the kernel subprogram to enhance the measurement resolution. 
-    example) --timing repeat=1000
-
 [--verbose]
 ::
 

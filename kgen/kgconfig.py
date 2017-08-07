@@ -283,8 +283,8 @@ class Config(object):
         self._attrs['add_mpi_frame']['mpiexec'] = 'mpiexec'
 
         # timing parameters
-        self._attrs['timing'] = collections.OrderedDict()
-        self._attrs['timing']['repeat'] = '2'
+        #self._attrs['timing'] = collections.OrderedDict()
+        #self._attrs['timing']['repeat'] = '2'
 
         # verification parameters
         self._attrs['verify'] = collections.OrderedDict()
@@ -347,6 +347,7 @@ class Config(object):
         self._attrs['model']['types']['code'] = collections.OrderedDict()
         self._attrs['model']['types']['code']['id'] = '0'
         self._attrs['model']['types']['code']['name'] = 'code'
+        self._attrs['model']['types']['code']['enabled'] = False
         self._attrs['model']['types']['etime'] = collections.OrderedDict()
         self._attrs['model']['types']['etime']['id'] = '1'
         self._attrs['model']['types']['etime']['name'] = 'etime'
@@ -355,6 +356,7 @@ class Config(object):
         self._attrs['model']['types']['etime']['minval'] = None
         self._attrs['model']['types']['etime']['maxval'] = None
         self._attrs['model']['types']['etime']['timer'] = None
+        self._attrs['model']['types']['etime']['enabled'] = True
         self._attrs['model']['types']['papi'] = collections.OrderedDict()
         self._attrs['model']['types']['papi']['id'] = '2'
         self._attrs['model']['types']['papi']['name'] = 'papi'
@@ -362,6 +364,11 @@ class Config(object):
         self._attrs['model']['types']['papi']['ndata'] = 100
         self._attrs['model']['types']['papi']['minval'] = None
         self._attrs['model']['types']['papi']['maxval'] = None
+        self._attrs['model']['types']['papi']['header'] = None
+        self._attrs['model']['types']['papi']['event'] = 'PAPI_TOT_INS'
+        self._attrs['model']['types']['papi']['static'] = None
+        self._attrs['model']['types']['papi']['dynamic'] = None
+        self._attrs['model']['types']['papi']['enabled'] = False
 
         # set plugin parameters
         self._attrs['plugin']['priority']['cover.gencore'] = '%s/plugins/gencore'%KGEN_COVER
@@ -390,7 +397,7 @@ class Config(object):
         self._attrs['used_srcfiles'] = collections.OrderedDict()
         self._attrs['kernel_driver'] = collections.OrderedDict()
         self._attrs['kernel_driver']['name'] = 'kernel_driver'
-        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_elapsed_time', 'kgen_isverified']
+        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_measure', 'kgen_isverified']
 
         ###############################################################
         # Add common options
@@ -914,16 +921,16 @@ class Config(object):
                         else:
                             raise UserException('Unknown state-switch option: %s' % kopt)
 
-        if opts.timing:
-            for time in opts.timing.split(','):
-                key, value = time.split('=', 1)
-                if key in [ 'repeat' ] :
-                    try:
-                        self._attrs['timing'][key] = value
-                    except:
-                        raise UserException('repeat sub-flag should be integer value: %s'%value)
-                else:
-                    raise UserException('Unknown timing option: %s' % time)
+#        if opts.timing:
+#            for time in opts.timing.split(','):
+#                key, value = time.split('=', 1)
+#                if key in [ 'repeat' ] :
+#                    try:
+#                        self._attrs['timing'][key] = value
+#                    except:
+#                        raise UserException('repeat sub-flag should be integer value: %s'%value)
+#                else:
+#                    raise UserException('Unknown timing option: %s' % time)
 
         # kernel correctness checks 
         if opts.check:
@@ -966,8 +973,16 @@ class Config(object):
                 for eopt in line.split(','):
                     split_eopt = eopt.split('=', 1)
                     if len(split_eopt)==1:
-                        raise UserException('Unknown elapsed-time flag option: %s' % eopt)
+                        if split_eopt[0] == 'enable':
+                            self._attrs['model']['types']['etime']['enabled'] = True
+                        elif split_eopt[0] == 'disable':
+                            self._attrs['model']['types']['etime']['enabled'] = False
+                        else:
+                            raise UserException('Unknown elapsed-time flag option: %s' % eopt)
                     elif len(split_eopt)==2:
+
+                        self._attrs['model']['types']['etime']['enabled'] = True
+
                         if split_eopt[0] in [ 'minval', 'maxval' ]:
                             self._attrs['model']['types']['etime'][split_eopt[0]] = float(split_eopt[1])
                         elif split_eopt[0] in ('nbins', 'ndata'):
@@ -982,9 +997,17 @@ class Config(object):
                 for popt in line.split(','):
                     split_popt = popt.split('=', 1)
                     if len(split_popt)==1:
-                        raise UserException('Unknown papi-counter flag option: %s' % popt)
+                        if split_eopt[0] == 'enable':
+                            self._attrs['model']['types']['papi']['enabled'] = True
+                        elif split_eopt[0] == 'disable':
+                            self._attrs['model']['types']['papi']['enabled'] = False
+                        else:
+                            raise UserException('Unknown papi-counter flag option: %s' % popt)
                     elif len(split_popt)==2:
-                        if split_popt[0] in [ 'minval', 'maxval' ]:
+
+                        self._attrs['model']['types']['papi']['enabled'] = True
+
+                        if split_popt[0] in [ 'minval', 'maxval', 'header', 'static', 'dynamic', 'event' ]:
                             self._attrs['model']['types']['papi'][split_popt[0]] = split_popt[1]
                         elif split_popt[0] in ('nbins', 'ndata'):
                             self._attrs['model']['types']['papi'][split_popt[0]] = int(split_popt[1])
@@ -992,7 +1015,18 @@ class Config(object):
                             raise UserException('Unknown papi-counter flag option: %s' % popt)
 
         if opts.repr_code:
-            raise UserException('Unknown code-coverage flag option: %s' % str(opts.repr_code))
+            for line in opts.repr_code:
+                for popt in line.split(','):
+                    split_popt = popt.split('=', 1)
+                    if len(split_popt)==1:
+                        if split_eopt[0] == 'enable':
+                            self._attrs['model']['types']['code']['enabled'] = True
+                        elif split_eopt[0] == 'disable':
+                            self._attrs['model']['types']['code']['enabled'] = False
+                        else:
+                            raise UserException('Unknown code-coverage flag option: %s' % popt)
+                    elif len(split_popt)==2:
+                        raise UserException('Unknown code-coverage flag option: %s' % popt)
         
     def get_exclude_actions(self, section_name, *args ):
         if section_name=='namepath':

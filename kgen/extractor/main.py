@@ -180,18 +180,19 @@ class Extractor(KGTool):
 
         #basenames
         callsite_base = os.path.basename(Config.callsite['filepath'])
+        driver_base = '%s.f90'%Config.kernel_driver['name']
         dep_base_srcfiles = [ os.path.basename(filepath) for filepath, srclist in Config.used_srcfiles.iteritems() ]
-        dep_bases = dep_base_srcfiles + [ '%s.f90'%Config.kernel_driver['name'] ]
+        dep_bases = dep_base_srcfiles + [ driver_base ]
 
         # all object files
         all_objs_srcfiles = [ self.obj(dep_base_srcfile) for dep_base_srcfile in dep_base_srcfiles ]
-        all_objs = all_objs_srcfiles + [ self.obj('%s.f90'%Config.kernel_driver['name']), self.obj(KGUTIL), self.obj(TPROF) ]
+        all_objs = all_objs_srcfiles + [ self.obj(driver_base), self.obj(KGUTIL), self.obj(TPROF) ]
 
         # dependency
         depends = OrderedDict()
 
         # dependency for kernel_driver.f90
-        depends['%s.f90'%Config.kernel_driver['name']] = ' '.join(all_objs_srcfiles + [self.obj(KGUTIL), self.obj(TPROF) ])
+        depends[driver_base] = ' '.join(all_objs_srcfiles + [self.obj(KGUTIL), self.obj(TPROF) ])
 
         # dependency for other files
         for filepath, (kfile, sfile, mods_used, units_used) in Config.used_srcfiles.iteritems():
@@ -209,7 +210,7 @@ class Extractor(KGTool):
             if basename==callsite_base:
                 dobjs = all_objs[:]
                 dobjs.remove(self.obj(callsite_base))
-                dobjs.remove(self.obj('%s.f90'%Config.kernel_driver['name']))
+                dobjs.remove(self.obj(driver_base))
                 depends[basename] = ' '.join(dobjs)
             else:
                 depends[basename] = ' '.join(dep)
@@ -233,7 +234,7 @@ class Extractor(KGTool):
                     if base not in compilers[comp]:
                         compilers[comp].append(base)
                 else:
-                    compilers[comp] = [ base, '%s.f90'%Config.kernel_driver['name']]
+                    compilers[comp] = [ base, driver_base]
 
             opts = ''
             if Config.include['compiler'].has_key('compiler_options'):
@@ -247,7 +248,7 @@ class Extractor(KGTool):
                     if base not in compiler_options[kfile['compiler_options']]:
                         compiler_options[opts].append(base)
                 else:
-                    compiler_options[opts] = [ base, '%s.f90'%Config.kernel_driver['name'] ]
+                    compiler_options[opts] = [ base, driver_base ]
 
         # link flags and objects
         link_flags = ' '.join(Config.kernel_option['linker']['add'])
@@ -332,6 +333,14 @@ class Extractor(KGTool):
                 self.write(f, '%s./kernel.exe'%prerun_run_str, t=True)
             self.write(f, '')
 
+            if Config.model['types']['papi']['enabled']:
+                self.write(f, 'papi: build-papi')
+                if Config.add_mpi_frame['enabled']:
+                    self.write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
+                else:
+                    self.write(f, '%s./kernel.exe'%prerun_run_str, t=True)
+                self.write(f, '')
+
             self.write(f, 'build: ${ALL_OBJS}')
 
             fc_str = 'FC_0'
@@ -342,6 +351,29 @@ class Extractor(KGTool):
 
             self.write(f, '%s${%s} ${%s} -o kernel.exe $^ %s %s'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
             self.write(f, '')
+
+            if Config.model['types']['papi']['enabled']:
+
+                self.write(f, 'build-papi: ${ALL_OBJS}')
+
+                fc_str = 'FC_0'
+                fc_flags_str = 'FC_FLAGS_SET_0'
+
+                #if len(compilers)>0 and not Config.kernel_option['FC']: fc_str += '_0'
+                #if len(compiler_options)>0 and not Config.kernel_option['FC_FLAGS']: fc_flags_str += '_SET_0'
+
+                if Config.model['types']['papi']['static'] is not None:
+                    link_flags += ' %s'%Config.model['types']['papi']['static']
+
+                if Config.model['types']['papi']['dynamic'] is not None:
+                    ddir, dlib = os.path.split( Config.model['types']['papi']['dynamic'] )
+                    root, ext = dlib.split('.', 1)
+                    if len(root) > 3:
+                        link_flags += ' -L%s -l%s'%( ddir, root[3:] )
+
+                self.write(f, '%s${%s} ${%s} -o kernel.exe $^ %s %s'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
+                self.write(f, '')
+
 
             for dep_base in dep_bases:
                 self.write(f, '%s: %s %s' % (self.obj(dep_base), dep_base, depends[dep_base]))
@@ -362,7 +394,18 @@ class Extractor(KGTool):
                 if dfc_str == 'FC': dfc_str = 'FC_0'
                 if dfc_flags_str == 'FC_FLAGS': dfc_flags_str = 'FC_FLAGS_SET_0'
 
-                self.write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, dfc_str, dfc_flags_str), t=True)
+                if Config.model['types']['papi']['enabled'] and Config.model['types']['papi']['header'] is not None and \
+                    dep_base in [ callsite_base, driver_base ]:
+                    self.write(f, 'ifeq (${MAKECMDGOALS}, papi)')
+                    papi_flags_str = ' -DKGEN_PAPI -I%s'%os.path.split( Config.model['types']['papi']['header'])[0]
+                    self.write(f, '%s %s %s $< tmp.$<'%(Config.bin['pp'], Config.bin['cpp_flags'], papi_flags_str), t=True)
+                    self.write(f, 'else')
+                    self.write(f, '%s %s $< tmp.$<'%(Config.bin['pp'], Config.bin['cpp_flags']), t=True)
+                    self.write(f, 'endif')
+                    self.write(f, '%s${%s} ${%s} -c -o $@ tmp.$<'%(prerun_build_str, dfc_str, dfc_flags_str), t=True)
+                    self.write(f, 'rm -f tmp.$<', t=True)
+                else:
+                    self.write(f, '%s${%s} ${%s} -c -o $@ $<'%(prerun_build_str, dfc_str, dfc_flags_str), t=True)
                 self.write(f, '')
 
             self.write(f, '%s: %s' % (self.obj(KGUTIL), KGUTIL))
