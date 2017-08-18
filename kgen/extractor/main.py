@@ -26,6 +26,9 @@ class Extractor(KGTool):
 
         kgutils.logger.info('Starting KExtract')
 
+        # clear shared resources
+        Config.used_srcfiles.clear()
+
         # create kernel directory
         if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.path['kernel'])):
             os.makedirs('%s/%s'%(Config.path['outdir'], Config.path['kernel']))
@@ -326,6 +329,10 @@ class Extractor(KGTool):
             self.write(f, 'ALL_OBJS := %s'%' '.join(all_objs))
             self.write(f, '')
 
+            if Config.model['types']['papi']['enabled']:
+                self.write(f, 'PAPI_EVENT := %s'% Config.model['types']['papi']['event'] )
+                self.write(f, '')
+
             self.write(f, 'run: build')
             if Config.add_mpi_frame['enabled']:
                 self.write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
@@ -398,7 +405,7 @@ class Extractor(KGTool):
                     dep_base in [ callsite_base, driver_base ]:
                     self.write(f, 'ifeq (${MAKECMDGOALS}, papi)')
                     papi_flags_str = ' -DKGEN_PAPI -I%s'%os.path.split( Config.model['types']['papi']['header'])[0]
-                    self.write(f, '%s %s %s $< tmp.$<'%(Config.bin['pp'], Config.bin['cpp_flags'], papi_flags_str), t=True)
+                    self.write(f, '%s %s %s $< | sed "s/KGENPAPIEVENT/${PAPI_EVENT}/g" > tmp.$<'%(Config.bin['pp'], Config.bin['cpp_flags'], papi_flags_str), t=True)
                     self.write(f, 'else')
                     self.write(f, '%s %s $< tmp.$<'%(Config.bin['pp'], Config.bin['cpp_flags']), t=True)
                     self.write(f, 'endif')

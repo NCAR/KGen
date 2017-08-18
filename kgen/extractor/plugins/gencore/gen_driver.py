@@ -387,13 +387,13 @@ class Gen_K_Driver(Kgen_Plugin):
         if getinfo('is_papi_enabled'):
             part_append_comment(ifcount, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
 
-            attrs = {'items': ['"Average %s: ", NINT(kgen_total_count / DBLE(kgen_case_count))'%getinfo('papi_event')], 'specs': [ '*', '"(4X, A, I16)"' ]}
+            attrs = {'items': ['"Average KGENPAPIEVENT: ", NINT(kgen_total_count / DBLE(kgen_case_count))'], 'specs': [ '*', '"(4X, A, I16)"' ]}
             part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'items': ['"Minimum %s: ", kgen_min_count'%getinfo('papi_event')], 'specs': [ '*', '"(4X, A, I16)"' ]}
+            attrs = {'items': ['"Minimum KGENPAPIEVENT: ", kgen_min_count'], 'specs': [ '*', '"(4X, A, I16)"' ]}
             part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'items': ['"Maximum %s: ", kgen_max_count'%getinfo('papi_event')], 'specs': [ '*', '"(4X, A, I16)"' ]}
+            attrs = {'items': ['"Maximum KGENPAPIEVENT: ", kgen_max_count'], 'specs': [ '*', '"(4X, A, I16)"' ]}
             part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
             part_append_comment(ifcount, EXEC_PART, '#else', style='rawtext')

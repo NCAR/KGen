@@ -198,8 +198,8 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         part_insert_comment(node.kgen_parent, EXEC_PART, idx, 'call to kgen kernel')
         idx += 1
 
-        attrs = {'variable': 'kgen_warmupstage', 'sign': '=', 'expr': '.TRUE.'}
-        part_insert_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=idx)
+        #attrs = {'variable': 'kgen_warmupstage', 'sign': '=', 'expr': '.TRUE.'}
+        #part_insert_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs, index=idx)
         idx += 1
 #
 #        kernel_stmts = getinfo('callsite_stmts')

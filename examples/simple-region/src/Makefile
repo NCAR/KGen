@@ -1,6 +1,10 @@
 ROW := 4
 COL := 4
 
+# uncommand followings to build with PAPI library
+PAPI_DIR := /glade/apps/opt/papi/5.3.2/intel/15.0.0
+PAPI_LIB := ${PAPI_DIR}/lib/libpapi.a
+
 FC := ifort
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}
 
@@ -10,7 +14,7 @@ run: build
 build: demo.exe
 
 demo.exe: program.o update_mod.o calc_mod.o
-	${FC} -o $@ $^
+	${FC} -o $@ $^ ${PAPI_LIB}
 
 program.o: program.F90 update_mod.o
 	${FC} -c -o $@ $<

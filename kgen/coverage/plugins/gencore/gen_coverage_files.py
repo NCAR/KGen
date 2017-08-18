@@ -309,6 +309,9 @@ class Gen_Coverage_File(Kgen_Plugin):
         attrs = {'type_spec': 'CHARACTER', 'selector':('1', None), 'entity_decls': ['dummychar']}
         part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Character, attrs=attrs)
 
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': [ 'ierror']}
+        part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
         if getinfo('is_mpi_app'):
 
             for mod_name, use_names in getinfo('mpi_use'):
@@ -318,7 +321,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'type_spec': 'LOGICAL', 'attrspec': [ 'SAVE' ], 'entity_decls': ['kgen_initialized = .FALSE.']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['myrank', 'numranks', 'ierror']}
+            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['myrank', 'numranks']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'selector':('10', None), 'entity_decls': ['numranksstr']}

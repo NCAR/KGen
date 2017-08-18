@@ -273,6 +273,7 @@ class SrcFile(object):
         return None, None
 
     def process_directive(self):
+        from kgsearch import f2003_search_unknowns
         from statements import Comment
         from block_statements import executable_construct
         import re
@@ -330,7 +331,13 @@ class SrcFile(object):
                     elif dname=='write':
                         if clause:
                             stmt.write_state = tuple( c.strip() for c in clause.split(',') )
-                            #Config.callsite['stmts'].append(stmt)
+                            if not hasattr(stmt, 'unknowns'):
+                                f2003_search_unknowns(stmt, stmt.f2003)
+                            if hasattr(stmt, 'unknowns'):
+                                for unk, req in stmt.unknowns.iteritems():
+                                    if req.state != ResState.RESOLVED:
+                                        stmt.resolve(req) 
+
                     elif dname=='exclude':
                         next_fort_stmt = get_next_non_comment(stmt)
                         if next_fort_stmt:

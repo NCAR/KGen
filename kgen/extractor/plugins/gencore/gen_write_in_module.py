@@ -70,6 +70,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
     def write_state(self, node):
         index, partname, part = get_part_index(node)
+        tstmt = node.kgen_stmt.ancestors()[0]
         pstmt = node.kgen_stmt.ancestors()[-1]
         pnode = pstmt.genspair
         node.kgen_stmt.top.used4genstate = True
@@ -77,43 +78,45 @@ class Gen_Write_In_Module(Kgen_Plugin):
         lineno = node.kgen_stmt.item.span[0]
 
         if not hasattr(node, '__write_commonpart_statewrite'):
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            if getinfo('is_openmp_app'):
-                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
+            if hasattr(tstmt, 'name') and tstmt.name != getinfo('topblock_stmt').name:
+                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
                 part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'SAVE', 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_previnvoke = -1']}
+                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank']}
                 part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-                attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE', 'DIMENSION(0:1023)'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
+                if getinfo('is_openmp_app'):
+                    attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_openmp_issave']}
+                    part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                    attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'SAVE', 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_previnvoke = -1']}
+                    part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                    attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE', 'DIMENSION(0:1023)'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
+                    part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                    attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
+                    part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                else:
+                    attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_openmp_issave']}
+                    part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                    attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_previnvoke = -1']}
+                    part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                    attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
+                    part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_write_unit']}
                 part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['OMP_GET_THREAD_NUM']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave') ) ]}
+                part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
+                part_append_comment(pnode, DECL_PART, '')
             else:
-                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_openmp_issave']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-                attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_previnvoke = -1']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-                attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_write_unit']}
-            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave') ) ]}
-            part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
-
-            part_append_comment(pnode, DECL_PART, '')
-            node.__write_commonpart_statewrite = True
+                node.__write_commonpart_statewrite = True
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_write_filepath_L%d'%lineno], 'selector':('1024', None)}
         part_append_gensnode(pnode, DECL_PART, typedecl_statements.Character, attrs=attrs)
@@ -243,26 +246,30 @@ class Gen_Write_In_Module(Kgen_Plugin):
     def read_state(self, node):
         index, partname, part = get_part_index(node)
         ancs = node.kgen_stmt.ancestors()
+        tstmt = ancs[0]
         pstmt = ancs[-1]
         pnode = pstmt.genkpair
         filename = os.path.splitext(os.path.basename(node.kgen_stmt.reader.id))[0]
         lineno = node.kgen_stmt.item.span[0]
 
         if not hasattr(node, '__write_commonpart_stateread'):
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_read_unit = -1']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+            if hasattr(tstmt, 'name') and tstmt.name != getinfo('topblock_stmt').name:
 
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ierr']}
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage']}
-            part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_read_unit = -1']}
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-            attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
-            part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
+                attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+                attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage']}
+                part_append_genknode(pnode, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
+                attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
+                part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_ldim1', 'kgen_udim1', 'kgen_ldim2', 'kgen_udim2', \
                 'kgen_ldim3', 'kgen_udim3', 'kgen_ldim4', 'kgen_udim4', 'kgen_ldim5', 'kgen_udim5' ]}

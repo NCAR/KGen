@@ -560,10 +560,10 @@ class Gen_S_Callsite_File(Kgen_Plugin):
         attrs = {'variable': 'kgen_issave(:)', 'sign': '=', 'expr': '.FALSE.'}
         part_append_gensnode(ifinit, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'kgen_invoke(:)', 'sign': '=', 'expr': '0'}
+        attrs = {'variable': 'kgen_invoke(:)', 'sign': '=', 'expr': '1'}
         part_append_gensnode(ifinit, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'kgen_last_invoke(:)', 'sign': '=', 'expr': '0'}
+        attrs = {'variable': 'kgen_last_invoke(:)', 'sign': '=', 'expr': '1'}
         part_append_gensnode(ifinit, EXEC_PART, statements.Assignment, attrs=attrs)
 
         if getinfo('is_mpi_app'):

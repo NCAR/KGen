@@ -29,7 +29,7 @@ class CompFlag(kgtool.KGTool):
         if not os.path.exists(stracepath) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
 
             # clean app.
-            if 'clean' not in Config.skip and Config.cmd_clean['cmds']:
+            if Config.cmd_clean['cmds']:
                 kgutils.run_shcmd(Config.cmd_clean['cmds'])
             if Config.state_switch['clean']:
                 kgutils.run_shcmd(Config.state_switch['clean'])

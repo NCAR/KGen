@@ -1,0 +1,126 @@
+
+This example shows how to use KGEN to extract a kernel from a simple Fortran MPI application.
+
+[ Prerequisites ]
+	1. Python Version >= 2.7
+	2. cpp
+	3. make
+	4. strace
+	5. MPI library of your choice
+
+[ Kernel extraction steps ]
+
+	1. Modify or create Makefile and job submission script for using your MPI library
+       >> vi src/Makefile.mpirun or src/Makefile.lsf or create your own Makefile
+       >> vi src/job.lsf or create your own job submission script
+
+	2. >> make; # extract a kernel
+
+	Once "make" is completed with success, you will see information similar to next lines on screen
+	Note that Makefile.mpirun in src subfolder is used in this example. 
+
+		../../bin/kgen \
+				--mpi enable \
+				--invocation 0:0:1,0:0:3,1:0:1,1:0:3 \
+				--timing repeat=10000 \
+				--rebuild all \
+				--cmd-clean "cd ${KGENHOME}/examples/simple-MPI/src; make -f Makefile.mpirun clean" \
+				--cmd-build "cd ${KGENHOME}/examples/simple-MPI/src; make -f Makefile.mpirun build" \
+				--cmd-run "cd ${KGENHOME}/examples/simple-MPI/src; make -f Makefile.mpirun run"
+				${KGENHOME}/examples/simple-MPI/src/update_mod.F90:update_mod:update:calc \
+		Starting KGen
+		Starting KOption
+		Building application to collect strace log file: ./strace.log
+		Creating KGen include file: ./include.ini
+		KOption is finished.
+		Starting KExt
+		Pre-processing is done
+		Reading ${KGENHOME}/examples/simple-MPI/src/update_mod.F90
+		Reading ${KGENHOME}/examples/simple-MPI/src/calc_mod.F90
+			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
+		Program is analyzed
+		Kernel generation and instrumentation is completed.
+		Makefiles are generated
+		Post-processing is done
+		KExt is finished.
+		Generating state data files at ./state.
+		KGen is finished.
+
+    After this step, two subfolders(kernel and state) will be created under this folder.
+    Kernel files and state data files(calc.*.*.*) should be created in kernel folder.
+    In state folder, KGen-instrumented files are created.
+
+    NOTE: If compilation happens at different directory other than examples/src folder, please add following KGen flag similar to following:
+        --source alias=/your/examples/src:/somewhere/compilation/happens
+
+	3. >> cd kernel; # move to a kernel directory
+
+	4. >> make; # build and run a kernel
+
+	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
+
+		ifort  -c -o kgen_utils.o kgen_utils.f90
+		ifort  -c -o calc_mod.o calc_mod.F90
+		ifort  -c -o update_mod.o update_mod.F90
+		ifort  -c -o kernel_driver.o kernel_driver.f90
+		ifort    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		./kernel.exe
+		 
+		 ***************** Verification against 'calc.0.0.1' *****************
+		 
+		 Number of verified variables:            1
+		 Number of identical variables:            1
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-014
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   9.999999776482582E-003
+		 
+		 ***************** Verification against 'calc.0.0.3' *****************
+		 
+		 Number of verified variables:            1
+		 Number of identical variables:            1
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-014
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   9.999999776482582E-003
+		 
+		 ***************** Verification against 'calc.1.0.1' *****************
+		 
+		 Number of verified variables:            1
+		 Number of identical variables:            1
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-014
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   9.999999776482582E-003
+		 
+		 ***************** Verification against 'calc.1.0.3' *****************
+		 
+		 Number of verified variables:            1
+		 Number of identical variables:            1
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-014
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   0.000000000000000E+000
+		 
+		****************************************************
+			kernel execution summary: calc
+		****************************************************
+			Total number of verification cases  :     4
+			Number of verification-passed cases :     4
+		 
+			Average call time (usec):  0.750E-02
+			Minimum call time (usec):  0.000E+00
+			Maximum call time (usec):  0.100E-01
+		****************************************************

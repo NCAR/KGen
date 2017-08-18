@@ -8,6 +8,7 @@ import json
 import math
 import shutil
 import datetime
+import time
 import random
 import collections
 import multiprocessing
@@ -134,23 +135,26 @@ class ElapsedTime(KGModelingTool):
         if not os.path.exists(etime_realpath):
             os.makedirs(etime_realpath)
 
-        # check if coverage should be invoked
+        # clear shared resources
+        Config.used_srcfiles.clear()
 
         if not self.hasmodel('etime') or 'all' in Config.rebuild or 'etime' in Config.rebuild:
         #if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
 
             data_etime_path = '%s/__data__/%s'%(model_realpath, Config.model['types']['etime']['id'])
-            if os.path.exists(data_etime_path) and len(glob.glob( '%s/*'%data_etime_path )) > 1 and Config.model['reuse_rawdata']:
+            if os.path.exists(data_etime_path) and len(glob.glob( '%s/*'%data_etime_path )) > 0 and Config.model['reuse_rawdata']:
                 kgutils.logger.info('Reusing elapsedtime raw data.')
             else:
                 kgutils.logger.info('Generating elapsedtime raw data.')
 
                 if os.path.exists(data_etime_path):
                     shutil.rmtree(data_etime_path)
-                os.makedirs(data_etime_path)
-
                 if os.path.exists('%s/__data__/__resource__/%s'%(model_realpath, Config.model['types']['etime']['id'])):
                     shutil.rmtree('%s/__data__/__resource__/%s'%(model_realpath, Config.model['types']['etime']['id']))
+
+                time.sleep(1)
+
+                os.makedirs(data_etime_path)
                 os.makedirs('%s/__data__/__resource__/%s'%(model_realpath, Config.model['types']['etime']['id']))
 
                 # generate wrapper nodes
@@ -336,7 +340,7 @@ class ElapsedTime(KGModelingTool):
             else:
                 if not _DEBUG:
                     shutil.rmtree(data_etime_path)
-                kgutils.logger.info('failed to generate elapsedtime information: %s'%err)
+                kgutils.logger.info('failed to generate elapsedtime information')
 
             out, err, retcode = kgutils.run_shcmd('make recover', cwd=etime_realpath)
 
@@ -365,7 +369,10 @@ class ElapsedTime(KGModelingTool):
                 etimeres = float(cfg.get('elapsedtime.summary', 'resolution_elapsedtime').strip())
 
                 # <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number>:<num etimes> ... 
-                nbins = max(min(Config.model['types']['etime']['nbins'], netimes), 2)
+                if etimediff == 0:
+                    nbins = 1
+                else:
+                    nbins = max(min(Config.model['types']['etime']['nbins'], netimes), 2)
 
                 kgutils.logger.info('nbins = %d'%nbins)
                 kgutils.logger.info('etimemin = %f'%etimemin)
@@ -373,8 +380,13 @@ class ElapsedTime(KGModelingTool):
                 kgutils.logger.info('etimediff = %f'%etimediff)
                 kgutils.logger.info('netimes = %d'%netimes)
                 
-                etimebins = [ {} for _ in range(nbins) ]
-                etimecounts = [ 0 for _ in range(nbins) ]
+                if nbins > 1:
+                    etimebins = [ {} for _ in range(nbins) ]
+                    etimecounts = [ 0 for _ in range(nbins) ]
+                else:
+                    etimebins = [ {} ]
+                    etimecounts = [ 0 ]
+
                 idx = 0
                 for opt in cfg.options('elapsedtime.elapsedtime'):
                     ranknum, threadnum, invokenum = tuple( num for num in opt.split() )
@@ -382,7 +394,10 @@ class ElapsedTime(KGModelingTool):
                     estart = float(start)
                     eend = float(stop)
                     etimeval = eend - estart
-                    binnum = int(math.floor((etimeval - etimemin) / etimediff * (nbins - 1)))
+                    if nbins > 1:
+                        binnum = int(math.floor((etimeval - etimemin) / etimediff * (nbins - 1)))
+                    else:
+                        binnum = 0
                     etimecounts[binnum] += 1
 
                     invokenum = int(invokenum)

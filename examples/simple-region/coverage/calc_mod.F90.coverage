@@ -1,0 +1,29 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 2 conditional blocks exist in this file
+!! 2 conditional blokcs are executed at least once among all the conditional blocks.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+MODULE calc_mod
+
+    PUBLIC calc
+CONTAINS
+    SUBROUTINE calc(i, j, output, out2, out3)
+        INTEGER, INTENT(IN) :: i, j
+        real, INTENT(OUT), dimension(:,:) :: out3, output, out2
+          ! Also a comment
+        IF ( i > j ) THEN
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Total number of visits: 60
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            output(i,j) = i - j
+            out2(i, j) = 2*(i-j)
+            out3(i, j) = 3*(i-j)
+        ELSE
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Total number of visits: 100
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            output(i,j) = j - i
+            out2(i, j) = 2*(j-i)
+            out3(i, j) = 3*(j-i)
+        END IF
+    END SUBROUTINE
+END MODULE

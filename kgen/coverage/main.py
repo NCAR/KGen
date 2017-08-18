@@ -130,7 +130,8 @@ class Coverage(KGModelingTool):
         if not os.path.exists(coverage_realpath):
             os.makedirs(coverage_realpath)
 
-        # check if coverage should be invoked
+        # clear shared resources
+        Config.used_srcfiles.clear()
 
         if not self.hasmodel('coverage') or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
         #if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
@@ -384,7 +385,7 @@ class Coverage(KGModelingTool):
             else:
                 if not _DEBUG:
                     shutil.rmtree(data_coverage_path)
-                kgutils.logger.info('failed to generate coverage information: %s'%err)
+                kgutils.logger.info('failed to generate coverage information')
 
             out, err, retcode = kgutils.run_shcmd('make recover', cwd=coverage_realpath)
 
@@ -479,9 +480,9 @@ class Coverage(KGModelingTool):
 
             print 'At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(THREASHOLD)
             print ','.join([ ':'.join([ str(n) for n in t ]) for t in triples.keys()])
-            print ''
-            print 'Following (File id, line number) pairs are covered by above triples:'
-            print str(collected)
+            #print ''
+            #print 'Following (File id, line number) pairs are covered by above triples:'
+            #print str(collected)
 
             for ranknum, threadnum, invokenum in triples.keys():
                 Config.invocation['triples'].append( ( (str(ranknum), str(ranknum)), (str(threadnum), str(threadnum)), \

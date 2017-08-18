@@ -7,11 +7,11 @@ CONTAINS
         INTEGER, INTENT(IN) :: rank, nranks
         INTEGER :: i, j, error
         INTEGER :: lsum, gsum(nranks)
-        INTEGER, dimension(ROW, COL) :: output
+        INTEGER, dimension(ROW, COL) :: output, out2, out3
         gsum = 0
         DO i=1, COL
             DO j=1, ROW
-                CALL calc(i, j, output)
+                CALL calc(i, j, output, out2, out3)
             END DO
         END DO
         lsum = SUM(output)

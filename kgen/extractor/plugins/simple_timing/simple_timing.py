@@ -34,7 +34,7 @@ class Simple_Timing(Kgen_Plugin):
             part_append_comment(node, DECL_PART, '#ifdef KGEN_PAPI', style='rawtext')
 
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['DIMENSION(1)'], \
-                'entity_decls': ['kgen_papi_events = (/ %s /)'%getinfo('papi_event')]}
+                'entity_decls': ['kgen_papi_events = (/ KGENPAPIEVENT /)']}
             part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['DIMENSION(2)'], 'selector': (None, '8'), \
@@ -110,7 +110,7 @@ class Simple_Timing(Kgen_Plugin):
             attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': 'kgen_papi_values(1)'}
             part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
-            attrs = {'items': ['"%s : %s per call: "'%(getinfo('kernel_name'), getinfo('papi_event')), 'kgen_measure']}
+            attrs = {'items': ['"%s : KGENPAPIEVENT per call: "'%getinfo('kernel_name'), 'kgen_measure']}
             part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
 
             part_append_comment(node, EXEC_PART, '#else', style='rawtext')

@@ -302,7 +302,8 @@ plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kerne
     'is_openmp_app', 'is_openmp_critical', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'dummy_stmt', 'is_papi_enabled', \
     'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'model_file', 'model_path', 'logger', \
-    'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer', 'papi_event', 'papi_header_file' ]
+    'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer', 'papi_event', 'papi_header_file', \
+    'papi_typeid', 'papi_typename', 'papi_header_path'  ]
 
 def getinfo(name, plugin=None):
     if name in plugin_default_infolist: 
@@ -338,10 +339,13 @@ def getinfo(name, plugin=None):
         elif name=='coverage_typename': return Config.model['types']['code']['name']
         elif name=='etime_typeid': return Config.model['types']['etime']['id']
         elif name=='etime_typename': return Config.model['types']['etime']['name']
+        elif name=='papi_typeid': return Config.model['types']['papi']['id']
+        elif name=='papi_typename': return Config.model['types']['papi']['name']
         elif name=='etime_timer': return Config.model['types']['etime']['timer']
         elif name=='model_path': return os.path.realpath('%s/%s'%(Config.path['outdir'], Config.path['model']))
         elif name=='is_papi_enabled': return Config.model['types']['papi']['enabled']
         elif name=='papi_header_file': return None if Config.model['types']['papi']['header'] is None else os.path.basename(Config.model['types']['papi']['header'])
+        elif name=='papi_header_path': return None if Config.model['types']['papi']['header'] is None else Config.model['types']['papi']['header']
         elif name=='papi_event': return Config.model['types']['papi']['event']
         elif name=='traverse': return traverse
         elif name=='logger': return logger 
@@ -1137,6 +1141,11 @@ class Gen_BeginStatement(object):
 
         if item.kgen_stmt.__class__ is statements.Comment:
             if item.kgen_stmt.content.lower().startswith('$omp'): 
+                if item.kgen_stmt.content.lower()[4:].strip().startswith('end'):
+                    append_item_in_part(self, insert_order[0], item)
+                else:
+                    deferred_stmts.append(item)
+            elif len(item.kgen_stmt.content.strip()) == 0:
                 deferred_stmts.append(item)
             else:
                 append_item_in_part(self, insert_order[0], item)

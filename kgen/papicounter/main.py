@@ -1,4 +1,4 @@
-'''KGen elapsedtime detector
+'''KGen papi detector
 '''
 
 import os
@@ -79,8 +79,8 @@ def visit(path, papis, eminmax):
 def readdatafiles(inq, outq):
 
     # collect data
-    papis = {} # mpirank:omptid:invoke=[(fileid, linenum, numvisits), ... ]
-    pmeta = [ 1.0E100, 0.0, 0, 0.0, 0, 0 ] #  min, max, number, resolution, under limit, over limit
+    papis = {} 
+    pmeta = [ 1E100, 0, 0, 0, 0 ] #  min, max, number, resolution, under limit, over limit
 
     papipaths = inq.get()
 
@@ -94,24 +94,19 @@ def readdatafiles(inq, outq):
 
             with open(os.path.join(papiroot, '%s.%s'%(mpirank, ompthread)), 'r') as f:
                 for line in f:
-                    invoke, start, stop, resolution = line.split()
-                    pstart = float(start)
-                    estop = float(stop)
-                    ediff = estop - pstart
-                    if ediff < papimin_limit:
+                    invoke, count = line.split()
+                    count = int(count)
+                    if papimin_limit is not None and count < papimin_limit:
+                        pmeta[3] += 1
+                    elif papimax_limit is not None and count > papimax_limit:
                         pmeta[4] += 1
-                    elif ediff > papimmax_limit:
-                        pmeta[5] += 1
                     else:
-                        papis[mpirank][ompthread][invoke] = ( start, stop )
-                        if ediff < pmeta[0]:
-                            pmeta[0] = ediff
-                        if ediff > pmeta[1]:
-                            pmeta[1] = ediff
+                        papis[mpirank][ompthread][invoke] = count
+                        if count < pmeta[0]:
+                            pmeta[0] = count
+                        if count > pmeta[1]:
+                            pmeta[1] = count
                         pmeta[2] += 1
-                        eresol = float(resolution)
-                        if eresol > pmeta[3]:
-                            pmeta[3] = eresol
 
         except Exception as e:
             kgutils.logger.info('ERROR at %s: %s'%(multiprocessing.current_process().name, str(e)))
@@ -134,14 +129,15 @@ class PapiCounter(KGModelingTool):
         if not os.path.exists(papi_realpath):
             os.makedirs(papi_realpath)
 
-        # check if coverage should be invoked
+        # clear shared resources
+        Config.used_srcfiles.clear()
 
         if not self.hasmodel('papi') or 'all' in Config.rebuild or 'papi' in Config.rebuild:
         #if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
 
             data_papi_path = '%s/__data__/%s'%(model_realpath, Config.model['types']['papi']['id'])
-            if os.path.exists(data_papi_path) and len(glob.glob( '%s/*'%data_papi_path )) > 1 and Config.model['reuse_rawdata']:
-                kgutils.logger.info('Reusing elapsedtime raw data.')
+            if os.path.exists(data_papi_path) and len(glob.glob( '%s/*'%data_papi_path )) > 0 and Config.model['reuse_rawdata']:
+                kgutils.logger.info('Reusing papi raw data.')
             else:
                 kgutils.logger.info('Generating papi counter raw data.')
 
@@ -208,7 +204,7 @@ class PapiCounter(KGModelingTool):
 
                 self.gen_makefile()
 
-                kgutils.logger.info('Instrumentation for elapsedtime is generated at %s.'%papi_realpath)
+                kgutils.logger.info('Instrumentation for papi is generated at %s.'%papi_realpath)
 
                 # TODO: wait until coverage data generation is completed
                 # use -K option fir bsub to wait for job completion
@@ -224,7 +220,7 @@ class PapiCounter(KGModelingTool):
                 if retcode != 0:
                     kgutils.logger.warn('Papi counter raw data is not correctly generated.: %s'%err)
 
-            if os.path.exists(data_papi_path) and len(glob.glob( '%s/*'%data_papi_path )) > 1 and Config.model['reuse_rawdata']:
+            if os.path.exists(data_papi_path) and len(glob.glob( '%s/*'%data_papi_path )) > 0 and Config.model['reuse_rawdata']:
 
                 kgutils.logger.info('Generating model file: %s/%s'%(Config.path['outdir'], Config.modelfile))
 
@@ -248,7 +244,7 @@ class PapiCounter(KGModelingTool):
                 nprocs = min( len(mpipaths), multiprocessing.cpu_count()*1)
 
                 if nprocs == 0:
-                    kgutils.logger.warn('No elapsedtime data files are found.')
+                    kgutils.logger.warn('No papi data files are found.')
                 else:
                     workload = [ chunk for chunk in chunks(mpipaths, int(math.ceil(len(mpipaths)/nprocs))) ]
                     inqs = []
@@ -272,8 +268,8 @@ class PapiCounter(KGModelingTool):
                         papimin = min(papimin, pmeta[0])
                         papimax = max(papimax, pmeta[1])
                         npapis += pmeta[2]
-                        nexcluded_under += pmeta[4]
-                        nexcluded_over += pmeta[5]
+                        nexcluded_under += pmeta[3]
+                        nexcluded_over += pmeta[4]
 
                     for idx in range(nprocs):
                         procs[idx].join()
@@ -283,21 +279,21 @@ class PapiCounter(KGModelingTool):
                 if len(papis) == 0:
                     if not _DEBUG:
                         shutil.rmtree(data_papi_path)
-                    kgutils.logger.warn('Elapsedtime data is not collected.')
+                    kgutils.logger.warn('Papi data collection is not right. Deleting corrupted data.')
                 else:
                     try:
                         papi_sections = [ 'counters', 'summary']
 
                         self.addmodel('papi', papi_sections)
 
-                        # elapsedtime section
+                        # papi section
                         papi = []
                         #fd.write('; <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number><num of invocations> ...\n')
 
                         for ranknum, threadnums in papis.items():
                             for threadnum, invokenums in threadnums.items():
-                                for invokenum, pvalues  in invokenums.items():
-                                    papi.append( ( '%s %s %s'%(ranknum, threadnum, invokenum), ', '.join(pvalues) ) )
+                                for invokenum, pvalue  in invokenums.items():
+                                    papi.append( ( '%s %s %s'%(ranknum, threadnum, invokenum), str(pvalue) ) )
                         self.addsection('papi', 'counters', papi)
 
                         summary = []
@@ -311,7 +307,7 @@ class PapiCounter(KGModelingTool):
             else:
                 if not _DEBUG:
                     shutil.rmtree(data_papi_path)
-                kgutils.logger.info('failed to generate papi counter information: %s'%err)
+                kgutils.logger.info('failed to generate papi counter information')
 
             out, err, retcode = kgutils.run_shcmd('make recover', cwd=papi_realpath)
 
@@ -320,7 +316,7 @@ class PapiCounter(KGModelingTool):
         else: # check if coverage should be invoked
             kgutils.logger.info('Reusing Papi counter file: %s/%s'%(Config.path['outdir'], Config.modelfile))
 
-        # check if elapsedtime data exists in model file
+        # check if papi data exists in model file
         if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)):
             kgutils.logger.warn('No papi counter file is found.')
         else:
@@ -339,7 +335,10 @@ class PapiCounter(KGModelingTool):
                 papidiff = papimax - papimin
 
                 # <MPI rank> < OpenMP Thread> <invocation order> =  <file number>:<line number>:<num papis> ... 
-                nbins = max(min(Config.model['types']['papi']['nbins'], npapis), 2)
+                if papidiff == 0:
+                    nbins = 1
+                else:
+                    nbins = max(min(Config.model['types']['papi']['nbins'], npapis), 2)
 
                 kgutils.logger.info('nbins = %d'%nbins)
                 kgutils.logger.info('papimin = %f'%papimin)
@@ -347,15 +346,25 @@ class PapiCounter(KGModelingTool):
                 kgutils.logger.info('papidiff = %f'%papidiff)
                 kgutils.logger.info('npapis = %d'%npapis)
                 
-                papibins = [ {} for _ in range(nbins) ]
-                papicounts = [ 0 for _ in range(nbins) ]
+                
+                if nbins > 1:
+                    papibins = [ {} for _ in range(nbins) ]
+                    papicounts = [ 0 for _ in range(nbins) ]
+                else:
+                    papibins = [ {} ]
+                    papicounts = [ 0 ]
+
                 idx = 0
                 # TODO: conver to counters
                 for opt in cfg.options('papi.counters'):
                     ranknum, threadnum, invokenum = tuple( num for num in opt.split() )
-                    counters = cfg.get('papi.counters', opt).split(',')
-                    papival = pend - pstart
-                    binnum = int(math.floor((papival - papimin) / papidiff * (nbins - 1)))
+                    count = cfg.getint('papi.counters', opt)
+
+                    if nbins > 1:
+                        binnum = int(math.floor((count - papimin) / papidiff * (nbins - 1)))
+                    else:
+                        binnum = 0
+
                     papicounts[binnum] += 1
 
                     invokenum = int(invokenum)
@@ -364,9 +373,9 @@ class PapiCounter(KGModelingTool):
                     if ranknum not in papibins[binnum][invokenum]:
                         papibins[binnum][invokenum][ranknum] = {}
                     if threadnum not in papibins[binnum][invokenum][ranknum]:
-                        papibins[binnum][invokenum][ranknum][threadnum] = float(papival)
+                        papibins[binnum][invokenum][ranknum][threadnum] = count
                     else:
-                        raise Exception('Dupulicated data: (%s, %s, %s, %s)'%(invokenum, ranknum, threadnum, papival))
+                        raise Exception('Dupulicated data: (%s, %s, %s, %d)'%(invokenum, ranknum, threadnum, count))
 
                     idx += 1
 
@@ -380,11 +389,11 @@ class PapiCounter(KGModelingTool):
             # bins with histogram
 
             totalcount = sum(papicounts)
-            countdist = [ float(count) / float(totalcount) for count in papicounts ]
+            countdist = [ float(c) / float(totalcount) for c in papicounts ]
             ndata = Config.model['types']['papi']['ndata']
             datacollect = [ int(round(dist * ndata)) for dist in countdist ]
 
-            # TODO: conver to counters
+            # TODO: convert to counters
             triples = []
             for binnum, papibin in enumerate(papibins):
                 bin_triples = []
@@ -408,8 +417,8 @@ class PapiCounter(KGModelingTool):
                 triples.extend(bin_triples)
 
             print 'Number of bins: %d'%nbins
-            print 'Minimun elapsed time: %f'%papimin
-            print 'Maximum elapsed time: %f'%papimax
+            print 'Minimun papi count: %f'%papimin
+            print 'Maximum papi count: %f'%papimax
             #print 'Selected invocation triples:'
             #print ','.join([ ':'.join([ str(n) for n in t ]) for t in triples])
 

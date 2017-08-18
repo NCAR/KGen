@@ -173,9 +173,6 @@ class Config(object):
         self._attrs['machine']['variable'] = collections.OrderedDict()
         self._attrs['machine']['variable']['work_directory'] = os.path.expandvars('${HOME}/kgen_workspace')
 
-        # skip parameters
-        self._attrs['skip'] = []
-
         # Fortran parameters
         self._attrs['fort'] = collections.OrderedDict()
         self._attrs['fort']['maxlinelen'] = 132
@@ -205,6 +202,7 @@ class Config(object):
         self._attrs['path']['model'] = 'model'
         self._attrs['path']['coverage'] = 'coverage'
         self._attrs['path']['etime'] = 'elapsedtime'
+        self._attrs['path']['papi'] = 'papi'
 
         # source file parameters
         self._attrs['source'] = collections.OrderedDict()
@@ -273,7 +271,6 @@ class Config(object):
 
         # invocation parameters
         self._attrs['invocation'] = collections.OrderedDict()
-        #self._attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
         self._attrs['invocation']['triples'] = []
 
         # add mpi frame code in kernel driver
@@ -351,8 +348,8 @@ class Config(object):
         self._attrs['model']['types']['etime'] = collections.OrderedDict()
         self._attrs['model']['types']['etime']['id'] = '1'
         self._attrs['model']['types']['etime']['name'] = 'etime'
-        self._attrs['model']['types']['etime']['nbins'] = 20
-        self._attrs['model']['types']['etime']['ndata'] = 100
+        self._attrs['model']['types']['etime']['nbins'] = 5
+        self._attrs['model']['types']['etime']['ndata'] = 20
         self._attrs['model']['types']['etime']['minval'] = None
         self._attrs['model']['types']['etime']['maxval'] = None
         self._attrs['model']['types']['etime']['timer'] = None
@@ -360,8 +357,8 @@ class Config(object):
         self._attrs['model']['types']['papi'] = collections.OrderedDict()
         self._attrs['model']['types']['papi']['id'] = '2'
         self._attrs['model']['types']['papi']['name'] = 'papi'
-        self._attrs['model']['types']['papi']['nbins'] = 20
-        self._attrs['model']['types']['papi']['ndata'] = 100
+        self._attrs['model']['types']['papi']['nbins'] = 5
+        self._attrs['model']['types']['papi']['ndata'] = 20
         self._attrs['model']['types']['papi']['minval'] = None
         self._attrs['model']['types']['papi']['maxval'] = None
         self._attrs['model']['types']['papi']['header'] = None
@@ -413,7 +410,6 @@ class Config(object):
         self.parser.add_option("--noskip-intrinsic", dest="noskip_intrinsic", action='store_true', default=False, help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--intrinsic", dest="intrinsic", action='append', type='string', default=None, help="Specifying resolution for intrinsic procedures during searching")
         self.parser.add_option("--machinefile", dest="machinefile", action='store', type='string', default=None, help="Specifying machinefile")
-        self.parser.add_option("--skip", dest="skip", action='store', type='string', default=None, help="Specifying KGen internal tasks that will be skipped")
         self.parser.add_option("--debug", dest="debug", action='append', type='string', help=optparse.SUPPRESS_HELP)
         self.parser.add_option("--logging", dest="logging", action='append', type='string', help=optparse.SUPPRESS_HELP)
 
@@ -506,7 +502,7 @@ class Config(object):
             mpifpath = ''
             if os.path.isabs(self._attrs['mpi']['header']):
                 if os.path.exists(self._attrs['mpi']['header']):
-                    mpifpath = self.__attrs['.mpi']['header']
+                    mpifpath = self._attrs['mpi']['header']
                 else:
                     raise UserException('Can not find %s'%self._attrs['.mpi']['header'])
             else:
@@ -773,9 +769,6 @@ class Config(object):
                     curdict = curdict[param] 
                 exec('curdict[param_split[-1]] = value_split')
 
-        if opts.skip:
-            self._attrs['skip'] = opts.skip.split(',')
-
         if opts.outdir:
             self._attrs['path']['outdir'] = opts.outdir
 
@@ -825,9 +818,6 @@ class Config(object):
                     except:
                         raise UserException('The last item in invocation triple should be number.')
                     self._attrs['invocation']['triples'].append(triple)
-            # remove for development of coverage
-            #if not self._attrs['invocation']['triples']:
-            #    self._attrs['invocation']['triples'] = [ (('0','0'), ('0','0'), ('0','0')) ]
 
         # parsing OpenMP parameters
         if opts.openmp:
@@ -997,9 +987,9 @@ class Config(object):
                 for popt in line.split(','):
                     split_popt = popt.split('=', 1)
                     if len(split_popt)==1:
-                        if split_eopt[0] == 'enable':
+                        if split_popt[0] == 'enable':
                             self._attrs['model']['types']['papi']['enabled'] = True
-                        elif split_eopt[0] == 'disable':
+                        elif split_popt[0] == 'disable':
                             self._attrs['model']['types']['papi']['enabled'] = False
                         else:
                             raise UserException('Unknown papi-counter flag option: %s' % popt)
@@ -1016,17 +1006,17 @@ class Config(object):
 
         if opts.repr_code:
             for line in opts.repr_code:
-                for popt in line.split(','):
-                    split_popt = popt.split('=', 1)
-                    if len(split_popt)==1:
-                        if split_eopt[0] == 'enable':
+                for copt in line.split(','):
+                    split_copt = copt.split('=', 1)
+                    if len(split_copt)==1:
+                        if split_copt[0] == 'enable':
                             self._attrs['model']['types']['code']['enabled'] = True
-                        elif split_eopt[0] == 'disable':
+                        elif split_copt[0] == 'disable':
                             self._attrs['model']['types']['code']['enabled'] = False
                         else:
-                            raise UserException('Unknown code-coverage flag option: %s' % popt)
-                    elif len(split_popt)==2:
-                        raise UserException('Unknown code-coverage flag option: %s' % popt)
+                            raise UserException('Unknown code-coverage flag option: %s' % copt)
+                    elif len(split_copt)==2:
+                        raise UserException('Unknown code-coverage flag option: %s' % copt)
         
     def get_exclude_actions(self, section_name, *args ):
         if section_name=='namepath':
