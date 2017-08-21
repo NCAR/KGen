@@ -35,6 +35,7 @@ Requirements
 - Python 2.7 or later but less than 3.0
 - Make building tool(make)
 - C Preprocessor(cpp)
+- Stream editor(sed)
 - System Call Tracer(strace)
 
 ----------------------------------
