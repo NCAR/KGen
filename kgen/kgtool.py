@@ -3,7 +3,10 @@
 
 import os
 from kgconfig import Config
-import configparser
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
 
 GEN = 'general'
 

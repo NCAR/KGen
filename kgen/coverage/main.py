@@ -455,7 +455,7 @@ class Coverage(KGModelingTool):
             except Exception as e:
                 raise Exception('Please check the format of coverage file: %s'%str(e))
 
-            THREASHOLD = 0.99
+            THREASHOLD = Config.model['types']['code']['percentage'] / 100.0
             THREASHOLD_NUM = int(number_of_condblocks_invoked*THREASHOLD)
             collected = []
             triples = {}
