@@ -349,6 +349,37 @@ When remove_state is specified as action, KGen will not save state data specifie
 3. Representativeness
 -----------------------
 
+From version 0.8, KGen supports several features related to representativeness of a generated kernel. 
+
+..
+ Primary reason to use a kernel is to reduce time and or resource required to work on a whole application. Basic assumption of using a kernel as a replacement of a whole application is that a kernel faithfully represents interesting characteristics of original whole application. KGen kernel is generated as close as possible to original code structure. Also input data that drives kernel execution are generated from running original application. Therefore KGen kernels generally show a good representativeness in many ways. However, it has not provided user of a metric that indicates how close the generated kernel represents the original application and of a context that the representative metric is defined. KGen version 0.8 added following features for improving representativness in generated kernels.
+
+3.1 General
+================
+
+KGen version 8 include three types of representativeness extensions: 1) elapsed time, 2) PAPI (http://icl.utk.edu/papi/) hardware counter, and 3) source code coverage of Fortran IF construct. By adding command-line options explained in section 4, user can use the extensions. All extensions can be used with each other. Basic operations for the extensions start with measuring corresponding values of the kernel block from running original application. When completed the measurement, KGen saves measured values in "model.ini" file in output directory.
+
+The file has a simple INI file format. To compare measurements between original applicatioin and kernel, user may want to read data from this file. Measured data are saved as options under a specified section in the INI file for each type of measurements. For example, "elapsed time" measurements are under "elapsedtime.elapsedtime" section, PAPI counters are under "papi.counters", and code coverages are under "coverage.invoke" section. The format of each section are explained below.
+
+The INI file is read by KGen to automatically generate a set of invocation triplets that maximize representativeness. User may set the maximum number of data files through sub-options as explained in Section 4.
+
+
+3.2 Elapsed time
+================
+
+"--repr-etime" KGen command-option turns on the extension. This option is turned on as default so that user does not need to explictely enable this option. With this option enabled, KGen add "elapsed time" measurements under "elapsedtime.elapsedtime" INI section. The format of data is "<MPI rank> <OpenMP thread> <Invocation order> = <start time> <stop time>". When generated kernel is executed, "elapsed time" data will be displayed on screen. User may compare the values on screen with ones in "model.ini" file. For details about the option, please see "Command line options" section.
+
+
+3.2 PAPI hardware counter
+=========================
+
+"--repr-papi" KGen command-option turns on the extension. To use this option, user has to provide KGen with additional information: <papi event name>, <path to PAPI fortran header file>, and <path to PAPI static library>. With this option enabled, KGen add "papi hardware event" measurements under "papi.counters" INI section. The format of data is "<MPI rank> <OpenMP thread> <Invocation order> = <event counts>". When generated kernel is built with "make papi" and executed, "papi counter" data will be displayed on screen. User may compare the values on screen with ones in "model.ini" file. For details about the option, please see "Command line options" section.
+
+3.2 Source code coverage 
+========================
+
+"--repr-code" KGen command-option turns on the extension. With this option enabled, KGen add "code visits" measurements under "coverage.invoke" INI section. The format of data is "<MPI rank> <OpenMP thread> <Invocation order> = <fileid> <line number> <number of visits>". Actual path of "fileid" is defined in "coverage.file" INI section. Coverage information can be found in generated source files having extension of "coverage" in "coverage" directory under output directory. For details about the option, please see "Command line options" section.
+
 -----------------------
 4. Command line options
 -----------------------
@@ -539,7 +570,7 @@ in the first and second part of the syntax.
     allows perturbation related information. pert_invar
     sub-flag select an input variable for perturbation test.
     Pert_lim sub-flag sets the magnitude of perturbation.
-    Default value is \'1.0E-15\'. 
+    Default value is '1.0E-15'. 
 
     example) --check pert_invar=varname,pert_lim=1.0E-7
 
@@ -667,18 +698,18 @@ Cyclic linked list is not supported.
 Pointer variable that is associated with part of input state to the kernel may ( or may not) generate issues depending on the usage of the variable within the extracted kernel
 
 -------------------------------
-6. Changes from KGen ver. 0.6.3
+6. Changes from KGen ver. 0.7.2
 -------------------------------
 
 6.1 User Interface
 ==========================================================
 
-Three mandatory options(clean, build and run of target application) are added in command line.
-strace, rebuild, prerun options are added
+- "--invocation" option is changed from mandatory to optional
+- "--repr-etime", "--repr-papi", and "--repr-code" options are added for representative extensions
+- "--state-clean", "--state-build", and "--state-run" options are discared.
+
 
 6.2 Major Improvements
 ==========================================================
 
-Macro definitions and include paths are automatically generated by KGen
-
-'
+KGen measures three types of characteristics from original application and generates kernel and input data in a way to reprouce the types of characteristics in generated kernel.

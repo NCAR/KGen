@@ -107,9 +107,9 @@ copyright = '2016, KGen Developers'
 # The short X.Y version.
 #import kgen
 # TODO: need to read version from src
-version = '0.7.1'
+version = '0.8.0'
 # The full version, including dev info
-release = '0.7.1'
+release = '0.8.0'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
