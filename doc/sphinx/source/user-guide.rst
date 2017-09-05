@@ -706,7 +706,7 @@ Pointer variable that is associated with part of input state to the kernel may (
 
 - "--invocation" option is changed from mandatory to optional
 - "--repr-etime", "--repr-papi", and "--repr-code" options are added for representative extensions
-- "--state-clean", "--state-build", and "--state-run" options are discared.
+- "--state-clean", "--state-build", and "--state-run" options are discarded.
 
 
 6.2 Major Improvements

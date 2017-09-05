@@ -4,12 +4,11 @@
 Tutorial
 ********
 
-This section explains common tasks on using KGen.
+T.B.D
 
 .. toctree::
    :maxdepth: 2
 
-   tutorial
 
 **What Next**
 

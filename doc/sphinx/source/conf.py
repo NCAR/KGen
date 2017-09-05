@@ -99,7 +99,7 @@ master_doc = 'index'
 
 # General substitutions.
 project = 'KGen'
-copyright = '2016, KGen Developers'
+copyright = '2017, KGen Developers'
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
