@@ -41,10 +41,20 @@ Please see :doc:`Getting-started <getting-started>` for details
         [Other KGen options] \
         <filepath>[:<namepath>]
 
-    <filepath>[:<namepath>] : This argument specifies a file path that contains a callsite and namepath. Please see a section next for details.
-    --cmd-clean <commands>  : This mandatory option is Linux command(s) that ensure that next build commands actually compiles all source files that KGen requires to analyze.
-    --cmd-build <commands>  : This mandatory option is Linux command(s) that compiles target application.
-    --cmd-run <commands>    : This mandatory option is Linux command(s) that executes target application.
+    <filepath>[:<namepath>] : This argument specifies a file
+        path that contains a callsite and namepath.
+        Please see a section next for details.
+
+    --cmd-clean <commands>  : This mandatory option is Linux
+        command(s) that ensure that next build commands
+        actually compiles all source files that KGen requires
+        to analyze.
+
+    --cmd-build <commands>  : This mandatory option is Linux
+        command(s) that compiles target application.
+
+    --cmd-run <commands>    : This mandatory option is Linux
+        command(s) that executes target application.
 
 If there are multiple Linux commands, use semicolon between them. Use quotation marks if there are spaces in commands.
 
@@ -79,24 +89,28 @@ Continuation of kgen directive is not supported yet.
 
 Five KGen directives are implemented as of this version.
 
-callsite directive
+- "callsite" directive
 
 ::
 
     syntax: !$kgen callsite name
 
-meaning: callsite directive specifies the location of callsite Fortran statement in a source file. If this directive is specified in source file, user does not have to provide namepath on command-line. namepath is a colon-separated names. See Namepath section for more about namepath
-
-The directive should be placed just before the callsite line. However, blank line(s) and other comment lines are allowed in-between. name is a user-provided string for kernel name.
-
-::
+    meaning: callsite directive specifies the location
+    of callsite Fortran statement in a source file.
+    If this directive is specified in source file,
+    user does not have to provide namepath on command-line.
+    namepath is a colon-separated names. See Namepath
+    section for more about namepath The directive should
+    be placed just before the callsite line. However,
+    blank line(s) and other comment lines are allowed
+    in-between. name is a user-provided string for kernel name.
 
     example: 
                     !$kgen callsite kernelname
                     CALL calc(i, j, output)
 
 
-begin_callsite and end_callsite directives
+- "begin_callsite" and "end_callsite" directives
 
 ::
 
@@ -105,9 +119,9 @@ begin_callsite and end_callsite directives
     ... fortran statements...
     !$kgen end_callsite
 
-meaning: begin_callsite and end_callsite directives specify a region of Fortran statements in a source file to be extracted as a kernel. 
-
-::
+    meaning: begin_callsite and end_callsite directives
+    specify a region of Fortran statements in a source
+    file to be extracted as a kernel. 
 
     example: 
             !$kgen begin_callsite calc
@@ -119,36 +133,48 @@ meaning: begin_callsite and end_callsite directives specify a region of Fortran 
             !$kgen end_callsite calc
 
 
-write directive
+- "write" directive
 
 ::
 
     syntax: !$kgen write variable[,variable,...]
 
-meaning: write directive specifies variables whose content will be saved in state data files and will be read by a generated kernel. By using this directive, user can manually force KGen to save state data at arbitrary points of source code. Multiple variables can be specified by using comma in-between. Variable can be a member of derived type. One restriction of specifying variable is that it can not be an element or partial elements of array.. For example, if A%B is an array it can not be specified as A%B[index].
-
-The directive can be located anywhere within executable part of source code.
-
-::
+    meaning: write directive specifies variables whose
+    content will be saved in state data files and will
+    be read by a generated kernel. By using this
+    directive, user can manually force KGen to save state
+    data at arbitrary points of source code. Multiple
+    variables can be specified by using comma in-between.
+    Variable can be a member of derived type. One
+    restriction of specifying variable is that it can
+    not be an element or partial elements of array.
+    For example, if A%B is an array it can not be
+    specified as A%B[index]. The directive can be
+    located anywhere within executable part of source code.
 
     example: 
                 !$kgen write i,j
                 CALL calc(i, j, output)
 
-exclude directive
+- "exclude" directive
 
 ::
 
     syntax: !$kgen exclude
 
-meaning: exclude directive specifies that next statement will be excluded during kernel generation. The main purpose of this directive is to support MPI "receiving" routines such as "recv" within generated kernel together with "write" directive. For example, user can use "write" directive to force KGen to read/write a variable and "exclude" MPI receiving routine.
-
-::
+    meaning: exclude directive specifies that next statement
+    will be excluded during kernel generation. The main
+    purpose of this directive is to support MPI "receiving"
+    routines such as "recv" within generated kernel together
+    with "write" directive. For example, user can use "write"
+    directive to force KGen to read/write a variable and
+    "exclude" MPI receiving routine.
 
     example: 
                 !$kgen write data
                 !$kgen exclude
-                CALL MPI_RECV(data, count, MPI_DOUBLE_PRECISION, from, tag, MPI_COMM_WORLD, status, ierr )
+                CALL MPI_RECV(data, count, MPI_DOUBLE_PRECISION,
+                    from, tag, MPI_COMM_WORLD, status, ierr )
 
 2.3.2 KGen command-line user interface
 ---------------------------------------
@@ -157,7 +183,8 @@ KGen can be invoked using command line interface too.
 
 ::
 
-    >> $PATH_TO_KGen/bin/kgen [KGen options] <filepath>[:<namepath>] <clean commands> <build commands> <run commands>
+    >> $PATH_TO_KGen/bin/kgen [KGen options] <filepath>[:<namepath>]
+        <clean commands> <build commands> <run commands>
 
 filepath is a path to a source file that contains a callsite region to be extracted. namepath tells KGen of the region of code to be extracted.  Please see namepath section 2.4.1 below for more detail.
 
@@ -189,11 +216,21 @@ The separator of colon can be used as a metacharacter meaning of any similar to 
 ::
 
     Namepath examples)
-    C => A name that has only one-level whose name is C such as module C 
-    :C => any name ends with C such as any variable in a subroutine in a module
-    C: => any name whose top-level name is C and may contains lower-level names such as all variables in a subroutine of C
+
+    C => A name that has only one-level whose name
+        is C such as module C 
+
+    :C => any name ends with C such as any variable
+        in a subroutine in a module
+
+    C: => any name whose top-level name is C and
+        may contains lower-level names such as
+        all variables in a subroutine of C
+
     :C: => any names of C in any levels
-    A::C => Any names whose top-level name is A and whose lowest-level name is C
+
+    A::C => Any names whose top-level name is A
+        and whose lowest-level name is C
 
 2.4.2 include information
 -----------------------------------
@@ -215,7 +252,9 @@ Some information has to be provided per each source file separately. As of this 
     compiler = path/to/compiler
     compiler_options = compiler options
 
-    example) When program.F90 uses a module in ./module directory, and program.F90 needs macro definition of N=10 with intel Fortran compiler and -O2 -fp-model precise option
+    example) When program.F90 uses a module in ./module directory,
+        and program.F90 needs macro definition of N=10 with intel
+        Fortran compiler and -O2 -fp-model precise option
 
     [program.F90]
     include = ./module
@@ -306,9 +345,43 @@ When skip_module is specified as action, KGen will not use a module specified by
 
 When remove_state is specified as action, KGen will not save state data specified by the namepath. This action may be useful discarding components of a derived type. If not all components of a derived type should be used for saving state data, user can specify components of the derived to be excluded from the state saving. This action may be used together with above skip_module action.
 
+-----------------------
+3. Representativeness
+-----------------------
+
+From version 0.8, KGen supports several features related to representativeness of a generated kernel. 
+
+..
+ Primary reason to use a kernel is to reduce time and or resource required to work on a whole application. Basic assumption of using a kernel as a replacement of a whole application is that a kernel faithfully represents interesting characteristics of original whole application. KGen kernel is generated as close as possible to original code structure. Also input data that drives kernel execution are generated from running original application. Therefore KGen kernels generally show a good representativeness in many ways. However, it has not provided user of a metric that indicates how close the generated kernel represents the original application and of a context that the representative metric is defined. KGen version 0.8 added following features for improving representativness in generated kernels.
+
+3.1 General
+================
+
+KGen version 8 include three types of representativeness extensions: 1) elapsed time, 2) PAPI (http://icl.utk.edu/papi/) hardware counter, and 3) source code coverage of Fortran IF construct. By adding command-line options explained in section 4, user can use the extensions. All extensions can be used with each other. Basic operations for the extensions start with measuring corresponding values of the kernel block from running original application. When completed the measurement, KGen saves measured values in "model.ini" file in output directory.
+
+The file has a simple INI file format. To compare measurements between original applicatioin and kernel, user may want to read data from this file. Measured data are saved as options under a specified section in the INI file for each type of measurements. For example, "elapsed time" measurements are under "elapsedtime.elapsedtime" section, PAPI counters are under "papi.counters", and code coverages are under "coverage.invoke" section. The format of each section are explained below.
+
+The INI file is read by KGen to automatically generate a set of invocation triplets that maximize representativeness. User may set the maximum number of data files through sub-options as explained in Section 4.
+
+
+3.2 Elapsed time
+================
+
+"--repr-etime" KGen command-option turns on the extension. This option is turned on as default so that user does not need to explictely enable this option. With this option enabled, KGen add "elapsed time" measurements under "elapsedtime.elapsedtime" INI section. The format of data is "<MPI rank> <OpenMP thread> <Invocation order> = <start time> <stop time>". When generated kernel is executed, "elapsed time" data will be displayed on screen. User may compare the values on screen with ones in "model.ini" file. For details about the option, please see "Command line options" section.
+
+
+3.2 PAPI hardware counter
+=========================
+
+"--repr-papi" KGen command-option turns on the extension. To use this option, user has to provide KGen with additional information: <papi event name>, <path to PAPI fortran header file>, and <path to PAPI static library>. With this option enabled, KGen add "papi hardware event" measurements under "papi.counters" INI section. The format of data is "<MPI rank> <OpenMP thread> <Invocation order> = <event counts>". When generated kernel is built with "make papi" and executed, "papi counter" data will be displayed on screen. User may compare the values on screen with ones in "model.ini" file. For details about the option, please see "Command line options" section.
+
+3.2 Source code coverage 
+========================
+
+"--repr-code" KGen command-option turns on the extension. With this option enabled, KGen add "code visits" measurements under "coverage.invoke" INI section. The format of data is "<MPI rank> <OpenMP thread> <Invocation order> = <fileid> <line number> <number of visits>". Actual path of "fileid" is defined in "coverage.file" INI section. Coverage information can be found in generated source files having extension of "coverage" in "coverage" directory under output directory. For details about the option, please see "Command line options" section.
 
 -----------------------
-3. Command line options
+4. Command line options
 -----------------------
 
 The syntax of each options generally follows the following convention:
@@ -316,124 +389,306 @@ The syntax of each options generally follows the following convention:
 ::
 
     General KGen option syntax:
-    -[-]<option-name> [<suboption-name>=<suboption-value>[,[<suboption-name>=]<suboption-value>]]
+    -[-]<option-name> [<suboption-name>=<suboption-value>
+        [,[<suboption-name>=]<suboption-value>]]
 
-If there are multiple information in <suboption-value>, each information would be separated by colon, :. Double or single quotation marks can be used to use some of the separation symbols, such as equal sign, comma, colon, in option value.
+If there are multiple information in <suboption-value>, each information
+would be separated by colon, :. Double or single quotation marks can be
+used to use some of the separation symbols, such as equal sign, comma,
+colon, in option value.
 
-[-c, --cmd-clean]
+[-c or - -cmd-clean]
 ::
 
-    meaning: This mandatory option is Linux command(s) that ensure that next build commands actually compiles all source files that KGen requires to analyze.
+    meaning: This mandatory option is Linux command(s) that ensure that
+    next build commands actually compiles all source files that KGen
+    requires to analyze.
+
     example) --cmd-clean cd src; make clean
 
-[-b, --cmd-build]
+[-b or - -cmd-build]
 ::
 
-    meaning: This mandatory option is Linux command(s) that compiles target application.
+    meaning: This mandatory option is Linux command(s) that compiles
+    target application.
+
     example) --cmd-build cd src; make build
 
-[-r, --cmd-run]
+[-r or - -cmd-run]
 ::
 
-    meaning:  This mandatory option is Linux command(s) that executes target application.
+    meaning:  This mandatory option is Linux command(s) that executes
+    target application.
+
     example) --cmd-run cd src; make run
 
-[--outdir]
+[- -outdir]
 ::
 
     meaning : KGen output directory
+
     example) --outdir /path/to/output/directory
 
-[--rebuild]
+[- -rebuild]
 ::
 
-    meaning :  This option forces KGen generates intermittent files such as strace log files and include.ini files. Current version supports strace, include, state, papi, coverage, and etime sub-options. strace forces to rebuild strace.log file. include forces to rebuild include.ini file. state forces to rebuild state data files. papi, coverage, and etime sub-options forces KGen to recollect representativeness data for PAPI counter, source code coverage, and elapsed time. All sub-option is the same to using all of the three sub-options.
+    meaning :  This option forces KGen generates intermittent files
+    such as strace log files and include.ini files. Current version
+    supports strace, include, state, papi, coverage, and etime sub-options.
+    strace forces to rebuild strace.log file. include forces to rebuild
+    include.ini file. state forces to rebuild state data files. papi,
+    coverage, and etime sub-options forces KGen to recollect
+    representativeness data for PAPI counter, source code coverage,
+    and elapsed time. All sub-option is the same to using all of the
+    three sub-options.
+
     example) --rebuild strace,include,state,papi,coverage,etime
 
-[--prerun]
+[- -prerun]
 ::
 
-    meaning :  This options provide a way for user to specify Linux commands that are executed before KGen executes Linux shell command at several stages during kernel extraction. There are five sub-options are supported in this version: clean, build, run, kernel_build and kerne_run. A argument of each sub-commands are executed before executing clean commands, build commands and run command for target application, and build command and run command for KGen generated kernel.
-    example) --prerun build=module load intel; module load impi; module load mkl
+    meaning :  This options provide a way for user to specify
+    Linux commands that are executed before KGen executes Linux
+    shell command at several stages during kernel extraction.
+    There are five sub-options are supported in this version:
+    clean, build, run, kernel_build and kerne_run. A argument
+    of each sub-commands are executed before executing clean
+    commands, build commands and run command for target application,
+    and build command and run command for KGen generated kernel.
 
-[-i, --include-ini]
+    example) --prerun build=module load intel; module load impi;
+    module load mkl
+
+[-i or - -include-ini]
 ::
 
-    meaning: specify paths for include INI file. If include INI file is specified, KGen uses the file instead of generating new include INI file.
+    meaning: specify paths for include INI file. If include INI
+    file is specified, KGen uses the file instead of generating
+    new include INI file.
+
     example) --include-ini ./include.ini
 
-[--invocation]
+[- -invocation]
 ::
 
-    meaning : specifies invocatioin triples. From KGen version 0.8, user does not have to specify this option as KGen automatically generate invocation triples. However, user can still use this option to manually add specific invocation triples. Please see representativeness section for details.
-    syntax: mpi_rank:openmp_num:invocation[,mpi_rank:openmp_num:invocation[...]]
+    meaning : specifies invocatioin triples. From KGen version 0.8,
+    user does not have to specify this option as KGen automatically
+    generate invocation triples. However, user can still use this
+    option to manually add specific invocation triples. Please see
+    representativeness section for details.
+
+    syntax: mpirank:openmpnum:invocation[,mpirank:openmpnum:invocation[...]]
+
     examples
-      --invocation  0:1:2  => mpi rank0, openmp num 1, and second invocation of the kernel(starts from 1)
-      --invocation  1-2:3-4:5-6 => mpi rank1 and 2, openmp num 3 and 4, and fifth and sixth invocations of the kernel
+      --invocation  0:1:2  => mpi rank0, openmp num 1, and second
+        invocation of the kernel(starts from 1)
+      --invocation  1-2:3-4:5-6 => mpi rank1 and 2, openmp num 3
+        and 4, and fifth and sixth invocations of the kernel
 
-Use 0 for "non MPI application" and use 0 for "non OpenMP application" in the first and second part of the syntax.
+Use 0 for "non MPI application" and use 0 for "non OpenMP application"
+in the first and second part of the syntax.
 
-[-e, --exclude-ini]
+[-e or - -exclude-ini]
 ::
 
     meaning: specify paths for an exclude INI file
+
     example) --exclude ./exclude.ini
 
-[--kernel-option]
+[- -kernel-option]
 ::
 
-    meaning : compiler-specific information used in generating Makefile for kernel. Two sub-options are defined in this version: FC and FC_FLAGS. User can choose which Fortran compiler to be used in the kernel makefile with FC flag. If user also provide the same information in include.ini file, FC in this option overwrite previous setting and FC_FLAGS in this option added to one in included.ini.
+    meaning : compiler-specific information used in generating
+    Makefile for kernel. Two sub-options are defined in this
+    version: FC and FC_FLAGS. User can choose which Fortran
+    compiler to be used in the kernel makefile with FC flag.
+    If user also provide the same information in include.ini
+    file, FC in this option overwrite previous setting and
+    FC_FLAGS in this option added to one in included.ini.
+
     example) --kernel-option FC=ifort,FC_FLAGS=-O3
 
-[--mpi]
+[- -mpi]
 ::
 
-    meaning : Turns on MPI supports in KGen. There are several sub-options: enable, comm, use, and header. enable specifies that KGen extracts a kernel from MPI application. This is a mandatory for MPI application. comm specified the names of variable that is used when MPI call is made. Default comm is MPI_COMM_WORLD. use specifies Fortran module name whose name is inserted in additional Fortran use statement. There is no default value for use. header specifies the path to MPI header file. Default header is mpif.h.
+    meaning : Turns on MPI supports in KGen. There are several
+    sub-options: enable, comm, use, and header. enable specifies
+    that KGen extracts a kernel from MPI application. This is
+    a mandatory for MPI application. comm specified the names
+    of variable that is used when MPI call is made. Default
+    comm is MPI_COMM_WORLD. use specifies Fortran module name
+    whose name is inserted in additional Fortran use statement.
+    There is no default value for use. header specifies the path
+    to MPI header file. Default header is mpif.h.
+
     example) --mpi ranks=0,comm=mpicom,use="spmd_utils:mpicom"
 
-[--openmp]
+[- -openmp]
 ::
 
-    meaning : Turns on OpenMP supports in KGen. There is two sub-options: "enable" and "kernel-in-critical-region".  "enable" specifies that KGen extracts a kernel from OpenMP application. This is a mandatory for OpenMP application. "kernel-in-critical-region" can has one of two values: "yes" or "no". If "kernel-in-critical-region" is set to "yes", kernel region is encompassed by OpenMP Critical region, which improves correctness of generated state data. However, this may cause deadlock if OpenMP Barrier is used within the kernel.
+    meaning : Turns on OpenMP supports in KGen. There is two
+    sub-options: "enable" and "kernel-in-critical-region".
+    "enable" specifies that KGen extracts a kernel from
+    OpenMP application. This is a mandatory for OpenMP
+    application. "kernel-in-critical-region" can has one of
+    two values: "yes" or "no". If "kernel-in-critical-region"
+    is set to "yes", kernel region is encompassed by OpenMP
+    Critical region, which improves correctness of generated
+    state data. However, this may cause deadlock if OpenMP
+    Barrier is used within the kernel.
+
     example) --openmp kernel-in-critical-region=yes
 
-[--intrinsic]
+[- -intrinsic]
 ::
 
-    meaning : options to let KGen skip searching for names of intrinsic-procedures. At minimum, one of skip or noskip should be provided. With except sub-flag, user can specify which namepath should be considered as exception.  With add-intrinsic sub-flag, user can add new intrinsic function names. default: --intrinsic skip
+    meaning : options to let KGen skip searching for names of
+    intrinsic-procedures. At minimum, one of skip or noskip
+    should be provided. With except sub-flag, user can specify
+    which namepath should be considered as exception.
+    With add-intrinsic sub-flag, user can add new intrinsic
+    function names. default: --intrinsic skip
+
     example) --intrinsic skip,except=mod_A.subr_B.sum
 
-[--verbose]
+[- -verbose]
 ::
 
-    meaning: This flag sets the initial verbosity level in the generated kernel. Default value is 1. User can modify the verbosity level by changing the verbosity value that is hard coded in the generated callsite file.
+    meaning: This flag sets the initial verbosity level in
+    the generated kernel. Default value is 1. User can
+    modify the verbosity level by changing the verbosity
+    value up to 3. User also can modify verbosity level by
+    modifying the value hardcoded in the generated kernel.
+
+    example) --verbose 3
 
 [--check]
 ::
 
-    meaning: This flag provides KGen with correctness check-related information. Current implementation only allows perturbation related information. pert_invar sub-flag select an input variable for perturbation test. Pert_lim sub-flag sets the magnitude of perturbation.  Default value is \'1.0E-15\'. 
+    meaning: This flag provides KGen with correctness
+    check-related information. Current implementation only
+    allows perturbation related information. pert_invar
+    sub-flag select an input variable for perturbation test.
+    Pert_lim sub-flag sets the magnitude of perturbation.
+    Default value is '1.0E-15'. 
+
     example) --check pert_invar=varname,pert_lim=1.0E-7
 
-[--add-mpi-frame]
+[- -add-mpi-frame]
 ::
 
-    meaning: This flag specify to create MPI framework for replicating kernel execution across multiple MPI ranks. This is simple duplication of kernel execution without having any communication among kernels. Two sub-options are allowed: np and mpiexec. np sets the number of MPI ranks and mpiexec sets the path to mpiexec.
+    meaning: This flag specify to create MPI framework for
+    replicating kernel execution across multiple MPI
+    ranks. This is simple duplication of kernel execution
+    without having any communication among kernels.
+    Two sub-options are allowed: np and mpiexec. np sets
+    the number of MPI ranks and mpiexec sets the path to
+    mpiexec.
+
     example) --add-mpi-frame=np=4,mpiexec=mpirun
 
-[--source]
+[- -source]
 ::
 
-    meaning : this options specifies information related to source file. format sub-flag specifies the Fortran format of source files fixed is used for F77 format and free used for F90 and later format. With this sub-flag, KGen forces to use the specified format regardless of file extension. strict format let parser of KGen informe to apply format strictly or not. Default is of the sub-flag is no, alias sub-flag create path alias. This is useful if you have one file physical location but has two different paths that points the same physical path.
-    example) format=free,strict=no,alias=/path/A:/path/B
+    meaning : this options specifies information related
+    to source file. format sub-flag specifies the Fortran
+    format of source files fixed is used for F77 format
+    and free used for F90 and later format. With this sub-flag,
+    KGen forces to use the specified format regardless of
+    file extension. strict format let parser of KGen informe
+    to apply format strictly or not. Default is of
+    the sub-flag is no, alias sub-flag create path alias.
+    This is useful if you have one file physical location
+    but has two different paths that points the same physical path.
 
-        self.parser.add_option("--repr-etime", dest="repr_etime", action='append', type='string', default=None, help="Specifying elapsedtime representativeness feature flags")
-        self.parser.add_option("--repr-papi", dest="repr_papi", action='append', type='string', default=None, help="Specifying papi counter representativeness feature flags")
-        self.parser.add_option("--repr-code", dest="repr_code", action='append', type='string', default=None, help="Specifying code coverage representativeness feature flags")
+    example) --source format=free,strict=no,alias=/path/A:/path/B
 
+[--repr-etime]
+::
+
+    meaning : this option enables to measure elapsed time of
+    callsite while running original application. KGen uses
+    the measruments to automatically generate invocation
+    triplets. This option can be used with other "repr-"
+    options. Current KGen version tries select invocation
+    triplets such a way to improve kernel representativeness
+    in terms of distribution of the measurments. There are
+    several sub-flags that control specific aspects of this
+    option. "enable" sub-flag turns on this feature. As this
+    option is enalbed as default, this is redundant as itself.
+    However, in case that there is no sub-flags used, this
+    "enable" sub-flag should be used. "disable" turns off this
+    feature. "minval" and "maxval" sub-flags set the lower and
+    upper bounds of measurements in unit of second. By setting
+    these sub-flags, user can manually exclude "outliers" that
+    are not likely part of measurements. "ndata" sets the number
+    of invocation triplets that KGen automatically genrates.
+    "nbins" sub-flag set the number of elapsed time ranges that
+    controls resolution of distribution. "timer" sets the type
+    of timing measurement methods. Current version supports
+    "mpiwtime", "ompwtime", "cputime", and "sysclock". The name
+    of timers follows the name library routine or intrinsic
+    subroutines as name indicates.
+
+    example) --repr-etime minval=0.5D-3,maxval=1.0D-1,
+        ndata=20,nbins=5,timer=sysclock
+
+[- -repr-papi]
+::
+
+    meaning : this option enables to measure a PAPI counter
+    of callsite while running original application. KGen uses
+    the measruments to automatically generate invocation
+    triplets. This option can be used with other "repr-"
+    options. Current KGen version tries select invocation
+    triplets such a way to improve kernel representativeness
+    in terms of distribution of the measurments. There are
+    several sub-flags that control specific aspects of this option.
+    "enable" sub-flag turns on this feature. "enable" is not
+    needed if other sub-flag is specified. "disable" turns off
+    this feature. Default setting is "disable". There are three
+    mandatory sub-flags when use this option: "header", "static",
+    and "event". User provides the location of Fortran papi header
+    files using "header" sub-flag. "static" sub-flag indicates
+    the location of Fortran PAPI static library. And lastly
+    "event" sets the name of PAPI event to be collected. "minval"
+    and "maxval" sub-flags set the lower and upper bounds of
+    measurements. By setting these sub-flags, user can manually
+    exclude "outliers" that are not likely part of measurements.
+    "ndata" sets the number of invocation triplets that KGen
+    automatically genrates. "nbins" sub-flag set the number of
+    elapsed time ranges that controls resolution of distribution.
+    It should be noted that this PAPI counter collection is not
+    fully automated in that user has to make sure that original
+    application is linked with PAPI library. Please see
+    representative section for details.
+
+    example) --repr-papi header=/path/to/include/f90papi.h,
+        static=/path/to/lib/libpapi.a,minval=10,maxval=1000,
+        ndata=20,nbins=5
+
+[- -repr-code]
+::
+
+    meaning : this option enables to measure source code coverage
+    of kernel while running original application and produces
+    summary of coverage information. KGen uses the measruments
+    to automatically generate invocation triplets. This option can
+    be used with other "repr-" options. Current KGen version tries
+    select invocation triplets such a way to improve kernel
+    representativeness in terms of coverage percentage of kernel
+    compared to all Fortran "IF" blocks of corresponding code
+    within original application. There are three sub-flags defined
+    in this version of KGen. "enable" sub-flag enables this feature.
+    "disable" turns off this feature, which is a default setting of
+    this option. "percentage" sub-flag sets the minimum code
+    coverage achieved from a set of invocation triples generated.
+
+    example) --repr-code percentage=99
 
 
 ------------------
-4. Known Issues
+5. Known Issues
 ------------------
 
 Only subset of Fortran specification is supported.
@@ -443,18 +698,18 @@ Cyclic linked list is not supported.
 Pointer variable that is associated with part of input state to the kernel may ( or may not) generate issues depending on the usage of the variable within the extracted kernel
 
 -------------------------------
-5. Changes from KGen ver. 0.6.3
+6. Changes from KGen ver. 0.7.2
 -------------------------------
 
-5.1 User Interface
+6.1 User Interface
 ==========================================================
 
-Three mandatory options(clean, build and run of target application) are added in command line.
-strace, rebuild, prerun options are added
+- "--invocation" option is changed from mandatory to optional
+- "--repr-etime", "--repr-papi", and "--repr-code" options are added for representative extensions
+- "--state-clean", "--state-build", and "--state-run" options are discarded.
 
-5.2 Major Improvements
+
+6.2 Major Improvements
 ==========================================================
 
-Macro definitions and include paths are automatically generated by KGen
-
-'
+KGen measures three types of characteristics from original application and generates kernel and input data in a way to reprouce the types of characteristics in generated kernel.

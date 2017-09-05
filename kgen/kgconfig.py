@@ -344,6 +344,7 @@ class Config(object):
         self._attrs['model']['types']['code'] = collections.OrderedDict()
         self._attrs['model']['types']['code']['id'] = '0'
         self._attrs['model']['types']['code']['name'] = 'code'
+        self._attrs['model']['types']['code']['percentage'] = 0.99
         self._attrs['model']['types']['code']['enabled'] = False
         self._attrs['model']['types']['etime'] = collections.OrderedDict()
         self._attrs['model']['types']['etime']['id'] = '1'
@@ -1016,7 +1017,13 @@ class Config(object):
                         else:
                             raise UserException('Unknown code-coverage flag option: %s' % copt)
                     elif len(split_copt)==2:
-                        raise UserException('Unknown code-coverage flag option: %s' % copt)
+
+                        self._attrs['model']['types']['code']['enabled'] = True
+
+                        if split_copt[0] in [ 'percentage' ]:
+                            self._attrs['model']['types']['code'][split_copt[0]] = float(split_copt[1])
+                        else:
+                            raise UserException('Unknown code-coverage flag option: %s' % copt)
         
     def get_exclude_actions(self, section_name, *args ):
         if section_name=='namepath':
