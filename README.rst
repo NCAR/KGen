@@ -25,10 +25,6 @@ Changes from KGEN ver. 0.7.2
 * "--repr-etime", "--repr-papi", and "--repr-code" options are added for representative extensions
 * "--state-clean", "--state-build", and "--state-run" options are discarded.
 
-* added "write" KGen directive to support manual state generation within source code
-* added "exclude" KGen directive to support manual exclusion information within source code
-* added "kernel-in-critical-region" openmp subflag to control usage of OpenMP critical region for kernel.
-
 [ Major Improvements ]
 
 KGen measures three types of characteristics from original application and generates kernel and input data in a way to reprouce the types of characteristics in generated kernel.
