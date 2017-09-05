@@ -4,7 +4,7 @@ KGEN: Fortran Kernel Generator
 A Python tool that extracts partial codes out of a large Fortran application and converts them into a standalone/verifiable/executable kernel 
 
 :AUTHORS: Youngsung Kim and John Dennis
-:VERSION: 0.7.2
+:VERSION: 0.8.0
 :COPYRIGHT: See the document entitled LICENSE.txt
 
 Send questions and comments to KGEN Dev. Team (kgen@ucar.edu).
@@ -16,10 +16,14 @@ Documentation
 Discussion-group
    https://groups.google.com/forum/#!forum/kgen-discuss
 
-Changes from KGEN ver. 0.7.1
+Changes from KGEN ver. 0.7.2
 ----------------------------
 
 [ User Interface ]
+
+* "--invocation" option is changed from mandatory to optional
+* "--repr-etime", "--repr-papi", and "--repr-code" options are added for representative extensions
+* "--state-clean", "--state-build", and "--state-run" options are discarded.
 
 * added "write" KGen directive to support manual state generation within source code
 * added "exclude" KGen directive to support manual exclusion information within source code
@@ -27,9 +31,7 @@ Changes from KGEN ver. 0.7.1
 
 [ Major Improvements ]
 
-* With using both of "write" and "exclude" directives, user can extract a kernel that contains MPI "receiving" library calls. 
-* OpenMPI is supported
-* Associate construct Fortran spec. is supported.
+KGen measures three types of characteristics from original application and generates kernel and input data in a way to reprouce the types of characteristics in generated kernel.
 
 
 Overview
@@ -48,7 +50,7 @@ Dependencies
 * C Pre-Processor(cpp)
 * Make build tool(make)
 * System call trace tool(strace)
-
+* Stream Editor (sed)
 
 Obtaining the Source Code
 -------------------------
