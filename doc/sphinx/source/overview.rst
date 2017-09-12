@@ -36,7 +36,14 @@ Original use case that we had in mind when we envisioned this tool was performan
 Limitations and Future works
 ----------------------------
 
-KGen is still evolving under active development and there are several known limitations in current version. 
+KGen is still evolving under active development and there are several known limitations in current version. Some of known issues are:
+
+- Only subset of Fortran specification is supported. Most of Fortran 95 statements should work. Some of Fortran 2003 and Fortran 77 only features are supported too. New supports will be added basically as needed.
+- A variable of assumed size array is not supported for state generation
+- Cyclic linked list is not supported.
+- Pointer variable that is associated with part of input state to the kernel may ( or may not) generate issues depending on the usage of the variable within the extracted kernel
+
+--
 
 What Next
 ^^^^^^^^^
