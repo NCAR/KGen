@@ -329,8 +329,8 @@ class PapiCounter(KGModelingTool):
 
             try:
 
-                papimin = float(cfg.get('papi.summary', 'minimum_papicounter').strip())
-                papimax = float(cfg.get('papi.summary', 'maximum_papicounter').strip())
+                papimin = int(cfg.get('papi.summary', 'minimum_papicounter').strip())
+                papimax = int(cfg.get('papi.summary', 'maximum_papicounter').strip())
                 npapis = int(cfg.get('papi.summary', 'number_papicounters').strip())
                 papidiff = papimax - papimin
 
@@ -341,9 +341,9 @@ class PapiCounter(KGModelingTool):
                     nbins = max(min(Config.model['types']['papi']['nbins'], npapis), 2)
 
                 kgutils.logger.info('nbins = %d'%nbins)
-                kgutils.logger.info('papimin = %f'%papimin)
-                kgutils.logger.info('papimax = %f'%papimax)
-                kgutils.logger.info('papidiff = %f'%papidiff)
+                kgutils.logger.info('papimin = %d'%papimin)
+                kgutils.logger.info('papimax = %d'%papimax)
+                kgutils.logger.info('papidiff = %d'%papidiff)
                 kgutils.logger.info('npapis = %d'%npapis)
                 
                 
@@ -397,10 +397,15 @@ class PapiCounter(KGModelingTool):
             triples = []
             for binnum, papibin in enumerate(papibins):
                 bin_triples = []
-                print 'From bin # %d [ %f (sec) ~ %f (sec) ] %f %% of %d'%(binnum, \
-                    binnum*(papimax-papimin)/nbins + papimin if binnum > 0  else papimin, \
-                    (binnum+1)*(papimax-papimin)/nbins + papimin if binnum < (nbins-1)  else float('inf'), \
-                    countdist[binnum] * 100, totalcount)
+                range_begin = int(binnum*(papimax-papimin)/nbins + papimin) if binnum > 0  else papimin
+                range_end = int((binnum+1)*(papimax-papimin)/nbins + papimin) if binnum < (nbins-1)  else None
+                
+                if range_end is None:
+                    print 'From bin # %d [ %d ~ ] %f %% of %d'%(binnum, \
+                        range_begin, countdist[binnum] * 100, totalcount)
+                else:
+                    print 'From bin # %d [ %d ~ %d ] %f %% of %d'%(binnum, \
+                        range_begin, range_end, countdist[binnum] * 100, totalcount)
 
                 for invokenum in sorted(papibin.keys()):
                     if len(bin_triples) >= datacollect[binnum]: break
@@ -417,8 +422,8 @@ class PapiCounter(KGModelingTool):
                 triples.extend(bin_triples)
 
             print 'Number of bins: %d'%nbins
-            print 'Minimun papi count: %f'%papimin
-            print 'Maximum papi count: %f'%papimax
+            print 'Minimun papi count: %d'%papimin
+            print 'Maximum papi count: %d'%papimax
             #print 'Selected invocation triples:'
             #print ','.join([ ':'.join([ str(n) for n in t ]) for t in triples])
 

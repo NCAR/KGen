@@ -12,12 +12,12 @@ test:
 		--cmd-clean "cd ${SRC_DIR}; make clean" \
 		--cmd-build "cd ${SRC_DIR}; make build" \
 		--cmd-run "cd ${SRC_DIR}; make run" \
-        --repr-papi header=${PAPI_DIR}/include/f90papi.h,static=${PAPI_DIR}/lib/libpapi.a,event=PAPI_TOT_INS \
 		${SRC}:${CALLSITE} 
 
 # additional flags
 #        --repr-code enable \
 #        --repr-etime nbins=5,ndata=20 \
+#        --repr-papi header=${PAPI_DIR}/include/f90papi.h,static=${PAPI_DIR}/lib/libpapi.a,event=PAPI_TOT_INS \
 #        --source alias=/path/a:path/b # add this option if your system requires alias paths \
 #        --rebuild all \
 #        --check tolerance=1.0D-14 \

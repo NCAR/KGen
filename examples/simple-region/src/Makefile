@@ -2,8 +2,8 @@ ROW := 4
 COL := 4
 
 # uncommand followings to build with PAPI library
-PAPI_DIR := /path/to/PAPI
-PAPI_LIB := ${PAPI_DIR}/lib/libpapi.a
+#PAPI_DIR := /path/to/PAPI
+#PAPI_LIB := ${PAPI_DIR}/lib/libpapi.a
 
 FC := ifort
 FC_FLAGS := -DROW=${ROW} -DCOL=${COL}

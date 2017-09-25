@@ -429,10 +429,25 @@ class ElapsedTime(KGModelingTool):
             triples = []
             for binnum, etimebin in enumerate(etimebins):
                 bin_triples = []
-                print 'From bin # %d [ %f (sec) ~ %f (sec) ] %f %% of %d'%(binnum, \
-                    binnum*(etimemax-etimemin)/nbins + etimemin if binnum > 0  else etimemin, \
-                    (binnum+1)*(etimemax-etimemin)/nbins + etimemin if binnum < (nbins-1)  else float('inf'), \
-                    countdist[binnum] * 100, totalcount)
+                range_begin = binnum*(etimemax-etimemin)/nbins + etimemin if binnum > 0  else etimemin
+                range_end = (binnum+1)*(etimemax-etimemin)/nbins + etimemin if binnum < (nbins-1)  else None
+
+                bunit = 'sec'
+                if range_begin < 1.E-6:
+                    bunit = 'usec'
+                    range_begin *= 1.E6
+
+                if range_end is None:
+                    print 'From bin # %d [ %f (%s) ~ ] %f %% of %d'%(binnum, \
+                        range_begin, bunit, countdist[binnum] * 100, totalcount)
+                else:
+                    eunit = 'sec'
+                    if range_end < 1.E-6:
+                        eunit = 'usec'
+                        range_end *= 1.E6
+
+                    print 'From bin # %d [ %f (%s) ~ %f (%s) ] %f %% of %d'%(binnum, \
+                        range_begin, bunit, range_end, eunit, countdist[binnum] * 100, totalcount)
 
                 for invokenum in sorted(etimebin.keys()):
                     if len(bin_triples) >= datacollect[binnum]: break
