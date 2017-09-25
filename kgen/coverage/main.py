@@ -478,7 +478,7 @@ class Coverage(KGModelingTool):
                                     if (ranknum, threadnum, invokenum) not in triples:
                                         triples[(ranknum, threadnum, invokenum)] = None
 
-            print 'At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(THREASHOLD)
+            print 'At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(1.0-THREASHOLD)
             print ','.join([ ':'.join([ str(n) for n in t ]) for t in triples.keys()])
             #print ''
             #print 'Following (File id, line number) pairs are covered by above triples:'

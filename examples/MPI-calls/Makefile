@@ -1,7 +1,7 @@
 KGEN_HOME := ../..
 KGEN := ${KGEN_HOME}/bin/kgen
 
-PAPI_DIR := /path/to/PAPI
+#PAPI_DIR := /path/to/PAPI
 
 SRC_DIR := ${PWD}/src
 SRC := ${SRC_DIR}/update_mod.F90
