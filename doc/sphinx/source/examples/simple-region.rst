@@ -81,17 +81,6 @@ The last line of the KGen command is a path to a source file that contains KGen 
 
 The usage of KGen directives is similar to OpenMP directives. It starts with !$kgen followed by directive name and clauses. In this case, two directives, "begin_callsite" and "end_callsite", are used to mark a region as a callsite block. Please see :doc:`User guide <../user-guide>` for more details on specifying callsite with other methods.
 
-
-Other options in the example of KGen distribution are explained below.
-
-::
-
-    --timing repeat=100             : repeats kernel execution 100 times to increase timing measurment resolution
-    --invocation 0:0:1,0:0:2,0:0:3  : generates state data from first, second and third invocations of the kernel
-    --check tolerance=1.0D-14       : generates failed verification if kernel output is different more than 1.0D-14
-    --rebuild all                   : prevents using cached information from previous kernel generation
-
-
 ----------------
 Running a kernel
 ----------------
@@ -145,6 +134,84 @@ Once a kernel is generated successfully, a kernel can be executed immediately as
 
 KGen generates kernel source files and utility files in "kernel" subdirectory. "Makefile" in the directory helps user to build/run the kernel conviniently.
 All KGen-generated kernels verify its output against state data generated from original software execution and provide verification results with detail information.
+
+----------------------------------------
+Using Representative Feature
+----------------------------------------
+
+From KGen Version 0.8.0, KGen supports three representative features.
+
+
+Elapsedtime-based representative feature is one of them. The other two are: PAPI counter-based and source-code converage-based.
+
+To turn on the feature, following KGen command-line flags is used.
+
+::
+
+    --repr-etime enable
+
+With this option, KGen generate 20 (default) data files that can best represent the elapsed time characteristics of original application. "ndata" sub-flag can be used to change the default number of data files.
+
+Similarly, user can use source code coverage representative feature as following:
+
+::
+
+    --repr-code enable
+
+Once completed, KGen will create a new directory of "coverage" in output directory. In "coverage" directory, KGen creates source file(s) with "coverage" extension that contains "visit" information per each IF construct blocks.
+
+Finally, PAPI-based representative feature is used as following:
+
+::
+
+    --repr-papi header=${PAPI_DIR}/include/f90papi.h,
+       static=${PAPI_DIR}/lib/libpapi.a,event=PAPI_TOT_INS
+
+PAPI_DIR is used to specify the location of papi library. You may try a papi counter other than PAPI_TOT_INS such as PAPI_TOT_CYC.
+To use PAPI representative feature, you need to modify Makefile in src directory to build the example with PAPI library.
+
+
+Once a kernel is generated successfully, a kernel can be executed immediately as following.
+
+::
+
+     >>> cd kernel
+     >>> make papi
+
+        ...
+
+        ./kernel.exe
+
+     ***************** Verification against 'calc.0.0.1' *****************
+     
+     Number of output variables:            3
+     Number of identical variables:            3
+     Number of non-identical variables within tolerance:            0
+     Number of non-identical variables out of tolerance:            0
+     Tolerance:   1.000000000000000E-014
+     
+     Verification PASSED
+     
+     calc : PAPI_TOT_INS per call:  311 
+     
+     ***************** Verification against 'calc.0.0.2' *****************
+
+     ...     
+     
+     ***************** Verification against 'calc.0.0.3' *****************
+     
+     ...     
+     
+    ****************************************************
+        kernel execution summary: calc
+    ****************************************************
+        Total number of verification cases  :     20
+        Number of verification-passed cases :     20
+     
+        Average PAPI_TOT_INS:  308
+        Minimum PAPI_TOT_INS:  305
+        Maximum PAPI_TOT_INS:  311
+    ****************************************************
 
 -----------
 What's next
