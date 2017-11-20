@@ -397,7 +397,7 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
             attrs = {'specs': [ 'datapath', '*' ], 'items': [ '"%s/" // TRIM(ADJUSTL(rankstr)) // "." // TRIM(ADJUSTL(threadstr))'%etimepath ]}
             part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
-            attrs = {'specs': ['NEWUNIT=dataunit(OMP_GET_THREAD_NUM())', 'FILE=TRIM(ADJUSTL(datapath))', 'ACTION="WRITE"', 'ACCESS="APPEND"', 'IOSTAT=ierror']}
+            attrs = {'specs': ['NEWUNIT=dataunit(OMP_GET_THREAD_NUM())', 'FILE=TRIM(ADJUSTL(datapath))', 'STATUS="UNKNOWN"', 'ACTION="WRITE"', 'ACCESS="APPEND"', 'IOSTAT=ierror']}
             part_append_gensnode(topobj, EXEC_PART, statements.Open, attrs=attrs)
 
             attrs = {'expr': 'ierror .EQ. 0'}

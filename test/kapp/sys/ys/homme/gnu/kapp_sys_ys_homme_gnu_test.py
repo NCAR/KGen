@@ -11,7 +11,7 @@ job_script = \
 """#!/bin/bash
 
 #BSUB -a poe
-#BSUB -P STDD0002
+#BSUB -P NTDD0004 
 #BSUB -q premium
 #BSUB -W 0:20
 #BSUB -x
@@ -108,7 +108,7 @@ class KAppSysYSHommeGnuTest(KAppSysYSHommeTest):
 
             # prepare cmake command
             cmake_cmd = ['cmake']
-            cmake_cmd.append('-DHOMME_PROJID="STDD0002"')
+            cmake_cmd.append('-DHOMME_PROJID="NTDD0004"')
             cmake_cmd.append('-DENABLE_PERFTEST=TRUE')
             cmake_cmd.append('-DENABLE_OPENMP=TRUE')
             cmake_cmd.append('-DUSE_MPIEXEC="mpirun"')

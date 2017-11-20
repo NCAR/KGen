@@ -10,7 +10,7 @@ job_script = \
 """#!/bin/bash
 
 #BSUB -a poe
-#BSUB -P STDD0002
+#BSUB -P NTDD0004 
 #BSUB -q premium
 #BSUB -W 0:20
 #BSUB -x

@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -n 64
 #BSUB -R "span[ptile=16]"
-#BSUB -P STDD0002
+#BSUB -P NTDD0004 
 #BSUB -J KGENMPAS
 #BSUB -o coreJob.out
 #BSUB -e coreJob.err

@@ -10,7 +10,7 @@
     module try-load cmake/2.8.10.2; \
     rm -rf CMakeFiles CMakeCache.txt; \
     cmake; \
-    -DHOMME_PROJID="STDD0002"; \
+    -DHOMME_PROJID="NTDD0004"; \
     -DENABLE_PERFTEST=TRUE; \
     -DENABLE_OPENMP=TRUE; \
     -DUSE_MPIEXEC="mpirun"; \

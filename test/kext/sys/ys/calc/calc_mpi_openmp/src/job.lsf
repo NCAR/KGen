@@ -3,7 +3,7 @@
 # LSF batch script to run an MPI application
 #
 ##BSUB -P project_code        # project code
-#BSUB -P STDD0002			 # project code
+#BSUB -P NTDD0004			# project code
 #BSUB -W 00:06               # wall-clock time (hrs:mins)
 #BSUB -n 64                  # number of tasks in job         
 #BSUB -R "span[ptile=16]"    # run 16 MPI tasks per node

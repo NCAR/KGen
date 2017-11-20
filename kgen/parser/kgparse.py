@@ -316,7 +316,8 @@ class SrcFile(object):
                         if directs[-1]==ename:
                             directs.pop()
                             if ename=='callsite':
-                                pass
+                                while isinstance(Config.callsite['stmts'][-1], Comment):
+                                    Config.callsite['stmts'].pop()
                             else:
                                 raise UserException('WARNING: Not supported KGEN directive: %s'%ename)
                         else:
@@ -346,11 +347,12 @@ class SrcFile(object):
                         else:
                             raise UserException('WARNING: exclude target is not found')
 
-                elif 'callsite' in directs:
-                    Config.callsite['stmts'].append(stmt)
-            elif 'callsite' in directs:
+                elif 'callsite' in directs: # if not match and within callsite
+                    if Config.callsite['stmts'] or not isinstance(stmt, Comment):
+                        Config.callsite['stmts'].append(stmt)
+            elif 'callsite' in directs: # if not Comment
                 Config.callsite['stmts'].append(stmt)
-            else:
+            else: # not in callsite
                 if Config.callsite['namepath'] and stmt.__class__ in executable_construct:
                     names = []
                     kgutils.traverse(stmt.f2003, get_names, names)
@@ -362,4 +364,3 @@ class SrcFile(object):
                             return
                 elif len(directs)>0 and directs[-1]=='callsite':
                     Config.callsite['stmts'].append(stmt)
-

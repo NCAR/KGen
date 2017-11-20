@@ -139,9 +139,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                     namedpart_append_genknode(node.kgen_kernel_id, DRIVER_DECL_PART, stmt.__class__, attrs=attrs)
 
                     if hasattr(stmt, 'unknowns'):
+                        # if stmt has identifiers that are resolved else where
                         for uname, req in stmt.unknowns.iteritems():
+                            # per each resolutions
                             if len(req.res_stmts)>0:
+                                # check if resolving stmts exist
                                 if req.res_stmts[-1].__class__==statements.Use:
+                                    # if the last resolving stmt is Use stmt
                                     checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==req.res_stmts[-1].name \
                                         and ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
                                     if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
@@ -163,15 +167,19 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                                 self.driver_created_uses.append((req.res_stmts[-1].name, readname))
 
                                 else:
+                                    # else if the last resolving stmt is not Use stmt
                                     if req.res_stmts[0].genkpair.kgen_parent!=node.kgen_parent:
+                                        # no need to handle if requesting and revolving stmts has the same parent node
                                         checks = lambda n: n.kgen_match_class==statements.Use and n.kgen_stmt and n.kgen_stmt.name==get_topname(req.res_stmts[-1]) and \
                                             ( n.kgen_stmt.isonly and uname.firstpartname() in [ item.split('=>')[0].strip() for item in n.kgen_stmt.items])
+                                        # check if there exist node that is 1) Use stmt, 2) has kgen_stmt attr, 3) has the same name to top name of the last resolving stmt, 
+                                        # and uname in a list of use only items
                                         if not namedpart_has_node(node.kgen_kernel_id, DRIVER_USE_PART, checks):
                                             item_name = uname.firstpartname()
-                                            for new_name, old_name in req.res_stmts[-1].renames:
-                                                if new_name==item_name:
-                                                    item_name = '%s => %s'%(new_name, old_name) 
-                                                    break
+                                            #for new_name, old_name in req.res_stmts[-1].renames:
+                                            #    if new_name==item_name:
+                                            #        item_name = '%s => %s'%(new_name, old_name) 
+                                            #        break
                                             if not (get_topname(req.res_stmts[-1]), item_name) in self.driver_created_uses:
                                                 attrs = {'name':get_topname(req.res_stmts[-1]), 'isonly': True, 'items':[item_name]}
                                                 namedpart_append_genknode(node.kgen_kernel_id, DRIVER_USE_PART, statements.Use, attrs=attrs)

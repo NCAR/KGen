@@ -17,7 +17,7 @@ cmake \
   -DNETCDF_DIR=${NETCDF_DIR} \
   -DWITH_PNETCDF=FALSE \
   -DENABLE_PERFTEST=TRUE \
-  -DHOMME_PROJID=STDD0002 \
+  -DHOMME_PROJID=NTDD0004 \
   -DFORCE_Fortran_FLAGS="-assume byterecl -O3  -I./ -no-prec-sqrt -no-prec-div -qoverride-limits -qopenmp -xMIC-AVX512" \
   -DFORCE_C_FLAGS="-O3 -qopenmp -xMIC-AVX512 -g -traceback" \
 

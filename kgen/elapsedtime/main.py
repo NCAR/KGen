@@ -29,7 +29,7 @@ END_DATA_MARKER = r'kgpathend'
 BEGIN_PATH_MARKER = r'kgdatabegin'
 END_PATH_MARKER = r'kgdataend'
 
-_DEBUG = False
+_DEBUG = True
 
 def chunks(l, n):
     for i in range(0, len(l), n):
@@ -138,7 +138,7 @@ class ElapsedTime(KGModelingTool):
         # clear shared resources
         Config.used_srcfiles.clear()
 
-        if not self.hasmodel('etime') or 'all' in Config.rebuild or 'etime' in Config.rebuild:
+        if not self.hasmodel(Config.path['etime']) or 'all' in Config.rebuild or 'etime' in Config.rebuild:
         #if not os.path.exists('%s/%s'%(Config.path['outdir'], Config.modelfile)) or 'all' in Config.rebuild or 'coverage' in Config.rebuild:
 
             data_etime_path = '%s/__data__/%s'%(model_realpath, Config.model['types']['etime']['id'])
@@ -314,9 +314,9 @@ class ElapsedTime(KGModelingTool):
                     kgutils.logger.warn('Elapsedtime data is not collected.')
                 else:
                     try:
-                        etime_sections = [ 'elapsedtime', 'summary']
+                        etime_sections = [ Config.path['etime'], 'summary']
 
-                        self.addmodel('elapsedtime', etime_sections)
+                        self.addmodel(Config.path['etime'], etime_sections)
 
                         # elapsedtime section
                         etime = []
@@ -326,14 +326,14 @@ class ElapsedTime(KGModelingTool):
                             for threadnum, invokenums in threadnums.items():
                                 for invokenum, evalues  in invokenums.items():
                                     etime.append( ( '%s %s %s'%(ranknum, threadnum, invokenum), ', '.join(evalues) ) )
-                        self.addsection('elapsedtime', 'elapsedtime', etime)
+                        self.addsection(Config.path['etime'], Config.path['etime'], etime)
 
                         summary = []
                         summary.append( ('minimum_elapsedtime', str(etimemin)) )
                         summary.append( ('maximum_elapsedtime', str(etimemax)) )
                         summary.append( ('number_elapsedtimes', str(netimes)) )
                         summary.append( ('resolution_elapsedtime', str(etimeresol)) )
-                        self.addsection('elapsedtime', 'summary', summary )
+                        self.addsection(Config.path['etime'], 'summary', summary )
 
                     except Exception as e:
                         kgutils.logger.error(str(e))

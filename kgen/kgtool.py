@@ -27,24 +27,54 @@ class KGModelingTool(object):
         if not os.path.exists(modelfile):
             return False
 
-        cfg = configparser.ConfigParser()
-        cfg.optionxform = str
-        
+        has_general = False
+        has_modeltype = False
+        has_modelsection = False
+        section = ''
+        required_modelsections = []
+        model_sections = {}
         with open(modelfile, 'r') as mf:
-            if not cfg.read(mf):
-                return False
 
-            if not cfg.has_section(GEN):
-                return False
+            for line in mf.readlines():
+                if line.startswith('['):
+                    pos = line.find(']')
+                    if pos > 0:
+                        section = line[1:pos].strip()
+                        if section == 'general':
+                            has_general = True
+                        else:
+                            mtype, msec = section.split('.')
+                            if mtype not in model_sections:
+                                model_sections[mtype] = []
+                            model_sections[mtype].append(msec)
+                elif section == 'general' and line.find('=') > 0:
+                    mtype, msections = line.split('=') 
+                    if mtype.strip() == modeltype:
+                        required_modelsections = [s.strip() for s in msections.split(',')]
+                        has_modeltype = True
+                if has_modeltype and modeltype in model_sections and all( (msec in model_sections[modeltype]) for msec in required_modelsections):
+                    has_modelsection = True
 
-            if not cfg.has_option(GEN, modeltype):
-                return False
+                if has_general and has_modeltype and has_modelsection:
+                    break
+#        cfg = configparser.ConfigParser()
+#        cfg.optionxform = str
+#        
+#        with open(modelfile, 'r') as mf:
+#            if not cfg.read(mf):
+#                return False
+#
+#            if not cfg.has_section(GEN):
+#                return False
+#
+#            if not cfg.has_option(GEN, modeltype):
+#                return False
+#
+#            for subsec in [ s.strip() for s in cfg.get(GEN, modeltype).split(',') ]:
+#                if not cfg.has_section('%s.%s'%(modeltype, subsec)):
+#                    return False
 
-            for subsec in [ s.strip() for s in cfg.get(GEN, modeltype).split(',') ]:
-                if not cfg.has_section('%s.%s'%(modeltype, subsec)):
-                    return False
-
-        return True
+        return has_general and has_modeltype and has_modelsection
 
     def addmodel(self, modeltype, sections):
          
