@@ -369,10 +369,12 @@ class Coverage(KGModelingTool):
                                     linevisit.append('!! Total number of visits: %d'% sum([visits for rank, visits in mpivisits[fid][lid].items() ]))
                                     if Config.mpi['enabled']:
                                         linevisit.append('!! MPI rank(visits)      : %s' % ' '.join( \
-                                            ['%s(%d)'%(r,i) for r,i in mpivisits[fid][lid].items()]))
+                                            ['%s(%d)'%(r,mpivisits[fid][lid][r]) for r in sorted(mpivisits[fid][lid])]))
+                                            #['%s(%d)'%(r,i) for r,i in mpivisits[fid][lid].items()]))
                                     if Config.openmp['enabled']:
                                         linevisit.append('!! OpenMP thread(visits) : %s' % ' '.join( \
-                                            ['%s(%d)'%(t,i) for t,i in ompvisits[fid][lid].items()]))
+                                            ['%s(%d)'%(t,ompvisits[fid][lid][t]) for t in sorted(ompvisits[fid][lid])]))
+                                            #['%s(%d)'%(t,i) for t,i in ompvisits[fid][lid].items()]))
                                     linevisit.append( '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' )
 
                                     srclines[int(lines[fid][lid])-1] = '%s%s\n'%(srclines[int(lines[fid][lid])-1], '\n'.join(linevisit))
@@ -456,7 +458,7 @@ class Coverage(KGModelingTool):
                 raise Exception('Please check the format of coverage file: %s'%str(e))
 
             THREASHOLD = Config.model['types']['code']['percentage'] / 100.0
-            THREASHOLD_NUM = int(number_of_condblocks_invoked*THREASHOLD)
+            THREASHOLD_NUM = int(math.ceil(number_of_condblocks_invoked*THREASHOLD))
             collected = []
             triples = {}
             for invokenum in sorted(invokemap.keys()):
@@ -478,7 +480,7 @@ class Coverage(KGModelingTool):
                                     if (ranknum, threadnum, invokenum) not in triples:
                                         triples[(ranknum, threadnum, invokenum)] = None
 
-            print 'At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(1.0-THREASHOLD)
+            print 'At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(THREASHOLD)
             print ','.join([ ':'.join([ str(n) for n in t ]) for t in triples.keys()])
             #print ''
             #print 'Following (File id, line number) pairs are covered by above triples:'

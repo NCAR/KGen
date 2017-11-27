@@ -14,5 +14,17 @@ CONTAINS
             out2(i, j) = 2*(j-i)
             out3(i, j) = 3*(j-i)
         END IF
+        SELECT CASE (i)
+        CASE (0)
+            output(i,1) = i - j
+        CASE (1)
+            output(i,1) = i - j
+        CASE (2)
+            output(i,1) = i - j
+        CASE (3)
+            output(i,1) = i - j
+        CASE DEFAULT
+            output(i,1) = i - j
+        END SELECT
     END SUBROUTINE
 END MODULE

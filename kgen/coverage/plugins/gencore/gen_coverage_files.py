@@ -9,6 +9,8 @@ import collections
 RECL = 10
 META = 'metadata.json'
 
+# TODO: gen_coverage subroutine should contains MPI communicator if MPI is enabled
+
 class Gen_Coverage_File(Kgen_Plugin):
     def __init__(self):
         self.frame_msg = None
@@ -42,6 +44,31 @@ class Gen_Coverage_File(Kgen_Plugin):
                     if lineid == lid:
                         return str(linenum)
 
+    def append_path(self, node):
+        if node.kgen_stmt.reader.id not in self.paths:
+            node.kgen_stmt.top.genspair.used4coverage = True
+            self.paths[node.kgen_stmt.reader.id] = ( len(self.paths), collections.OrderedDict() )
+
+        lines = self.paths[node.kgen_stmt.reader.id][1]
+
+        if node.kgen_stmt.item.span[1] not in lines:
+            lines[node.kgen_stmt.item.span[1]] = len(lines)
+
+    def add_stmt_block(self, node):
+        if not self.ispure(node) and hasattr(node.kgen_stmt, 'unknowns'):
+            path = self.paths[node.kgen_stmt.reader.id]
+            attrs = {'designator': 'gen_coverage', 'items': \
+                [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
+            part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
+
+    def add_stmt(self, node):
+        if not self.ispure(node) and hasattr(node.kgen_stmt, 'unknowns'):
+            path = self.paths[node.kgen_stmt.reader.id]
+            attrs = {'designator': 'gen_coverage', 'items': \
+                [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
+            idx, name, part = get_part_index(node)
+            part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Call, index=(idx+1), attrs=attrs)
+
     # registration
     def register(self, msg):
 
@@ -54,18 +81,18 @@ class Gen_Coverage_File(Kgen_Plugin):
             statements.ElseIf, None, self.preprocess_elseif)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
             statements.Else, None, self.preprocess_else)
-        #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
-        #    block_statements.If, None, self.preprocess_ifstmt)
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.NODE_CREATED, \
+            statements.Case, None, self.preprocess_case)
 
         # when begin process
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            block_statements.IfThen, None, self.addstmts_ifthen)
+            block_statements.IfThen, None, self.addstmt_ifthen)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            statements.ElseIf, None, self.addstmts_elseif)
+            statements.ElseIf, None, self.addstmt_elseif)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-            statements.Else, None, self.addstmts_else)
-        #self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
-        #    block_statements.If, None, self.addstmts_ifstmt)
+            statements.Else, None, self.addstmt_else)
+        self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
+            statements.Case, None, self.addstmt_case)
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.STATE, GENERATION_STAGE.BEGIN_PROCESS, \
             getinfo('topblock_stmt'), None, self.save_maps)
 
@@ -84,45 +111,20 @@ class Gen_Coverage_File(Kgen_Plugin):
     ##################################
 
     def preprocess_ifthen(self, node):
-        self.logger.debug('Begin preprocess_ifthen')
-
-        if node.kgen_stmt.reader.id not in self.paths:
-            node.kgen_stmt.top.genspair.used4coverage = True
-            self.paths[node.kgen_stmt.reader.id] = ( len(self.paths), collections.OrderedDict() )
-
-        lines = self.paths[node.kgen_stmt.reader.id][1]
-
-        if node.kgen_stmt.item.span[1] not in lines:
-            lines[node.kgen_stmt.item.span[1]] = len(lines)
+        #self.logger.debug('Begin preprocess_ifthen')
+        self.append_path(node)
 
     def preprocess_elseif(self, node):
-        self.logger.debug('Begin preprocess_elseif')
-
-        if node.kgen_stmt.reader.id not in self.paths:
-            node.kgen_stmt.top.genspair.used4coverage = True
-            self.paths[node.kgen_stmt.reader.id] = ( len(self.paths), collections.OrderedDict() )
-
-        lines = self.paths[node.kgen_stmt.reader.id][1]
-
-        if node.kgen_stmt.item.span[1] not in lines:
-            lines[node.kgen_stmt.item.span[1]] = len(lines)
+        #self.logger.debug('Begin preprocess_elseif')
+        self.append_path(node)
 
     def preprocess_else(self, node):
-        self.logger.debug('Begin preprocess_else')
+        #self.logger.debug('Begin preprocess_else')
+        self.append_path(node)
 
-        if node.kgen_stmt.reader.id not in self.paths:
-            node.kgen_stmt.top.genspair.used4coverage = True
-            self.paths[node.kgen_stmt.reader.id] = ( len(self.paths), collections.OrderedDict() )
-
-        lines = self.paths[node.kgen_stmt.reader.id][1]
-
-        if node.kgen_stmt.item.span[1] not in lines:
-            lines[node.kgen_stmt.item.span[1]] = len(lines)
-
-    #def preprocess_ifstmt(self, node):
-    #    getinfo('logger').info('Begin preprocess_ifstmt')
-        #import pdb; pdb.set_trace()
-    #    node.kgen_stmt.top.genspair.used4coverage = True
+    def preprocess_case(self, node):
+        #self.logger.debug('Begin preprocess_case')
+        self.append_path(node)
 
     ##################################
     # printing paths
@@ -180,39 +182,17 @@ class Gen_Coverage_File(Kgen_Plugin):
 
         return False
 
-    def addstmts_ifthen(self, node):
-        self.logger.debug('Begin addstmts_ifthen')
+    def addstmt_ifthen(self, node):
+        self.add_stmt_block(node)
 
-        if not self.ispure(node) and hasattr(node.kgen_stmt, 'unknowns'):
-            path = self.paths[node.kgen_stmt.reader.id]
-            attrs = {'designator': 'gen_coverage', 'items': \
-                [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
-            part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
+    def addstmt_elseif(self, node):
+        self.add_stmt(node)
 
-    def addstmts_elseif(self, node):
-        self.logger.debug('Begin addstmts_elseif')
+    def addstmt_else(self, node):
+        self.add_stmt(node)
 
-        if not self.ispure(node) and hasattr(node.kgen_stmt, 'unknowns'):
-            path = self.paths[node.kgen_stmt.reader.id]
-            attrs = {'designator': 'gen_coverage', 'items': \
-                [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
-            idx, name, part = get_part_index(node)
-            part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Call, index=(idx+1), attrs=attrs)
-
-    def addstmts_else(self, node):
-        self.logger.debug('Begin addstmts_else')
-
-        if not self.ispure(node) and hasattr(node.kgen_stmt, 'unknowns'):
-            path = self.paths[node.kgen_stmt.reader.id]
-            attrs = {'designator': 'gen_coverage', 'items': \
-                [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
-            idx, name, part = get_part_index(node)
-            part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Call, index=(idx+1), attrs=attrs)
-
-    #def addstmts_ifstmt(self, node):
-    #    getinfo('logger').info('Begin addstmts_ifstmt')
-        #import pdb; pdb.set_trace()
-    #    node.kgen_stmt.top.genspair.used4coverage = True
+    def addstmt_case(self, node):
+        self.add_stmt(node)
 
     ##################################
     # adding  invoke increment statement
@@ -275,7 +255,7 @@ class Gen_Coverage_File(Kgen_Plugin):
     ##################################
 
     def add_coverage(self, node):
-        self.logger.debug('Begin add_coverage')
+        #self.logger.debug('Begin add_coverage')
 
         if len(self.paths) == 0:
             self.logger.warn('There is no valid conditional block.')

@@ -344,7 +344,7 @@ class Config(object):
         self._attrs['model']['types']['code'] = collections.OrderedDict()
         self._attrs['model']['types']['code']['id'] = '0'
         self._attrs['model']['types']['code']['name'] = 'code'
-        self._attrs['model']['types']['code']['percentage'] = 0.99
+        self._attrs['model']['types']['code']['percentage'] = 99.9
         self._attrs['model']['types']['code']['enabled'] = False
         self._attrs['model']['types']['etime'] = collections.OrderedDict()
         self._attrs['model']['types']['etime']['id'] = '1'
