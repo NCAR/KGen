@@ -331,6 +331,7 @@ class Config(object):
         self._attrs['plugin']['priority']['ext.verification'] = '%s/plugins/verification'%KGEN_EXT
         self._attrs['plugin']['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXT
         self._attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXT
+        self._attrs['plugin']['priority']['ext.coverage'] = '%s/plugins/coverage'%KGEN_EXT
 
         ###############################################################
         # model information

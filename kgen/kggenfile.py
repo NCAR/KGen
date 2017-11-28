@@ -7,6 +7,7 @@ import sys
 import inspect
 import logging
 import collections
+from importlib import import_module
 
 from parser import api, base_classes, statements, block_statements, typedecl_statements, Fortran2003
 from parser import kgparse
@@ -15,6 +16,7 @@ from kgplugin import Kgen_Plugin
 from kgconfig import Config
 
 logger = logging.getLogger('kgen') # KGEN addition
+here = os.path.dirname(os.path.realpath(__file__))
 
 ########### Common ############
 
@@ -256,8 +258,9 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
     #    import pdb; pdb.set_trace() 
     if not node.kgen_isvalid: return
 
+    #import pdb; pdb.set_trace()
     for plugin_name, plugin_modules in event_register.iteritems():
-        if plugins and plugin_name not in plugins: continue
+        if not plugins or plugin_name not in plugins: continue
         for plugin_name, plugin_objects in plugin_modules.iteritems():
             for plugin_class, kernel_ids in plugin_objects.iteritems():
                 for kernel_id, file_types in kernel_ids.iteritems():
@@ -268,7 +271,7 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
                         if isinstance(kernel_id, int) and kernel_id!=cur_kernel_id: continue
                 
                     for file_type, gen_stages in file_types.iteritems():
-                        if file_type!=cur_file_type: continue
+                        if file_type!=cur_file_type and file_type != FILE_TYPE.BOTH: continue
 
                         for gen_stage, targets in gen_stages.iteritems():
                             if gen_stage==GENERATION_STAGE.ALL_STAGES: pass
@@ -363,7 +366,7 @@ def setinfo(name, info):
 def set_plugin_env(mod):
 
     mod.genkobj = genkobj
-    mod.gensobj = genkobj
+    mod.gensobj = gensobj
     mod.KGGenType = kgparse.KGGenType
 
     mod.getinfo =  getinfo
@@ -440,11 +443,12 @@ def init_plugins(kernel_ids):
         for plugin_name, plugin_path in Config.plugin['priority'].iteritems():
             plugin_common[kernel_id][plugin_name] = collections.OrderedDict()
             plugin_common[kernel_id][plugin_name]['blocks'] =  collections.OrderedDict()
-            sys.path.insert(0, plugin_path)
             plugin_files = [x[:-3] for x in os.listdir(plugin_path) if x.endswith(".py")]
             for plugin in plugin_files:
                 try:
-                    mod = __import__(plugin)
+                    relpath = os.path.relpath(plugin_path, here).split("/")
+                    relpath.append(plugin)
+                    mod = import_module('.'.join(relpath))
                     set_plugin_env(mod)
                     match = lambda x: inspect.isclass(x) and x is not Kgen_Plugin and issubclass(x, Kgen_Plugin)
                     for name, cls in inspect.getmembers(mod, match): 
