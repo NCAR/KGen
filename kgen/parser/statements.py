@@ -3131,6 +3131,8 @@ class Comment(Statement):
                     return '!$OMP %s'%self.comment
                 elif self.style=='rawtext':
                     return self.comment
+                elif self.style=='cpp':
+                    return self.comment
                 else:
                     return '!%s'%self.comment
             else:

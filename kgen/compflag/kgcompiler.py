@@ -8,6 +8,7 @@ class GenericCompiler(object):
     compnames = []
     openmp = None
     file_exts = None
+    fpp = ''
 
     discard_opts_noarg = [ ]
     discard_opts_arg = [ ]
@@ -109,6 +110,7 @@ class IntelFortranCompiler(GenericFortranCompiler):
     compid = 'ifort'
     compnames = ['ifort']
     openmp_opt = [ r'-openmp' ]
+    fpp = '-fpp'
 
     discard_opts_arg = [ '-module' ]
 
@@ -122,6 +124,7 @@ class GnuFortranCompiler(GenericFortranCompiler):
     compid = 'gfortran'
     compnames = ['gfortran']
     openmp_opt = [ r'-fopenmp' ]
+    fpp = '-cpp'
 
     discard_opts_arg = [ '-J' ]
 
@@ -135,6 +138,7 @@ class PgiFortranCompiler(GenericFortranCompiler):
     compid = 'pgfortran'
     compnames = ['pgfortran', 'pgf77', 'pgf90', 'pgf95', 'pghpf']
     openmp_opt = [ r'-mp' ]
+    fpp = '-Mpreprocess'
 
     discard_opts_arg = [ '-module' ]
 

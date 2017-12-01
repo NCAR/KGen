@@ -241,14 +241,26 @@ class Extractor(KGTool):
 
             opts = ''
             if Config.include['compiler'].has_key('compiler_options'):
-                opts += Config.include['compiler'].has_key('compiler_options')
+                opts = opts + ' ' + Config.include['compiler']['compiler_options']
 
             if kfile.has_key('compiler_options'):
-                opts += kfile['compiler_options']
+                opts = opts + ' ' + kfile['compiler_options']
+
+            if Config.model['types']['code']['enabled']:
+                if comp:
+                    compname = os.path.basename(comp)
+                    if compname =='ifort':
+                        opts += ' -fpp '
+                    elif componame =='gfortran':
+                        opts += ' -cpp '
+                    elif componame.startswith('pg'):
+                        opts += ' -Mpreprocess '
+                opts += ' -D KGEN_COVERAGE # Comment out "-D KGEN_COVERAGE" to turn off coverage feature.'
 
             if len(opts)>0:
                 if opts in compiler_options:
-                    if base not in compiler_options[kfile['compiler_options']]:
+                    #if kfile['compiler_options'] and base not in compiler_options[kfile['compiler_options']]:
+                    if base not in compiler_options[opts]:
                         compiler_options[opts].append(base)
                 else:
                     compiler_options[opts] = [ base, driver_base ]
