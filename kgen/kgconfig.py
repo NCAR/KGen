@@ -331,7 +331,7 @@ class Config(object):
         self._attrs['plugin']['priority']['ext.verification'] = '%s/plugins/verification'%KGEN_EXT
         self._attrs['plugin']['priority']['ext.simple_timing'] = '%s/plugins/simple_timing'%KGEN_EXT
         self._attrs['plugin']['priority']['ext.perturb'] = '%s/plugins/perturb'%KGEN_EXT
-        self._attrs['plugin']['priority']['ext.coverage'] = '%s/plugins/coverage'%KGEN_EXT
+        #self._attrs['plugin']['priority']['ext.coverage'] = '%s/plugins/coverage'%KGEN_EXT
 
         ###############################################################
         # model information
@@ -1026,6 +1026,10 @@ class Config(object):
                         else:
                             raise UserException('Unknown code-coverage flag option: %s' % copt)
         
+            # enable coverage feature at extractor
+            if self._attrs['model']['types']['code']['enabled']:
+                self._attrs['plugin']['priority']['ext.coverage'] = '%s/plugins/coverage'%KGEN_EXT
+
     def get_exclude_actions(self, section_name, *args ):
         if section_name=='namepath':
             if len(args)<1: return []
