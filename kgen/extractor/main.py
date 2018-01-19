@@ -251,9 +251,9 @@ class Extractor(KGTool):
                     compname = os.path.basename(comp)
                     if compname =='ifort':
                         opts += ' -fpp '
-                    elif componame =='gfortran':
+                    elif compname =='gfortran':
                         opts += ' -cpp '
-                    elif componame.startswith('pg'):
+                    elif compname.startswith('pg'):
                         opts += ' -Mpreprocess '
                 opts += ' -D KGEN_COVERAGE # Comment out "-D KGEN_COVERAGE" to turn off coverage feature.'
 
