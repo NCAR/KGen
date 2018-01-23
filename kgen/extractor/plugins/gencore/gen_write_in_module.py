@@ -98,13 +98,6 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmp_issave') ) ]}
             part_append_gensnode(pnode, DECL_PART, statements.Common, attrs=attrs)
 
-            if getinfo('is_openmp_app'):
-                attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'SAVE', 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_previnvoke = -1']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-            else:
-                attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_previnvoke = -1']}
-                part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_write_unit']}
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
@@ -113,10 +106,16 @@ class Gen_Write_In_Module(Kgen_Plugin):
             setattr(pnode, '__write_commonpart_statewrite', True)
 
         if getinfo('is_openmp_app'):
+            attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'SAVE', 'DIMENSION(0:1023)' ], 'entity_decls': ['kgen_previnvoke_L%d = -1'%lineno]}
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE', 'DIMENSION(0:1023)'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
         else:
             attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_writesubp_invoke_L%d = 0'%lineno]}
+            part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['SAVE'], 'entity_decls': ['kgen_previnvoke_L%d = -1'%lineno]}
             part_append_gensnode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'entity_decls': ['kgen_write_filepath_L%d'%lineno], 'selector':('1024', None)}
@@ -131,10 +130,10 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
             idx += 1
 
-            attrs = {'expr': 'kgen_previnvoke(OMP_GET_THREAD_NUM()) .LT. 0 .OR. kgen_previnvoke(OMP_GET_THREAD_NUM()) .NE. kgen_openmp_issave(OMP_GET_THREAD_NUM())'}
+            attrs = {'expr': 'kgen_previnvoke_L%d(OMP_GET_THREAD_NUM()) .LT. 0 .OR. kgen_previnvoke_L%d(OMP_GET_THREAD_NUM()) .NE. kgen_openmp_issave(OMP_GET_THREAD_NUM())'%(lineno, lineno)}
             ifprev = part_append_gensnode(ifsave, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'variable': 'kgen_previnvoke(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': 'kgen_openmp_issave(OMP_GET_THREAD_NUM())'}
+            attrs = {'variable': 'kgen_previnvoke_L%d(OMP_GET_THREAD_NUM())'%lineno, 'sign': '=', 'expr': 'kgen_openmp_issave(OMP_GET_THREAD_NUM())'}
             part_append_gensnode(ifprev, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'variable': 'kgen_writesubp_invoke_L%d(OMP_GET_THREAD_NUM())'%lineno, 'sign': '=', 'expr': '0'}
@@ -151,10 +150,10 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
             idx += 1
 
-            attrs = {'expr': 'kgen_previnvoke .LT. 0 .OR. kgen_previnvoke .NE. kgen_openmp_issave'}
+            attrs = {'expr': 'kgen_previnvoke_L%d .LT. 0 .OR. kgen_previnvoke_L%d .NE. kgen_openmp_issave'%(lineno, lineno)}
             ifprev = part_append_gensnode(ifsave, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'variable': 'kgen_previnvoke', 'sign': '=', 'expr': 'kgen_openmp_issave'}
+            attrs = {'variable': 'kgen_previnvoke_L%d'%lineno, 'sign': '=', 'expr': 'kgen_openmp_issave'}
             part_append_gensnode(ifprev, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'variable': 'kgen_writesubp_invoke_L%d'%lineno, 'sign': '=', 'expr': '0'}

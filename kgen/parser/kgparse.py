@@ -139,6 +139,10 @@ class SrcFile(object):
                     include_dirs = Config.include['file'][self.realpath]['path']+Config.include['path']
                 else:
                     include_dirs = Config.include['path']
+
+                if os.path.isfile(Config.mpi['header']):
+                    include_dirs.insert(0, os.path.dirname(Config.mpi['header']))
+
                 filename = match.group(1)[1:-1].strip()
                 path = filename
                 for incl_dir in include_dirs+[os.path.dirname(self.realpath)]:
@@ -186,7 +190,12 @@ class SrcFile(object):
                     macros_src.append('-D%s=%s'%(k,v))
                 else:
                     macros_src.append('-D%s'%k)
-        includes = [ '-I %s'%incpath for incpath in Config.include['path']+path_src ]
+
+        if os.path.isfile(Config.mpi['header']):
+            includes = [ '-I %s'%incpath for incpath in [os.path.dirname(Config.mpi['header'])] + Config.include['path']+path_src ]
+        else:
+            includes = [ '-I %s'%incpath for incpath in Config.include['path']+path_src ]
+
         macros_common = []
         for k, v in Config.include['macro'].iteritems():
             if v:
