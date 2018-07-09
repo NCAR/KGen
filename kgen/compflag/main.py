@@ -113,10 +113,10 @@ class CompFlag(kgtool.KGTool):
                     if pos_enoent < 0:
                         pos_last = line.rfind(STR_UF)
                         if pos_last < 0:
-                            pos_last = line.rfind(')')
+                            pos_last = line.rfind(']')
                         if pos_last >= 0:
                             try:
-                                exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):pos_last])
+                                exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):(pos_last+1)])
                                 compid = cmdlist[0].split('/')[-1]
                                 if exepath and cmdlist and compid==cmdlist[0].split('/')[-1]:
                                     compiler = kgcompiler.CompilerFactory.createCompiler(compid)
