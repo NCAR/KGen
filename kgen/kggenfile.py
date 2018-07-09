@@ -306,7 +306,7 @@ plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kerne
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'dummy_stmt', 'is_papi_enabled', \
     'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'model_file', 'model_path', 'logger', \
     'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer', 'papi_event', 'papi_header_file', \
-    'papi_typeid', 'papi_typename', 'papi_header_path'  ]
+    'papi_typeid', 'papi_typename', 'papi_header_path', 'coverage_filter', 'data' ]
 
 def getinfo(name, plugin=None):
     if name in plugin_default_infolist: 
@@ -324,6 +324,7 @@ def getinfo(name, plugin=None):
         elif name=='mpi_status_size': return Config.mpi['status_size']
         elif name=='mpi_use': return Config.mpi['use_stmts']
         elif name=='invocations': return Config.invocation['triples']
+        elif name=='data': return Config.data
         elif name=='print_var_names': return Config.debug['printvar']
         elif name=='callsite_file_path': return Config.callsite['filepath']
         elif name=='callsite_stmts': return Config.callsite['stmts']
@@ -340,6 +341,7 @@ def getinfo(name, plugin=None):
         elif name=='model_file': return Config.modelfile
         elif name=='coverage_typeid': return Config.model['types']['code']['id']
         elif name=='coverage_typename': return Config.model['types']['code']['name']
+        elif name=='coverage_filter': return Config.model['types']['code']['filter']
         elif name=='etime_typeid': return Config.model['types']['etime']['id']
         elif name=='etime_typename': return Config.model['types']['etime']['name']
         elif name=='papi_typeid': return Config.model['types']['papi']['id']

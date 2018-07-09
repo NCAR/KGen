@@ -273,6 +273,11 @@ class Config(object):
         self._attrs['invocation'] = collections.OrderedDict()
         self._attrs['invocation']['triples'] = []
 
+        # data parameters
+        self._attrs['data'] = collections.OrderedDict()
+        self._attrs['data']['condition'] = []
+        self._attrs['data']['maxnuminvokes'] = None
+
         # add mpi frame code in kernel driver
         self._attrs['add_mpi_frame'] = collections.OrderedDict()
         self._attrs['add_mpi_frame']['enabled'] = False
@@ -346,6 +351,8 @@ class Config(object):
         self._attrs['model']['types']['code']['id'] = '0'
         self._attrs['model']['types']['code']['name'] = 'code'
         self._attrs['model']['types']['code']['percentage'] = 99.9
+        self._attrs['model']['types']['code']['filter'] = None
+        self._attrs['model']['types']['code']['ndata'] = 20
         self._attrs['model']['types']['code']['enabled'] = False
         self._attrs['model']['types']['etime'] = collections.OrderedDict()
         self._attrs['model']['types']['etime']['id'] = '1'
@@ -420,6 +427,7 @@ class Config(object):
         ###############################################################
 
         self.parser.add_option("--invocation", dest="invocation", action='append', type='string', default=None, help="(process, thread, invocation) pairs of kernel for data collection")
+        self.parser.add_option("--data", dest="data", action='append', type='string', default=None, help="Control state data generation")
         self.parser.add_option("--openmp", dest="openmp", action='append', type='string', default=None, help="Specifying OpenMP options")
         self.parser.add_option("--mpi", dest="mpi", action='append', type='string', default=None, help="MPI information for data collection")
         self.parser.add_option("--timing", dest="timing", action='store', type='string', default=None, help="Timing measurement information")
@@ -642,7 +650,7 @@ class Config(object):
                 for macro in line.split(','): 
                     macro_eq = macro.split('=')
                     if len(macro_eq)==1:
-                        self._attrs['include']['macro'][macro_eq[0]] = '1'
+                        self._attrs['include']['macro'][macro_eq[0]] = None
                     elif len(macro_eq)==2:
                         self._attrs['include']['macro'][macro_eq[0]] = macro_eq[1]
                     else: raise UserException('Wrong format include: %s'%inc)
@@ -798,7 +806,6 @@ class Config(object):
 
         # parsing invocation parameters
         if opts.invocation:
-            self._attrs['invocation']['triples'] = []
             for line in opts.invocation:
                 for invocation in line.split(','):
                     t = invocation.split(':')
@@ -820,6 +827,28 @@ class Config(object):
                     except:
                         raise UserException('The last item in invocation triple should be number.')
                     self._attrs['invocation']['triples'].append(triple)
+
+        # parsing data parameters
+        if opts.data:
+            for line in opts.data:
+                for data in line.split(','):
+                    key, value = data.split('=', 1)
+                    if key == 'condition':
+                        t = value.strip().split(':')
+                        if len(t) == 1:
+                            self._attrs['data']['condition'].append(('and', t[0]))
+                        elif len(t) == 2:
+                            #if t[0] in ('set', 'or', 'and'):
+                            if t[0] in ('and'): # supports "and" only
+                                self._attrs['data']['condition'].append((t[0], t[1]))
+                            else:
+                                raise UserException('Unknown condition action type: %s' % t[0])
+                        else:
+                            raise UserException('Wrong number of condition subvalues: %s' % value)
+                    elif key == 'maxnuminvokes':
+                        self._attrs['data']['maxnuminvokes'] = int(value)
+                    else:
+                        raise UserException('Unknown data option: %s' % key)
 
         # parsing OpenMP parameters
         if opts.openmp:
@@ -1023,6 +1052,10 @@ class Config(object):
 
                         if split_copt[0] in [ 'percentage' ]:
                             self._attrs['model']['types']['code'][split_copt[0]] = float(split_copt[1])
+                        elif split_copt[0] in [ 'filter' ]:
+                            self._attrs['model']['types']['code'][split_copt[0]] = split_copt[1].strip().split(':')
+                        elif split_copt[0] in ( 'ndata' ):
+                            self._attrs['model']['types']['code'][split_popt[0]] = int(split_copt[1])
                         else:
                             raise UserException('Unknown code-coverage flag option: %s' % copt)
         

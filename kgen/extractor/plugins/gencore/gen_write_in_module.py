@@ -195,7 +195,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
                         if unknown.firstpartname() == varname: 
                             res_stmt = res.res_stmts[0]
                             var = res_stmt.get_variable(varname)
-                            vars.append((varstr, var))
+                            if var:
+                                vars.append((varstr, var))
                             break
 
         for varstr, var in vars:
@@ -316,7 +317,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
                         if unknown.firstpartname() == varname: 
                             res_stmt = res.res_stmts[0]
                             var = res_stmt.get_variable(varname)
-                            vars.append((varstr, var))
+                            if var:
+                                vars.append((varstr, var))
                             break
 
         # create typedecls for array of variable pointer

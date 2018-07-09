@@ -1540,6 +1540,9 @@ class EndEnum(EndStatement):
     """
     END ENUM
     """
+
+    f2003_class = Fortran2003.End_Enum_Stmt # KGEN addition
+
     match = re.compile(r'end\s*enum\Z',re.I).match
     blocktype = 'enum'
 
@@ -1549,6 +1552,9 @@ class Enum(BeginStatement):
       <enumerator-def-stmt>
       [ <enumerator-def-stmt> ]...
     """
+
+    f2003_class = Fortran2003.Enum_Def_Stmt # KGEN addition
+
     blocktype = 'enum'
     end_stmt_cls = EndEnum
     match = re.compile(r'enum\s*,\s*bind\s*\(\s*c\s*\)\Z',re.I).match
@@ -1589,7 +1595,7 @@ intrinsic_type_spec = [ SubprogramPrefix, Integer , Real,
 
 derived_type_spec = [  ]
 type_spec = intrinsic_type_spec + derived_type_spec
-declaration_type_spec = intrinsic_type_spec + [ TypeStmt, Class ]
+declaration_type_spec = intrinsic_type_spec + [ TypeStmt, Class, Procedure ]
 
 type_declaration_stmt = declaration_type_spec
 

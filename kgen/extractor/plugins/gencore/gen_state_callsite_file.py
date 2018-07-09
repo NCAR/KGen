@@ -637,6 +637,24 @@ class Gen_S_Callsite_File(Kgen_Plugin):
             #ifomp = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
             #part_append_comment(ifomp, EXEC_PART, 'CRITICAL (kgen_kernel)', style='openmp')
 
+
+            for gentype, condexpr in getinfo('data')['condition']:
+                if gentype == 'set':
+                    attrs = {'expr': condexpr}
+                elif gentype == 'and':
+                    attrs = {'expr': '%s .AND. kgen_issave(OMP_GET_THREAD_NUM())'%condexpr}
+                elif gentype == 'or':
+                    attrs = {'expr': '%s .OR. kgen_issave(OMP_GET_THREAD_NUM())'%condexpr}
+                ifcond = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'variable': 'kgen_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.TRUE.'}
+                part_append_gensnode(ifcond, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                part_append_gensnode(ifcond, EXEC_PART, statements.Else, attrs=attrs)
+
+                attrs = {'variable': 'kgen_issave(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': '.FALSE.'}
+                part_append_gensnode(ifcond, EXEC_PART, statements.Assignment, attrs=attrs)
+
             namedpart_append_comment(node.kgen_kernel_id, BEFORE_CALLSITE, 'CRITICAL (kgen_kernel)', style='openmp')
 
 
@@ -689,6 +707,23 @@ class Gen_S_Callsite_File(Kgen_Plugin):
                     'kgen_mymid', '0', 'kgen_osize', 'kgen_invoke', 'kgen_last_invoke', \
                     'kgen_issave', 'kgen_islast']}
                 namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Call, attrs=attrs)
+
+            for gentype, condexpr in getinfo('data')['condition']:
+                if gentype == 'set':
+                    attrs = {'expr': condexpr}
+                elif gentype == 'and':
+                    attrs = {'expr': '%s .AND. kgen_issave(0)'%condexpr}
+                elif gentype == 'or':
+                    attrs = {'expr': '%s .OR. kgen_issave(0)'%condexpr}
+                ifcond = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)
+
+                attrs = {'variable': 'kgen_issave(0)', 'sign': '=', 'expr': '.TRUE.'}
+                part_append_gensnode(ifcond, EXEC_PART, statements.Assignment, attrs=attrs)
+
+                part_append_gensnode(ifcond, EXEC_PART, statements.Else, attrs=attrs)
+
+                attrs = {'variable': 'kgen_issave(0)', 'sign': '=', 'expr': '.FALSE.'}
+                part_append_gensnode(ifcond, EXEC_PART, statements.Assignment, attrs=attrs)
 
             attrs = {'expr': 'kgen_issave(0)'}
             ifsave = namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, block_statements.IfThen, attrs=attrs)

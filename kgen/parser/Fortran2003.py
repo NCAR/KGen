@@ -2292,6 +2292,13 @@ class Declaration_Type_Spec(Base): # R502
             line = line[1:-1].strip()
             if line=='*': return 'CLASS','*'
             return 'CLASS', Derived_Type_Spec(line)
+        # start of KGEN addition
+        elif start == 'PROCEDURE':
+            line = string[9:].lstrip()
+            if not line.startswith('('): return
+            line = line[1:-1].strip()
+            return 'PROCEDURE', Derived_Type_Spec(line)
+        # end of KGEN addition
         return
     match = staticmethod(match)
     def tostr(self): return '%s(%s)' % self.items

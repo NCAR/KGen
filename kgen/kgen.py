@@ -17,6 +17,9 @@ from elapsedtime.main import ElapsedTime
 from papicounter.main import PapiCounter
 from extractor.main import Extractor
 
+# increase recursion limit
+sys.setrecursionlimit(2000)
+
 def main():
 
     Config.parse()

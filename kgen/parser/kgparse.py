@@ -186,7 +186,7 @@ class SrcFile(object):
             path_src = Config.include['file'][self.realpath]['path']+[os.path.dirname(self.realpath)]
             path_src = [ path for path in path_src if len(path)>0 ]
             for k, v in Config.include['file'][self.realpath]['macro'].iteritems():
-                if v:
+                if v is not None:
                     macros_src.append('-D%s=%s'%(k,v))
                 else:
                     macros_src.append('-D%s'%k)
@@ -355,6 +355,14 @@ class SrcFile(object):
                             next_fort_stmt.f2003.after_exclude = True
                         else:
                             raise UserException('WARNING: exclude target is not found')
+
+                    elif dname=='coverage':
+                        next_fort_stmt = get_next_non_comment(stmt)
+                        if next_fort_stmt:
+                            next_fort_stmt.f2003.after_coverage = True
+                            next_fort_stmt.f2003.coverage_name = clause
+                        else:
+                            raise UserException('WARNING: coverage target is not found')
 
                 elif 'callsite' in directs: # if not match and within callsite
                     if Config.callsite['stmts'] or not isinstance(stmt, Comment):

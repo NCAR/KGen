@@ -249,6 +249,8 @@ class Coverage(KGModelingTool):
 
 
                     # collect data
+                    kgutils.logger.info('Collecting raw data.')
+
                     usedfiles = [] # fid
                     usedlines = {} # fid=[linenum, ...]
                     mpivisits = {} # fileid:linenum:mpirank=visits
@@ -299,6 +301,8 @@ class Coverage(KGModelingTool):
                             shutil.rmtree(data_coverage_path)
                         kgutils.logger.warn('Code coverage data is not collected.')
                     else:
+                        kgutils.logger.info('Adding coverage data into the model file.')
+
                         try:
                             coverage_sections = [ 'summary', 'file', 'block', 'invoke']
 
@@ -461,23 +465,34 @@ class Coverage(KGModelingTool):
             THREASHOLD_NUM = int(math.ceil(number_of_condblocks_invoked*THREASHOLD))
             collected = []
             triples = {}
+            numC = len(collected)
+            numD = Config.model['types']['code']['ndata']
             for invokenum in sorted(invokemap.keys()):
-                if len(collected) > THREASHOLD_NUM: break
+                if numC > THREASHOLD_NUM and numC >= numD: break
                 ranknums = invokemap[invokenum]
                 for ranknum in ranknums.keys():
-                    if len(collected) > THREASHOLD_NUM: break
+                    if numC > THREASHOLD_NUM and numC >= numD: break
                     threadnums = invokemap[invokenum][ranknum]
                     for threadnum in threadnums.keys():
-                        if len(collected) > THREASHOLD_NUM: break
+                        invokecount = 0
+                        if numC > THREASHOLD_NUM and numC >= numD: break
                         fileids = invokemap[invokenum][ranknum][threadnum]
                         for fileid in fileids.keys():
-                            if len(collected) > THREASHOLD_NUM: break
+                            if numC > THREASHOLD_NUM and numC >= numD: break
+                            if Config.data['maxnuminvokes'] and \
+                                invokecount >= Config.data['maxnuminvokes']:
+                                break
                             lnums = invokemap[invokenum][ranknum][threadnum][fileid]
                             for lnum, numinvokes in lnums.items():
-                                if len(collected) > THREASHOLD_NUM: break
-                                if (fileid, lnum) not in collected:
-                                    collected.append((fileid, lnum))
+                                if numC > THREASHOLD_NUM and numC >= numD: break
+                                if Config.data['maxnuminvokes'] and \
+                                    invokecount >= Config.data['maxnuminvokes']:
+                                    break
+                                if (fileid, lnum, invokenum) not in collected:
+                                    collected.append((fileid, lnum, invokenum))
+                                    numC = len(collected)
                                     if (ranknum, threadnum, invokenum) not in triples:
+                                        invokecount += 1
                                         triples[(ranknum, threadnum, invokenum)] = None
 
             print 'At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(THREASHOLD)

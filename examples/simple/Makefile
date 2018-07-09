@@ -12,7 +12,8 @@ test:
 		--cmd-clean "cd ${SRC_DIR}; make clean" \
 		--cmd-build "cd ${SRC_DIR}; make build" \
 		--cmd-run "cd ${SRC_DIR}; make run" \
-		--repr-code percentage=99 \
+		--repr-etime disable \
+		--repr-code percentage=99,filter=test1:test2 \
 		${SRC}:${CALLSITE} 
 
 # additional flags

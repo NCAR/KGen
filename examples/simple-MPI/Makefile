@@ -13,6 +13,7 @@ test:
 		--cmd-clean "cd ${SRC_DIR}; make -f Makefile.mpirun clean" \
 		--cmd-build "cd ${SRC_DIR}; make -f Makefile.mpirun build" \
         --cmd-run "cd ${SRC_DIR}; make -f Makefile.mpirun run" \
+        --data condition=and:"i == 2" \
 		${SRC}:${CALLSITE}
 
 # additiional flags

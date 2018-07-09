@@ -57,15 +57,21 @@ class Gen_Coverage_File(Kgen_Plugin):
     def add_stmt_block(self, node):
         if not self.ispure(node) and hasattr(node.kgen_stmt, 'unknowns'):
             path = self.paths[node.kgen_stmt.reader.id]
-            attrs = {'designator': 'gen_coverage', 'items': \
-                [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
+            if getinfo('is_mpi_app'):
+                items = [ getinfo('mpi_comm'), str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]
+            else:
+                items = [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]
+            attrs = {'designator': 'gen_coverage', 'items': items}
             part_insert_gensnode(node, EXEC_PART, statements.Call, index=0, attrs=attrs)
 
     def add_stmt(self, node):
         if not self.ispure(node) and hasattr(node.kgen_stmt, 'unknowns'):
             path = self.paths[node.kgen_stmt.reader.id]
-            attrs = {'designator': 'gen_coverage', 'items': \
-                [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]}
+            if getinfo('is_mpi_app'):
+                items = [ getinfo('mpi_comm'), str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]
+            else:
+                items = [ str(path[0]), str(path[1][node.kgen_stmt.item.span[1]]) ]
+            attrs = {'designator': 'gen_coverage', 'items': items}
             idx, name, part = get_part_index(node)
             part_insert_gensnode(node.kgen_parent, EXEC_PART, statements.Call, index=(idx+1), attrs=attrs)
 
@@ -112,19 +118,35 @@ class Gen_Coverage_File(Kgen_Plugin):
 
     def preprocess_ifthen(self, node):
         #self.logger.debug('Begin preprocess_ifthen')
-        self.append_path(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.append_path(node)
 
     def preprocess_elseif(self, node):
         #self.logger.debug('Begin preprocess_elseif')
-        self.append_path(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.append_path(node)
 
     def preprocess_else(self, node):
         #self.logger.debug('Begin preprocess_else')
-        self.append_path(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.append_path(node)
 
     def preprocess_case(self, node):
         #self.logger.debug('Begin preprocess_case')
-        self.append_path(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.append_path(node)
 
     ##################################
     # printing paths
@@ -183,16 +205,32 @@ class Gen_Coverage_File(Kgen_Plugin):
         return False
 
     def addstmt_ifthen(self, node):
-        self.add_stmt_block(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.add_stmt_block(node)
 
     def addstmt_elseif(self, node):
-        self.add_stmt(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.add_stmt(node)
 
     def addstmt_else(self, node):
-        self.add_stmt(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.add_stmt(node)
 
     def addstmt_case(self, node):
-        self.add_stmt(node)
+        covfilter = getinfo('coverage_filter')
+        f2003 = node.kgen_stmt.f2003
+        if covfilter is None or (hasattr(f2003, 'after_coverage') and f2003.after_coverage and \
+            hasattr(f2003, 'coverage_name') and f2003.coverage_name in covfilter):
+            self.add_stmt(node)
 
     ##################################
     # adding  invoke increment statement
@@ -266,7 +304,10 @@ class Gen_Coverage_File(Kgen_Plugin):
         part_append_comment(node.kgen_parent, UNIT_PART, '')
 
         # add subroutine
-        attrs = {'name': 'gen_coverage', 'args': ['fileid', 'lineid']}
+        if getinfo('is_mpi_app'):
+            attrs = {'name': 'gen_coverage', 'args': ['mpicomm', 'fileid', 'lineid']}
+        else:
+            attrs = {'name': 'gen_coverage', 'args': ['fileid', 'lineid']}
         coversubr = part_append_gensnode(node.kgen_parent, UNIT_PART, block_statements.Subroutine, attrs=attrs)
 
         part_append_comment(coversubr, DECL_PART, '')
@@ -302,6 +343,9 @@ class Gen_Coverage_File(Kgen_Plugin):
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
             attrs = {'type_spec': 'INTEGER', 'entity_decls': ['myrank', 'numranks']}
+            part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'INTENT(IN)' ], 'entity_decls': ['mpicomm']}
             part_append_gensnode(coversubr, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         attrs = {'type_spec': 'CHARACTER', 'selector':('10', None), 'entity_decls': ['numranksstr']}
@@ -362,7 +406,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'expr': 'kgen_initialized .AND. ( ierror .EQ. MPI_SUCCESS )'}
             topobj = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
+            attrs = {'designator': 'MPI_COMM_RANK', 'items': [ 'mpicomm', 'myrank', 'ierror' ]}
             part_append_gensnode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'specs': [ 'rankstr', '"(I10)"' ], 'items': [ 'myrank' ]}
@@ -387,7 +431,7 @@ class Gen_Coverage_File(Kgen_Plugin):
 
         if getinfo('is_mpi_app'):
 
-            attrs = {'designator': 'MPI_COMM_SIZE', 'items': [ getinfo('mpi_comm'), 'numranks', 'ierror' ]}
+            attrs = {'designator': 'MPI_COMM_SIZE', 'items': [ 'mpicomm', 'numranks', 'ierror' ]}
             part_append_gensnode(ifnotmpi, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'specs': [ 'numranksstr', '"(I10)"' ], 'items': [ 'numranks' ]}
@@ -505,7 +549,7 @@ class Gen_Coverage_File(Kgen_Plugin):
         if getinfo('is_openmp_app'):
             attrs = {'specs': [ 'UNIT=dataunit', 'REC=1', 'FMT="(2I16,1A)"' ], 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())', '1', 'NEW_LINE("A")' ]}
         else:
-            attrs = {'specs': [ 'UNIT=dataunit', 'REC=1', 'FMT="(2I16,1A)"' ], 'items': [ '0', '1', 'NEW_LINE("A")' ]}
+            attrs = {'specs': [ 'UNIT=dataunit', 'REC=1', 'FMT="(2I16,1A)"' ], 'items': [ 'kgen_invokes', '1', 'NEW_LINE("A")' ]}
         part_append_gensnode(ifnewexist, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['UNIT=dataunit']}

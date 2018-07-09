@@ -48,52 +48,56 @@ class Gen_Coverage_File(Kgen_Plugin):
         else: return False
 
     def show_coverage(self, node):
-        part_append_comment(node, DECL_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
 
-        maxlines = max([len(l) for l in self.lines.values()])
-        attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d, 0:%d)'%(len(self.files)-1, maxlines-1) ], 'entity_decls': ['kgen_visits']}
-        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+        try:
+            part_append_comment(node, DECL_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
+            maxlines = max([len(l) for l in self.lines.values()])
+            attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d, 0:%d)'%(len(self.files)-1, maxlines-1) ], 'entity_decls': ['kgen_visits']}
+            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'items': [ ( 'coverage', ('kgen_visits', ) ) ]}
-        part_append_genknode(node, DECL_PART, statements.Common, attrs=attrs)
+            attrs = {'items': [ ( 'coverage', ('kgen_visits', ) ) ]}
+            part_append_genknode(node, DECL_PART, statements.Common, attrs=attrs)
 
-        part_append_comment(node, DECL_PART, "#ENDIF", style="cpp")
+            part_append_comment(node, DECL_PART, "#ENDIF", style="cpp")
 
-        part_append_comment(node, DECL_PART, '')
+            part_append_comment(node, DECL_PART, '')
 
-        part_append_comment(node, EXEC_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
+            part_append_comment(node, EXEC_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
 
 
-        attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'items': ['"kernel coverage using input files on ""kgen_statefile.lst"""'], 'specs': [ '*', '"(4X,A)"' ]}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
-
-        attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
-
-        for fid, fpath in self.inv_files.items():
-
-            attrs = {'items': ['""'], 'specs': [ '*', '"(A)"' ]}
+            attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
             part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-            if len(fpath) > 50:
-                fpath = ".." + fpath[-50:] 
-            attrs = {'specs': ['*', '*'], 'items': [ '"In ""%s"" (file id=%s),"'%(fpath,fid) ]}
+            attrs = {'items': ['"kernel coverage using input files on ""kgen_statefile.lst"""'], 'specs': [ '*', '"(4X,A)"' ]}
             part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-            for lid in sorted(self.inv_lines[fid]):
-                lnum = self.inv_lines[fid][lid]
-                attrs = {'specs': ['*', '"(A,I,A)"'], 'items': ['"  Kernel visited "', \
-                    'kgen_visits(%s,%s)'%(fid, lid), '" times at line_id=%s (near original line=%s)"'%(lid, lnum)]}
-                    #'kgen_visits(%s,%s)'%(fid, lid), '" times near the line # of %s (line id=%s)"'%(lnum, lid)]}
+            attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
+            part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+            for fid, fpath in self.inv_files.items():
+
+                attrs = {'items': ['""'], 'specs': [ '*', '"(A)"' ]}
                 part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+                if len(fpath) > 50:
+                    fpath = ".." + fpath[-50:] 
+                attrs = {'specs': ['*', '*'], 'items': [ '"In ""%s"" (file id=%s),"'%(fpath,fid) ]}
+                part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-        part_append_comment(node, EXEC_PART, "#ENDIF", style="cpp")
+                for lid in sorted(self.inv_lines[fid]):
+                    lnum = self.inv_lines[fid][lid]
+                    attrs = {'specs': ['*', '"(A,I,A)"'], 'items': ['"  Kernel visited "', \
+                        'kgen_visits(%s,%s)'%(fid, lid), '" times at line_id=%s (near original line=%s)"'%(lid, lnum)]}
+                        #'kgen_visits(%s,%s)'%(fid, lid), '" times near the line # of %s (line id=%s)"'%(lnum, lid)]}
+                    part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+            attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
+            part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+
+            part_append_comment(node, EXEC_PART, "#ENDIF", style="cpp")
+        except:
+            attrs = {'items': ['"ERROR: Coverage information is disabled due to an internal error."'], 'specs': [ '*', '"(A)"' ]}
+            part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         #import pdb; pdb.set_trace()
 

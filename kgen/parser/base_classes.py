@@ -50,6 +50,9 @@ class KGen_Resolver(object):
         if (uname, request) not in self.geninfo[request.gentype]:
             self.geninfo[request.gentype].append((uname, request))
 
+    def get_variable(self, name):
+        return None
+
 class ImplicitRule_Resolver(KGen_Resolver):
     pass
 

@@ -1756,7 +1756,6 @@ class Dimension(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
     def tokgen(self):
@@ -1810,7 +1809,6 @@ class Target(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
     def tokgen(self):
@@ -1859,7 +1857,6 @@ class Pointer(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
     def tokgen(self):
@@ -2231,7 +2228,6 @@ class Intent(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
     def tokgen(self):
@@ -2556,7 +2552,6 @@ class Allocatable(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
     def tokgen(self):
@@ -2615,7 +2610,6 @@ class Bind(Statement):
         self.parent.spec_stmts.append(self)
 
     def resolve_uname(self, uname, request):
-        logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
     def tokgen(self):

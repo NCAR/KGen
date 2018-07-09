@@ -9,7 +9,7 @@ Module content
 from kgutils import show_tree
 from kgparse import KGGenType
 import Fortran2003
-from typedecl_statements import TypeDeclarationStatement, TypeStmt
+from typedecl_statements import TypeDeclarationStatement, TypeStmt, Procedure
 from block_statements import Type, TypeDecl, Function, Subroutine, Interface, execution_part, Associate
 from statements import External, Common, SpecificBinding
 from kgconfig import Config
@@ -17,7 +17,7 @@ from collections import OrderedDict
 import logging
 
 res_default = [ TypeDeclarationStatement ]
-res_external = [ External ]
+res_external = [ External, Procedure ]
 res_typedecl = [ TypeDeclarationStatement ]
 res_typestmt = [ TypeStmt ]
 res_derivedtype = [ Type, TypeDecl ] 
@@ -1152,11 +1152,15 @@ def search_Implicit_Spec(stmt, node, gentype=None):
     """
     get_name_or_defer(stmt, node.items[0], res_typespec)
     get_name_or_defer(stmt, node.items[1], res_typespec)
-    #show_tree(node)
-    #import pdb ;pdb.set_trace()
 
 def search_Letter_Spec(stmt, node, gentype=None):
     pass
+    
+def search_Procedure_Declaration_Stmt(stmt, node, gentype=None):
+
+    get_name_or_defer(stmt, node.items[0], [Interface])
+    get_name_or_defer(stmt, node.items[1], res_value)
+
     #show_tree(node)
     #import pdb ;pdb.set_trace()
     
