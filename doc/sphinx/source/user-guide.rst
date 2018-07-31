@@ -459,6 +459,20 @@ colon, in option value.
     example) --prerun build=module load intel; module load impi;
     module load mkl
 
+[-I]
+::
+
+    meaning: specify paths for searching source files.
+
+    example) -I ./src
+
+[-D]
+::
+
+    meaning: specify macros that will be replaced in source files.
+
+    example) -D ROWS=4
+
 [-i or - -include-ini]
 ::
 
@@ -685,6 +699,28 @@ in the first and second part of the syntax.
     coverage achieved from a set of invocation triples generated.
 
     example) --repr-code percentage=99
+
+
+[- -state-switch]
+::
+
+    meaning : this option controls state generation task. There are
+	three sub-options: clean, type and directory. "clean" forces to
+    remove previously generated ouputs. In "type", there are two
+    attributes: replace or copy. "replace" forces the original source
+	file is replaced with the KGen-generated source file. "copy"
+	forces to copy KGen-generated source files into a directory that
+    is specified by "directory" sub-option of "--state-switch" option.
+	default sub-option is "replace".
+
+    example) --state-switch clean="rm ./strace.log"
+
+[- -noreuse-rawdata]
+::
+
+    meaning : Use this option if re-generating raw data is desired.
+
+    example) --noreuse-rawdata 
 
 
 ------------------
