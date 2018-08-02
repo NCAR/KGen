@@ -15,6 +15,7 @@ except:
 STR_EX = 'execve('
 STR_EN = 'ENOENT'
 STR_UF = '<unfinished'
+STR_RE = 'resumed>'
 #TEMP_SH = '#!/bin/bash\n%s\n%s\n%s\n'
 #SH = '%s/_kgen_compflag_cmdwrapper.sh'
 
@@ -114,6 +115,8 @@ class CompFlag(kgtool.KGTool):
                         pos_last = line.rfind(STR_UF)
                         if pos_last < 0:
                             pos_last = line.rfind(']')
+                        else:
+                            pos_last -= 1
                         if pos_last >= 0:
                             try:
                                 exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):(pos_last+1)])
@@ -128,7 +131,7 @@ class CompFlag(kgtool.KGTool):
                                                     flags[src].append((exepath, incs, macros, openmp, options))
                                                 else:
                                                     flags[src] = [ (exepath, incs, macros, openmp, options) ]
-                            except:
+                            except Exception as err:
                                 raise
                                 pass
                 line = f.readline()

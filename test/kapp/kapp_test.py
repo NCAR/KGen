@@ -41,7 +41,7 @@ class KAppTest(KGenTest):
         #print 'STDERR: ', err
         #print 'RETCODE: ', retcode
 
-        if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err or retcode!=0:
+        if not out or out.find('ERROR')>=0 or out.find('CRITICAL')>=0 or err.lower().find('error')>=0 or retcode!=0:
 
             return False, out, err
 
