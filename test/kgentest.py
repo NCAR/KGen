@@ -39,7 +39,9 @@ def report(testDB):
             pass
         else:
             print( '%s : FAILED'%testid )
-            print( 'ERROR MSG:', result['general']['errmsg'] )
+            print( 'ERROR MSG:')
+            for err in result['general']['errmsg']:
+                print(err)
             print( '' )
     
     print( '***********************************' )

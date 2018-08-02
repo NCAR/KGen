@@ -50,7 +50,6 @@ class KAppSysCHCesmTest(KAppSysCHTest):
         workdir = result['mkdir_task']['workdir']
         reuse_data = result['mkdir_task']['reuse_data']
 
-        import pdb; pdb.set_trace()
         if not reuse_data:
             # find jobid
             jobid = None
@@ -71,24 +70,24 @@ class KAppSysCHCesmTest(KAppSysCHTest):
 
 
             status = ''
-            maxiter = 3600
-            iter = 0
-            while status not in [ 'DONE', 'PSUSP', 'USUSP', 'SSUSP', 'EXIT', 'UNKWN', 'ZOMBI', 'FINISHED' ]:
-                time.sleep(1)
-                out, err, retcode = run_shcmd('bjobs %s'%jobid)
-                if retcode==0:
-                    for line in out.split('\n'):
-                        items = line.split()
-                        if len(items)>3 and items[0]==jobid:
-                            status = items[2]
-                        elif len(items)>0 and items[-1]=='found':
-                            status = 'FINISHED'
-                else:
-                    print('DEBUG: ', out, err, retcode)
-
-                iter += 1
-                if iter>=maxiter:
-                    break
+#            maxiter = 3600
+#            iter = 0
+#            while status not in [ 'DONE', 'PSUSP', 'USUSP', 'SSUSP', 'EXIT', 'UNKWN', 'ZOMBI', 'FINISHED' ]:
+#                time.sleep(1)
+#                out, err, retcode = run_shcmd('bjobs %s'%jobid)
+#                if retcode==0:
+#                    for line in out.split('\n'):
+#                        items = line.split()
+#                        if len(items)>3 and items[0]==jobid:
+#                            status = items[2]
+#                        elif len(items)>0 and items[-1]=='found':
+#                            status = 'FINISHED'
+#                else:
+#                    print('DEBUG: ', out, err, retcode)
+#
+#                iter += 1
+#                if iter>=maxiter:
+#                    break
 
             if status=='DONE' or 'FINISHED':
                 self.set_status(result, myname, self.PASSED)

@@ -18,6 +18,7 @@ class KAppSysCHCesmIntelTest(KAppSysCHCesmTest):
         casename = 'KINTCESM'
         casedir = '%s/%s'%(systestdir, casename)
         cesmtmpdir = '/glade/scratch/%s/%s'%(getpass.getuser(), casename)
+        result[myname]['cesmtmpdir'] = cesmtmpdir
 
         datadir = '%s/data'%workdir
 

@@ -4,6 +4,20 @@ import glob
 import shutil
 from kapp_sys_ch_cesm_intel_test import KAppSysCHCesmIntelTest
 
+#[/glade2/scratch2/youngsun/KINTCESM/bld/intel/mpt/nodebug/nothreads/mct/noesmf/clm/obj/ncdio_pio.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/atm/obj/subcol_pack_mod.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/intel/mpt/nodebug/nothreads/mct/noesmf/clm/obj/restUtilMod.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/atm/obj/subcol_utils.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/intel/mpt/nodebug/nothreads/mct/noesmf/clm/obj/initInterp2dvar.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/intel/mpt/nodebug/nothreads/mct/noesmf/clm/obj/array_utils.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/atm/obj/buffer.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/intel/mpt/nodebug/nothreads/mct/noesmf/clm/obj/dynVarTimeInterpMod.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/atm/obj/physics_buffer.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/intel/mpt/nodebug/nothreads/mct/noesmf/clm/obj/dynVarMod.F90]
+#[/glade2/scratch2/youngsun/KINTCESM/bld/intel/mpt/nodebug/nothreads/mct/noesmf/clm/obj/dynVarTimeUninterpMod.F90]
+
+here = os.path.dirname(os.path.abspath(__file__))
+atmgendir = os.path.join(here, "..", "..", "genfiles", "atm")
 
 class Test(KAppSysCHCesmIntelTest):
 
@@ -19,16 +33,21 @@ class Test(KAppSysCHCesmIntelTest):
         result[myname]['camsrcmods'] = camsrcmods
 
         srcfile = '%s/components/cam/src/physics/cam/micro_mg_cam.F90'%tmpsrc
-        #namepath = 'micro_mg_cam:micro_mg_cam_tend:micro_mg_tend2_0'
-        namepath = 'micro_mg_cam:micro_mg_cam_tend:micro_mg_get_cols2_0'
+        namepath = 'micro_mg_cam:micro_mg_cam_tend:micro_mg_cam_tend_pack'
 
+        for f in os.listdir(atmgendir):
+            src = os.path.join(atmgendir, f)
+            dst = os.path.join(result['config_task']['cesmtmpdir'], "bld", "atm", "obj", f)
+            if os.path.isfile(src):
+                shutil.copyfile(src, dst)
+ 
         passed, out, err = self.extract_kernel(srcfile, namepath, \
             __cmd_clean='"cd %s; ./case.clean_build all"'%casedir, \
             __cmd_build='"cd %s; ./case.build"'%casedir, \
             __cmd_run='"cd %s; ./case.submit"'%casedir, \
             __timing='repeat=1', \
             __intrinsic='skip,except=shr_spfn_mod:shr_spfn_gamma_nonintrinsic_r8:sum', \
-            __mpi='comm=mpicom,use="spmd_utils:mpicom",header="/ncar/opt/intel/12.1.0.233/impi/4.0.3.008/intel64/include/mpif.h"', \
+            __mpi='comm=mpicom,use="spmd_utils:mpicom",header="/glade/u/apps/ch/opt/mpt/2.16/include/mpif.h"', \
             __openmp='enable', \
             __outdir=workdir)
             #__rebuild='all',
@@ -40,9 +59,8 @@ class Test(KAppSysCHCesmIntelTest):
         result[myname]['stderr'] = err
         result[myname]['datadir'] = '%s/data'%workdir
 
-
         if passed:
-            for dfile in glob.glob('%s/micro_mg_get_cols2_0.*.*.*'%kerneldir):
+            for dfile in glob.glob('%s/micro_mg_cam_tend_pack.*.*.*'%kerneldir):
                 result[myname]['statefiles'].append(os.path.basename(dfile))
             #result[myname]['statefiles'] = ['micro_mg_get_cols2_0.0.0.10', 'micro_mg_get_cols2_0.0.0.50', 'micro_mg_get_cols2_0.0.0.100', \
             #    'micro_mg_get_cols2_0.100.0.10', 'micro_mg_get_cols2_0.100.0.50', 'micro_mg_get_cols2_0.100.0.100', \
