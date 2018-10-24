@@ -33,8 +33,12 @@ class Test(KAppSysCHCesmIntelTest):
         camsrcmods = '%s/src.cam'%srcmods
         result[myname]['camsrcmods'] = camsrcmods
 
-        srcfile = '%s/components/cam/src/physics/cam/micro_mg_cam.F90'%tmpsrc
+        srcfile = '%s/components/cam/src/physics/cam/clubb_intr.F90'%tmpsrc
         namepath = 'micro_mg_cam:micro_mg_cam_tend_pack:micro_mg_tend2_0'
+
+        if os.path.exists(os.path.join(self.TEST_DIR, 'clubb_intr.F90')):
+            shutil.copy(srcfile, workdir)
+            shutil.copyfile(os.path.join(self.TEST_DIR, 'clubb_intr.F90'), srcfile)
 
         # copy csm_share src files
         dst = os.path.join(result['config_task']['cesmtmpdir'], "bld", "intel", "mpt",

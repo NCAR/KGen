@@ -8,7 +8,7 @@ class KAppSysCHTest(KAppSysTest):
     def preprocess(self, myname, result):
         out, err, retcode = run_shcmd('squeue')
 
-        if retcode != 0 or out.find('dav')<0 or out.find('hpss')<0:
+        if retcode != 0 or (out.find('dav')<0 and out.find('hpss')<0):
             errmsg = 'Current system is not Cheyenne of NCAR'
             self.set_status(result, myname, self.FAILED, errmsg)
         else:

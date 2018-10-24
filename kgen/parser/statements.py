@@ -2502,6 +2502,10 @@ class GenericBinding(Statement):
             s += ', '+self.aspec
         s += ' :: ' + self.spec + ' => ' + ', '.join(self.items)
         return s
+
+    def analyze(self):
+        return
+
     # end of KGEN addition
 
 class FinalBinding(StatementWithNamelist):

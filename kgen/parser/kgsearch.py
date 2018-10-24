@@ -9,7 +9,8 @@ Module content
 from kgutils import show_tree
 from kgparse import KGGenType
 import Fortran2003
-from typedecl_statements import TypeDeclarationStatement, TypeStmt, Procedure
+#from typedecl_statements import TypeDeclarationStatement, TypeStmt, Procedure # TEEMP
+from typedecl_statements import TypeDeclarationStatement, TypeStmt
 from block_statements import Type, TypeDecl, Function, Subroutine, Interface, execution_part, Associate
 from statements import External, Common, SpecificBinding
 from kgconfig import Config
@@ -17,7 +18,8 @@ from collections import OrderedDict
 import logging
 
 res_default = [ TypeDeclarationStatement ]
-res_external = [ External, Procedure ]
+#res_external = [ External, Procedure ] # TEMP
+res_external = [ External ]
 res_typedecl = [ TypeDeclarationStatement ]
 res_typestmt = [ TypeStmt ]
 res_derivedtype = [ Type, TypeDecl ] 
@@ -1163,5 +1165,11 @@ def search_Procedure_Declaration_Stmt(stmt, node, gentype=None):
 
     #show_tree(node)
     #import pdb ;pdb.set_trace()
-    
 
+def search_Binding_PASS_Arg_Name(stmt, node, gentype=None):
+
+    #show_tree(node)
+    #import pdb ;pdb.set_trace()
+
+    pass
+ 

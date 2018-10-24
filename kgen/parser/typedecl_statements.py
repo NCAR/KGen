@@ -12,7 +12,8 @@ Created: May 2006
 """
 
 __all__ = ['Integer', 'Real', 'DoublePrecision', 'Complex', 'DoubleComplex',
-           'Character', 'Logical', 'Byte', 'TypeStmt', 'Class', 'Procedure',
+           #'Character', 'Logical', 'Byte', 'TypeStmt', 'Class', 'Procedure', # TEMP
+           'Character', 'Logical', 'Byte', 'TypeStmt', 'Class',
            'intrinsic_type_spec', 'declaration_type_spec',
            'Implicit']
 
@@ -138,6 +139,7 @@ class TypeDeclarationStatement(Statement):
     # end of KGEN
 
     def process_item(self):
+
         item = self.item
         apply_map = item.apply_map
         clsname = self.__class__.__name__.lower()
@@ -338,7 +340,8 @@ class TypeDeclarationStatement(Statement):
                 if length:
                     s += 'KIND=%s' % (length)
                 if kind:
-                    if isinstance(self, (Class, Procedure)):
+                    #if isinstance(self, (Class, Procedure)): #TEMP
+                    if isinstance(self, (Class,)):
                         s += '%s' % (kind)
                     else:
                         s += 'KIND=%s' % (kind)
@@ -391,7 +394,8 @@ class TypeDeclarationStatement(Statement):
                         s += '*%s' % (length)
                     if kind:
                         # start of KGEN addition
-                        if isinstance(self, (Class, Procedure)):
+                        #if isinstance(self, (Class, Procedure)):
+                        if isinstance(self, (Class,)): #TEMP
                             s += '(%s)' % (kind)
                         else:
                             s += '(KIND=%s)' % (kind)
@@ -506,10 +510,12 @@ class TypeDeclarationStatement(Statement):
         return CHAR_BIT * int(self.get_byte_size())
 
     #def is_intrinsic(self): return not isinstance(self,(Type,Class,Procedure)) # KGEN deletion
-    def is_intrinsic(self): return not isinstance(self,(Type,Class,Procedure)) # KGEN addition
+    #def is_intrinsic(self): return not isinstance(self,(Type,Class,Procedure)) # KGEN addition # TEMP
+    def is_intrinsic(self): return not isinstance(self,(Type,Class,)) # KGEN addition
     def is_derived(self): return isinstance(self,Type)
     def is_class(self): return isinstance(self,Class) # KGEN addition
-    def is_procedure(self): return isinstance(self,Procedure) # KGEN addition
+    #def is_procedure(self): return isinstance(self,Procedure) # KGEN addition # TEMP
+    def is_procedure(self): return isinstance(self,) # KGEN addition
 
     def is_numeric(self): return isinstance(self,(Integer,Real, DoublePrecision,Complex,DoubleComplex,Byte))
     def is_nonnumeric(self): return isinstance(self,(Character,Logical))
@@ -626,9 +632,9 @@ class Class(TypeDeclarationStatement):
     match = re.compile(r'class\s*\(', re.I).match
 
 # start of KGEN addition
-class Procedure(TypeDeclarationStatement):
-    f2003_class = Fortran2003.Procedure_Declaration_Stmt # KGEN addition
-    match = re.compile(r'procedure\s*\(', re.I).match
+#class Procedure(TypeDeclarationStatement):
+#    f2003_class = Fortran2003.Procedure_Declaration_Stmt # KGEN addition
+#    match = re.compile(r'procedure\s*\(', re.I).match
 # end of KGEN addition
 
 class Implicit(Statement):
@@ -740,4 +746,5 @@ intrinsic_type_spec = [ \
     Integer , Real,
     DoublePrecision, Complex, DoubleComplex, Character, Logical, Byte
     ]
-declaration_type_spec = intrinsic_type_spec + [ TypeStmt, Class, Procedure ]
+#declaration_type_spec = intrinsic_type_spec + [ TypeStmt, Class, Procedure ] # TEMP
+declaration_type_spec = intrinsic_type_spec + [ TypeStmt, Class ]

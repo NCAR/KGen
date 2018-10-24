@@ -298,7 +298,8 @@ class Variable(object):
     known_attributes = ['PUBLIC', 'PRIVATE', 'ALLOCATABLE', 'ASYNCHRONOUS',
                         'EXTERNAL', 'INTRINSIC', 'OPTIONAL', 'PARAMETER',
                         'POINTER', 'PROTECTED', 'SAVE', 'TARGET', 'VALUE',
-                        'VOLATILE', 'REQUIRED']
+                        'VOLATILE', 'REQUIRED', 'DEFERRED'] # KGEN addition
+                        #'VOLATILE', 'REQUIRED'] # KGEN deletion
 
     def is_intent_in(self):
         #if not self.intent: return True # KGEN deletion
@@ -1741,7 +1742,8 @@ class EndStatement(Statement):
             # insensitive anyway so we should assume labels may have a
             # different case and therefore cast both to the same case in our
             # equivalence test.
-            if line.lower()!=name.lower():
+            #if line.lower()!=name.lower(): # KGEN deletion
+            if line.lower()!=name.replace(' ','').lower(): # KGen addition
                 self.warning(\
                     'expected the end of %r block but got the end of %r, skipping.'\
                     % (name, line))

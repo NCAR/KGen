@@ -971,7 +971,7 @@ class Config(object):
 
         # parsing logging options
         if opts.verbose_level:
-            self._attrs['verify']['verboselevel'] = str(opt)
+            self._attrs['verify']['verboselevel'] = str(opts.verbose_level)
 
         # mpi frame code in kernel driver
         if opts.add_mpi_frame:
