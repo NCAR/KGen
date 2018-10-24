@@ -1,7 +1,7 @@
 import sys
 import time
 import getpass
-from kgen_utils import run_shcmd
+from kgutils import run_shcmd
 from kapp_sys_edison_calc_calc_openmpi_test import KAppSysEdisonCalcCOMTest
 
 class Test(KAppSysEdisonCalcCOMTest):

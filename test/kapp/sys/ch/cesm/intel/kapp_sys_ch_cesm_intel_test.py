@@ -5,7 +5,7 @@ import shutil
 import getpass
 import re
 import time
-from kgen_utils import run_shcmd
+from kgutils import run_shcmd
 from kapp_sys_ch_cesm_test import KAppSysCHCesmTest
 
 class KAppSysCHCesmIntelTest(KAppSysCHCesmTest):

@@ -14,11 +14,11 @@ if sys.hexversion < 0x020700F0:
 
 SCRIPT_HOME, SCRIPT_NAME = os.path.split(os.path.realpath(__file__))
 KGEN_HOME = '%s/..'%SCRIPT_HOME
-sys.path.insert(0, '%s/base'%KGEN_HOME)
+sys.path.insert(0, '%s/kgen'%KGEN_HOME)
 #sys.path.insert(1, '%s/packages'%KGEN_HOME)
 TEST_SCRIPT = 'runtest.py'
 
-from kgen_test import KGenTest
+from kgtest import KGenTest
 from collections import OrderedDict
 
 def report(testDB):

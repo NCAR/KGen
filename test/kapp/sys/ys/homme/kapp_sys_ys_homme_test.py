@@ -5,7 +5,7 @@ import shutil
 import re
 import time
 from kapp_sys_ys_test import KAppSysYSTest
-from kgen_utils import run_shcmd
+from kgutils import run_shcmd
 
 job_script = \
 """#!/bin/bash

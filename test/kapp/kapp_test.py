@@ -2,8 +2,8 @@
 
 import os
 import time
-from kgen_test import KGenTest
-from kgen_utils import run_shcmd
+from kgtest import KGenTest
+from kgutils import run_shcmd
 
 class KAppTest(KGenTest):
 

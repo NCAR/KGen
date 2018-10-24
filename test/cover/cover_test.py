@@ -4,6 +4,7 @@ import os
 from kgen_test import KGenTest
 
 class CoverTest(KGenTest):
+
     def preprocess(self, myname, result):
         result['general']['mandatory_tasks'].extend([ 'generate_task', 'genstate_task', 'verify_task' ])
         self.set_status(result, myname, self.PASSED)

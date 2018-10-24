@@ -1,6 +1,6 @@
 import sys
 import time
-from kgen_utils import run_shcmd
+from kgutils import run_shcmd
 from kapp_sys_ys_calc_calc_mpi_openmp_test import KAppSysYSCalcCMOTest
 
 class Test(KAppSysYSCalcCMOTest):

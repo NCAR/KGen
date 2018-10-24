@@ -4,7 +4,7 @@ import os
 import shutil
 import re
 import time
-from kgen_utils import run_shcmd
+from kgutils import run_shcmd
 from kapp_sys_ys_cesm_test import KAppSysYSCesmTest
 
 class KAppSysYSCesmIntelTest(KAppSysYSCesmTest):

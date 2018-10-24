@@ -2,7 +2,7 @@ import os
 import shutil
 import getpass
 from kapp_sys_test import KAppSysTest
-from kgen_utils import run_shcmd
+from kgutils import run_shcmd
 
 class KAppSysEdisonTest(KAppSysTest):
     def preprocess(self, myname, result):
