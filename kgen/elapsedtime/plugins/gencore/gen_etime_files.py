@@ -293,8 +293,10 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
             attrs = {'expr': 'kgen_initialized .AND. ( ierror .EQ. 0 )'}
             topobj = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-            if getinfo('is_openmp_app'):
-                part_append_comment(topobj, EXEC_PART, 'CRITICAL (kgen_etime)', style='openmp')
+        if getinfo('is_openmp_app'):
+            part_append_comment(topobj, EXEC_PART, 'CRITICAL (kgen_etime)', style='openmp')
+
+        if getinfo('is_mpi_app'):
 
             attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
             part_append_gensnode(topobj, EXEC_PART, statements.Call, attrs=attrs)

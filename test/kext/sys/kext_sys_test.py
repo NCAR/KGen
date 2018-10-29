@@ -10,27 +10,27 @@ class KExtSysTest(KExtTest):
 
         workdir = result['mkdir_task']['workdir']
         statefiles = result['generate_task']['statefiles']
-        datadir = result['build_task']['datadir']
+        datadir = result['generate_task']['datadir']
 
         # if data folder does not exist, create it
         if not os.path.exists(datadir):
             os.mkdir(datadir)
 
         # copy statefiles if they are newer.
-        statefile = 'kgen_statefile.lst'
-        kernel_sf = '%s/kernel/%s'%(workdir, statefile)
-        data_sf = '%s/data/%s'%(workdir, statefile)
+        statelst = 'kgen_statefile.lst'
+        kernel_sf = '%s/kernel/%s'%(workdir, statelst)
+        data_sf = '%s/data/%s'%(workdir, statelst)
         if os.path.exists(kernel_sf) and os.path.exists(data_sf):
             os.remove(data_sf)
         if os.path.exists(kernel_sf):
             shutil.copyfile(kernel_sf, data_sf)
 
         for statefile in statefiles:
-            kerneldata = '%s/kernel/%s'%(workdir, statefile)
-            datafile = os.path.join(datadir, statefile)
-            if not os.path.exists(datafile) or \
-                os.path.getctime(kerneldata) < os.path.getctime(datafile):
-                shutil.copyfile(kerneldata, datafile)
+            dataname = os.path.basename(statefile)
+            kerneldata = '%s/kernel/%s'%(workdir, dataname)
+            if not os.path.exists(statefile) or \
+                os.path.getctime(kerneldata) < os.path.getctime(statefile):
+                shutil.copyfile(kerneldata, statefile)
 
         self.set_status(result, myname, self.PASSED)
 
@@ -41,8 +41,8 @@ class KExtSysTest(KExtTest):
         workdir = result['mkdir_task']['workdir'] 
         kerneldir = '%s/kernel'%workdir
         statedir = '%s/state'%workdir
-        kgenlog = os.path.join(self.TEST_DIR, 'kgen.log')
-        kgencmd = os.path.join(self.TEST_DIR, 'kgen_cmds.sh')
+        kgenlog = os.path.join(workdir, 'kgen.log')
+        kgencmd = os.path.join(workdir, 'kgen_cmds.sh')
 
         if not self.LEAVE_TEMP:
             if os.path.exists(kerneldir):

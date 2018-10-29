@@ -131,11 +131,11 @@ class KExtFuncCHTest(KExtFuncTest):
             if os.path.exists(workdir):
                 shutil.rmtree(workdir)
 
-            if os.path.exists(os.path.join(self.TEST_DIR, 'kgen_cmds.sh')):
-                os.remove(os.path.join(self.TEST_DIR, 'kgen_cmds.sh'))
+            #if os.path.exists(os.path.join(self.TEST_DIR, 'kgen_cmds.sh')):
+            #    os.remove(os.path.join(self.TEST_DIR, 'kgen_cmds.sh'))
 
-            if os.path.exists(os.path.join(self.TEST_DIR, 'kgen.log')):
-                os.remove(os.path.join(self.TEST_DIR, 'kgen.log'))
+            #if os.path.exists(os.path.join(self.TEST_DIR, 'kgen.log')):
+            #    os.remove(os.path.join(self.TEST_DIR, 'kgen.log'))
 
         self.set_status(result, myname, self.PASSED)
 

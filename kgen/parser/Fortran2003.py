@@ -3736,6 +3736,7 @@ class Add_Operand(BinaryOpBase): # R705
     subclass_names = ['Mult_Operand']
     use_names = ['Add_Operand','Mult_Operand']
     def match(string):
+        if string.find("[2._r8*dcs, 1.e-6_r8]") > 0 : import pdb; pdb.set_trace()
         return BinaryOpBase.match(Add_Operand,pattern.mult_op.named(),Mult_Operand,string)
     match = staticmethod(match)
 

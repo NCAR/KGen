@@ -16,35 +16,42 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 	Once "make" is completed with success, you will see information similar to next lines on screen
 
 		../../bin/kgen \
-				--timing repeat=100 \
-				--invocation 0:0:1,0:0:2,0:0:3 \
-				--check tolerance=1.0D-14 \
-				--rebuild all \
-				--cmd-clean "cd ${KGENHOME}/examples/simple/src; make clean" \
-				--cmd-build "cd ${KGENHOME}/examples/simple/src; make build" \
-				--cmd-run "cd ${KGENHOME}/examples/simple/src; make run" \
-				${KGENHOME}/examples/simple/src/update_mod.F90:update_mod:update:calc
-		Starting KGen
-		Starting KOption
-		Building application to collect strace log file: ./strace.log
+			--cmd-clean "cd ..KGen/examples/simple/src; make clean" \
+			--cmd-build "cd ..KGen/examples/simple/src; make build" \
+			--cmd-run "cd ..KGen/examples/simple/src; make run" \
+			--repr-etime disable \
+			--repr-code percentage=99,filter=test1:test2 \
+			..KGen/examples/simple/src/update_mod.F90:update_mod:update:calc 
+		Creating KGen strace logfile: ./strace.log
 		Creating KGen include file: ./include.ini
-		KOption is finished.
-		Starting KExt
-		Pre-processing is done
-		Reading ${KGENHOME}/examples/simple/src/update_mod.F90
-		Reading ${KGENHOME}/examples/simple/src/calc_mod.F90
-			in the search of "calc" directly from update_mod.F90 and originally from update_mod.F90
-		Program is analyzed
+		Reading ..KGen/examples/simple/src/update_mod.F90
+		Reading ..KGen/examples/simple/src/calc_mod.F90
+		Starting KCover
+		Generating coverage raw data.
+		Instrumentation for coverage is generated at ..KGen/examples/simple/coverage.
+		Generating model file: ./model.ini
+		Collecting raw data.
+		Adding coverage data into the model file.
+			***** Within "calc" kernel *****:
+			* 1 original source files have conditional blocks.
+			* 1 original source files are invoked at least once.
+			* 2 conditional blocks exist in the original source files.
+			* 2 conditional blocks are executed at least once among all the conditional blocks.
+		Reading ./model.ini
+		At least, 99.0% of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:
+		0:0:9,0:0:7,0:0:12,0:0:3,0:0:8,0:0:17,0:0:6,0:0:15,0:0:20,0:0:2,0:0:11,0:0:16,0:0:14,0:0:5,0:0:10,0:0:19,0:0:1,0:0:4,0:0:13,0:0:18
+		Disabled elapsedtime.
+		Disabled papi.
+		Starting KExtract
 		Kernel generation and instrumentation is completed.
 		Makefiles are generated
-		Post-processing is done
-		KExt is finished.
-		Generating state data files at ./state.
-		KGen is finished.
+		Application is being built/run with state generation instrumentation.
+		Application built/run is finished.
 
-	After this step, two subfolders(kernel and state) will be created under this folder.
+	After this step, three subfolders(kernel, state, and coverage) will be created under this folder.
 	Kernel files and state data files(calc.*.*.*) should be created in kernel folder.
 	In state folder, KGen-instrumented files are created.
+	In coverage folder, files whose extension is "coverage" contain coverage information.
 
 	NOTE: If compilation happens at different directory other than examples/src folder, please add following KGen flag similar to following:
 		--source alias=/your/examples/src:/somewhere/compilation/happens
@@ -53,18 +60,19 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 
 	4. >> make; # build and run a kernel
 
-	In this step, the generated kernel will be built/run and verfication and timing information will be displayed on screen.
+	In this step, the generated kernel will be built/run, and verfication, timing, and coverage information will be displayed on screen.
 
-		ifort  -c -o kgen_utils.o kgen_utils.f90
-		ifort  -c -o calc_mod.o calc_mod.F90
-		ifort  -c -o update_mod.o update_mod.F90
-		ifort  -c -o kernel_driver.o kernel_driver.f90
-		ifort    -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o
+		ifort -fpp -D KGEN_COVERAGE  -c -o kgen_utils.o kgen_utils.f90
+		ifort -fpp -D KGEN_COVERAGE  -c -o tprof_mod.o tprof_mod.f90
+		ifort -fpp -D KGEN_COVERAGE  -c -o calc_mod.o calc_mod.F90
+		ifort -fpp -D KGEN_COVERAGE  -c -o update_mod.o update_mod.F90
+		ifort -fpp -D KGEN_COVERAGE  -c -o kernel_driver.o kernel_driver.f90
+		ifort -fpp -D KGEN_COVERAGE  -o kernel.exe update_mod.o calc_mod.o kernel_driver.o kgen_utils.o tprof_mod.o  
 		./kernel.exe
 		 
-		 ***************** Verification against 'calc.0.0.1' *****************
+		 ***************** Verification against 'calc.0.0.9' *****************
 		 
-		 Number of verified variables:            3
+		 Number of output variables:            3
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
@@ -72,11 +80,11 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.999999955296516E-002
+		 calc : Time per call (usec):    1.00000000000000     
 		 
-		 ***************** Verification against 'calc.0.0.2' *****************
+		 ***************** Verification against 'calc.0.0.7' *****************
 		 
-		 Number of verified variables:            3
+		 Number of output variables:            3
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
@@ -84,11 +92,15 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.999999955296516E-002
+		 calc : Time per call (usec):   0.000000000000000E+000
+
+
+		...
+
+
+		 ***************** Verification against 'calc.0.0.4' *****************
 		 
-		 ***************** Verification against 'calc.0.0.3' *****************
-		 
-		 Number of verified variables:            3
+		 Number of output variables:            3
 		 Number of identical variables:            3
 		 Number of non-identical variables within tolerance:            0
 		 Number of non-identical variables out of tolerance:            0
@@ -96,15 +108,36 @@ This example shows how to use KGEN to extract a kernel from a simple Fortran app
 		 
 		 Verification PASSED
 		 
-		 calc : Time per call (usec):   1.999999955296516E-002
+		 calc : Time per call (usec):   0.000000000000000E+000
+		 
+		 ***************** Verification against 'calc.0.0.13' *****************
+		 
+		 Number of output variables:            3
+		 Number of identical variables:            3
+		 Number of non-identical variables within tolerance:            0
+		 Number of non-identical variables out of tolerance:            0
+		 Tolerance:   1.000000000000000E-014
+		 
+		 Verification PASSED
+		 
+		 calc : Time per call (usec):   0.000000000000000E+000
 		 
 		****************************************************
 			kernel execution summary: calc
 		****************************************************
-			Total number of verification cases  :     3
-			Number of verification-passed cases :     3
+			Total number of verification cases  :    20
+			Number of verification-passed cases :    20
 		 
-			Average call time (usec):  0.200E-01
-			Minimum call time (usec):  0.200E-01
-			Maximum call time (usec):  0.200E-01
+			Average call time (usec):  0.300E+00
+			Minimum call time (usec):  0.000E+00
+			Maximum call time (usec):  0.100E+01
 		****************************************************
+		****************************************************************************
+			kernel coverage using input files on "kgen_statefile.lst"
+		****************************************************************************
+
+		 In "..KGen/examples/simple/src/calc_mod.F90" (file id=0),
+		   Kernel visited           24 times at line_id=0 (near original line=22)
+		   Kernel visited           56 times at line_id=1 (near original line=27)
+		****************************************************************************
+

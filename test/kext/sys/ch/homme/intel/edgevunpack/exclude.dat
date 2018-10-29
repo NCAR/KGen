@@ -1,0 +1,3 @@
+[namepath]
+:mpi_finalize = 
+:mpi_abort = 

@@ -1083,8 +1083,7 @@ class Config(object):
 
         if incattrs['opt']:
             self.includefile = os.path.basename(incattrs['opt'])
-            if not os.path.exists(os.path.join(self.path['outdir'], self.includefile)):
-                shutil.copy(incattrs['opt'], self.path['outdir'])
+            shutil.copy(incattrs['opt'], self.path['outdir'])
 
         # collect include configuration information
         Inc = KgenConfigParser(allow_no_value=True)
