@@ -902,6 +902,9 @@ class GenK_Statement(Gen_Statement):
             if isinstance(node, Name):
                 for namepath, actions in bag['excludes'].iteritems():
                     if match_namepath(namepath, pack_innamepath(bag['stmt'], node.string)):
+                        #jgw# for a remove_io exclude leave the type in
+                        if actions[0] == 'remove_io':
+                            return False
                         bag['matched'] = True
                         return True
 

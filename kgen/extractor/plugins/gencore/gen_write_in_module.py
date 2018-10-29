@@ -166,7 +166,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
         part_append_gensnode(ifsave, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'specs': ['NEWUNIT=kgen_write_unit', 'FILE=kgen_write_filepath_L%d'%lineno, 'STATUS="NEW"', 'ACCESS="STREAM"', \
-            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+#jgw#            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+            'FORM="UNFORMATTED"', 'ACTION="WRITE"', 'IOSTAT=kgen_ierr']}
         part_append_gensnode(ifsave, EXEC_PART, statements.Open, attrs=attrs)
 
 
@@ -400,7 +401,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         # file open
         attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_filepath_L%d'%lineno, 'STATUS="OLD"', 'ACCESS="STREAM"', \
-            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+#jgw#            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr']}
         part_append_genknode(ifeval, EXEC_PART, statements.Open, attrs=attrs)
 
         for varstr, var in vars:
@@ -503,7 +505,8 @@ class Gen_Write_In_Module(Kgen_Plugin):
 
         # file open
         attrs = {'specs': ['NEWUNIT=kgen_read_unit', 'FILE=kgen_read_filepath_L%d'%lineno, 'STATUS="OLD"', 'ACCESS="STREAM"', \
-            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+#jgw#            'FORM="UNFORMATTED"', 'ACTION="READ"', 'CONVERT="BIG_ENDIAN"', 'IOSTAT=kgen_ierr']}
+            'FORM="UNFORMATTED"', 'ACTION="READ"', 'IOSTAT=kgen_ierr']}
         part_append_genknode(ifwarmup, EXEC_PART, statements.Open, attrs=attrs)
 
         for varstr, var in vars:

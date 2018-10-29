@@ -130,6 +130,8 @@ def generate_kernel_makefile():
             write(f, 'FC := ')
             for i, compiler in enumerate(compilers):
                 write(f, 'FC_%d := %s'%(i, compiler))
+            # jgw
+            write(f, 'FC_0 := $(shell which mpiifort)')
 
         if Config.kernel_option['FC_FLAGS']:
             write(f, 'FC_FLAGS := %s'%Config.kernel_option['FC_FLAGS'])
@@ -178,11 +180,11 @@ def generate_kernel_makefile():
         write(f, '')
 
         write(f, 'run: build')
-        if Config.add_mpi_frame['enabled']:
-            write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
-        else:
-            write(f, '%s./kernel.exe'%prerun_run_str, t=True)
-        write(f, '')
+        #jgw#if Config.add_mpi_frame['enabled']:
+        write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
+        #jgw#else:
+        #jgw#    write(f, '%s./kernel.exe'%prerun_run_str, t=True)
+        #jgw#write(f, '')
 
         write(f, 'build: ${ALL_OBJS}')
 

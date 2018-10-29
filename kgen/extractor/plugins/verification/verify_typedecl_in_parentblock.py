@@ -2,7 +2,7 @@
  
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from verify_utils import VERIFY_PBLOCK_LOCALS, get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array, check_class_derived
+from verify_utils import VERIFY_PBLOCK_LOCALS, get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_remove_io, is_zero_array, check_class_derived
 from verify_subr import create_verify_subr
 
 class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
@@ -36,6 +36,7 @@ class Verify_Typedecl_In_Parentblock(Kgen_Plugin):
             var = stmt.get_variable(entity_name)
 
             if is_remove_state(entity_name, stmt): continue
+            if is_remove_io(entity_name, stmt): continue
             if var.is_array() and is_zero_array(var, stmt): continue
 
             self.verify_locals.append(entity_name)

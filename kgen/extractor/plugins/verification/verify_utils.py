@@ -128,6 +128,13 @@ def is_remove_state(ename, stmt):
                 return True
     return False
 
+def is_remove_io(ename, stmt):
+    if hasattr(stmt, 'exclude_names'):
+        for name, actions in stmt.exclude_names.iteritems():
+            if ename==name and 'remove_io' in actions:
+                return True
+    return False
+
 def is_param_zero(length, stmt):
 
     if hasattr(stmt, 'unknowns'):

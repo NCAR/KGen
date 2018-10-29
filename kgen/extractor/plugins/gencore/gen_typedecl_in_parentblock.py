@@ -6,7 +6,7 @@ from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCA
     DRIVER_READ_IN_ARGS, KERNEL_PBLOCK_READ_IN_LOCALS, KERNEL_PBLOCK_READ_OUT_LOCALS, \
     DRIVER_DECL_PART, DRIVER_USE_PART, get_typedecl_writename, get_dtype_writename, state_gencore_contains, \
     get_topname, get_typedecl_readname, get_dtype_readname, shared_objects, process_spec_stmts, is_zero_array, \
-    is_excluded, is_remove_state, namedgen_read_istrue, namedgen_write_istrue, check_class_derived 
+    is_excluded, is_remove_state, is_remove_io, namedgen_read_istrue, namedgen_write_istrue, check_class_derived 
 from gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
@@ -118,6 +118,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
             if is_remove_state(entity_name, stmt): continue
+            if is_remove_io(entity_name, stmt): continue
 
             if self.check_intent(entity_name, stmt):
                 if (entity_name,DRIVER_READ_IN_ARGS) not in argintype:
@@ -199,6 +200,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
             if is_remove_state(entity_name, stmt): continue
+            if is_remove_io(entity_name, stmt): continue
 
             if (entity_name,KERNEL_PBLOCK_READ_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), KERNEL_PBLOCK_READ_OUT_LOCALS))
@@ -394,6 +396,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
             if is_remove_state(entity_name, stmt): continue
+            if is_remove_io(entity_name, stmt): continue
 
             if self.check_intent(entity_name, stmt):
                 if (entity_name,STATE_PBLOCK_WRITE_IN_ARGS) not in argintype:
@@ -407,6 +410,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
             if var.is_parameter(): continue
             if is_remove_state(entity_name, stmt): continue
+            if is_remove_io(entity_name, stmt): continue
 
             if (entity_name,STATE_PBLOCK_WRITE_OUT_LOCALS) not in localouttype:
                 localouttype.append((uname.firstpartname(), STATE_PBLOCK_WRITE_OUT_LOCALS))

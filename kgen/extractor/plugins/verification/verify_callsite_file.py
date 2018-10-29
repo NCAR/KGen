@@ -75,12 +75,33 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'items': ['""']}
         part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
+        #jgw# do mpi_allreduce on numOutTol
+        part_append_comment(node, EXEC_PART, '')
+        attrs = {'variable': 'ksend(1)', 'sign': '=', 'expr': 'check_status%numOutTol'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+        attrs = {'designator': 'mpi_allreduce', 'items': ['ksend','krecv','1','MPI_INT','MPI_MAX', getinfo('mpi_comm'), 'kgen_ierr']}
+        part_append_gensnode(node, EXEC_PART, statements.Call, attrs=attrs)
+
+        attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'krecv(1)'}
+        part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+
+        attrs = {'designator': 'mpi_comm_rank', 'items': [getinfo('mpi_comm'),\
+ 'kgen_mpirank', 'kgen_ierr']}
+        part_append_gensnode(node, EXEC_PART, statements.Call, attrs=attrs)
+        part_append_comment(node, EXEC_PART, '')
+        # jgw
+
         # verification result
         attrs = {'expr': 'check_status%numOutTol > 0'}
         ifobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
+        #jgw# only print verified on rank 0
+        attrs = {'expr': 'kgen_mpirank == 0'}
+        ifzero = part_append_genknode(ifobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['"Verification FAILED"']}
-        part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+        #jgw#
+        part_append_genknode(ifzero, EXEC_PART, statements.Write, attrs=attrs)
         
         attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.FALSE.'}
         part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -90,8 +111,13 @@ class Verify_K_Callsite_File(Kgen_Plugin):
 
         part_append_genknode(ifobj, EXEC_PART, statements.Else, attrs=attrs)
 
+        #jgw# only print verified on rank 0
+        attrs = {'expr': 'kgen_mpirank == 0'}
+        ifzero = part_append_genknode(ifobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['"Verification PASSED"']}
-        part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+        #jgw#
+        part_append_genknode(ifzero, EXEC_PART, statements.Write, attrs=attrs)
         
         attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.TRUE.'}
         part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -109,6 +135,11 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         namedpart_link_part(node, VERIFY_PBLOCK_EXEC_PART, EXEC_PART)
         namedpart_link_part(node, VERIFY_PBLOCK_CONTAINS_PART, CONTAINS_PART)
         namedpart_link_part(node, VERIFY_PBLOCK_SUBP_PART, SUBP_PART)
+
+        #jgw# add use mpi. This was the best place I could find to put it,
+        # but it doesn't seem quite right.
+        attrs = {'name':'mpi', 'isonly': False, 'items':[]}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         attrs = {'type_spec': 'TYPE', 'selector':(None, 'check_t'), 'entity_decls': ['check_status']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Type, attrs=attrs)

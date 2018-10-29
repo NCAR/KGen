@@ -1729,7 +1729,8 @@ class Dimension(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
+        # comment out based on input from Youngsung
+        #Logger.warn('resolve_uname is not implemented: %s'%self.__class__)
         pass
 
     def tokgen(self):

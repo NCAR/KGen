@@ -124,6 +124,12 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         #attrs = {'name':'IEEE_ARITHMETIC', 'nature': 'INTRINSIC', 'isonly': True, 'items':['ieee_is_normal']}
         #part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
+        #jgw# add use mpi
+        part_append_comment(node, USE_PART, 'forced mpi from gen_typedecl_in_module.py')
+        attrs = {'name':'mpi', 'isonly': False, 'items':[]}
+        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+        part_append_comment(node, USE_PART, '')
+
     def create_kernel_module_parts(self, node):
         in_subrobj = None
         in_subrname = get_module_in_readname(node.kgen_stmt)
@@ -419,7 +425,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.kernel_extern_reads: continue
 
-            if is_remove_state(entity_name, stmt): continue
+            #jgw#if is_remove_state(entity_name, stmt): continue
 
             self.kernel_extern_reads.append(node.kgen_parent.name+entity_name)
 
@@ -496,7 +502,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
 
         for entity_name, entity_decl in zip(entity_names, stmt.entity_decls):
             if node.kgen_parent.name+entity_name in self.state_extern_writes: continue
-            if is_remove_state(entity_name, stmt): continue
+            #jgw#if is_remove_state(entity_name, stmt): continue
 
             self.state_extern_writes.append(node.kgen_parent.name+entity_name)
 

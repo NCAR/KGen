@@ -70,6 +70,10 @@ class Simple_Timing(Kgen_Plugin):
 
             part_append_comment(node, EXEC_PART, '#else', style='rawtext')
 
+
+        attrs = {'designator': 'mpi_barrier', 'items': [getinfo('mpi_comm'), 'kgen_ierr']}
+        part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 
@@ -117,11 +121,15 @@ class Simple_Timing(Kgen_Plugin):
 
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+        attrs = {'designator': 'mpi_barrier', 'items': [getinfo('mpi_comm'), 'kgen_ierr']}
+        part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+
 
         attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': '1.0D6*(kgen_stop_clock - kgen_start_clock)/DBLE(kgen_rate_clock)'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_measure']}
+        #jgw# add mpi rank to timing result. assumes kgen_mpirank defined.
+        attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_mpirank', 'kgen_measure']}
         part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
 
         if getinfo('is_papi_enabled'):

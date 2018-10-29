@@ -177,7 +177,8 @@ kgen_utils_array_sumcheck = \
 subroutine kgen_array_sumcheck(varname, sum1, sum2, finish)
     character(*), intent(in) :: varname
     real(kind=8), intent(in) :: sum1, sum2
-    real(kind=8), parameter  :: max_rel_diff = 1.E-10
+    !real(kind=8), parameter  :: max_rel_diff = 1.E-10
+    real(kind=8), parameter  :: max_rel_diff = 1.E-9
     real(kind=8)  :: diff, rel_diff
     logical, intent(in), optional :: finish
     logical checkresult
@@ -547,6 +548,67 @@ SUBROUTINE kgen_rankthreadinvoke( str, rank, thread, invoke )
 
         pos1 = pos2+pos1
     END DO
+END SUBROUTINE
+"""
+
+kgen_mpifile = \
+"""
+SUBROUTINE kgen_mpifile( str, rank, thread, cycle )
+    CHARACTER(*), INTENT(INOUT) :: str
+    INTEGER, INTENT(IN) :: rank, thread, cycle
+
+    CHARACTER(LEN=1024) :: format, string_format, string_format_format
+    CHARACTER(LEN=1024) :: rank_format
+    CHARACTER(LEN=1024) :: thread_format
+    CHARACTER(LEN=1024) :: cycle_format
+    INTEGER :: str_len
+
+    str_len = INDEX(str,".")
+
+    IF (str_len < 10) THEN
+      string_format_format = "(A1,I1)"
+    ELSE IF (str_len < 100) THEN
+      string_format_format = "(A1,I2)"
+    ELSE IF (str_len < 1000) THEN
+      string_format_format = "(A1,I3)"
+    ELSE IF (str_len < 10000) THEN
+      string_format_format = "(A1,I4)"
+    ENDIF
+    write(string_format,trim(string_format_format)) 'A',str_len
+
+    IF (rank < 10) THEN
+      rank_format = "I1"
+    ELSE IF (rank < 100) THEN
+      rank_format = "I2"
+    ELSE IF (rank < 1000) THEN
+      rank_format = "I3"
+    ELSE IF (rank < 10000) THEN
+      rank_format = "I4"
+    ENDIF
+
+    IF (thread < 10) THEN
+      thread_format = "I1"
+    ELSE IF (thread < 100) THEN
+      thread_format = "I2"
+    ELSE IF (thread < 1000) THEN
+      thread_format = "I3"
+    ELSE IF (thread < 10000) THEN
+      thread_format = "I4"
+    ENDIF
+
+    IF (cycle < 10) THEN
+      cycle_format = "I1"
+    ELSE IF (cycle < 100) THEN
+      cycle_format = "I2"
+    ELSE IF (cycle < 1000) THEN
+      cycle_format = "I3"
+    ELSE IF (cycle < 10000) THEN
+      cycle_format = "I4"
+    ENDIF
+
+    format = "("//trim(string_format)//","//trim(rank_format)//",A1,"//trim(thread_format)//",A1,"//trim(cycle_format)//")"
+    write(str,trim(format)) trim(str(1:str_len)), rank, ".", thread, ".", cycle
+
 END SUBROUTINE
 """
 

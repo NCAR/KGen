@@ -5,7 +5,7 @@ from collections import OrderedDict
 from kgplugin import Kgen_Plugin
 
 from verify_utils import get_module_verifyname, kernel_verify_contains, VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_EXTERNS, \
-    get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array, check_class_derived
+    get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_remove_io, is_zero_array, check_class_derived
 from verify_subr import create_verify_subr
 
 class Verify_Typedecl_In_Module(Kgen_Plugin):
@@ -106,6 +106,7 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
             var = stmt.get_variable(entity_name)
 
             if is_remove_state(entity_name, stmt): continue
+            if is_remove_io(entity_name, stmt): continue
             if var.is_array() and is_zero_array(var, stmt): continue
 
             self.verify_extern.append(entity_name)

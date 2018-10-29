@@ -93,11 +93,15 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage']}
+        attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_mainstage']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
-        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
+        attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_mainstage') ) ]}
         part_append_genknode(node, DECL_PART, statements.Common, attrs=attrs)
+
+        #jgw# for mpi_allreduce
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['ksend(1)=-1', 'krecv(1)=-1', 'kgen_ierr']}
+        part_append_gensnode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         part_append_comment(node, DECL_PART, '')
 
@@ -174,21 +178,6 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         idx = index
 
-        attrs = {'expr': 'kgen_evalstage'}
-        ifeval = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
-        setinfo('blocknode_beforecallsite_eval', ifeval)
-        idx += 1
-
-        attrs = {'expr': 'kgen_warmupstage'}
-        ifwarmup = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
-        setinfo('blocknode_beforecallsite_warmup', ifwarmup)
-        idx += 1
-
-        attrs = {'expr': 'kgen_mainstage'}
-        ifmain = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
-        setinfo('blocknode_beforecallsite_main', ifmain)
-        idx += 1
-
         namedpart_create_subpart(node.kgen_parent, KERNEL_PBLOCK_BEFORE_KERNEL, EXEC_PART, index=idx)
         self.plugin_common[node.kgen_kernel_id]['ext.gencore']['blocks']['before_kernel'] = KERNEL_PBLOCK_BEFORE_KERNEL
         idx += 1
@@ -233,15 +222,6 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         ifmain = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
         setinfo('blocknode_aftercallsite_main', ifmain)
         idx += 1
-
-        attrs = {'expr': 'kgen_warmupstage'}
-        ifwarmup = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
-        setinfo('blocknode_aftercallsite_warmup', ifwarmup)
-        idx += 1
-
-        attrs = {'expr': 'kgen_evalstage'}
-        ifeval = part_insert_genknode(node.kgen_parent, EXEC_PART, block_statements.IfThen, attrs=attrs, index=idx)
-        setinfo('blocknode_aftercallsite_eval', ifeval)
 
     def invalid_kernel_stmts(self, node):
         kernel_stmts = getinfo('callsite_stmts')

@@ -35,7 +35,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if subrname not in self.kernel_created_subrs and not part_has_node(parent, SUBP_PART, checks):
 
-            if is_remove_state(entity_name, stmt): return
+            #jgw#if is_remove_state(entity_name, stmt): return
 
             self.kernel_created_subrs.append(subrname)
 
@@ -225,7 +225,7 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
         checks = lambda n: isinstance(n.kgen_stmt, block_statements.Subroutine) and n.name==subrname
         if subrname not in self.state_created_subrs and not part_has_node(parent, SUBP_PART, checks):
 
-            if is_remove_state(entity_name, stmt): return
+            #jgw#if is_remove_state(entity_name, stmt): return
 
             self.state_created_subrs.append(subrname)
 

@@ -168,7 +168,8 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
         part_append_genknode(subrobj, DECL_PART, var_class, attrs=attrs)
 
         # check result
-        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['check_result']}
+        #jgw#
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['check_result = -1']}
         part_append_genknode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         # print check result

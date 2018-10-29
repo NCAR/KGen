@@ -2,7 +2,7 @@
  
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils, is_remove_state, \
+from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils, is_remove_state, is_remove_io, \
     is_zero_array
 
 class Verify_Type(Kgen_Plugin):
@@ -203,6 +203,7 @@ class Verify_Type(Kgen_Plugin):
                     var = stmt.get_variable(entity_name)
 
                     if is_remove_state(entity_name, stmt): continue
+                    if is_remove_io(entity_name, stmt): continue
                     if var.is_array() and is_zero_array(var, stmt): continue
 
                     callname = get_typedecl_verifyname(stmt, entity_name)
