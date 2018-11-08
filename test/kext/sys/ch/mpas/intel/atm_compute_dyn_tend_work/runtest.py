@@ -4,43 +4,41 @@ import os
 import sys
 import glob
 import shutil
-from kext_sys_ch_cesm_intel_test import KExtSysCHCesmIntelTest
+from kext_sys_ch_mpas_intel_test import KExtSysCHMpasIntelTest
 
+here = os.path.dirname(__file__)
 
-class Test(KExtSysCHCesmIntelTest):
+class Test(KExtSysCHMpasIntelTest):
 
     def generate(self, myname, result):
 
         workdir = result['mkdir_task']['workdir']
         tmpsrc = result['download_task']['tmpsrc']
-        srcmods = result['config_task']['srcmods']
-        casedir = result['config_task']['casedir']
+        tmprun = result['download_task']['tmprun']
 
-        result[myname]['datadir'] = '%s/data'%workdir
-
-        camsrcmods = '%s/src.cam'%srcmods
-        result[myname]['camsrcmods'] = camsrcmods
-
-        srcfile = '%s/components/cam/src/dynamics/se/dycore/viscosity_mod.F90'%tmpsrc
-        namepath = 'viscosity_mod:biharmonic_wk_dp3d:laplace_sphere_wk'
+        srcfile = '%s/src/core_atmosphere/dynamics/mpas_atm_time_integration.F'%tmpsrc
+        namepath = 'atm_time_integration:atm_compute_dyn_tend:atm_compute_dyn_tend_work'
         fc = 'ifort'
-        fc_flags = '-qno-opt-dynamic-align -convert big_endian -assume byterecl -ftz -traceback -assume realloc_lhs -fp-model source -qopt-report -xCORE_AVX2 -no-fma -O2 -debug minimal -free'
-        prerun_cmds = ';'.join(result['config_task']['prerun_kernel'])
+        fc_flags = '-O3 -convert big_endian -FR'
+        prerun_kernel_cmds = ';'.join(result['config_task']['prerun_kernel'])
+        prerun_app_cmds = ';'.join(result['config_task']['prerun_app'])
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
-            __source='format=free,strict=no,alias=/glade/scratch/youngsun:/glade/u/home/youngsun/trepo/temp', \
-            _e='exclude.ini', \
-            __cmd_clean='"cd %s; ./case.build --clean"'%casedir, \
-            __cmd_build='"cd %s; qcmd -q premium -- ./case.build"'%casedir, \
-            __cmd_run='"cd %s; ./case.submit"'%casedir, \
+            _e='%s/exclude.ini'%here, \
+            __cmd_clean='"cd %s; %s; make clean CORE=atmosphere"'%(tmpsrc, prerun_app_cmds), \
+            __cmd_build='"cd %s; %s; ulimit -s unlimited;  make ifort CORE=atmosphere PRECISION=single USE_PIO2=true"'%(tmpsrc, prerun_app_cmds), \
+            __cmd_run='"cd %s; qsub execute.sh"'%tmprun, \
+            __mpi='enable', \
             __kernel_option='FC="%s",FC_FLAGS="%s"'%(fc, fc_flags), \
-            __prerun='build="%s",run="%s"'%(prerun_cmds, prerun_cmds), \
+            __prerun='build="%s",run="%s"'%(prerun_app_cmds, prerun_app_cmds), \
             __outdir=workdir)
+
+            #__openmp='enable', \
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = glob.glob('laplace_sphere_wk.*.*.*')
+            result[myname]['statefiles'] = glob.glob('atm_compute_dyn_tend_work.*.*.*')
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

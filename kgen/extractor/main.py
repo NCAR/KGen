@@ -243,7 +243,7 @@ class Extractor(KGTool):
             if Config.include['compiler'].has_key('compiler_options'):
                 opts = opts + ' ' + Config.include['compiler']['compiler_options']
 
-            if kfile.has_key('compiler_options'):
+            if kfile.has_key('compiler_options') and kfile['compiler_options']:
                 opts = opts + ' ' + kfile['compiler_options']
 
             if Config.model['types']['code']['enabled']:

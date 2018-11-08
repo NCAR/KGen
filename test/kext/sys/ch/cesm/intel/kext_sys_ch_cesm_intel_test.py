@@ -15,6 +15,7 @@ class KExtSysCHCesmIntelTest(KExtSysCHCesmTest):
         prerun_cmds.append('module try-load ncarenv/1.2')
         prerun_cmds.append('module try-load ncarcompilers/0.4.1')
         prerun_cmds.append('module try-load intel/17.0.1')
+        prerun_cmds.append('module try-load mkl/2017.0.1')
 
         return prerun_cmds
 
