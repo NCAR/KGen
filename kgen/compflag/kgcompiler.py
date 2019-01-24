@@ -22,7 +22,7 @@ class GenericCompiler(object):
     def _getmacro(self, macro):
         splitmacro = macro.split('=')
         if len(splitmacro)==1:
-           return (splitmacro[0], '')
+           return (splitmacro[0], None)
         elif len(splitmacro)==2:
             return tuple(splitmacro)
         else:

@@ -1,0 +1,10 @@
+[configure]
+>> ./configure 
+select 66 # INTEL (ifort/icc): HSW/BDW dmpar
+select 1  # basic nesting
+
+modify clean script to discard removing *.f90 and *.F90
+
+>> ./compile em_real
+
+
