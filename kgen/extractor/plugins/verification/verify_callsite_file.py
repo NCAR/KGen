@@ -46,41 +46,53 @@ class Verify_K_Callsite_File(Kgen_Plugin):
 
     def create_verification_parts(self, node):
 
-        attrs = {'designator': 'kgen_init_check', 'items': ['check_status', 'tolerance=%s'%getinfo('verify_tol'), \
+        attrs = {'designator': 'kgen_init_check', 'items': ['check_status', 'rank=kgen_mpirank', 'tolerance=%s'%getinfo('verify_tol'), \
             'verboseLevel=%s'%getinfo('verbose_level')]}
         namedpart_append_genknode(node.kgen_kernel_id, VERIFY_PBLOCK_INIT, statements.Call, attrs=attrs)
 
+        attrs = {'expr': 'check_status%rank == 0'}
+        ifrank = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['""']}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
 
         # verification statistics
         attrs = {'expr': 'check_status%verboseLevel > 0'}
         ifstatobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
+        attrs = {'expr': 'check_status%rank == 0'}
+        ifrank = part_append_genknode(ifstatobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['"Number of output variables: "','check_status%numTotal']}
-        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Number of identical variables: "','check_status%numIdentical']}
-        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Number of non-identical variables within tolerance: "','check_status%numInTol']}
-        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Number of non-identical variables out of tolerance: "','check_status%numOutTol']}
-        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['"Tolerance: "','kgen_tolerance']}
-        part_append_genknode(ifstatobj, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
+
+        attrs = {'expr': 'check_status%rank == 0'}
+        ifrank = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'items': ['""']}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
 
         # verification result
         attrs = {'expr': 'check_status%numOutTol > 0'}
         ifobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
-        attrs = {'items': ['"Verification FAILED"']}
-        part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'expr': 'check_status%rank == 0'}
+        ifrank = part_append_genknode(ifobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['"Verification FAILED with" // TRIM(ADJUSTL(kgen_filepath))']}
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
         
         attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.FALSE.'}
         part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -90,8 +102,11 @@ class Verify_K_Callsite_File(Kgen_Plugin):
 
         part_append_genknode(ifobj, EXEC_PART, statements.Else, attrs=attrs)
 
-        attrs = {'items': ['"Verification PASSED"']}
-        part_append_genknode(ifobj, EXEC_PART, statements.Write, attrs=attrs)
+        attrs = {'expr': 'check_status%rank == 0'}
+        ifrank = part_append_genknode(ifobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['"Verification PASSED with " // TRIM(ADJUSTL(kgen_filepath))']}
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
         
         attrs = {'variable': 'check_status%Passed', 'sign': '=', 'expr': '.TRUE.'}
         part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
@@ -99,8 +114,18 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         attrs = {'variable': 'kgen_isverified', 'sign': '=', 'expr': '.TRUE.'}
         part_append_genknode(ifobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
+        attrs = {'expr': 'check_status%rank == 0'}
+        ifrank = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
         attrs = {'items': ['""']}
-        part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
+        part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
+
+        if getinfo('add_mpi_frame'):
+            part_append_comment(node, EXEC_PART, '')
+            part_append_comment(node, EXEC_PART, '#ifdef _MPI', style='rawtext')
+            part_append_comment(node, EXEC_PART, 'call mpi_barrier(mpi_comm_world, kgen_ierr)', style='rawtext')
+            part_append_comment(node, EXEC_PART, '#endif', style='rawtext')
+            part_append_comment(node, EXEC_PART, '')
 
     def create_parentblock_parts(self, node):
 

@@ -5,10 +5,11 @@ from kgplugin import Kgen_Plugin
 
 # TODO: adjust in and out state of variables for verification
 
-from gencore_utils import KERNEL_PBLOCK_USE_PART, KERNEL_PBLOCK_DECL_PART, KERNEL_PBLOCK_EXEC_PART, \
-    KERNEL_PBLOCK_CONTAINS_PART, KERNEL_PBLOCK_SUBP_PART, KERNEL_PBLOCK_READ_IN_LOCALS, \
-    KERNEL_PBLOCK_READ_OUT_EXTERNS, KERNEL_PBLOCK_READ_OUT_LOCALS, KERNEL_TBLOCK_USE_PART, KERNEL_TBLOCK_DECL_PART, \
-    KERNEL_TBLOCK_CONTAINS_PART, KERNEL_TBLOCK_SUBP_PART, kernel_gencore_contains, KERNEL_PBLOCK_BEFORE_KERNEL, KERNEL_PBLOCK_AFTER_KERNEL
+from gencore_utils import (KERNEL_PBLOCK_USE_PART, KERNEL_PBLOCK_DECL_PART, KERNEL_PBLOCK_EXEC_PART,
+    KERNEL_PBLOCK_CONTAINS_PART, KERNEL_PBLOCK_SUBP_PART, KERNEL_PBLOCK_READ_IN_LOCALS,
+    KERNEL_PBLOCK_READ_OUT_EXTERNS, KERNEL_PBLOCK_READ_OUT_LOCALS, KERNEL_TBLOCK_USE_PART, KERNEL_TBLOCK_DECL_PART,
+    KERNEL_TBLOCK_CONTAINS_PART, KERNEL_TBLOCK_SUBP_PART, kernel_gencore_contains, KERNEL_PBLOCK_BEFORE_KERNEL, KERNEL_PBLOCK_AFTER_KERNEL,
+    KERNEL_PBLOCK_PREPROCESS)
 
 class Gen_K_Callsite_File(Kgen_Plugin):
     def __init__(self):
@@ -84,6 +85,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'LOGICAL', 'attrspec': ['INTENT(OUT)'], 'entity_decls': ['kgen_isverified']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
+        attrs = {'type_spec': 'CHARACTER', 'selector': ('*', None), 'attrspec': ['INTENT(IN)'], 'entity_decls': ['kgen_filepath']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
+
         attrs = {'type_spec': 'LOGICAL', 'entity_decls': ['kgen_istrue']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Logical, attrs=attrs)
 
@@ -99,17 +103,41 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
         part_append_genknode(node, DECL_PART, statements.Common, attrs=attrs)
 
+        if getinfo('cache_pollution'):
+
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['CACHE_CONTROL_LENGTH=%d'%getinfo('cache_pollution')]}
+            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
+            attrs = {'type_spec': 'INTEGER', 'attrspec': ['DIMENSION(CACHE_CONTROL_LENGTH)'], 'entity_decls': ['kgen_cache_control']}
+            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
         part_append_comment(node, DECL_PART, '')
 
-        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_IN_LOCALS, EXEC_PART, index=0)
+        namedpart_create_subpart(node, KERNEL_PBLOCK_PREPROCESS, EXEC_PART, index=0)
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, '')
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, 'parent block preprocessing')
+
+        if getinfo('add_mpi_frame'):
+            namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, '')
+            namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, '#ifdef _MPI', style='rawtext')
+            namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, 'call mpi_comm_rank(mpi_comm_world, kgen_mpirank, kgen_ierr)', style='rawtext')
+            namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, '#else', style='rawtext')
+
+        namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, 'kgen_mpirank = 0', style='rawtext')
+
+        if getinfo('add_mpi_frame'):
+            namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, '#endif', style='rawtext')
+            namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_PREPROCESS, '', style='rawtext')
+
+        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_IN_LOCALS, EXEC_PART, index=1)
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_IN_LOCALS, 'local input variables')
 
-        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_OUT_EXTERNS, EXEC_PART, index=1)
+        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_OUT_EXTERNS, EXEC_PART, index=2)
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_EXTERNS, 'extern output variables')
 
-        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_OUT_LOCALS, EXEC_PART, index=2)
+        namedpart_create_subpart(node, KERNEL_PBLOCK_READ_OUT_LOCALS, EXEC_PART, index=3)
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, '')
         namedpart_append_comment(node.kgen_kernel_id, KERNEL_PBLOCK_READ_OUT_LOCALS, 'local output variables')
 
@@ -156,6 +184,12 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         if not part_has_node(node, DECL_PART, checks):
             attrs = {'items':[getinfo('parentblock_stmt').name]}
             part_append_genknode(node, DECL_PART, statements.Public, attrs=attrs)
+
+        if getinfo('add_mpi_frame'):
+            part_append_comment(node, DECL_PART, '#ifdef _MPI', style='rawtext')
+            part_append_comment(node, DECL_PART, 'include "mpif.h"', style='rawtext')
+            part_append_comment(node, DECL_PART, '#endif', style='rawtext')
+            part_append_comment(node, DECL_PART, '')
 
     def create_callsite_parts(self, node):
         index, partname, part = get_part_index(node)

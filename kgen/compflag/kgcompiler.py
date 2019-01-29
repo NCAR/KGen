@@ -163,6 +163,7 @@ class NagFortranCompiler(GenericFortranCompiler):
     compid = 'nagfor'
     compnames = ['nagfor']
     openmp_opt = [ r'-openmp' ]
+    fpp = '-cpp'
 
     def get_discard_opts_noarg(self):
         return super(NagFortranCompiler, self).get_discard_opts_noarg() + self.discard_opts_noarg
@@ -174,6 +175,7 @@ class IbmxlFortranCompiler(GenericFortranCompiler):
     compid = 'xlf'
     compnames = ['xlf', 'xlf90', 'xlf95', 'xlf2003', 'xlf2008']
     openmp_opt = [ r'-qsmp' ]
+    fpp = '-WF,-qfpp'
 
     def get_discard_opts_noarg(self):
         return super(IbmxlFortranCompiler, self).get_discard_opts_noarg() + self.discard_opts_noarg
@@ -185,6 +187,7 @@ class CrayFortranCompiler(GenericFortranCompiler):
     compid = 'crayftn'
     compnames = ['crayftn', 'ftn']
     openmp_opt = [ r'-omp', r'-h\s+omp' ]
+    # fpp is enabled by default
 
     discard_opts_arg = [ '-J' ]
 

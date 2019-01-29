@@ -30,28 +30,31 @@ class Simple_Timing(Kgen_Plugin):
 
     def register_event(self, node):
 
-        if getinfo('is_papi_enabled'):
-            part_append_comment(node, DECL_PART, '#ifdef KGEN_PAPI', style='rawtext')
-
-            attrs = {'type_spec': 'INTEGER', 'attrspec': ['DIMENSION(1)'], \
-                'entity_decls': ['kgen_papi_events = (/ KGENPAPIEVENT /)']}
-            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            attrs = {'type_spec': 'INTEGER', 'attrspec': ['DIMENSION(2)'], 'selector': (None, '8'), \
-                'entity_decls': ['kgen_papi_values']}
-            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_retval']}
-            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
-
-            part_append_comment(node, DECL_PART, '#else', style='rawtext')
+#        if getinfo('is_papi_enabled'):
+#            part_append_comment(node, DECL_PART, '#ifdef KGEN_PAPI', style='rawtext')
+#
+#            attrs = {'type_spec': 'INTEGER', 'attrspec': ['DIMENSION(1)'], \
+#                'entity_decls': ['kgen_papi_events = (/ KGENPAPIEVENT /)']}
+#            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+#
+#            attrs = {'type_spec': 'INTEGER', 'attrspec': ['DIMENSION(2)'], 'selector': (None, '8'), \
+#                'entity_decls': ['kgen_papi_values']}
+#            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+#
+#            attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_retval']}
+#            part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+#
+#            part_append_comment(node, DECL_PART, '#else', style='rawtext')
 
         attrs = {'type_spec': 'INTEGER', 'selector': ('8', None), \
             'entity_decls': ['kgen_start_clock', 'kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
 
-        if getinfo('is_papi_enabled'):
-            part_append_comment(node, DECL_PART, '#endif', style='rawtext')
+        attrs = {'type_spec': 'REAL', 'selector': (None, 'kgen_dp'), 'entity_decls': ['gkgen_measure']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs) 
+
+#        if getinfo('is_papi_enabled'):
+#            part_append_comment(node, DECL_PART, '#endif', style='rawtext')
 
         #attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['kgen_maxiter = %s'%getinfo('repeat_count')]}
         #part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs) 
@@ -62,19 +65,30 @@ class Simple_Timing(Kgen_Plugin):
 
     def add_execblock(self, node):
 
-        if getinfo('is_papi_enabled'):
-            part_append_comment(node, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
+#        if getinfo('is_papi_enabled'):
+#            part_append_comment(node, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
+#
+#            attrs = {'designator': 'PAPIF_start_counters', 'items': ['kgen_papi_events', '1', 'kgen_retval']}
+#            part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+#
+#            part_append_comment(node, EXEC_PART, '#else', style='rawtext')
 
-            attrs = {'designator': 'PAPIF_start_counters', 'items': ['kgen_papi_events', '1', 'kgen_retval']}
-            part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+        if getinfo('cache_pollution'):
 
-            part_append_comment(node, EXEC_PART, '#else', style='rawtext')
+            attrs = {'variable': 'kgen_cache_control', 'sign': '=', 'expr': 'CACHE_CONTROL_LENGTH'}
+            part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+           
+            attrs = {'loopcontrol': 'kgen_intvar = CACHE_CONTROL_LENGTH-1, 1, -1'}
+            doobj = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
+
+            attrs = {'variable': 'kgen_cache_control(kgen_intvar)', 'sign': '=', 'expr': 'kgen_cache_control(kgen_intvar+1) - 1 '}
+            part_append_genknode(doobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 
-        if getinfo('is_papi_enabled'):
-            part_append_comment(node, EXEC_PART, '#endif', style='rawtext')
+#        if getinfo('is_papi_enabled'):
+#            part_append_comment(node, EXEC_PART, '#endif', style='rawtext')
 
         #execpart = get_part(node, EXEC_PART)
         #namedpart_create_subpart(doobj, KERNEL_PBLOCK_TIMING, EXEC_PART)
@@ -98,32 +112,49 @@ class Simple_Timing(Kgen_Plugin):
         #        namedpart_append_node(node.kgen_kernel_id, KERNEL_PBLOCK_TIMING, elem)
         #import pdb; pdb.set_trace()
 
-        if getinfo('is_papi_enabled'):
-            part_append_comment(node, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
-
-            attrs = {'designator': 'PAPIF_read_counters', 'items': ['kgen_papi_values(1)', '1', 'kgen_retval']}
-            part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
-
-            attrs = {'designator': 'PAPIF_stop_counters', 'items': ['kgen_papi_values(2)', '1', 'kgen_retval']}
-            part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
-
-            attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': 'kgen_papi_values(1)'}
-            part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
-
-            attrs = {'items': ['"%s : KGENPAPIEVENT per call: "'%getinfo('kernel_name'), 'kgen_measure']}
-            part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
-
-            part_append_comment(node, EXEC_PART, '#else', style='rawtext')
+#        if getinfo('is_papi_enabled'):
+#            part_append_comment(node, EXEC_PART, '#ifdef KGEN_PAPI', style='rawtext')
+#
+#            attrs = {'designator': 'PAPIF_read_counters', 'items': ['kgen_papi_values(1)', '1', 'kgen_retval']}
+#            part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+#
+#            attrs = {'designator': 'PAPIF_stop_counters', 'items': ['kgen_papi_values(2)', '1', 'kgen_retval']}
+#            part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+#
+#            attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': 'kgen_papi_values(1)'}
+#            part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
+#
+#            attrs = {'items': ['"%s : KGENPAPIEVENT per call: "'%getinfo('kernel_name'), 'kgen_measure']}
+#            part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
+#
+#            part_append_comment(node, EXEC_PART, '#else', style='rawtext')
 
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_stop_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
 
+        if getinfo('cache_pollution'):
+            attrs = {'expr': 'kgen_cache_control(1) == 0'}
+            ifcache = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+            attrs = {'variable': 'kgen_stop_clock', 'sign': '=', 'expr': 'kgen_stop_clock  + kgen_cache_control(1)'}
+            part_append_genknode(ifcache, EXEC_PART, statements.Assignment, attrs=attrs)
+
         attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': '1.0D6*(kgen_stop_clock - kgen_start_clock)/DBLE(kgen_rate_clock)'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_measure']}
-        part_append_gensnode(node, EXEC_PART, statements.Write, attrs=attrs)
-
-        if getinfo('is_papi_enabled'):
+        if getinfo('add_mpi_frame'):
+            part_append_comment(node, EXEC_PART, '#ifdef _MPI', style='rawtext')
+            part_append_comment(node, EXEC_PART, 'CALL mpi_allreduce(kgen_measure, gkgen_measure, 1, mpi_real8, mpi_max, mpi_comm_world, kgen_ierr)', style='rawtext')
+            attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': 'gkgen_measure'}
+            part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
             part_append_comment(node, EXEC_PART, '#endif', style='rawtext')
+
+        attrs = {'expr': 'check_status%rank==0'}
+        ifrank = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
+
+        attrs = {'items': ['"%s : Time per call (usec): "'%getinfo('kernel_name'), 'kgen_measure']}
+        part_append_gensnode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
+
+#        if getinfo('is_papi_enabled'):
+#            part_append_comment(node, EXEC_PART, '#endif', style='rawtext')
 

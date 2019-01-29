@@ -306,7 +306,7 @@ plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kerne
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'dummy_stmt', 'is_papi_enabled', \
     'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'model_file', 'model_path', 'logger', \
     'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer', 'papi_event', 'papi_header_file', \
-    'papi_typeid', 'papi_typename', 'papi_header_path', 'coverage_filter', 'data' ]
+    'papi_typeid', 'papi_typename', 'papi_header_path', 'coverage_filter', 'data', 'cache_pollution' ]
 
 def getinfo(name, plugin=None):
     if name in plugin_default_infolist: 
@@ -335,7 +335,8 @@ def getinfo(name, plugin=None):
         elif name=='dummy_stmt': return statements.DummyStatement()
         elif name=='add_mpi_frame': return Config.add_mpi_frame['enabled']
         elif name=='mpi_frame_np': return Config.add_mpi_frame['np']
-        elif name=='mpi_frame_mpiexec': return Config.add_mpi_frame['mpiexec']
+        elif name=='mpi_frame_mpirun': return Config.add_mpi_frame['mpirun']
+        elif name=='cache_pollution': return Config.add_cache_pollution['size']
         elif name=='verify_tol': return Config.verify['tolerance']
         elif name=='walk_stmts': return api.walk
         elif name=='model_file': return Config.modelfile

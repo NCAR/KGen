@@ -282,7 +282,13 @@ class Config(object):
         self._attrs['add_mpi_frame'] = collections.OrderedDict()
         self._attrs['add_mpi_frame']['enabled'] = False
         self._attrs['add_mpi_frame']['np'] = '2'
-        self._attrs['add_mpi_frame']['mpiexec'] = 'mpiexec'
+        self._attrs['add_mpi_frame']['mpifc'] = 'mpif90'
+        self._attrs['add_mpi_frame']['mpirun'] = 'mpirun'
+
+        # add mpi frame code in kernel driver
+        self._attrs['add_cache_pollution'] = collections.OrderedDict()
+        self._attrs['add_cache_pollution']['enabled'] = False
+        self._attrs['add_cache_pollution']['size'] = 0
 
         # timing parameters
         #self._attrs['timing'] = collections.OrderedDict()
@@ -403,7 +409,7 @@ class Config(object):
         self._attrs['used_srcfiles'] = collections.OrderedDict()
         self._attrs['kernel_driver'] = collections.OrderedDict()
         self._attrs['kernel_driver']['name'] = 'kernel_driver'
-        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_measure', 'kgen_isverified']
+        self._attrs['kernel_driver']['callsite_args'] = ['kgen_unit', 'kgen_measure', 'kgen_isverified', 'kgen_filepath']
 
         ###############################################################
         # Add common options
@@ -441,6 +447,7 @@ class Config(object):
         self.parser.add_option("--check", dest="check", action='append', type='string', default=None, help="Kernel correctness check information")
         self.parser.add_option("--verbose", dest="verbose_level", action='store', type='int', default=None, help="Set the verbose level for verification output")
         self.parser.add_option("--add-mpi-frame", dest="add_mpi_frame", action='store', type='string', default=None, help="Add MPI frame codes in kernel_driver")
+        self.parser.add_option("--add-cache-pollution", dest="add_cache_pollution", action='store', type='string', help="Add cache pollution frame codes in kernel_driver")
 
         self.parser.add_option("--noreuse-rawdata", dest="reuse_rawdata", action='store_false', default=True, help="Control raw data generation for modeling.")
         self.parser.add_option("--repr-etime", dest="repr_etime", action='append', type='string', default=None, help="Specifying elapsedtime representativeness feature flags")
@@ -450,6 +457,12 @@ class Config(object):
         #self.parser.set_usage(cfg.usage)
 
     def parse(self, cfgargs=None):
+
+        if cfgargs is None:
+            cfgargs = sys.argv[1:]
+
+        if "--mpi" in cfgargs and "--add-mpi-frame" not in cfgargs:
+            cfgargs.extend(["--add-mpi-frame", "np=2"])
 
         opts, args = self.parser.parse_args(cfgargs)
 
@@ -871,6 +884,7 @@ class Config(object):
         # parsing MPI parameters
         if opts.mpi:
             self._attrs['mpi']['enabled'] = True
+            self._attrs['add_mpi_frame']['enabled'] = True
             for line in opts.mpi:
                 for mpi in line.split(','):
                     if mpi=='enable':
@@ -975,14 +989,29 @@ class Config(object):
 
         # mpi frame code in kernel driver
         if opts.add_mpi_frame:
-            self._attrs['add_mpi_frame']['enabled'] = True
             for checkparams in opts.add_mpi_frame.split(','):
-                key, value = checkparams.split('=')
-                key = key.lower()
-                if key in ['np', 'mpiexec']:
-                    self._attrs['add_mpi_frame'][key] = value
-                else:
-                    print 'WARNING: %s is not supported add_mpi_frame parameter'%key
+                sparam = checkparams.split('=')
+                if len(sparam) == 2:
+                    key, value = sparam
+                    key = key.lower()
+                    if key in ['np', 'mpirun', 'mpifc']:
+                        self._attrs['add_mpi_frame']['enabled'] = True
+                        self._attrs['add_mpi_frame'][key] = value
+                    else:
+                        print 'WARNING: %s is not supported add_mpi_frame parameter'%key
+                elif len(sparam) == 1:
+                    if sparam[0] == "enabled":
+                        self._attrs['add_mpi_frame']['enabled'] = True
+                    else:
+                        print 'WARNING: %s is not supported add_mpi_frame parameter'%sparam[0]
+
+        # cache pollution frame code in kernel driver
+        if opts.add_cache_pollution:
+            if opts.add_cache_pollution.isdigit():
+                self._attrs['add_cache_pollution']['enabled'] = True
+                self._attrs['add_cache_pollution']['size'] = int(opts.add_cache_pollution)
+            else:
+                print 'WARNING: %s is not supported add_cache_pollution parameter'%opts.add_cache_pollution
 
     def _process_repr_flags(self, opts):
 

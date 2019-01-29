@@ -257,6 +257,18 @@ class Extractor(KGTool):
                         opts += ' -Mpreprocess '
                 opts += ' -D KGEN_COVERAGE # Comment out "-D KGEN_COVERAGE" to turn off coverage feature.'
 
+            if Config.add_mpi_frame["enabled"]:
+
+                if comp:
+                    compname = os.path.basename(comp)
+                    if compname =='ifort' and "-fpp" not in opts:
+                        opts += ' -fpp '
+                    elif compname =='gfortran' and "-cpp" not in opts:
+                        opts += ' -cpp '
+                    elif compname.startswith('pg') and "-Mpreprocess" not in opts:
+                        opts += ' -Mpreprocess '
+                    opts += " -D_MPI "
+ 
             if len(opts)>0:
                 if opts in compiler_options:
                     #if kfile['compiler_options'] and base not in compiler_options[kfile['compiler_options']]:
@@ -289,6 +301,11 @@ class Extractor(KGTool):
             if Config.kernel_option['FC']:
                 #self.write(f, 'FC := %s'%Config.kernel_option['FC'])
                 self.write(f, 'FC_0 := %s'%Config.kernel_option['FC'])
+            elif Config.add_mpi_frame["enabled"]:
+                self.write(f, '# Originally used compiler(s)')
+                for i, compiler in enumerate(compilers):
+                    self.write(f, '#FC_%d := %s'%(i, compiler))
+                self.write(f, 'FC_0 := %s'%Config.add_mpi_frame["mpifc"])
             else:
                 #self.write(f, 'FC := ')
                 for i, compiler in enumerate(compilers):
@@ -347,7 +364,7 @@ class Extractor(KGTool):
 
             self.write(f, 'run: build')
             if Config.add_mpi_frame['enabled']:
-                self.write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
+                self.write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpirun'], Config.add_mpi_frame['np']), t=True)
             else:
                 self.write(f, '%s./kernel.exe'%prerun_run_str, t=True)
             self.write(f, '')
@@ -355,7 +372,7 @@ class Extractor(KGTool):
             if Config.model['types']['papi']['enabled']:
                 self.write(f, 'papi: build-papi')
                 if Config.add_mpi_frame['enabled']:
-                    self.write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpiexec'], Config.add_mpi_frame['np']), t=True)
+                    self.write(f, '%s%s -np %s ./kernel.exe'%(prerun_run_str, Config.add_mpi_frame['mpirun'], Config.add_mpi_frame['np']), t=True)
                 else:
                     self.write(f, '%s./kernel.exe'%prerun_run_str, t=True)
                 self.write(f, '')
@@ -410,7 +427,10 @@ class Extractor(KGTool):
                         if dep_base in files:
                             dfc_flags_str += '_SET_%d'%i
                             break
-                if dfc_str == 'FC': dfc_str = 'FC_0'
+
+                if dfc_str == 'FC' or Config.add_mpi_frame["enabled"]:
+                    dfc_str = 'FC_0'
+
                 if dfc_flags_str == 'FC_FLAGS': dfc_flags_str = 'FC_FLAGS_SET_0'
 
                 if Config.model['types']['papi']['enabled'] and Config.model['types']['papi']['header'] is not None and \
