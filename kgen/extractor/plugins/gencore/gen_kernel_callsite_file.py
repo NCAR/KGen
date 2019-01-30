@@ -94,6 +94,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
         attrs = {'type_spec': 'REAL', 'entity_decls': ['kgen_array_sum'], 'selector': (None, '8')}
         part_append_genknode(node, DECL_PART, typedecl_statements.Real, attrs=attrs)
 
+        attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_intvar', 'kgen_ierr']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
+
         attrs = {'type_spec': 'INTEGER', 'entity_decls': ['kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke']}
         part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
@@ -102,6 +105,9 @@ class Gen_K_Callsite_File(Kgen_Plugin):
 
         attrs = {'items': [ ( 'state', ('kgen_mpirank', 'kgen_openmptid', 'kgen_kernelinvoke', 'kgen_evalstage', 'kgen_warmupstage', 'kgen_mainstage') ) ]}
         part_append_genknode(node, DECL_PART, statements.Common, attrs=attrs)
+
+        attrs = {'type_spec': 'INTEGER', 'attrspec': ['PARAMETER'], 'entity_decls': ['KGEN_MAXITER = 1']}
+        part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
         if getinfo('cache_pollution'):
 

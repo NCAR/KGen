@@ -86,6 +86,9 @@ class Simple_Timing(Kgen_Plugin):
 
         attrs = {'designator': 'SYSTEM_CLOCK', 'items': ['kgen_start_clock', 'kgen_rate_clock']}
         part_append_genknode(node, EXEC_PART, statements.Call, attrs=attrs)
+       
+        attrs = {'loopcontrol': 'kgen_intvar = 1, KGEN_MAXITER'}
+        doiter = part_append_genknode(node, EXEC_PART, block_statements.Do, attrs=attrs)
 
 #        if getinfo('is_papi_enabled'):
 #            part_append_comment(node, EXEC_PART, '#endif', style='rawtext')
@@ -98,7 +101,7 @@ class Simple_Timing(Kgen_Plugin):
         end = kernel_stmts[-1].item.span[1]
         lines = kernel_stmts[0].top.prep[start:end]
         lines_str = '\n'.join(lines)
-        dummy_node = part_append_genknode(node, EXEC_PART, statements.Call)
+        dummy_node = part_append_genknode(doiter, EXEC_PART, statements.Call)
         dummy_node.kgen_stmt = getinfo('dummy_stmt')
         dummy_node.kgen_forced_line = lines_str
 

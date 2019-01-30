@@ -28,9 +28,9 @@ class Test(KExtSysCHCalcTest):
             __cmd_build='"cd %s; make -f Makefile.mpirun build"'%tmpsrc, \
             __cmd_run='"cd %s; make -f Makefile.mpirun run"'%tmpsrc, \
             __mpi='enable', \
-            __kernel_option='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
+            #__kernel_option='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             #__debug='printvar=:i,:j,:output',
 
         result[myname]['stdout'] = out

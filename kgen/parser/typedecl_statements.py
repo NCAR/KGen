@@ -234,7 +234,6 @@ class TypeDeclarationStatement(Statement):
         for entity in self.entity_decls:
             if not is_entity_decl(entity):
                 self.isvalid = False
-                import pdb; pdb.set_trace()
                 return
 
         if isinstance(self.parent, Function) \

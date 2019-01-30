@@ -101,7 +101,7 @@ def update_state_info(parent):
                                             else:
                                                 argidx = 0
                                         elif anc.__class__ == Interface_Stmt:
-                                            import pdb; pdb.set_trace()
+                                            raise Exception("Interface Statement is not expected.")
 
                                     # get intent
                                     if argidx>=0:

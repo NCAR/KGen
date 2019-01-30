@@ -508,7 +508,6 @@ def get_part_index(node):
 
 def check_node(node, checkfunc):
     if not isinstance(node, Gen_Statement):
-        import pdb; pdb.set_trace()
         raise ProgramException('Not Gen_Statement type')
 
     return callable(checkfunc) and checkfunc(node)

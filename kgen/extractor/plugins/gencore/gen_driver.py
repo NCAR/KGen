@@ -434,7 +434,7 @@ class Gen_K_Driver(Kgen_Plugin):
 
             part_append_comment(ifcount, EXEC_PART, '#else', style='rawtext')
 
-        attrs = {'items': ['"number of mpi ranks: ", mpisize'], 'specs': [ '*', '"(4X,A19,I3)"' ]}
+        attrs = {'items': ['"number of processes: ", mpisize'], 'specs': [ '*', '"(4X,A19,I3)"' ]}
         part_append_genknode(ifcount, EXEC_PART, statements.Write, attrs=attrs)
 
         attrs = {'items': ['""']}

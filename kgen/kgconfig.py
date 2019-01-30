@@ -582,7 +582,6 @@ class Config(object):
                 except UserException:
                     raise  # Reraise this exception rather than catching it below
                 except Exception as e:
-                    import pdb; pdb.set_trace()
                     raise UserException('Error occurred during reading %s.'%mpifpath)
             else:
                 raise UserException('Can not find mpif.h. Please provide a path to the file')

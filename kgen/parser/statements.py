@@ -104,7 +104,6 @@ class StatementWithNamelist(Statement):
         for item in self.items:
             if any(elem in item for elem in r'-=>'):
                 print 'DEBUG: %s has non-ascii character.'%self.__class__
-                import pdb; pdb.set_trace()
         if uname.firstpartname() in self.items:
             self.add_geninfo(uname, request)
     # end of KGEN addition

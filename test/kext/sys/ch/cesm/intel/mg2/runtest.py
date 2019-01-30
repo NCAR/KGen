@@ -33,14 +33,16 @@ class Test(KExtSysCHCesmIntelTest):
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
             __intrinsic='skip,except=shr_spfn_mod:shr_spfn_gamma_nonintrinsic_r8:sum', \
             __cmd_clean='"cd %s; ./case.build --clean"'%casedir, \
-            __cmd_build='"cd %s; qcmd -q premium -- ./case.build"'%casedir, \
+            __cmd_build='"cd %s; ./case.build"'%casedir, \
             __cmd_run='"cd %s; ./case.submit"'%casedir, \
-            __mpi='comm=mpicom,use="spmd_utils:mpicom"', \
+            __mpi='comm=mpicom,use="spmd_utils:mpicom",header="/glade/u/apps/opt/intel/2017u1/impi/2017.1.132/intel64/include/mpif.h"', \
             __openmp='enable', \
-            __kernel_option='FC="%s",FC_FLAGS="%s"'%(fc, fc_flags), \
+            __add_cache_pollution='1024', \
             __prerun='build="%s",run="%s"'%(prerun_cmds, prerun_cmds), \
             __outdir=workdir)
 
+            #__kernel_option='FC="%s",FC_FLAGS="%s"'%(fc, fc_flags), \
+            #__cmd_build='"cd %s; qcmd -q premium -- ./case.build"'%casedir, \
             #__cmd_build='"cd %s; ./case.build"'%casedir, \
 
         result[myname]['stdout'] = out

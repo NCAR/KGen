@@ -21,15 +21,15 @@ class Test(KExtSysCHCalcTest):
         namepath = 'update_mod:update:calc'
         fc_flags = '-O3'
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
-            _i='%s/include.ini'%here, \
             _I=tmpsrc, \
             __cmd_clean='"cd %s; make clean"'%tmpsrc, \
             __cmd_build='"cd %s; make build"'%tmpsrc, \
             __cmd_run='"cd %s; make run"'%tmpsrc, \
             __openmp='enable', \
-            __kernel_option='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             __outdir=workdir)
 
+            #_i='%s/include.ini'%here, \
+            #__kernel_option='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             #__debug='printvar=:i,:j,:output',
 
         result[myname]['stdout'] = out

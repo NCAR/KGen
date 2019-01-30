@@ -16,12 +16,12 @@ class KExtSysCHCesmIntelTest(KExtSysCHCesmTest):
         prerun_cmds.append('module try-load ncarcompilers/0.4.1')
         prerun_cmds.append('module try-load intel/17.0.1')
         prerun_cmds.append('module try-load mkl/2017.0.1')
+        prerun_cmds.append('module try-load impi/2017.1.132')
 
         return prerun_cmds
 
     def get_prerun_cmds(self):
         prerun_cmds = self.get_prerun_kernel_cmds()
-        prerun_cmds.append('module try-load impi/2017.1.132')
         prerun_cmds.append('module try-load netcdf/4.4.1.1')
         prerun_cmds.append('module try-load pnetcdf/1.10.0')
         prerun_cmds.append('module try-load cmake/3.9.1')
@@ -65,7 +65,7 @@ class KExtSysCHCesmIntelTest(KExtSysCHCesmTest):
                 xmlchange = './xmlchange CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs" -a'
                 out, err, retcode = run_shcmd(xmlchange, cwd=casedir)
                 if retcode!=0:
-                    self.set_status(result, myname, self.FAILED, errmsg='Modification of env_build.xml is failed: '%(err, out))
+                    self.set_status(result, myname, self.FAILED, errmsg='Modification of env_build.xml is failed: %s, %s'%(err, out))
                     return result
 
             batch_flags = "-W block=true -N KINTCESM.run -r n -j oe -V -S /bin/bash -l select=16:ncpus=36:mpiprocs=36:ompthreads=1 -l walltime=01:15:00 -A NTDD0004 -q premium"

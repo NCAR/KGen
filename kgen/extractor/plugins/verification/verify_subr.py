@@ -368,7 +368,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
                     ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank == 0'}
@@ -385,7 +385,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numInTol', 'sign': '=', 'expr': 'check_status%numInTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
                     ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank == 0'}
@@ -407,7 +407,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
                     ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank == 0'}
@@ -458,7 +458,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numInTol', 'sign': '=', 'expr': 'check_status%numInTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
                     ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank == 0'}
@@ -475,7 +475,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
                     ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank == 0'}
@@ -491,7 +491,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
                     attrs = {'variable': 'check_status%numOutTol', 'sign': '=', 'expr': 'check_status%numOutTol + 1'}
                     part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 0'}
+                    attrs = {'expr': 'check_status%verboseLevel > 1'}
                     ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank == 0'}

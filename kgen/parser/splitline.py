@@ -50,7 +50,6 @@ def string_replace_map(line, lower=False,
     Returns a new line and the replacement map.
     """
 
-    if line.find('F2PY_EXPR_TUPLE_12432') >= 0: import pdb; pdb.set_trace()
     items = []
     string_map = string_replace_dict()
     rev_string_map = {}
