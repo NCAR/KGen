@@ -24,9 +24,9 @@ class Verify_K_Callsite_File(Kgen_Plugin):
 
     def create_topblock_parts(self, node):
 
-        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'kgen_tolerance', \
-            'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
-        part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
+        #attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'kgen_tolerance', \
+        #    'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+        #part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         prenode = getinfo('blocknode_aftercallsite_main')
         self.frame_msg.add_event(KERNEL_SELECTION.ALL, FILE_TYPE.KERNEL, GENERATION_STAGE.BEGIN_PROCESS, \
@@ -46,8 +46,11 @@ class Verify_K_Callsite_File(Kgen_Plugin):
 
     def create_verification_parts(self, node):
 
-        attrs = {'designator': 'kgen_init_check', 'items': ['check_status', 'rank=kgen_mpirank', 'tolerance=%s'%getinfo('verify_tol'), \
-            'verboseLevel=%s'%getinfo('verbose_level')]}
+        attrs = {'designator': 'kgen_init_verify', 'items': ['tolerance=%s'%getinfo('verify_tol'), \
+            'minvalue=%s'%getinfo('verify_minval'), 'verboseLevel=%s'%getinfo('verbose_level')]}
+        namedpart_append_genknode(node.kgen_kernel_id, VERIFY_PBLOCK_INIT, statements.Call, attrs=attrs)
+
+        attrs = {'designator': 'kgen_init_check', 'items': ['check_status', 'rank=kgen_mpirank']}
         namedpart_append_genknode(node.kgen_kernel_id, VERIFY_PBLOCK_INIT, statements.Call, attrs=attrs)
 
         attrs = {'expr': 'check_status%rank == 0'}
@@ -57,7 +60,7 @@ class Verify_K_Callsite_File(Kgen_Plugin):
         part_append_genknode(ifrank, EXEC_PART, statements.Write, attrs=attrs)
 
         # verification statistics
-        attrs = {'expr': 'check_status%verboseLevel > 0'}
+        attrs = {'expr': 'kgen_verboseLevel > 0'}
         ifstatobj = part_append_genknode(node, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         attrs = {'expr': 'check_status%rank == 0'}

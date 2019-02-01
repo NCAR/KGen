@@ -297,6 +297,7 @@ class Config(object):
         # verification parameters
         self._attrs['verify'] = collections.OrderedDict()
         self._attrs['verify']['tolerance'] = '1.D-14'
+        self._attrs['verify']['minval'] = '1.D-14'
         self._attrs['verify']['verboselevel'] = '1'
 
         # make kernel parameters

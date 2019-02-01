@@ -40,7 +40,7 @@ class KExtTest(KGenTest):
     def runkernel(self, myname, result):
         workdir = result['mkdir_task']['workdir']
 
-        out, err, retcode = run_shcmd('make clean; make', cwd='%s/kernel'%workdir)
+        out, err, retcode = run_shcmd('make clean; make run', cwd='%s/kernel'%workdir)
 
         result[myname]['stdout'] = out
         result[myname]['stderr'] = err

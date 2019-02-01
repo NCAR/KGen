@@ -142,7 +142,7 @@ class Simple_Timing(Kgen_Plugin):
             attrs = {'variable': 'kgen_stop_clock', 'sign': '=', 'expr': 'kgen_stop_clock  + kgen_cache_control(1)'}
             part_append_genknode(ifcache, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': '1.0D6*(kgen_stop_clock - kgen_start_clock)/DBLE(kgen_rate_clock)'}
+        attrs = {'variable': 'kgen_measure', 'sign': '=', 'expr': '1.0D6*(kgen_stop_clock - kgen_start_clock)/DBLE(kgen_rate_clock*KGEN_MAXITER)'}
         part_append_genknode(node, EXEC_PART, statements.Assignment, attrs=attrs)
 
         if getinfo('add_mpi_frame'):

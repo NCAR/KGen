@@ -50,15 +50,15 @@ kgen_verify_intrinsic_checkpart = \
 """check_status%%numTotal = check_status%%numTotal + 1
 IF ( var %s ref_var ) THEN
     check_status%%numIdentical = check_status%%numIdentical + 1
-    if(check_status%%VerboseLevel == 3) then
+    if(kgen_verboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is IDENTICAL( ", var, " )."
     endif
 ELSE
-    if(check_status%%VerboseLevel > 0) then
+    if(kgen_verboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
-        if(check_status%%VerboseLevel == 3) then
+        if(kgen_verboseLevel == 3) then
             WRITE(*,*) "KERNEL: ", var
             WRITE(*,*) "REF.  : ", ref_var
         end if
@@ -71,13 +71,13 @@ kgen_verify_numeric_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%VerboseLevel == 3) then
+    if(kgen_verboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
         !WRITE(*,*) "REF.  : ", ref_var
         IF ( ALL( var == 0 ) ) THEN
-            if(check_status%%VerboseLevel == 3) then
+            if(kgen_verboseLevel == 3) then
                 WRITE(*,*) "All values are zero."
             end if
         END IF
@@ -111,7 +111,7 @@ kgen_verify_nonreal_array = \
 IF ( ALL( var %(eqtest)s ref_var ) ) THEN
 
     check_status%%numIdentical = check_status%%numIdentical + 1            
-    if(check_status%%VerboseLevel == 3) then
+    if(kgen_verboseLevel == 3) then
         WRITE(*,*)
         WRITE(*,*) "All elements of ", trim(adjustl(varname)), " are IDENTICAL."
         !WRITE(*,*) "KERNEL: ", var
@@ -121,7 +121,7 @@ IF ( ALL( var %(eqtest)s ref_var ) ) THEN
         END IF
     end if
 ELSE
-    if(check_status%%VerboseLevel > 0) then
+    if(kgen_verboseLevel > 0) then
         WRITE(*,*)
         WRITE(*,*) trim(adjustl(varname)), " is NOT IDENTICAL."
         WRITE(*,*) count( var /= ref_var), " of ", size( var ), " elements are different."
@@ -137,7 +137,8 @@ INTEGER, PARAMETER :: CHECK_IDENTICAL = 1
 INTEGER, PARAMETER :: CHECK_IN_TOL = 2
 INTEGER, PARAMETER :: CHECK_OUT_TOL = 3
 
-REAL(kind=kgen_dp) :: kgen_tolerance, kgen_minvalue
+REAL(kind=kgen_dp) :: kgen_tolerance = 1.0D-15, kgen_minvalue = 1.0D-15
+INTEGER :: kgen_verboselevel = 1
 
 interface kgen_tostr
     module procedure kgen_tostr_args1
@@ -164,11 +165,10 @@ type check_t
     integer :: numTotal
     integer :: numIdentical
     integer :: numInTol
-    integer :: VerboseLevel
     integer :: rank
 end type check_t
 
-public kgen_dp, check_t, kgen_init_check, kgen_tolerance, kgen_minvalue, kgen_print_check, kgen_perturb_real
+public kgen_dp, check_t, kgen_init_verify, kgen_init_check, kgen_tolerance, kgen_minvalue, kgen_verboselevel, kgen_print_check, kgen_perturb_real
 public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
 public kgen_get_newunit, kgen_error_stop
 """
@@ -433,12 +433,30 @@ subroutine kgen_perturb_real8_dim3(var, pertlim)
     deallocate(rndm_seed)
 end subroutine
 
-subroutine kgen_init_check(check, rank, verboseLevel, tolerance, minValue)
-  type(check_t), intent(inout) :: check
-  integer, intent(in), optional :: rank 
+subroutine kgen_init_verify(verboseLevel, tolerance, minValue)
+
   integer, intent(in), optional :: verboseLevel
   real(kind=kgen_dp), intent(in), optional :: tolerance
   real(kind=kgen_dp), intent(in), optional :: minValue
+
+  if(present(verboseLevel)) then
+     kgen_verboseLevel = verboseLevel
+  end if
+
+  if(present(tolerance)) then
+      kgen_tolerance = tolerance
+  end if
+
+  if(present(minvalue)) then
+      kgen_minvalue = minvalue
+  end if
+
+end subroutine kgen_init_verify
+
+subroutine kgen_init_check(check, rank)
+
+  type(check_t), intent(inout) :: check
+  integer, intent(in), optional :: rank 
 
   check%Passed   = .TRUE.
   check%numOutTol = 0
@@ -451,21 +469,7 @@ subroutine kgen_init_check(check, rank, verboseLevel, tolerance, minValue)
   else                                                                               
       check%rank = 0                                                                 
   endif  
-  if(present(verboseLevel)) then
-     check%verboseLevel = verboseLevel
-  else
-      check%verboseLevel = 1
-  end if
-  if(present(tolerance)) then
-      kgen_tolerance = tolerance
-  else
-      kgen_tolerance = 1.0D-15
-  end if
-  if(present(minvalue)) then
-      kgen_minvalue = minvalue
-  else
-      kgen_minvalue = 1.0D-15
-  end if
+
 end subroutine kgen_init_check
 
 subroutine kgen_print_check(kname, check)

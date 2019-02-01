@@ -304,7 +304,7 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
 plugin_default_infolist = [ 'kernel_name', 'kgen_version', 'kernel_path', 'kernel_driver_name', 'kernel_driver_callsite_args', \
     'is_openmp_app', 'is_openmp_critical', 'is_mpi_app', 'mpi_comm', 'mpi_logical', 'mpi_status_size', 'mpi_use', 'invocations', 'print_var_names', \
     'callsite_file_path', 'callsite_stmts', 'parentblock_stmt', 'topblock_stmt', 'verbose_level', 'dummy_stmt', 'is_papi_enabled', \
-    'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'walk_stmts', 'openmp_maxthreads', 'model_file', 'model_path', 'logger', \
+    'add_mpi_frame', 'mpi_frame_np', 'verify_tol', 'verify_minval', 'walk_stmts', 'openmp_maxthreads', 'model_file', 'model_path', 'logger', \
     'coverage_typeid', 'coverage_typename', 'traverse', 'etime_typeid', 'etime_typename', 'etime_timer', 'papi_event', 'papi_header_file', \
     'papi_typeid', 'papi_typename', 'papi_header_path', 'coverage_filter', 'data', 'cache_pollution' ]
 
@@ -338,6 +338,7 @@ def getinfo(name, plugin=None):
         elif name=='mpi_frame_mpirun': return Config.add_mpi_frame['mpirun']
         elif name=='cache_pollution': return Config.add_cache_pollution['size']
         elif name=='verify_tol': return Config.verify['tolerance']
+        elif name=='verify_minval': return Config.verify['minval']
         elif name=='walk_stmts': return api.walk
         elif name=='model_file': return Config.modelfile
         elif name=='coverage_typeid': return Config.model['types']['code']['id']

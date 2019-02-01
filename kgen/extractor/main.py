@@ -341,20 +341,26 @@ class Extractor(KGTool):
                     self.write(f, 'FC_FLAGS_SET_%d := %s'%(i, ' '.join(new_options)))
 
             prerun_build_str = ''
+
+            if (Config.prerun['kernel_build'] or Config.prerun['build'] or
+                Config.prerun['kernel_run'] or Config.prerun['run']):
+                self.write(f, '# Uncomment below if you like to replicate the kernel extraction environment.')
+                self.write(f, '# NOTE: the environment is valid only if you are using this kernel on the'
+                              ' same computing system that the kernel was extracted from.')
             if Config.prerun['kernel_build']:
-                self.write(f, 'PRERUN_BUILD := %s'%Config.prerun['kernel_build'])
-                prerun_build_str = '${PRERUN_BUILD}; '
+                self.write(f, '#PRERUN_BUILD := %s; '%Config.prerun['kernel_build'])
+                prerun_build_str = '${PRERUN_BUILD}'
             elif Config.prerun['build']:
-                self.write(f, 'PRERUN_BUILD := %s'%Config.prerun['build'])
-                prerun_build_str = '${PRERUN_BUILD}; '
+                self.write(f, '#PRERUN_BUILD := %s; '%Config.prerun['build'])
+                prerun_build_str = '${PRERUN_BUILD}'
 
             prerun_run_str = ''
             if Config.prerun['kernel_run']:
-                self.write(f, 'PRERUN_RUN := %s'%Config.prerun['kernel_run'])
-                prerun_run_str = '${PRERUN_RUN}; '
+                self.write(f, '#PRERUN_RUN := %s; '%Config.prerun['kernel_run'])
+                prerun_run_str = '${PRERUN_RUN}'
             elif Config.prerun['run']:
-                self.write(f, 'PRERUN_RUN := %s'%Config.prerun['run'])
-                prerun_run_str = '${PRERUN_RUN}; '
+                self.write(f, '#PRERUN_RUN := %s; '%Config.prerun['run'])
+                prerun_run_str = '${PRERUN_RUN}'
 
             self.write(f, '')
             self.write(f, 'ALL_OBJS := %s'%' '.join(all_objs))
@@ -363,6 +369,17 @@ class Extractor(KGTool):
             if Config.model['types']['papi']['enabled']:
                 self.write(f, 'PAPI_EVENT := %s'% Config.model['types']['papi']['event'] )
                 self.write(f, '')
+
+            self.write(f, 'build: ${ALL_OBJS}')
+
+            fc_str = 'FC_0'
+            fc_flags_str = 'FC_FLAGS_SET_0'
+
+            #if len(compilers)>0 and not Config.kernel_option['FC']: fc_str += '_0'
+            #if len(compiler_options)>0 and not Config.kernel_option['FC_FLAGS']: fc_flags_str += '_SET_0'
+
+            self.write(f, '%s${%s} ${%s} -o kernel.exe $^ %s %s'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
+            self.write(f, '')
 
             self.write(f, 'run: build')
             if Config.add_mpi_frame['enabled']:
@@ -378,17 +395,6 @@ class Extractor(KGTool):
                 else:
                     self.write(f, '%s./kernel.exe'%prerun_run_str, t=True)
                 self.write(f, '')
-
-            self.write(f, 'build: ${ALL_OBJS}')
-
-            fc_str = 'FC_0'
-            fc_flags_str = 'FC_FLAGS_SET_0'
-
-            #if len(compilers)>0 and not Config.kernel_option['FC']: fc_str += '_0'
-            #if len(compiler_options)>0 and not Config.kernel_option['FC_FLAGS']: fc_flags_str += '_SET_0'
-
-            self.write(f, '%s${%s} ${%s} -o kernel.exe $^ %s %s'%(prerun_build_str, fc_str, fc_flags_str, link_flags, objects), t=True)
-            self.write(f, '')
 
             if Config.model['types']['papi']['enabled']:
 

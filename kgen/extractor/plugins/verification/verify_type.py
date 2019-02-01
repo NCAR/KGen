@@ -148,7 +148,7 @@ class Verify_Type(Kgen_Plugin):
             checks = lambda n: n.kgen_isvalid and n.kgen_match_class==statements.Use and n.name=='kgen_utils_mod' and 'check_t' in n.items
             if not parent in kernel_verify_kgenutils and not part_has_node(parent, USE_PART, checks):
                 attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items': ['check_t', 'kgen_init_check', 'kgen_tolerance', \
-                    'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+                    'kgen_minvalue', 'kgen_verboselevel', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
                 part_append_genknode(parent, USE_PART, statements.Use, attrs=attrs)
                 kernel_verify_kgenutils.append(parent)
 
@@ -187,7 +187,7 @@ class Verify_Type(Kgen_Plugin):
             part_append_genknode(subrobj, EXEC_PART, statements.Assignment, attrs=attrs)
             part_append_comment(subrobj, EXEC_PART, '')
 
-            attrs = {'designator': 'kgen_init_check', 'items': ['dtype_check_status', 'verboseLevel=check_status%verboseLevel']}
+            attrs = {'designator': 'kgen_init_check', 'items': ['dtype_check_status', 'rank=check_status%rank']}
             part_append_genknode(subrobj, EXEC_PART, statements.Call, attrs=attrs)
 
             #comp_part = get_part(node, TYPE_COMP_PART) 
@@ -242,7 +242,7 @@ class Verify_Type(Kgen_Plugin):
                             attrs = {'type_spec': 'INTEGER', 'entity_decls': ename_indexes}
                             part_append_genknode(subrobj, DECL_PART, typedecl_statements.Integer, attrs=attrs)
 
-                            attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'verboseLevel=check_status%verboseLevel']}
+                            attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'rank=check_status%rank']}
                             part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
                             if callname:
@@ -265,7 +265,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 2'}
+                                attrs = {'expr': 'kgen_verboseLevel > 2'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -283,7 +283,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -301,7 +301,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -327,7 +327,7 @@ class Verify_Type(Kgen_Plugin):
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
                             part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                            attrs = {'expr': 'check_status%verboseLevel > 2'}
+                            attrs = {'expr': 'kgen_verboseLevel > 2'}
                             ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'expr': 'check_status%rank == 0'}
@@ -392,7 +392,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -409,7 +409,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -432,7 +432,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -454,7 +454,7 @@ class Verify_Type(Kgen_Plugin):
                             #import pdb; pdb.set_trace()
                             if callname:
 
-                                attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'verboseLevel=check_status%verboseLevel']}
+                                attrs = {'designator': 'kgen_init_check', 'items': ['comp_check_status', 'rank=check_status%rank']}
                                 part_append_genknode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
                                 attrs = {'designator': callname, 'items': ['"%s"'%entity_name, 'comp_check_status', 'var%%%s'%entity_name, 'kgenref_var%%%s'%entity_name]}
@@ -466,7 +466,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 2'}
+                                attrs = {'expr': 'kgen_verboseLevel > 2'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -484,7 +484,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -502,7 +502,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -528,7 +528,7 @@ class Verify_Type(Kgen_Plugin):
                             attrs = {'variable': 'dtype_check_status%numIdentical', 'sign': '=', 'expr': 'dtype_check_status%numIdentical + 1'}
                             part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                            attrs = {'expr': 'check_status%verboseLevel > 2'}
+                            attrs = {'expr': 'kgen_verboseLevel > 2'}
                             ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                             attrs = {'expr': 'check_status%rank == 0'}
@@ -553,7 +553,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numInTol', 'sign': '=', 'expr': 'dtype_check_status%numInTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -570,7 +570,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifvobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifvobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -586,7 +586,7 @@ class Verify_Type(Kgen_Plugin):
                                 attrs = {'variable': 'dtype_check_status%numOutTol', 'sign': '=', 'expr': 'dtype_check_status%numOutTol + 1'}
                                 part_append_genknode(ifidobj, EXEC_PART, statements.Assignment, attrs=attrs)
 
-                                attrs = {'expr': 'check_status%verboseLevel > 1'}
+                                attrs = {'expr': 'kgen_verboseLevel > 1'}
                                 ifvlobj = part_append_genknode(ifidobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                                 attrs = {'expr': 'check_status%rank == 0'}
@@ -622,7 +622,7 @@ class Verify_Type(Kgen_Plugin):
 
                     part_append_genknode(ifchkobj, EXEC_PART, statements.Continue)
 
-#                    attrs = {'expr': 'check_status%verboseLevel > 2'}
+#                    attrs = {'expr': 'kgen_verboseLevel > 2'}
 #                    iflevel3obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 #
 #                    print_detail(iflevel3obj, entity_name)
@@ -630,7 +630,7 @@ class Verify_Type(Kgen_Plugin):
                     attrs = {'expr': 'check_result == CHECK_OUT_TOL'}
                     part_append_genknode(ifchkobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 2'}
+                    attrs = {'expr': 'kgen_verboseLevel > 2'}
                     iflevel0obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank ==0'}
@@ -641,7 +641,7 @@ class Verify_Type(Kgen_Plugin):
                     attrs = {'expr': 'check_result == CHECK_IN_TOL'}
                     part_append_genknode(ifchkobj, EXEC_PART, block_statements.ElseIf, attrs=attrs)
 
-                    attrs = {'expr': 'check_status%verboseLevel > 2'}
+                    attrs = {'expr': 'kgen_verboseLevel > 2'}
                     iflevel1obj = part_append_genknode(ifchkobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     attrs = {'expr': 'check_status%rank ==0'}

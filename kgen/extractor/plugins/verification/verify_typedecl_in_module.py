@@ -47,8 +47,8 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
 
     def create_verify_module_parts(self, node):
 
-        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'kgen_tolerance', \
-            'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
+        attrs = {'name': 'kgen_utils_mod', 'isonly': True, 'items':['check_t', 'kgen_init_check', 'kgen_verboselevel',
+            'kgen_tolerance', 'kgen_minvalue', 'CHECK_IDENTICAL', 'CHECK_IN_TOL', 'CHECK_OUT_TOL']}
         part_append_genknode(node, USE_PART, statements.Use, attrs=attrs)
 
         subrname = get_module_verifyname(node.kgen_stmt)
