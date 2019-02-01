@@ -21,7 +21,6 @@ class Test(KExtSysCHCalcTest):
         namepath = 'update_mod:update:calc'
         fc_flags = '-O3'
         passed, out, err = self.extract_kernel(srcfile, namepath, workdir, \
-            _i='%s/include.ini'%here, \
             _I=tmpsrc, \
             __cmd_clean='"cd %s; make -f Makefile.mpirun clean"'%tmpsrc, \
             __cmd_build='"cd %s; make -f Makefile.mpirun build"'%tmpsrc, \
@@ -30,6 +29,7 @@ class Test(KExtSysCHCalcTest):
             __openmp='enable', \
             __outdir=workdir)
 
+            #_i='%s/include.ini'%here, \
             #__kernel_option='FC="ifort",FC_FLAGS="%s"'%fc_flags, \
             #__debug='printvar=:i,:j,:output',
 

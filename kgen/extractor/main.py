@@ -181,6 +181,8 @@ class Extractor(KGTool):
     def generate_kernel_makefile(self):
         #NOTE: for gfortran, use -ffixed-line-length-none and -ffree-line-length-none
 
+        openmp_flags = ["-fopenmp", "-qopenmp", "-mp", "-xopenmp", "-qsmp=omp"]
+
         #basenames
         callsite_base = os.path.basename(Config.callsite['filepath'])
         driver_base = '%s.f90'%Config.kernel_driver['name']
@@ -330,7 +332,7 @@ class Extractor(KGTool):
                                 pass
                             elif '%s+'%opt in Config.kernel_option['compiler']['remove']:
                                 skip_next = True
-                            else:
+                            elif opt not in openmp_flags:
                                 new_options.append(opt)
 
                     for add_opt in Config.kernel_option['compiler']['add']:

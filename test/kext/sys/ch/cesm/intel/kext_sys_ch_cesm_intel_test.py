@@ -62,7 +62,11 @@ class KExtSysCHCesmIntelTest(KExtSysCHCesmTest):
             # modify env_build.xml to enable MG2
             out, err, retcode = run_shcmd('grep mg2 env_build.xml', cwd=casedir)
             if retcode!=0:
-                xmlchange = './xmlchange CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs" -a'
+                # NOTE: pcols=16 is a default setting for cesm2
+                #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=192"'
+                #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=96"'
+                #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=32"'
+                #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=16"'
                 out, err, retcode = run_shcmd(xmlchange, cwd=casedir)
                 if retcode!=0:
                     self.set_status(result, myname, self.FAILED, errmsg='Modification of env_build.xml is failed: %s, %s'%(err, out))

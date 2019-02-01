@@ -22,19 +22,21 @@ class Test(KExtSysCHCesmIntelTest):
         camsrcmods = '%s/src.cam'%srcmods
         result[myname]['camsrcmods'] = camsrcmods
 
-        srcfile = '%s/components/cam/src/physics/clubb/clubb_api_module.F90'%tmpsrc
-        namepath = 'clubb_api_module:advance_clubb_core_api:advance_clubb_core'
+        srcfile = '%s/components/cam/src/physics/cam/clubb_intr.F90'%tmpsrc
+        namepath = None
         prerun_cmds = ';'.join(result['config_task']['prerun_kernel'])
         passed, out, err = self.extract_kernel(srcfile, namepath, \
             __source='format=free,strict=no,alias=/glade/scratch/youngsun:/glade/u/home/youngsun/trepo/temp', \
             __mpi='comm=mpicom,use="spmd_utils:mpicom",header="/glade/u/apps/opt/intel/2017u1/impi/2017.1.132/intel64/include/mpif.h"', \
             __openmp='enable', \
+            _e=os.path.join(here, 'exclude.ini'), \
             __add_cache_pollution='1024', \
             __cmd_clean='"cd %s; ./case.build --clean"'%casedir, \
             __cmd_build='"cd %s; ./case.build"'%casedir, \
             __cmd_run='"cd %s; ./case.submit"'%casedir, \
             __prerun='build="%s",run="%s"'%(prerun_cmds, prerun_cmds), \
             __kernel_option='add="-mkl"', \
+            __repr_etime='nbins=10,ndata=40', \
             __outdir=workdir)
 
             #_e='exclude.ini', \
@@ -45,7 +47,7 @@ class Test(KExtSysCHCesmIntelTest):
         result[myname]['stderr'] = err
 
         if passed:
-            result[myname]['statefiles'] = glob.glob('advance_clubb_core.*.*.*')
+            result[myname]['statefiles'] = glob.glob('clubb_tend_cam.*.*.*')
             self.set_status(result, myname, self.PASSED)
         else:
             result[myname]['statefiles'] = []

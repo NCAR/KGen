@@ -285,82 +285,56 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
         index, partname, part = get_part_index(stmts[0].genspair)
         namedpart_create_subpart(topobj, BEFORE_CALLSITE, EXEC_PART, index=index)
 
-        # get the last stmt
-        prevstmt = stmts[-1]
-        while prevstmt.parent in stmts:
-            prevstmt = prevstmt.parent
-
-        index, partname, part = get_part_index(prevstmt.genspair)
+        index, partname, part = get_part_index(stmts[-1].genspair)
         namedpart_create_subpart(topobj, AFTER_CALLSITE, EXEC_PART, index=index+1)
         
-        body_block = AFTER_CALLSITE
-
         if getinfo('is_mpi_app'):
 
             attrs = {'designator': 'MPI_INITIALIZED', 'items': [ 'kgen_initialized', 'ierror' ]}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Call, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Call, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'expr': 'kgen_initialized .AND. ( ierror .EQ. 0 )'}
-            #topobj = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-            ifinit = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
-
-            body_block = "_BDYBLK_"
-            namedpart_link_part(ifinit, body_block, EXEC_PART)
+            topobj = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
         if getinfo('is_openmp_app'):
-            #part_append_comment(topobj, EXEC_PART, 'CRITICAL (kgen_etime)', style='openmp')
-            #namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'CRITICAL (kgen_etime)', style='openmp')
-            namedpart_append_comment(node.kgen_kernel_id, body_block, 'CRITICAL (kgen_etime)', style='openmp')
+            part_append_comment(topobj, EXEC_PART, 'CRITICAL (kgen_etime)', style='openmp')
 
         if getinfo('is_mpi_app'):
 
             attrs = {'designator': 'MPI_COMM_RANK', 'items': [ getinfo('mpi_comm'), 'myrank', 'ierror' ]}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Call, attrs=attrs)
-            #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Call, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Call, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Call, attrs=attrs)
 
             attrs = {'specs': [ 'rankstr', '"(I10)"' ], 'items': [ 'myrank' ]}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-            #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
 
             if getinfo('is_openmp_app'):
 
+                attrs = {'specs': [ 'threadstr', '"(I6)"' ], 'items': [ 'OMP_GET_THREAD_NUM()' ]}
+                part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
+
                 attrs = {'variable': 'kgen_invokes(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': 'kgen_invokes(OMP_GET_THREAD_NUM()) + 1'}
                 namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
-                attrs = {'specs': [ 'threadstr', '"(I6)"' ], 'items': [ 'OMP_GET_THREAD_NUM()' ]}
-                #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-                #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-                namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
-
                 timer = getinfo('etime_timer')
                 if timer is None:
-                    #self.insert_timing_stmts('mpiwtime', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
-                    self.insert_timing_stmts('mpiwtime', node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=True)
+                    self.insert_timing_stmts('mpiwtime', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
                 else:
-                    #self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
-                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=True)
+                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
 
             else:
+
+                attrs = {'specs': [ 'threadstr', '"(I1)"' ], 'items': [ '0' ]}
+                part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 attrs = {'variable': 'kgen_invokes', 'sign': '=', 'expr': 'kgen_invokes + 1'}
                 namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
-                attrs = {'specs': [ 'threadstr', '"(I1)"' ], 'items': [ '0' ]}
-                #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-                #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-                namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
-
                 timer = getinfo('etime_timer')
                 if timer is None:
-                    #self.insert_timing_stmts('mpiwtime', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
-                    self.insert_timing_stmts('mpiwtime', node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=False)
+                    self.insert_timing_stmts('mpiwtime', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
                 else:
-                    #self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
-                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=False)
+                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
 
 #                # start timer before callsite
 #                attrs = {'variable': 'kgen_timer(0)', 'sign': '=', 'expr': 'MPI_WTIME()'}
@@ -378,27 +352,21 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
         else:
 
             attrs = {'specs': [ 'rankstr', '"(I1)"' ], 'items': [ '0' ]}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-            #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
             if getinfo('is_openmp_app'):
+
+                attrs = {'specs': [ 'threadstr', '"(I6)"' ], 'items': [ 'OMP_GET_THREAD_NUM()' ]}
+                part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
                 attrs = {'variable': 'kgen_invokes(OMP_GET_THREAD_NUM())', 'sign': '=', 'expr': 'kgen_invokes(OMP_GET_THREAD_NUM()) + 1'}
                 namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
-                attrs = {'specs': [ 'threadstr', '"(I6)"' ], 'items': [ 'OMP_GET_THREAD_NUM()' ]}
-                #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-                #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-                namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
-
                 timer = getinfo('etime_timer')
                 if timer is None:
-                    #self.insert_timing_stmts('ompwtime', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
-                    self.insert_timing_stmts('ompwtime', node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=True)
+                    self.insert_timing_stmts('ompwtime', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
                 else:
-                    #self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
-                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=True)
+                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=True)
 #
 #                # start timer before callsite
 #                attrs = {'variable': 'kgen_timer(OMP_GET_THREAD_NUM(), 0)', 'sign': '=', 'expr': 'OMP_GET_WTIME()'}
@@ -415,40 +383,30 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
 
             else:
 
+                attrs = {'specs': [ 'threadstr', '"(I1)"' ], 'items': [ '0' ]}
+                part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
+
                 attrs = {'variable': 'kgen_invokes', 'sign': '=', 'expr': 'kgen_invokes + 1'}
                 namedpart_append_gensnode(node.kgen_kernel_id, BEFORE_CALLSITE, statements.Assignment, attrs=attrs)
 
-                attrs = {'specs': [ 'threadstr', '"(I1)"' ], 'items': [ '0' ]}
-                #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-                #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-                namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
-
                 timer = getinfo('etime_timer')
                 if timer is None:
-                    #self.insert_timing_stmts('sysclock', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
-                    self.insert_timing_stmts('sysclock', node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=False)
+                    self.insert_timing_stmts('sysclock', node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
                 else:
-                    #self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
-                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, body_block, isopenmp=False)
+                    self.insert_timing_stmts(timer, node.kgen_kernel_id, BEFORE_CALLSITE, AFTER_CALLSITE, isopenmp=False)
 
         # append mpirank.ompthread: invocation, starttime, stoptime, resolution
 
         if getinfo('is_openmp_app'):
 
             attrs = {'specs': [ 'datapath', '*' ], 'items': [ '"%s/" // TRIM(ADJUSTL(rankstr)) // "." // TRIM(ADJUSTL(threadstr))'%etimepath ]}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-            #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'specs': ['NEWUNIT=dataunit(OMP_GET_THREAD_NUM())', 'FILE=TRIM(ADJUSTL(datapath))', 'STATUS="UNKNOWN"', 'ACTION="WRITE"', 'ACCESS="APPEND"', 'IOSTAT=ierror']}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Open, attrs=attrs)
-            #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Open, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Open, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Open, attrs=attrs)
 
             attrs = {'expr': 'ierror .EQ. 0'}
-            #ifopen = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-            #ifopen = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
-            ifopen = namedpart_append_gensnode(node.kgen_kernel_id, body_block, block_statements.IfThen, attrs=attrs)
+            ifopen = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             attrs = {'specs': ['UNIT=dataunit(OMP_GET_THREAD_NUM())', 'FMT="(I16,1X,ES34.16,1X,ES34.16,1X,ES34.16)"' ], \
                 'items': [ 'kgen_invokes(OMP_GET_THREAD_NUM())', 'kgen_timer(OMP_GET_THREAD_NUM(), 0)', \
@@ -463,26 +421,18 @@ class Gen_ElapsedTime_File(Kgen_Plugin):
             attrs = {'items': ['"FILE OPEN ERROR: "', 'TRIM(ADJUSTL(datapath))', 'ierror']}
             part_append_gensnode(ifopen, EXEC_PART, statements.Print, attrs=attrs)
 
-            #part_append_comment(topobj, EXEC_PART, 'END CRITICAL (kgen_etime)', style='openmp')
-            #namedpart_append_comment(node.kgen_kernel_id, AFTER_CALLSITE, 'END CRITICAL (kgen_etime)', style='openmp')
-            namedpart_append_comment(node.kgen_kernel_id, body_block, 'END CRITICAL (kgen_etime)', style='openmp')
+            part_append_comment(topobj, EXEC_PART, 'END CRITICAL (kgen_etime)', style='openmp')
 
         else:
 
             attrs = {'specs': [ 'datapath', '*' ], 'items': [ '"%s/" // TRIM(ADJUSTL(rankstr)) // "." // TRIM(ADJUSTL(threadstr))'%etimepath ]}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
-            #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Write, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Write, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Write, attrs=attrs)
 
             attrs = {'specs': ['NEWUNIT=dataunit', 'FILE=TRIM(ADJUSTL(datapath))', 'ACTION="WRITE"', 'ACCESS="APPEND"', 'IOSTAT=ierror']}
-            #part_append_gensnode(topobj, EXEC_PART, statements.Open, attrs=attrs)
-            #namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, statements.Open, attrs=attrs)
-            namedpart_append_gensnode(node.kgen_kernel_id, body_block, statements.Open, attrs=attrs)
+            part_append_gensnode(topobj, EXEC_PART, statements.Open, attrs=attrs)
 
             attrs = {'expr': 'ierror .EQ. 0'}
-            #ifopen = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
-            #ifopen = namedpart_append_gensnode(node.kgen_kernel_id, AFTER_CALLSITE, block_statements.IfThen, attrs=attrs)
-            ifopen = namedpart_append_gensnode(node.kgen_kernel_id, body_block, block_statements.IfThen, attrs=attrs)
+            ifopen = part_append_gensnode(topobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
             attrs = {'specs': ['UNIT=dataunit', 'FMT="(I16,1X,ES34.16,1X,ES34.16,1X,ES34.16)"' ], \
                 'items': [ 'kgen_invokes', 'kgen_timer(0)', \
