@@ -10,11 +10,8 @@ __autodoc__ = ['get_reader', 'parse', 'walk']
 
 #import Fortran2003
 # import all Statement classes:
-from base_classes import classes
-from block_statements import *
-
-# CHAR_BIT is used to convert object bit sizes to byte sizes
-from utils import CHAR_BIT
+import parser.base_classes as classes
+from parser.block_statements import *
 
 def get_reader(input, isfree=None, isstrict=None, include_dirs = None, source_only = None,
                ignore_comments = True):
@@ -51,7 +48,7 @@ def get_reader(input, isfree=None, isstrict=None, include_dirs = None, source_on
     """
     import os
     import re
-    from readfortran import FortranFileReader, FortranStringReader
+    from parser.readfortran import FortranFileReader, FortranStringReader
     if os.path.isfile(input):
         name,ext = os.path.splitext(input)
         if ext.lower() in ['.c']:
@@ -71,7 +68,7 @@ def get_reader(input, isfree=None, isstrict=None, include_dirs = None, source_on
     elif isinstance(input, str):
         reader = FortranStringReader(input, include_dirs = include_dirs, source_only = source_only)
     else:
-        raise TypeError,'Expected string or filename input but got %s' % (type(input))
+        raise TypeError('Expected string or filename input but got %s' % (type(input)))
     if isfree is None: isfree = reader.isfree
     if isstrict is None: isstrict = reader.isstrict
     reader.set_mode(isfree, isstrict)
@@ -149,7 +146,7 @@ def parse(input, isfree=None, isstrict=None, include_dirs = None, source_only = 
     --------
     get_reader
     """
-    from parsefortran import FortranParser
+    from parser.parsefortran import FortranParser
     reader = get_reader(input, isfree, isstrict, include_dirs, source_only)
     parser = FortranParser(reader, ignore_comments = ignore_comments)
     parser.parse()
@@ -207,7 +204,7 @@ def walk(stmt, depth=-1, _initial_depth = None):
         if depth==0:
             return
         _initial_depth = depth
-    if not isinstance(stmt, classes.BeginSource):
+    if not isinstance(stmt, BeginSource):
         yield stmt, _initial_depth - depth
     if isinstance(stmt, classes.BeginStatement):
         last_stmt = stmt.content[-1]

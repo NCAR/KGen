@@ -1,4 +1,3 @@
-
 import os
 import re
 import sys
@@ -47,8 +46,14 @@ class KgenConfigParser(configparser.RawConfigParser):
             return line
 
     def read(self, filenames):
-        from StringIO import StringIO
-
+        try:
+            from StringIO import StringIO
+        except ImportError:
+            from io import StringIO
+        try:
+            basestring
+        except NameError:
+            basestring = str
         if isinstance(filenames, basestring):
             filenames = [filenames]
         for filename in filenames:
@@ -116,7 +121,7 @@ def process_exclude_option(exclude_option, excattrs):
         for section in Exc.sections():
             lsection = section.lower().strip()
             if lsection=='common':
-                print 'ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead'
+                print('ERROR: a section of "common" is discarded in INI file for exclusion. Please use "namepath" section instead')
                 sys.exit(-1)
 
             excattrs[lsection] = collections.OrderedDict()
@@ -468,7 +473,7 @@ class Config(object):
         opts, args = self.parser.parse_args(cfgargs)
 
         if len(args)<1:
-            print 'ERROR: No call-site information is provided in command line.'
+            print('ERROR: No call-site information is provided in command line.')
             sys.exit(-1)
 
         if opts.syntax_check:
@@ -478,15 +483,15 @@ class Config(object):
 
         # old options
         if opts.skip_intrinsic:
-            print "skip-intrinsic flag is discarded. Please use --intrinsic skip instead"
+            print("skip-intrinsic flag is discarded. Please use --intrinsic skip instead")
             sys.exit(-1)
         if opts.noskip_intrinsic:
-            print "noskip-intrinsic flag is discarded. Please use --intrinsic noskip instead"
+            print("noskip-intrinsic flag is discarded. Please use --intrinsic noskip instead")
             sys.exit(-1)
 
         callsite = args[0].split(':', 1)
         if not os.path.isfile(callsite[0]):
-            print 'ERROR: callsite file, "%s" can not be found.' % callsite[0]
+            print('ERROR: callsite file, "%s" can not be found.' % callsite[0])
             sys.exit(-1)
 
         # set callsite filepath
@@ -496,7 +501,7 @@ class Config(object):
         if len(callsite)==2:
             self.callsite['namepath'] = callsite[1].lower()
         elif len(callsite)>2:
-            print 'ERROR: Unrecognized call-site information(Syntax -> filepath[:subprogramname]): %s'%str(callsite)
+            print('ERROR: Unrecognized call-site information(Syntax -> filepath[:subprogramname]): %s'%str(callsite))
             sys.exit(-1)
 
         # process default flags
@@ -566,7 +571,7 @@ class Config(object):
                         ('source', 'MPI_SOURCE'),
                         ]
                     for config_key, name in config_name_mapping:
-                        if not self._attrs['mpi'].has_key(config_key) or self._attrs['mpi'][config_key] is None:
+                        if config_key not in self._attrs['mpi'] or self._attrs['mpi'][config_key] is None:
                             for stmt, depth in parser.api.walk(tree, -1):
                                 bag['key'] = name
                                 bag[name] = []
@@ -577,7 +582,7 @@ class Config(object):
                                         break
 
                     for config_key, name in config_name_mapping:
-                        if not self._attrs['mpi'].has_key(config_key) or self._attrs['mpi'][config_key] is None:
+                        if config_key not in self._attrs['mpi'] or self._attrs['mpi'][config_key] is None:
                             raise UserException('Can not find {name} in mpif.h'.format(name=name))
 
                 except UserException:
@@ -598,7 +603,7 @@ class Config(object):
         if output.endswith('cpp'):
             self.bin['pp'] = output
         else:
-            print 'ERROR: cpp is not found.'
+            print('ERROR: cpp is not found.')
             sys.exit(-1)
 
 #            output = ''
@@ -719,7 +724,7 @@ class Config(object):
                 isfree = None
                 isstrict = None
 
-                if flags.has_key('file'):
+                if 'file' not in flags:
                     subflags = collections.OrderedDict()
                     if isfree: subflags['isfree'] = isfree
                     if isstrict: subflags['isstrict'] = isstrict
@@ -737,7 +742,7 @@ class Config(object):
 #            newpath = set() 
 #            for path in self._attrs['include']['path']:
 #                newpath.add(path)
-#                for p1, p2 in self._attrs['source']['alias'].iteritems():
+#                for p1, p2 in self._attrs['source']['alias'].items():
 #                    if path.startswith(p1):
 #                        newpath.add(p2+path[len(p1):])
 #                    elif path.startswith(p2):
@@ -745,9 +750,9 @@ class Config(object):
 #            self._attrs['include']['path'] = list(newpath)
 #
 #        newfile =  collections.OrderedDict()
-#        for path, value in self._attrs['include']['file'].iteritems():
+#        for path, value in self._attrs['include']['file'].items():
 #            newfile[path] = value
-#            for p1, p2 in self._attrs['source']['alias'].iteritems():
+#            for p1, p2 in self._attrs['source']['alias'].items():
 #                if path.startswith(p1):
 #                    newpath = p2+path[len(p1):]
 #                    newfile[newpath] = copy.deepcopy(value) 
@@ -756,12 +761,12 @@ class Config(object):
 #                    newfile[newpath] = copy.deepcopy(value) 
 #        self._attrs['include']['file'] = newfile
 #
-#        for path, value in self._attrs['include']['file'].iteritems():
+#        for path, value in self._attrs['include']['file'].items():
 #            if value.has_key('path'):
 #                newpath = set()
 #                for path in value['path']:
 #                    newpath.add(path)
-#                    for p1, p2 in self._attrs['source']['alias'].iteritems():
+#                    for p1, p2 in self._attrs['source']['alias'].items():
 #                        if path.startswith(p1):
 #                            newpath.add(p2+path[len(p1):])
 #                        elif path.startswith(p2):
@@ -779,7 +784,7 @@ class Config(object):
                 curdict = self._attrs['debug']
                 for param in param_split[:-1]:
                     curdict = curdict[param] 
-                exec('curdict[param_split[-1]] = value_split')
+                curdict[param_split[-1]] = eval(value_split)
 
         # parsing logging options
         if opts.logging:
@@ -790,7 +795,7 @@ class Config(object):
                 curdict = self._attrs['logging']
                 for param in param_split[:-1]:
                     curdict = curdict[param] 
-                exec('curdict[param_split[-1]] = value_split')
+                curdict[param_split[-1]] = eval(value_split)
 
         if opts.outdir:
             self._attrs['path']['outdir'] = opts.outdir
@@ -800,7 +805,7 @@ class Config(object):
                 self._attrs['machine']['inc'] = KgenConfigParser(allow_no_value=True)
                 inc.read(opts.machinefile)
             else:
-                print 'WARNING: "%s" machine file does not exist.'%opts.machinefile
+                print('WARNING: "%s" machine file does not exist.'%opts.machinefile)
         else:
             self._attrs['machine']['inc'] = self.find_machine()
 
@@ -897,7 +902,7 @@ class Config(object):
                             mod_name, identifier = value.split(':')
                             self._attrs['mpi']['use_stmts'].append((mod_name, [identifier]))
                         elif key=='ranks':
-                            print 'ranks subflag for mpi is not supported. Please use invocation flag instead'
+                            print('ranks subflag for mpi is not supported. Please use invocation flag instead')
                             sys.exit(-1)
                             #self._attrs['mpi'][key] = value.split(':')
                             #self._attrs['mpi']['size'] = len(self._attrs['mpi'][key])
@@ -981,7 +986,7 @@ class Config(object):
                     elif key=='tolerance':
                         self._attrs['verify'][key] = value
                     else:
-                        print 'WARNING: %s is not supported check parameter'%key
+                        print('WARNING: %s is not supported check parameter'%key)
 
         # parsing logging options
         if opts.verbose_level:
@@ -998,12 +1003,12 @@ class Config(object):
                         self._attrs['add_mpi_frame']['enabled'] = True
                         self._attrs['add_mpi_frame'][key] = value
                     else:
-                        print 'WARNING: %s is not supported add_mpi_frame parameter'%key
+                        print('WARNING: %s is not supported add_mpi_frame parameter'%key)
                 elif len(sparam) == 1:
                     if sparam[0] == "enabled":
                         self._attrs['add_mpi_frame']['enabled'] = True
                     else:
-                        print 'WARNING: %s is not supported add_mpi_frame parameter'%sparam[0]
+                        print('WARNING: %s is not supported add_mpi_frame parameter'%sparam[0])
 
         # cache pollution frame code in kernel driver
         if opts.add_cache_pollution:
@@ -1011,7 +1016,7 @@ class Config(object):
                 self._attrs['add_cache_pollution']['enabled'] = True
                 self._attrs['add_cache_pollution']['size'] = int(opts.add_cache_pollution)
             else:
-                print 'WARNING: %s is not supported add_cache_pollution parameter'%opts.add_cache_pollution
+                print('WARNING: %s is not supported add_cache_pollution parameter'%opts.add_cache_pollution)
 
     def _process_repr_flags(self, opts):
 
@@ -1098,7 +1103,7 @@ class Config(object):
 
             if section_name in self.exclude:
                 options = self.exclude[section_name]
-                for pattern, actions in options.iteritems():
+                for pattern, actions in options.items():
                     if match_namepath(pattern, args[0]):
                         return actions
             return []
@@ -1139,7 +1144,7 @@ class Config(object):
                     incattrs[lsection][option] = Inc.get(section, option).strip()
             elif os.path.isfile(section):
                 realpath = os.path.realpath(section)
-                if not incattrs['file'].has_key(realpath):
+                if realpath not in incattrs['file']:
                     incattrs['file'][realpath] = collections.OrderedDict()
                     incattrs['file'][realpath]['path'] = ['.']
                     incattrs['file'][realpath]['compiler'] = None 
@@ -1161,7 +1166,7 @@ class Config(object):
         newpath = set() 
         for path in self._attrs['include']['path']:
             newpath.add(path)
-            for p1, p2 in self._attrs['source']['alias'].iteritems():
+            for p1, p2 in self._attrs['source']['alias'].items():
                 if path.startswith(p1):
                     newpath.add(p2+path[len(p1):])
                 elif path.startswith(p2):
@@ -1169,9 +1174,9 @@ class Config(object):
         self._attrs['include']['path'] = list(newpath)
 
         newfile =  collections.OrderedDict()
-        for path, value in self._attrs['include']['file'].iteritems():
+        for path, value in self._attrs['include']['file'].items():
             newfile[path] = value
-            for p1, p2 in self._attrs['source']['alias'].iteritems():
+            for p1, p2 in self._attrs['source']['alias'].items():
                 if path.startswith(p1):
                     newpath = p2+path[len(p1):]
                     newfile[newpath] = copy.deepcopy(value) 
@@ -1180,12 +1185,12 @@ class Config(object):
                     newfile[newpath] = copy.deepcopy(value) 
         self._attrs['include']['file'] = newfile
 
-        for path, value in self._attrs['include']['file'].iteritems():
-            if value.has_key('path'):
+        for path, value in self._attrs['include']['file'].items():
+            if 'path' in value:
                 newpath = set()
                 for path in value['path']:
                     newpath.add(path)
-                    for p1, p2 in self._attrs['source']['alias'].iteritems():
+                    for p1, p2 in self._attrs['source']['alias'].items():
                         if path.startswith(p1):
                             newpath.add(p2+path[len(p1):])
                         elif path.startswith(p2):

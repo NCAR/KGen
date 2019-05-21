@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 """Provides Fortran reader classes.
 
 Overview
@@ -79,12 +81,15 @@ import sys
 import tempfile
 import traceback
 import logging
-from cStringIO import StringIO
+try:
+    from StringIO import StringIO
+except:
+    from io import StringIO
 #from numpy.distutils.misc_util import yellow_text, red_text, blue_text # KGEN deletion
 
-from sourceinfo import get_source_info, get_source_info_str
-from splitline import String, string_replace_map, splitquote
-from utils import is_name
+from parser.sourceinfo import get_source_info, get_source_info_str
+from parser.splitline import String, string_replace_map, splitquote
+from parser.utils import is_name
 from kgconfig import Config
 
 logger = logging.getLogger('kgen')
@@ -154,10 +159,10 @@ class Line(object):
 
     def __init__(self, line, linenospan, label, name, reader):
         self.line = line.strip()
-        assert self.line, `line, linenospan, label`
+        assert self.line, repr(line, linenospan, label)
         self.span = linenospan
-        assert label is None or isinstance(label,int),`label`
-        assert name is None or isinstance(name,str) and name!='',`name`
+        assert label is None or isinstance(label,int),repr(label)
+        assert name is None or isinstance(name,str) and name!='',repr(name)
         self.label = label
         self.name = name
         self.reader = reader
@@ -202,7 +207,7 @@ class Line(object):
             s += ' %s ' % (self.label)
         if self.name is not None:
             s += '%s: ' % (self.name)
-        return s + `self.line`
+        return s + repr(self.line)
 
     def isempty(self, ignore_comments=False):
         return not (self.line or self.label is not None or self.name is not None)
@@ -258,7 +263,7 @@ class Line(object):
 
     def parse_block(self, reader, cls, parent_cls):
         key = cls, tuple(parent_cls)
-        if not self.parse_cache.has_key(key):
+        if key not in self.parse_cache:
             #self.parse_cache[key] = None
             obj = cls(reader, parent_cls = parent_cls)
             self.parse_cache[key] = obj
@@ -384,7 +389,7 @@ class FortranReaderBase(object):
         return '%s(%r, %r, %r)' % (self.__class__.__name__, self.source, self.isfree, self.isstrict)
 
     def find_module_source_file(self, mod_name):
-        from utils import get_module_file, module_in_file
+        from parser.utils import get_module_file, module_in_file
         if self.source_only:
             for sf in self.source_only:
                 if module_in_file(mod_name, sf):
@@ -399,7 +404,7 @@ class FortranReaderBase(object):
 
             # start of KGEN addition
             #if mod_name=='pio': import pdb; pdb.set_trace()
-            if Config.include['file'].has_key(self.id):
+            if self.id in Config.include['file']:
                 for path in Config.include['file'][self.id]['path']:
                     fn = get_module_file(mod_name, path) 
                     if fn is not None:
@@ -466,7 +471,7 @@ class FortranReaderBase(object):
         elif mode=='pyf':
             isfree, isstrict=True, True
         else:
-            raise NotImplementedError(`mode`)
+            raise NotImplementedError(repr(mode))
         self.set_mode(isfree, isstrict)
     
     def close_source(self):
@@ -523,7 +528,11 @@ class FortranReaderBase(object):
         if self.isclosed:
             return None
         try:
-            line = self.source.next()
+            if hasattr(self.source,'next'):
+                line = self.source.next()
+            else:
+                #python3 has no file object 'next' method, use builtin
+                line = next(self.source)
         except StopIteration:
             self.isclosed = True
             self.close_source()
@@ -596,7 +605,6 @@ class FortranReaderBase(object):
         --------
         _next, get_source_item
         """
-
         try:
             if self.reader is not None:
                 # inside INCLUDE statement
@@ -665,6 +673,7 @@ class FortranReaderBase(object):
         --------
         next, get_source_item
         """
+        
         fifo_item_pop = self.fifo_item.pop
         while 1:
             try:
@@ -696,7 +705,7 @@ class FortranReaderBase(object):
 
                         m = _label_re.match(line)
                         if m:
-                            assert not label,`label`
+                            assert not label,repr(label)
                             label = int(m.group('label'))
                             line = line[m.end():]
                         # check for a construct name
@@ -870,7 +879,7 @@ class FortranReaderBase(object):
         if m:
             newline = m.group('indent')+5*' '+m.group('rest')
             self.f2py_comment_lines.append(self.linecount)
-            assert len(newline)==len(line),`newlinel,line`
+            assert len(newline)==len(line),repr(newlinel,line)
             return newline
         return line
 
@@ -1186,7 +1195,7 @@ class FortranReaderBase(object):
                     # first line, check for a label
                     m = _label_re.match(line)
                     if m:
-                        assert not label,`label`
+                        assert not label,repr(label)
                         label = int(m.group('label'))
                         line = line[m.end():]
                     # check for a construct name
@@ -1296,9 +1305,9 @@ cf2py call me ! hey
       end
      '"""
     reader = FortranStringReader(string_f77)
-    assert reader.mode=='fix77', `reader.mode`
+    assert reader.mode=='fix77', repr(reader.mode)
     for item in reader:
-        print item
+        print(item)
 
     filename = tempfile.mktemp()+'.f'
     f = open(filename,'w')
@@ -1307,7 +1316,7 @@ cf2py call me ! hey
 
     reader = FortranFileReader(filename)
     for item in reader:
-        print item
+        print(item)
 
 def test_pyf():
     string_pyf = """! -*- pyf -*-
@@ -1338,9 +1347,9 @@ end python module foo
 ! end of file
 """
     reader = FortranStringReader(string_pyf)
-    assert reader.mode=='pyf', `reader.mode`
+    assert reader.mode=='pyf', repr(reader.mode)
     for item in reader:
-        print item
+        print(item)
 
 def test_fix90():
     string_fix90 = """c -*- fix -*-
@@ -1363,16 +1372,16 @@ cComment
       end
 """
     reader = FortranStringReader(string_fix90)
-    assert reader.mode=='fix90', `reader.mode`
+    assert reader.mode=='fix90', repr(reader.mode)
     for item in reader:
-        print item
+        print(item)
 
 def simple_main():
     for filename in sys.argv[1:]:
-        print 'Processing',filename
+        print('Processing',filename)
         reader = FortranFileReader(filename)
         for item in reader:
-            print >> sys.stdout, item
+            print(item, file=sys.stdout)
             sys.stdout.flush()
             pass
 

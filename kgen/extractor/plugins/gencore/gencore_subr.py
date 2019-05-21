@@ -1,7 +1,7 @@
 # gencore_write_subr.py
 
 from parser import statements, block_statements, typedecl_statements
-from gencore_utils import kernel_gencore_contains, state_gencore_contains, get_dtype_writename, get_dtype_readname, \
+from extractor.plugins.gencore.gencore_utils import kernel_gencore_contains, state_gencore_contains, get_dtype_writename, get_dtype_readname, \
     gen_read_istrue, gen_write_istrue, check_class_derived
 
 def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, ename_prefix=''):
@@ -98,14 +98,14 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 ifpvarobj = part_append_genknode(doobjs[-1], EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                 callname = None
-                for uname, req in stmt.unknowns.iteritems():
+                for uname, req in stmt.unknowns.items():
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1] ) or uname.firstpartname()==stmt.name:
                         if len(req.res_stmts)>0:
                             res = req.res_stmts[0]
                             callname = get_dtype_readname(res)
                             break
                 if callname is None:
-                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    print('WARNING: Can not find Type resolver for %s'%stmt.name)
                     part_append_comment(ifpvarobj, EXEC_PART, \
                         'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
                         (stmt.name, stmt.name))
@@ -148,14 +148,14 @@ def create_read_subr(subrname, entity_name, parent, var, stmt, allocate=False, e
                 ifpvarobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                 callname = None
-                for uname, req in stmt.unknowns.iteritems():
+                for uname, req in stmt.unknowns.items():
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                         if len(req.res_stmts)>0:
                             res = req.res_stmts[0]
                             callname = get_dtype_readname(res)
                             break
                 if callname is None:
-                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    print('WARNING: Can not find Type resolver for %s'%stmt.name)
                     part_append_comment(ifpvarobj, EXEC_PART, \
                         'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
                         (stmt.name, stmt.name))
@@ -264,7 +264,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                 ifpvarobj = part_append_gensnode(doobjs[-1], EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                 callname = None
-                for uname, req in stmt.unknowns.iteritems():
+                for uname, req in stmt.unknowns.items():
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                     #if uname.firstpartname()==stmt.name:
                         if len(req.res_stmts)>0:
@@ -272,7 +272,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                             callname = get_dtype_writename(res)
                             break
                 if callname is None:
-                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    print('WARNING: Can not find Type resolver for %s'%stmt.name)
                     part_append_comment(ifpvarobj, EXEC_PART, \
                         'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
                         (stmt.name, stmt.name))
@@ -300,7 +300,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
             if stmt.is_derived() or is_class_derived:
 
                 callname = None
-                for uname, req in stmt.unknowns.iteritems():
+                for uname, req in stmt.unknowns.items():
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                     #if uname.firstpartname()==stmt.name:
                         if len(req.res_stmts)>0:
@@ -308,7 +308,7 @@ def create_write_subr(subrname, entity_name, parent, var, stmt, implicit=False):
                             callname = get_dtype_writename(res)
                             break
                 if callname is None:
-                    print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                    print('WARNING: Can not find Type resolver for %s'%stmt.name)
                     part_append_comment(pobj, EXEC_PART, \
                         'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
                         (stmt.name, stmt.name))

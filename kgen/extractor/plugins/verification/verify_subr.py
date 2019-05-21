@@ -1,7 +1,7 @@
 # gencore_write_subr.py
 
 from parser import statements, block_statements, typedecl_statements
-from verify_utils import kernel_verify_contains, kernel_verify_kgenutils, get_dtype_verifyname, check_class_derived
+from extractor.plugins.verification.verify_utils import kernel_verify_contains, kernel_verify_kgenutils, get_dtype_verifyname, check_class_derived
 
 ########################## Verbose level table ####################
 #  Content #  level <1   #    level 1   #  level 2   # level >2   #
@@ -211,7 +211,7 @@ def create_verify_subr(subrname, entity_name, parent, var, stmt):
             if stmt.is_derived() or is_class_derived:
 
                 callname = None
-                for uname, req in stmt.unknowns.iteritems():
+                for uname, req in stmt.unknowns.items():
                     #if uname.firstpartname()==stmt.name:
                     if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                         if len(req.res_stmts)>0:

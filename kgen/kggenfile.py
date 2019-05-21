@@ -102,7 +102,7 @@ def _take_functions(cls, obj, end_obj):
     if obj:
         mro_classes = inspect.getmro(cls)
         for cls in mro_classes:
-            if cls.__dict__.has_key('tokgen'):
+            if 'tokgen' in cls.__dict__:
                 tokgen = cls.__dict__['tokgen']
                 obj.tokgen = types.MethodType( tokgen, obj )
                 break
@@ -110,7 +110,7 @@ def _take_functions(cls, obj, end_obj):
             raise ProgramException('%s does not have tokgen function'%cls)
 
         for cls in mro_classes:
-            if cls.__dict__.has_key('tostr'):
+            if 'tostr' in cls.__dict__:
                 tostr = cls.__dict__['tostr']
                 obj.tostr = types.MethodType( tostr, obj )
                 break
@@ -118,7 +118,7 @@ def _take_functions(cls, obj, end_obj):
         if end_obj:
             mro_classes = inspect.getmro(base_classes.EndStatement)
             for cls in mro_classes:
-                if cls.__dict__.has_key('tokgen'):
+                if 'tokgen' in cls.__dict__:
                     tokgen = cls.__dict__['tokgen']
                     end_obj.tokgen = types.MethodType( tokgen, end_obj )
                     break
@@ -212,10 +212,10 @@ def gensobj(parent, node, kernel_id, attrs=None):
 def is_plugin_common_block(kernel_id, node, plugins):
     if not isinstance(plugins, list) or node is None: return False
 
-    for pkid, pattrs in plugin_common.iteritems():
+    for pkid, pattrs in plugin_common.items():
         if pkid!=kernel_id: continue
-        for pname, attrs in pattrs.iteritems():
-            for bname, bid in attrs['blocks'].iteritems():
+        for pname, attrs in pattrs.items():
+            for bname, bid in attrs['blocks'].items():
                 pnode, partname, part = named_parts[kernel_id][bid]
                 if part==node:
                     return True
@@ -229,22 +229,22 @@ class PluginMsg(object):
 
     def add_event(self, kernel_id, file_type, gen_stage, target, matchfunc, callbackfunc):
         nextdict = self.event
-        if not nextdict.has_key(kernel_id):
+        if kernel_id not in nextdict:
             nextdict[kernel_id] = collections.OrderedDict()
             nextdict = nextdict[kernel_id]
         else: nextdict = nextdict[kernel_id]
 
-        if not nextdict.has_key(file_type):
+        if file_type not in nextdict:
             nextdict[file_type] = collections.OrderedDict()
             nextdict = nextdict[file_type]
         else: nextdict = nextdict[file_type]
 
-        if not nextdict.has_key(gen_stage):
+        if gen_stage not in nextdict:
             nextdict[gen_stage] = collections.OrderedDict()
             nextdict = nextdict[gen_stage]
         else: nextdict = nextdict[gen_stage]
 
-        if not nextdict.has_key(target):
+        if target not in nextdict:
             nextdict[target] = []
             nextlist = nextdict[target]
         else: nextlist = nextdict[target]
@@ -259,25 +259,25 @@ def event_point(cur_kernel_id, cur_file_type, cur_gen_stage, node, plugins=None)
     if not node.kgen_isvalid: return
 
     #import pdb; pdb.set_trace()
-    for plugin_name, plugin_modules in event_register.iteritems():
+    for plugin_name, plugin_modules in event_register.items():
         if not plugins or plugin_name not in plugins: continue
-        for plugin_name, plugin_objects in plugin_modules.iteritems():
-            for plugin_class, kernel_ids in plugin_objects.iteritems():
-                for kernel_id, file_types in kernel_ids.iteritems():
+        for plugin_name, plugin_objects in plugin_modules.items():
+            for plugin_class, kernel_ids in plugin_objects.items():
+                for kernel_id, file_types in kernel_ids.items():
                     if  kernel_id==KERNEL_SELECTION.ALL: pass
                     else:
                         if kernel_id==KERNEL_SELECTION.FIRST and kernel_id!=0: continue
                         if kernel_id==KERNEL_SELECTION.LAST and kernel_id!=len(State.kernels)-1: continue
                         if isinstance(kernel_id, int) and kernel_id!=cur_kernel_id: continue
                 
-                    for file_type, gen_stages in file_types.iteritems():
+                    for file_type, gen_stages in file_types.items():
                         if file_type!=cur_file_type and file_type != FILE_TYPE.BOTH: continue
 
-                        for gen_stage, targets in gen_stages.iteritems():
+                        for gen_stage, targets in gen_stages.items():
                             if gen_stage==GENERATION_STAGE.ALL_STAGES: pass
                             elif gen_stage!=cur_gen_stage: continue
 
-                            for target, funclist in targets.iteritems():
+                            for target, funclist in targets.items():
                                 if inspect.isclass(target):
                                     if node.kgen_stmt:
                                         if isinstance(node.kgen_stmt, target):
@@ -356,7 +356,7 @@ def getinfo(name, plugin=None):
         elif name=='papi_event': return Config.model['types']['papi']['event']
         elif name=='traverse': return traverse
         elif name=='logger': return logger 
-    elif Config.plugindb.has_key(name):
+    elif name in Config.plugindb:
         return Config.plugindb[name]
     else:
         raise ProgramException('No information for %s'%name)
@@ -444,7 +444,7 @@ def init_plugins(kernel_ids):
 
     for kernel_id in kernel_ids:
         Kgen_Plugin.plugin_common[kernel_id] = collections.OrderedDict()
-        for plugin_name, plugin_path in Config.plugin['priority'].iteritems():
+        for plugin_name, plugin_path in Config.plugin['priority'].items():
             plugin_common[kernel_id][plugin_name] = collections.OrderedDict()
             plugin_common[kernel_id][plugin_name]['blocks'] =  collections.OrderedDict()
             plugin_files = [x[:-3] for x in os.listdir(plugin_path) if x.endswith(".py")]
@@ -457,11 +457,11 @@ def init_plugins(kernel_ids):
                     match = lambda x: inspect.isclass(x) and x is not Kgen_Plugin and issubclass(x, Kgen_Plugin)
                     for name, cls in inspect.getmembers(mod, match): 
                         obj = cls()
-                        if not event_register.has_key(plugin_name):
+                        if plugin_name not in event_register:
                             event_register[plugin_name] = collections.OrderedDict() 
-                        if not event_register[plugin_name].has_key(cls.__module__):
+                        if cls.__module__ not in event_register[plugin_name]:
                             event_register[plugin_name][cls.__module__] = collections.OrderedDict() 
-                        if not event_register[plugin_name][cls.__module__].has_key(obj):
+                        if obj not in event_register[plugin_name][cls.__module__]:
                             event_register[plugin_name][cls.__module__][obj] = collections.OrderedDict() 
                         obj.register(PluginMsg(event_register[plugin_name][cls.__module__][obj]))
                 except ValueError as e:
@@ -471,8 +471,8 @@ def init_plugins(kernel_ids):
 
 
 def get_namedpart(kernel_id, name):
-    assert named_parts.has_key(kernel_id), 'missing kernel id %s'%str(kernel_id)
-    assert named_parts[kernel_id].has_key(name), 'No part is found by the name of %s'%name
+    assert kernel_id in named_parts, 'missing kernel id %s'%str(kernel_id)
+    assert name in named_parts[kernel_id], 'No part is found by the name of %s'%name
 
     return named_parts[kernel_id][name]
 
@@ -517,7 +517,7 @@ def namedpart_create_subpart(pnode, name, rawname, index=None):
     assert pnode
 
     kernel_id = pnode.kgen_kernel_id
-    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = collections.OrderedDict()
+    if kernel_id not in named_parts: named_parts[kernel_id] = collections.OrderedDict()
     
     named_part = []
     named_parts[kernel_id][name] = (pnode, rawname, named_part)
@@ -528,7 +528,7 @@ def namedpart_link_part(pnode, name, rawname):
     assert pnode
 
     kernel_id = pnode.kgen_kernel_id
-    if not named_parts.has_key(kernel_id): named_parts[kernel_id] = collections.OrderedDict()
+    if kernel_id not in named_parts: named_parts[kernel_id] = collections.OrderedDict()
    
     part = get_part(pnode, rawname) 
     named_parts[kernel_id][name] = (pnode, rawname, part)
@@ -742,7 +742,7 @@ class Gen_Statement(object):
         self.kgen_use_tokgen = False
 
         if attrs:
-            for key, value in attrs.iteritems():
+            for key, value in attrs.items():
                 setattr(self, key, value)
 
     def statement_created(self, plugins):
@@ -902,7 +902,6 @@ class Gen_Statement(object):
                     elif isinstance(self.kgen_stmt, block_statements.BeginSource):
                         pass
                     else:
-                        import pdb; pdb.set_trace()
                         raise ProgramException('Wrong path for tostring')
             elif self.kgen_match_class:
                 if issubclass(self.kgen_match_class, base_classes.BeginStatement):
@@ -935,7 +934,7 @@ class GenK_Statement(Gen_Statement):
 
         def process_exclude(node, bag, depth):
             if isinstance(node, Fortran2003.Name):
-                for namepath, actions in bag['excludes'].iteritems():
+                for namepath, actions in bag['excludes'].items():
                     if match_namepath(namepath, pack_innamepath(bag['stmt'], node.string)):
                         bag['matched'] = True
                         return True
@@ -947,7 +946,7 @@ class GenK_Statement(Gen_Statement):
 
             if not hasattr(stmt, 'geninfo') and not hasattr(stmt, 'unknowns'):
                 self.kgen_isvalid = False
-            elif hasattr(stmt, 'f2003') and Config.exclude.has_key('namepath'):
+            elif hasattr(stmt, 'f2003') and 'namepath' in Config.exclude:
                 bag = {'excludes': Config.exclude['namepath'], 'matched': False, 'stmt':stmt}
                 traverse(stmt.f2003, process_exclude, bag)
                 if bag['matched']:
@@ -998,7 +997,7 @@ class Gen_BeginStatement(object):
         self.kgen_end_obj = None
 
         self.kgen_part_order = []
-        if match_classes.has_key(match_class):
+        if match_class in match_classes:
             # add partition
             for name in match_classes[match_class]:
                 partname = get_partname(name, False)
@@ -1282,7 +1281,7 @@ def set_indent(indent):
 #
 #    # construct a generation tree
 #    genfiles = []
-#    for filepath, (srcobj, mods_used, units_used) in State.srcfiles.iteritems():
+#    for filepath, (srcobj, mods_used, units_used) in State.srcfiles.items():
 #        if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
 #
 #            kfile = genkobj(None, srcobj.tree, KERNEL_ID_0)

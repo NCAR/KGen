@@ -2,12 +2,12 @@
  
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS, \
+from extractor.plugins.gencore.gencore_utils import STATE_PBLOCK_WRITE_IN_ARGS, STATE_PBLOCK_WRITE_IN_LOCALS, STATE_PBLOCK_WRITE_OUT_LOCALS, \
     DRIVER_READ_IN_ARGS, KERNEL_PBLOCK_READ_IN_LOCALS, KERNEL_PBLOCK_READ_OUT_LOCALS, \
     DRIVER_DECL_PART, DRIVER_USE_PART, get_typedecl_writename, get_dtype_writename, state_gencore_contains, \
     get_topname, get_typedecl_readname, get_dtype_readname, shared_objects, process_spec_stmts, is_zero_array, \
     is_excluded, is_remove_state, namedgen_read_istrue, namedgen_write_istrue, check_class_derived 
-from gencore_subr import create_write_subr, create_read_subr
+from extractor.plugins.gencore.gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
     def __init__(self):
@@ -140,7 +140,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
                     if hasattr(stmt, 'unknowns'):
                         # if stmt has identifiers that are resolved else where
-                        for uname, req in stmt.unknowns.iteritems():
+                        for uname, req in stmt.unknowns.items():
                             # per each resolutions
                             if len(req.res_stmts)>0:
                                 # check if resolving stmts exist
@@ -298,7 +298,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
         # for kernel - local variables
         is_class_derived = check_class_derived(stmt)
-        for vartypename, vartype in localvartypes.iteritems():
+        for vartypename, vartype in localvartypes.items():
             for entity_name, partid in vartype:
                 if vartypename=='localouttype': ename_prefix = 'kgenref_'
                 else: ename_prefix = ''
@@ -334,13 +334,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 self.kernel_created_subrs.append(subrname)
                         else:
                             subrname = None
-                            for uname, req in stmt.unknowns.iteritems():
+                            for uname, req in stmt.unknowns.items():
                                 if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                     res = req.res_stmts[0]
                                     subrname = get_dtype_readname(res)
                                     break
                             if subrname is None:
-                                print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                                print('WARNING: Can not find Type resolver for %s'%stmt.name)
                                 namedpart_append_comment(node.kgen_kernel_id, partid, \
                                     'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
                                     (stmt.name, stmt.name))
@@ -367,13 +367,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                             self.kernel_created_subrs.append(subrname)
                     else:
                         subrname = None
-                        for uname, req in stmt.unknowns.iteritems():
+                        for uname, req in stmt.unknowns.items():
                             if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                 res = req.res_stmts[0]
                                 subrname = get_dtype_readname(res)
                                 break
                         if subrname is None:
-                            print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            print('WARNING: Can not find Type resolver for %s'%stmt.name)
                             namedpart_append_comment(node.kgen_kernel_id, partid, \
                                 'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
                                 (stmt.name, stmt.name))
@@ -419,7 +419,7 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
 
         # for state
         is_class_derived = check_class_derived(stmt)
-        for vartypename, vartype in vartypes.iteritems():
+        for vartypename, vartype in vartypes.items():
             for entity_name, partid in vartype:
                 var = stmt.get_variable(entity_name)
                 subrname = get_typedecl_writename(stmt, entity_name)
@@ -453,13 +453,13 @@ class Gen_Typedecl_In_Parentblock(Kgen_Plugin):
                                 self.state_created_subrs.append(subrname)
                         else:
                             subrname = None
-                            for uname, req in stmt.unknowns.iteritems():
+                            for uname, req in stmt.unknowns.items():
                                 if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                     res = req.res_stmts[0]
                                     subrname = get_dtype_writename(res)
                                     break
                             if subrname is None:
-                                print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                                print('WARNING: Can not find Type resolver for %s'%stmt.name)
                                 namedpart_append_comment(node.kgen_kernel_id, partid, \
                                     'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
                                     (stmt.name, stmt.name))

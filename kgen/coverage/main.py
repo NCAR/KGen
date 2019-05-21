@@ -10,6 +10,7 @@ import shutil
 import datetime
 import collections
 import multiprocessing
+import six
 from collections import OrderedDict
 
 from kgtool import KGModelingTool
@@ -151,7 +152,7 @@ class Coverage(KGModelingTool):
                 os.makedirs('%s/__data__/__resource__/%s'%(model_realpath, Config.model['types']['code']['id']))
 
                 # generate wrapper nodes
-                for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
+                for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.items():
                     if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
                         sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
                         if filepath == Config.callsite['filepath']:
@@ -199,9 +200,9 @@ class Coverage(KGModelingTool):
                             slines = kgutils.remove_multiblanklines(slines)
                             coverage_files.append(filename)
                             with open('%s/%s'%(coverage_realpath, filename), 'wb') as fd:
-                                fd.write(slines)
+                                fd.write(six.b(slines))
                             with open('%s/%s.kgen'%(coverage_realpath, filename), 'wb') as ft:
-                                ft.write('\n'.join(sfile.kgen_stmt.prep))
+                                ft.write(six.b('\n'.join(sfile.kgen_stmt.prep)))
 
                 self.gen_makefile()
 
@@ -385,7 +386,7 @@ class Coverage(KGModelingTool):
 
                                 coveragefile = '%s/%s.coverage'%(coverage_realpath, os.path.basename(files[fid]))
                                 with open(coveragefile, 'w') as fdst:
-                                    fdst.write(''.join(srclines))
+                                    fdst.write(six.b(''.join(srclines)))
                         except Exception as e:
                             kgutils.logger.error(str(e))
             else:
@@ -457,7 +458,7 @@ class Coverage(KGModelingTool):
                         threadnums[fileid][linenum] += int(numinvokes)
 
                     if idx % 100000 == 0:
-                        print 'Processed %d items: %s'%(idx, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
+                        print('Processed %d items: %s'%(idx, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
             except Exception as e:
                 raise Exception('Please check the format of coverage file: %s'%str(e))
 
@@ -495,8 +496,8 @@ class Coverage(KGModelingTool):
                                         invokecount += 1
                                         triples[(ranknum, threadnum, invokenum)] = None
 
-            print 'At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(THREASHOLD)
-            print ','.join([ ':'.join([ str(n) for n in t ]) for t in triples.keys()])
+            print ('At least, %s of conditional blocks will be excuted by using following (MPI ranks, OpenMP Threads, Invokes) triples:'%'{:.1%}'.format(THREASHOLD))
+            print(','.join([ ':'.join([ str(n) for n in t ]) for t in triples.keys()]))
             #print ''
             #print 'Following (File id, line number) pairs are covered by above triples:'
             #print str(collected)
@@ -510,13 +511,13 @@ class Coverage(KGModelingTool):
         tab = ''
         if n: nl = '\n'
         if t: tab = '\t'
-        f.write(tab + line + nl)
+        f.write(six.b(tab + line + nl))
 
     def gen_makefile(self):
 
         coverage_realpath = os.path.realpath('%s/%s'%(Config.path['outdir'], Config.path['coverage']))
 
-        org_files = [ filepath for filepath, (sfile, mods_used, units_used) in Config.used_srcfiles.iteritems() if sfile.used4coverage ]
+        org_files = [ filepath for filepath, (sfile, mods_used, units_used) in Config.used_srcfiles.items() if sfile.used4coverage ]
         if not Config.topblock['stmt'].reader.id in org_files:
             org_files.append(Config.topblock['filepath'])
 
@@ -539,14 +540,14 @@ class Coverage(KGModelingTool):
 
             self.write(f, '')
 
-            if Config.cmd_run['cmds']>0:
+            if len(Config.cmd_run['cmds'])>0:
                 self.write(f, 'run: build')
                 self.write(f, '%scd %s; %s'%(prerun_run_str, cwd, Config.cmd_run['cmds']), t=True)
             else:
                 self.write(f, 'echo "No information is provided to run. Please specify run commands using \'state-run\' command line option"; exit -1', t=True)
             self.write(f, '')
 
-            if Config.cmd_build['cmds']>0:
+            if len(Config.cmd_build['cmds'])>0:
                 self.write(f, 'build: %s'%Config.state_switch['type'])
                 self.write(f, '%scd %s; %s'%(prerun_build_str, cwd, Config.cmd_build['cmds']), t=True)
                 for org_file in org_files:
@@ -587,7 +588,7 @@ class Coverage(KGModelingTool):
                 self.write(f, 'if [ ! -f %(g)s.kgen_org ]; then cp -f %(f)s %(g)s.kgen_org; fi'%{'f':org_file, 'g':os.path.basename(org_file)}, t=True)
             self.write(f, '')
 
-            if Config.cmd_clean['cmds']>0:
+            if len(Config.cmd_clean['cmds'])>0:
                 self.write(f, 'clean:')
                 self.write(f, Config.cmd_clean['cmds'], t=True)
             self.write(f, '')

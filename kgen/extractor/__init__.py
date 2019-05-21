@@ -1,1 +1,1 @@
-from main import Extractor
+from extractor.main import Extractor

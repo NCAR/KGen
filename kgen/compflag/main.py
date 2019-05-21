@@ -5,7 +5,7 @@ import os
 import stat
 import kgtool
 import kgutils
-import kgcompiler
+import compflag.kgcompiler as kgcompiler
 from kgconfig import Config
 try:
     import configparser
@@ -119,7 +119,8 @@ class CompFlag(kgtool.KGTool):
                             pos_last -= 1
                         if pos_last >= 0:
                             try:
-                                exec('exepath, cmdlist, env = %s'%line[pos_execve+len(STR_EX):(pos_last+1)])
+                                (exepath, cmdlist, env) = eval(line[pos_execve+len(STR_EX):(pos_last+1)])
+                                
                                 compid = cmdlist[0].split('/')[-1]
                                 if exepath and cmdlist and compid==cmdlist[0].split('/')[-1]:
                                     compiler = kgcompiler.CompilerFactory.createCompiler(compid)
@@ -132,8 +133,8 @@ class CompFlag(kgtool.KGTool):
                                                 else:
                                                     flags[src] = [ (exepath, incs, macros, openmp, options) ]
                             except Exception as err:
-                                raise
-                                pass
+                                raise(err)
+
                 line = f.readline()
 
         for fname, incitems in flags.items():
@@ -145,7 +146,7 @@ class CompFlag(kgtool.KGTool):
                 options = incitems[-1][4]
 
                 if cfg.has_section(fname):
-                    print 'Warning: %s section is dupulicated.' % fname
+                    print('Warning: %s section is dupulicated.' % fname)
                 else:
                     cfg.add_section(fname)
                     cfg.set(fname,'compiler', compiler)

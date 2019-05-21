@@ -52,6 +52,8 @@ class KGName(object):
             return self.dataref.string
         else:
             return self.dataref.items[0].string
+    def __hash__(self):
+        return hash(self.namepath)
 
     def __eq__(self, other):
         return self.namepath==other.namepath
@@ -161,24 +163,31 @@ class ProgramException(KGException):
 ##############################################
 
 def kgenexit(msg):
-    print msg
+    print(msg)
     sys.exit(-1)
 
 def run_shcmd(cmd, input=None, **kwargs):
 
     show_error_msg = None
-    if kwargs.has_key('show_error_msg'):
+    if 'show_error_msg' in kwargs:
         show_error_msg = kwargs['show_error_msg']
         del kwargs['show_error_msg']
 
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, \
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, **kwargs)
-    out, err = proc.communicate(input=input)
 
+    if sys.version_info[0] < 3:
+        out, err = proc.communicate(input=input)
+    else:
+        if input is not None:
+            input = input.encode('utf-8')
+        out, err = proc.communicate(input)
+        out = out.decode('utf-8')
+        err = err.decode('utf-8')
     if proc.returncode != 0 and show_error_msg:
-        print '>> %s' % cmd
-        print 'returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n'
-
+        print('>> %s' % cmd)
+        print('returned non-zero code from shell('+str(ret_code)+')\n OUTPUT: '+str(out)+'\n ERROR: '+str(err)+'\n')
+        
     return out, err, proc.returncode
 
 # traverse f2003 nodes
@@ -225,9 +234,9 @@ def get_subtree(obj, tree, prefix='top', depth=0):
             get_subtree(elem, tree, prefix='content', depth=depth+1)
 
 def show_obj(obj):
-    print 'CLS: ', obj.__class__
-    print 'STR: ', str(obj)
-    print 'DIR: ', dir(obj)
+    print('CLS: ', obj.__class__)
+    print('STR: ', str(obj))
+    print('DIR: ', dir(obj))
 
 def show_tree(node, prevent_print=False):
     tree = []
@@ -236,7 +245,7 @@ def show_tree(node, prevent_print=False):
     for elem, depth in tree:
         line = '    '*depth + elem
         if not prevent_print:
-            print line
+            print(line)
         lines.append(line+'\n')
     return lines
 

@@ -13,9 +13,9 @@ import traceback
 import logging
 #from numpy.distutils.misc_util import yellow_text, red_text # KGEN deletion
 
-from readfortran import FortranFileReader, FortranStringReader
-from block_statements import BeginSource
-from utils import AnalyzeError
+from parser.readfortran import FortranFileReader, FortranStringReader
+from parser.block_statements import BeginSource
+from parser.utils import AnalyzeError
 
 logger = logging.getLogger('kgen')
 
@@ -60,17 +60,20 @@ class FortranParser(object):
             block = self.block = BeginSource(self)
         except KeyboardInterrupt:
             raise
-        except:
+        except Exception as e:
+            #raise e
             reader = self.reader
             while reader is not None:
                 message = reader.format_message('FATAL ERROR',
                                                 'while processing line',
                                                 reader.linecount, reader.linecount)
                 logger.critical(message)
+                logger.critical(str(e))
+                #logger.critical('Traceback\n' + ''.join(traceback.format_tb(e.__traceback__)))
                 # reader.show_message(message, sys.stderr)
                 reader = reader.reader
-            logger.debug(''.join(('Traceback\n',''.join( traceback.format_stack() ))))
-            #traceback.print_exc(file=sys.stderr)
+            logger.debug('Traceback\n' + ''.join(traceback.format_tb(e.__traceback__)))
+            traceback.print_tb(e.__traceback__, file=sys.stderr)
             #logger.critical(red_text('STOPPED PARSING')) # KGEN deletion
             logger.critical('STOPPED PARSING') # KGEN addition
             # self.reader.show_message(red_text('STOPPED PARSING'), sys.stderr)
@@ -84,7 +87,6 @@ class FortranParser(object):
             logger.debug('Nothing to analyze.')
             # self.reader.show_message('Nothing to analyze.')
             return
-
         try:
             self.block.analyze()
         except AnalyzeError:
@@ -114,7 +116,7 @@ end python module foo
     reader = FortranStringReader(string, True, True)
     parser = FortranParser(reader)
     block = parser.parse()
-    print block
+    print(block)
 
 def test_free90():
     string = """
@@ -145,7 +147,7 @@ end module foo
     reader = FortranStringReader(string, True, False)
     parser = FortranParser(reader)
     block = parser.parse()
-    print block
+    print(block)
 
 def test_f77():
     string = """\
@@ -162,7 +164,7 @@ def test_f77():
     reader = FortranStringReader(string, False, True)
     parser = FortranParser(reader)
     block = parser.parse()
-    print block
+    print(block)
 
 def simple_main():
     import sys
@@ -170,11 +172,11 @@ def simple_main():
         return parse_all_f()
     for filename in sys.argv[1:]:
         reader = FortranFileReader(filename)
-        print yellow_text('Processing '+filename+' (mode=%r)' % (reader.mode))
+        print(yellow_text('Processing '+filename+' (mode=%r)' % (reader.mode)))
         parser = FortranParser(reader)
         parser.parse()
         parser.analyze()
-        print parser.block.torepr(4)
+        print(parser.block.torepr(4))
         #print parser.block
 
 def profile_main():
@@ -191,10 +193,10 @@ def parse_all_f():
     for filename in open('opt_all_f.txt'):
         filename = filename.strip()
         reader = FortranFileReader(filename)
-        print yellow_text('Processing '+filename+' (mode=%r)' % (reader.mode))
+        print(yellow_text('Processing '+filename+' (mode=%r)' % (reader.mode)))
         parser = FortranParser(reader)
         block = parser.parse()
-        print block
+        print(block)
 
 if __name__ == "__main__":
     #test_f77()

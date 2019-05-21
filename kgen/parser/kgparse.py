@@ -3,12 +3,12 @@
 #import os.path
 from kgutils import UserException
 from kgconfig import Config
-from statements import Comment
-from block_statements import Module, Program
+from parser.statements import Comment
+from parser.block_statements import Module, Program
 import os
 import logging
 import kgutils
-import api
+import parser.api as api
 import collections
 
 logger = logging.getLogger('kgen')
@@ -35,11 +35,11 @@ class KGGenType(object):
 
     @classmethod
     def has_state_in(cls, geninfo):
-        return geninfo.has_key(cls.STATE_IN)
+        return cls.STATE_IN in geninfo
 
     @classmethod
     def has_state_out(cls, geninfo):
-        return geninfo.has_key(cls.STATE_OUT)
+        return cls.STATE_OUT in geninfo
 
     @classmethod
     def has_state(cls, geninfo):
@@ -135,7 +135,7 @@ class SrcFile(object):
             #if not match:
             #    match = re.match(r'\s*#include\s*("[^"]+"|\<[^\']+\>)\s*\Z', line, re.I)
             if match:
-                if Config.include['file'].has_key(self.realpath):
+                if self.realpath in Config.include['file']:
                     include_dirs = Config.include['file'][self.realpath]['path']+Config.include['path']
                 else:
                     include_dirs = Config.include['path']
@@ -172,9 +172,9 @@ class SrcFile(object):
         isfree = None
         isstrict = None
         if self.realpath in Config.source['file'].keys():
-            if Config.source['file'][self.realpath].has_key('isfree'):
+            if 'isfree' in Config.source['file'][self.realpath]:
                 isfree = Config.source['file'][self.realpath]['isfree']
-            if Config.source['file'][self.realpath].has_key('isstrict'):
+            if 'isstrict' in Config.source['file'][self.realpath]:
                 isstrict = Config.source['file'][self.realpath]['isstrict']
         else:
             isstrict = Config.source['isstrict']
@@ -182,10 +182,11 @@ class SrcFile(object):
         # prepare include paths and macro definitions
         path_src = []
         macros_src = []
-        if Config.include['file'].has_key(self.realpath):
+        if self.realpath in Config.include['file']:
+            print(macros_src)
             path_src = Config.include['file'][self.realpath]['path']+[os.path.dirname(self.realpath)]
             path_src = [ path for path in path_src if len(path)>0 ]
-            for k, v in Config.include['file'][self.realpath]['macro'].iteritems():
+            for k, v in Config.include['file'][self.realpath]['macro'].items():
                 if v is not None:
                     macros_src.append('-D%s=%s'%(k,v))
                 else:
@@ -197,7 +198,7 @@ class SrcFile(object):
             includes = [ '-I %s'%incpath for incpath in Config.include['path']+path_src ]
 
         macros_common = []
-        for k, v in Config.include['macro'].iteritems():
+        for k, v in Config.include['macro'].items():
             if v:
                 macros_common.append('-D%s=%s'%(k,v))
             else:
@@ -227,7 +228,7 @@ class SrcFile(object):
 
         # add include paths
         include_dirs = Config.include['path'][:]
-        if Config.include['file'].has_key(self.realpath) and Config.include['file'][self.realpath].has_key('path'):
+        if self.realpath in Config.include['file'] and 'path' in Config.include['file'][self.realpath]:
             include_dirs.extend(Config.include['file'][self.realpath]['path'])
             include_dirs.append(os.path.dirname(self.realpath))
 
@@ -246,8 +247,8 @@ class SrcFile(object):
         self.tree.reader.id = self.realpath
 
         # collect module information
-        for mod_name, mod_stmt in self.tree.a.module.iteritems(): 
-            if not Config.modules.has_key(mod_name):
+        for mod_name, mod_stmt in self.tree.a.module.items(): 
+            if mod_name not in Config.modules:
                 Config.modules[mod_name] = collections.OrderedDict()
                 Config.modules[mod_name]['stmt'] = mod_stmt
                 Config.modules[mod_name]['file'] = self
@@ -282,9 +283,9 @@ class SrcFile(object):
         return None, None
 
     def process_directive(self):
-        from kgsearch import f2003_search_unknowns
-        from statements import Comment
-        from block_statements import executable_construct
+        from parser.kgsearch import f2003_search_unknowns
+        from parser.statements import Comment
+        from parser.block_statements import executable_construct
         import re
 
         def get_next_non_comment(stmt):
@@ -300,7 +301,7 @@ class SrcFile(object):
                     if not isinstance(s, Comment): return s
 
         def get_names(node, bag, depth):
-            from Fortran2003 import Name
+            from parser.Fortran2003 import Name
             if isinstance(node, Name) and not node.string in bag:
                 bag.append(node.string)
            
@@ -344,7 +345,7 @@ class SrcFile(object):
                             if not hasattr(stmt, 'unknowns'):
                                 f2003_search_unknowns(stmt, stmt.f2003)
                             if hasattr(stmt, 'unknowns'):
-                                for unk, req in stmt.unknowns.iteritems():
+                                for unk, req in stmt.unknowns.items():
                                     if req.state != ResState.RESOLVED:
                                         stmt.resolve(req) 
 

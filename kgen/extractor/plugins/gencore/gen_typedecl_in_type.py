@@ -3,7 +3,7 @@
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
 
-from gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
+from extractor.plugins.gencore.gencore_utils import get_dtype_writename, get_typedecl_writename, state_gencore_contains, \
     get_dtype_readname, get_typedecl_readname, kernel_gencore_contains, gen_read_istrue, gen_write_istrue, \
     is_zero_array, is_excluded, is_remove_state
 
@@ -127,13 +127,13 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     ifpvarobj = part_append_genknode(doobjs[-1], EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     callname = None
-                    for uname, req in stmt.unknowns.iteritems():
+                    for uname, req in stmt.unknowns.items():
                         if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                             res = req.res_stmts[0]
                             callname = get_dtype_readname(res)
                             break
                     if callname is None:
-                        print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                        print('WARNING: Can not find Type resolver for %s'%stmt.name)
                         part_append_comment(ifpvarobj, EXEC_PART, \
                             'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
                             (stmt.name, stmt.name))
@@ -183,13 +183,13 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     ifpvarobj = part_append_genknode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     callname = None
-                    for uname, req in stmt.unknowns.iteritems():
+                    for uname, req in stmt.unknowns.items():
                         if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                             res = req.res_stmts[0]
                             callname = get_dtype_readname(res)
                             break
                     if callname is None:
-                        print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                        print('WARNING: Can not find Type resolver for %s'%stmt.name)
                         part_append_comment(ifpvarobj, EXEC_PART, \
                             'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
                             (stmt.name, stmt.name))
@@ -307,13 +307,13 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     ifpvarobj = part_append_gensnode(doobjs[-1], EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     callname = None
-                    for uname, req in stmt.unknowns.iteritems():
+                    for uname, req in stmt.unknowns.items():
                         if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                             res = req.res_stmts[0]
                             callname = get_dtype_writename(res)
                             break
                     if callname is None:
-                        print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                        print('WARNING: Can not find Type resolver for %s'%stmt.name)
                         part_append_comment(ifpvarobj, EXEC_PART, \
                             'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
                             (stmt.name, stmt.name))
@@ -356,13 +356,13 @@ class Gen_Typedecl_In_Type(Kgen_Plugin):
                     ifpvarobj = part_append_gensnode(pobj, EXEC_PART, block_statements.IfThen, attrs=attrs)
 
                     callname = None
-                    for uname, req in stmt.unknowns.iteritems():
+                    for uname, req in stmt.unknowns.items():
                         if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                             res = req.res_stmts[0]
                             callname = get_dtype_writename(res)
                             break
                     if callname is None:
-                        print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                        print('WARNING: Can not find Type resolver for %s'%stmt.name)
                         part_append_comment(ifpvarobj, EXEC_PART, \
                             'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
                             (stmt.name, stmt.name))

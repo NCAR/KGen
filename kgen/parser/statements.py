@@ -1,3 +1,4 @@
+from __future__ import print_function
 """
 Fortran single line statements.
 
@@ -31,16 +32,16 @@ import re
 import os
 import sys
 
-from base_classes import Statement, Variable
+from parser.base_classes import Statement, Variable
 
 # Auxiliary tools
 
-from utils import split_comma, specs_split_comma, AnalyzeError, ParseError,\
+from parser.utils import split_comma, specs_split_comma, AnalyzeError, ParseError,\
      get_module_file, parse_bind, parse_result, is_name
-from utils import classes
+from parser.utils import classes
 
 # start of KGEN addition
-import Fortran2003
+import parser.Fortran2003 as Fortran2003
 from kgutils import traverse, pack_innamepath, ProgramException, UserException
 from kgconfig import Config
 import logging
@@ -103,7 +104,7 @@ class StatementWithNamelist(Statement):
     def resolve_uname(self, uname, request):
         for item in self.items:
             if any(elem in item for elem in r'-=>'):
-                print 'DEBUG: %s has non-ascii character.'%self.__class__
+                print('DEBUG: %s has non-ascii character.'%self.__class__)
         if uname.firstpartname() in self.items:
             self.add_geninfo(uname, request)
     # end of KGEN addition
@@ -193,15 +194,15 @@ class StmtFuncStatement(Statement):
     _repr_attr_names = ['variable','sign','expr'] + Statement._repr_attr_names
 
     def process_item(self):
-        from block_statements import declaration_construct
+        from parser.block_statements import declaration_construct
 
         def get_names(node, bag, depth):
-            from Fortran2003 import Name
+            from parser.Fortran2003 import Name
             if isinstance(node, Name) and node.string not in bag:
                 bag.append(node.string)
 
         def get_partrefs(node, bag, depth):
-            from Fortran2003 import Part_Ref
+            from parser.Fortran2003 import Part_Ref
             if isinstance(node, Part_Ref):
                 bag.append(True)
 
@@ -383,7 +384,7 @@ class Call(Statement):
         if hasattr(a, 'external'):
             external = a.external
             if self.designator in external:
-                print >> sys.stderr, 'Need to analyze:',self
+                print('Need to analyze:'+self, file=sys.stderr)
         return
 
 class Goto(Statement):
@@ -449,7 +450,7 @@ class AssignedGoto(Statement):
             self.items = []
             return
         self.varname = line[:i].rstrip()
-        assert line[-1]==')',`line`
+        assert line[-1]==')',repr(line)
         self
         self.items = split_comma(line[i+1:-1], self.item)
         return
@@ -679,7 +680,7 @@ class Write(Statement):
         item = self.item
         line = item.get_line()[5:].lstrip()
         i = line.find(')')
-        assert i != -1, `line`
+        assert i != -1, repr(line)
         self.specs = specs_split_comma(line[1:i], item)
         self.items = split_comma(line[i+1:], item)
         return
@@ -721,7 +722,7 @@ class Flush(Statement):
             self.isvalid = False
             return
         if line.startswith('('):
-            assert line[-1] == ')', `line`
+            assert line[-1] == ')', repr(line)
             self.specs = specs_split_comma(line[1:-1],self.item)
         else:
             self.specs = specs_split_comma(line,self.item)
@@ -786,7 +787,7 @@ class Contains(Statement):
         return 'CONTAINS'
 
     def resolve_uname(self, uname, request):
-        from block_statements import SubProgramStatement
+        from parser.block_statements import SubProgramStatement
         if isinstance(request.res_stmts[-1], SubProgramStatement):
             self.add_geninfo(uname, request)
     # end of KGEN addition
@@ -820,7 +821,7 @@ class Allocate(Statement):
 #            if stmt is not None and stmt.isvalid:
 #                spec = stmt
 #            else:
-#                self.warning('TODO: unparsed type-spec' + `spec`)
+#                self.warning('TODO: unparsed type-spec' + repr(spec))
             # end of KGEN deletion
             line2 = line2[i+2:].lstrip()
         else:
@@ -882,7 +883,7 @@ class ModuleProcedure(Statement):
     def process_item(self):
         line = self.item.get_line()
         m = self.match(line)
-        assert m,`line`
+        assert m,repr(line)
         items = split_comma(line[m.end():].strip(), self.item)
         for n in items:
             if not is_name(n):
@@ -954,7 +955,7 @@ class Access(Statement):
 
     def analyze(self):
         # start of KGEN addition
-        from block_statements import TypeDecl
+        from parser.block_statements import TypeDecl
         if not hasattr(self.parent, 'spec_stmts'):
             self.parent.spec_stmts = []
         self.parent.spec_stmts.append(self)
@@ -1067,7 +1068,7 @@ class FilePositioningStatement(Statement):
             return
         line = line[len(clsname):].lstrip()
         if line.startswith('('):
-            assert line[-1]==')',`line`
+            assert line[-1]==')',repr(line)
             spec = line[1:-1].strip()
         else:
             spec = line
@@ -1158,7 +1159,7 @@ class Format(Statement):
             self.warning('FORMAT statement must be labeled (F2008:C1001).' \
                          % (item.label))
         line = item.get_line()[6:].lstrip()
-        assert line[0]+line[-1]=='()',`line`
+        assert line[0]+line[-1]=='()',repr(line)
         self.specs = split_comma(line[1:-1], item)
         return
     def tofortran(self, isfix=None):
@@ -1192,9 +1193,9 @@ class Save(Statement):
             s = s.strip()
             if not s: continue
             if s.startswith('/'):
-                assert s.endswith('/'),`s`
+                assert s.endswith('/'),repr(s)
                 n = s[1:-1].strip()
-                assert is_name(n),`n`
+                assert is_name(n),repr(n)
                 items.append('/%s/' % (n))
             elif is_name(s):
                 items.append(s)
@@ -1386,8 +1387,8 @@ class Use(Statement):
             self.supporting_names = public_names
 
         def resolve(self, request):
-            from kgparse import ResState
-            from api import parse
+            from parser.kgparse import ResState
+            from parser.api import parse
 
             if request.state != ResState.RESOLVED and request.uname.firstpartname() in self.supporting_names:
                 #tree = parse('!kgen dummy comment for intrinsic module', \
@@ -1403,7 +1404,7 @@ class Use(Statement):
         if self.name in self.parent.use_stmts and self in self.parent.use_stmts[self.name]:
             return
 
-        if not self.parent.use_stmts.has_key(self.name):
+        if self.name not in self.parent.use_stmts:
             self.parent.use_stmts[self.name] = []
 
         self.parent.use_stmts[self.name].append(self)
@@ -1420,24 +1421,24 @@ class Use(Statement):
             self.used = []
 
     def intrinsic_module(self, modname):
-        from kgextra import Intrinsic_Modules
+        from parser.kgextra import Intrinsic_Modules
 
-        if Intrinsic_Modules.has_key(modname.upper()):
+        if modname.upper() in Intrinsic_Modules:
             return self.KgenIntrinsicModule(Intrinsic_Modules[modname.upper()])
 
     def resolve(self, request):
-        from kgparse import ResState, SrcFile
+        from parser.kgparse import ResState, SrcFile
         from kgutils import match_namepath
-        from kgextra import Intrinsic_Modules
+        from parser.kgextra import Intrinsic_Modules
         from kgconfig import Config
 
         src = None
         if self.module is None:
-            if Config.modules.has_key(self.name):
+            if self.name in Config.modules:
                 self.module = Config.modules[self.name]['stmt']
             else:
                 if (self.nature and self.nature=='INTRINSIC') or \
-                    Intrinsic_Modules.has_key(self.name.upper()):
+                    self.name.upper() in Intrinsic_Modules:
                     self.module = self.intrinsic_module(self.name)
                 else:
                     # skip if excluded
@@ -1462,7 +1463,7 @@ class Use(Statement):
             # if intrinsic module
 
             if (self.nature and self.nature=='INTRINSIC') or \
-                Intrinsic_Modules.has_key(self.name.upper()):
+                self.name.upper() in Intrinsic_Modules:
                 pass
             # if newly found moudle is not in srcfiles
             elif not self.module in Config.srcfiles[self.top.reader.id][1]:
@@ -1470,7 +1471,7 @@ class Use(Statement):
 
     def tokgen(self):
         def get_rename(node, bag, depth):
-            from Fortran2003 import Rename
+            from parser.Fortran2003 import Rename
             if isinstance(node, Rename) and node.items[1].string==bag['newname']:
                 bag['onlyitem'] = '%s => %s'%(node.items[1].string, node.items[2].string)
                 return True
@@ -1511,8 +1512,8 @@ class Use(Statement):
         if self.name not in modules:
             fn = self.reader.find_module_source_file(self.name)
             if fn is not None:
-                from readfortran import FortranFileReader
-                from parsefortran import FortranParser
+                from parser.readfortran import FortranFileReader
+                from parser.parsefortran import FortranParser
                 self.info('looking module information from %r' % (fn))
                 reader = FortranFileReader(fn, include_dirs=self.reader.include_dirs, source_only=self.reader.source_only)
                 parser = FortranParser(reader)
@@ -1615,7 +1616,7 @@ class Parameter(Statement):
 
         for item in self.items:
             i = item.find('=')
-            assert i!=-1,`item`
+            assert i!=-1,repr(item)
             name = item[:i].rstrip()
             value = item[i+1:].lstrip()
             var = self.get_variable(name)
@@ -1625,8 +1626,8 @@ class Parameter(Statement):
 
     # start of KGEN addition
     def resolve_uname(self, uname, request):
-        from kgsearch import f2003_search_unknowns
-        from kgparse import ResState
+        from parser.kgsearch import f2003_search_unknowns
+        from parser.kgparse import ResState
 
         if uname.firstpartname() in self.leftnames:
             self.add_geninfo(uname, request)
@@ -1647,7 +1648,7 @@ class Parameter(Statement):
             if node:
                 if not hasattr(self, 'unknowns') or len(self.unknowns)==0:
                     f2003_search_unknowns(self, node.items[1])
-                    for unknown, request in self.unknowns.iteritems():
+                    for unknown, request in self.unknowns.items():
                         if request.state != ResState.RESOLVED:
                             self.resolve(request)
 
@@ -1672,7 +1673,7 @@ class Equivalence(Statement):
         items = []
         for s in self.item.get_line()[11:].lstrip().split(','):
             s = s.strip()
-            assert s[0]+s[-1]=='()',`s,self.item.get_line()`
+            assert s[0]+s[-1]=='()',repr(s,self.item.get_line())
             s = ', '.join(split_comma(s[1:-1], self.item))
             items.append('('+s+')')
         self.items = items
@@ -1690,7 +1691,7 @@ class Equivalence(Statement):
     # start of KGEN addition
     def resolve_uname(self, uname, request):
         def get_equivname(node, bag, depth):
-            from Fortran2003 import Equivalence_Object_List, Equivalence_Set, Name
+            from parser.Fortran2003 import Equivalence_Object_List, Equivalence_Set, Name
             if isinstance(node, Name) and node.string==uname.firstpartname():
                 if isinstance(node.parent, Equivalence_Set):
                     bag['equiv_names'].append(node.parent.items[1])
@@ -1746,7 +1747,7 @@ class Dimension(Statement):
 
         for line in self.items:
             i = line.find('(')
-            assert i!=-1 and line.endswith(')'),`line`
+            assert i!=-1 and line.endswith(')'),repr(line)
             name = line[:i].rstrip()
             array_spec = split_comma(line[i+1:-1].strip(), self.item)
             var = self.get_variable(name)
@@ -1787,7 +1788,7 @@ class Target(Statement):
         for line in self.items:
             i = line.find('(')
             # start of KGEN deletion
-#            assert i!=-1 and line.endswith(')'),`line`
+#            assert i!=-1 and line.endswith(')'),repr(line)
 #            name = line[:i].rstrip()
 #            array_spec = split_comma(line[i+1:-1].strip(), self.item)
 #            var = self.get_variable(name)
@@ -1795,7 +1796,7 @@ class Target(Statement):
             # end of KGEN deletion
             # start of KGEN addition
             if i!=-1:
-                assert line.endswith(')'),`line`
+                assert line.endswith(')'),repr(line)
                 name = line[:i].rstrip()
                 array_spec = split_comma(line[i+1:-1].strip(), self.item)
                 var = self.get_variable(name)
@@ -1846,7 +1847,7 @@ class Pointer(Statement):
                 name = line
                 array_spec = None
             else:
-                assert line.endswith(')'),`line`
+                assert line.endswith(')'),repr(line)
                 name = line[:i].rstrip()
                 array_spec = split_comma(line[i+1:-1].strip(), self.item)
             var = self.get_variable(name)
@@ -2040,9 +2041,9 @@ class Namelist(Statement):
         line = self.item.get_line()[8:].lstrip()
         items = []
         while line:
-            assert line.startswith('/'),`line`
+            assert line.startswith('/'),repr(line)
             i = line.find('/',1)
-            assert i!=-1,`line`
+            assert i!=-1,repr(line)
             name = line[:i+1]
             line = line[i+1:].lstrip()
             i = line.find('/')
@@ -2094,10 +2095,10 @@ class Common(Statement):
         while line:
             if not line.startswith('/'):
                 name = ''
-                assert not items,`line`
+                assert not items,repr(line)
             else:
                 i = line.find('/',1)
-                assert i!=-1,`line`
+                assert i!=-1,repr(line)
                 name = line[1:i].strip()
                 line = line[i+1:].lstrip()
             i = line.find('/')
@@ -2134,7 +2135,7 @@ class Common(Statement):
             for item in items:
                 i = item.find('(')
                 if i!=-1:
-                    assert item.endswith(')'),`item`
+                    assert item.endswith(')'),repr(item)
                     name = item[:i].rstrip()
                     shape = split_comma(item[i+1:-1].strip(), self.item)
                 else:
@@ -2254,7 +2255,7 @@ class Entry(Statement):
         line = line[m.end():].lstrip()
         if line.startswith('('):
             i = line.find(')')
-            assert i!=-1,`line`
+            assert i!=-1,repr(line)
             items = split_comma(line[1:i], self.item)
             line = line[i+1:].lstrip()
         else:
@@ -2262,9 +2263,9 @@ class Entry(Statement):
         self.bind, line = parse_bind(line, self.item)
         self.result, line = parse_result(line, self.item)
         if line:
-            assert self.bind is None,`self.bind`
+            assert self.bind is None,repr(self.bind)
             self.bind, line = parse_bind(line, self.item)
-        assert not line,`line`
+        assert not line,repr(line)
         self.name = name
         self.items = items
         return
@@ -2336,10 +2337,10 @@ class Forall(Statement):
         for l in split_comma(line0,self.item):
             j = l.find('=')
             if j==-1:
-                assert not mask,`mask,l`
+                assert not mask,repr(mask,l)
                 mask = l
                 continue
-            assert j!=-1,`l`
+            assert j!=-1,repr(l)
             index = l[:j].rstrip()
             it = self.item.copy(l[j+1:].lstrip())
             l = it.get_line()
@@ -2348,7 +2349,7 @@ class Forall(Statement):
                 s1, s2, s3 = map(it.apply_map,
                                  [k[0].strip(),k[1].strip(),k[2].strip()])
             else:
-                assert len(k)==2,`k`
+                assert len(k)==2,repr(k)
                 s1, s2 = map(it.apply_map,
                              [k[0].strip(),k[1].strip()])
                 s3 = '1'
@@ -2425,7 +2426,7 @@ class SpecificBinding(Statement):
                 attr = attr.upper()
             else:
                 i = attr.find('(')
-                assert i!=-1 and attr.endswith(')'),`attr`
+                assert i!=-1 and attr.endswith(')'),repr(attr)
                 attr = '%s (%s)' % (attr[:i].rstrip().upper(), attr[i+1:-1].strip())
             attrs1.append(attr)
         self.attrs = attrs1
@@ -2597,7 +2598,7 @@ class Bind(Statement):
         items = []
         for item in split_comma(line, self.item):
             if item.startswith('/'):
-                assert item.endswith('/'),`item`
+                assert item.endswith('/'),repr(item)
                 item = '/ ' + item[1:-1].strip() + ' /'
             items.append(item)
         self.items = items
@@ -2710,14 +2711,14 @@ class Case(Statement):
 
     match = re.compile(r'case\b\s*(\(.*\)|DEFAULT)\s*\w*\Z',re.I).match
     def process_item(self):
-        #assert self.parent.__class__.__name__=='Select',`self.parent.__class__`
+        #assert self.parent.__class__.__name__=='Select',repr(self.parent.__class__)
         line = self.item.get_line()[4:].lstrip()
         if line.startswith('('):
             i = line.find(')')
             items = split_comma(line[1:i].strip(), self.item)
             line = line[i+1:].lstrip()
         else:
-            assert line.lower().startswith('default'),`line`
+            assert line.lower().startswith('default'),repr(line)
             items = []
             line = line[7:].lstrip()
         for i in range(len(items)):
@@ -2781,7 +2782,7 @@ class TypeGuard(Statement):
 
     match = re.compile(r'(type|class)\b\s+(is\s*\(.*\)|DEFAULT)\s*\w*\Z',re.I).match
     def process_item(self):
-        #assert self.parent.__class__.__name__=='Select',`self.parent.__class__`
+        #assert self.parent.__class__.__name__=='Select',repr(self.parent.__class__)
         line = self.item.get_line().lstrip()
         if line.startswith('type'):
             line = line[4:].lstrip()
@@ -2898,7 +2899,7 @@ class ElseWhere(Statement):
         self.expr = None
         if line.startswith('('):
             i = line.index(')')
-            assert i != -1,`line`
+            assert i != -1,repr(line)
             self.f2003_class = Fortran2003.Masked_Elsewhere_Stmt # KGEN addition
             self.expr = self.item.apply_map(line[1:i].strip())
             line = line[i+1:].lstrip()
@@ -3022,7 +3023,7 @@ class Check(Statement):
     def process_item(self):
         line = self.item.get_line()[5:].lstrip()
         i = line.find(')')
-        assert i!=-1,`line`
+        assert i!=-1,repr(line)
         self.expr = self.item.apply_map(line[1:i].strip())
         line = line[i+1:].lstrip()
         if line.startswith('::'):
@@ -3106,7 +3107,7 @@ class Comment(Statement):
 
     match = lambda s: True
     def process_item(self):
-        assert self.item.comment.count('\n')<=1,`self.item`
+        assert self.item.comment.count('\n')<=1,repr(self.item)
         stripped = self.item.comment.lstrip()
         self.is_blank = not stripped
         self.content = stripped[1:] if stripped else ''

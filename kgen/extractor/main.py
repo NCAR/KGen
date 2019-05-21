@@ -5,6 +5,7 @@ import os
 import glob
 import shutil
 import kgutils
+import six
 from collections import OrderedDict
 from kgtool import KGTool
 from kgconfig import Config
@@ -50,7 +51,7 @@ class Extractor(KGTool):
             append_program_in_root(driver, program)
 
             # generate instrumentation
-            for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
+            for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.items():
                 if hasattr(srcobj.tree, 'geninfo') and KGGenType.has_state(srcobj.tree.geninfo):
                     kfile = genkobj(None, srcobj.tree, KERNEL_ID_0)
                     sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
@@ -108,7 +109,7 @@ class Extractor(KGTool):
                     klines = kgutils.remove_multiblanklines(klines)
                     kernel_files.append(filename)
                     with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], filename), 'wb') as fd:
-                        fd.write(klines)
+                        fd.write(six.b(klines))
 
                 if sfile.kgen_stmt.used4genstate:
                     set_indent('')
@@ -117,14 +118,14 @@ class Extractor(KGTool):
                         slines = kgutils.remove_multiblanklines(slines)
                         state_files.append(filename)
                         with open('%s/%s/%s'%(Config.path['outdir'], Config.path['state'], filename), 'wb') as fd:
-                            fd.write(slines)
+                            fd.write(six.b(slines))
 
             with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], '%s.f90'%Config.kernel_driver['name']), 'wb') as fd:
                 set_indent('')
                 lines = driver.tostring()
                 if lines is not None:
                     lines = kgutils.remove_multiblanklines(lines)
-                    fd.write(lines)
+                    fd.write(six.b(lines))
             kernel_files.append(Config.kernel['name'])
 
             kgutils.logger.info('Kernel generation and instrumentation is completed.')
@@ -170,7 +171,7 @@ class Extractor(KGTool):
         tab = ''
         if n: nl = '\n'
         if t: tab = '\t'
-        f.write(tab + line + nl)
+        f.write(six.b(tab + line + nl))
 
     def obj(self, file):
         l = file.split('.')
@@ -186,7 +187,7 @@ class Extractor(KGTool):
         #basenames
         callsite_base = os.path.basename(Config.callsite['filepath'])
         driver_base = '%s.f90'%Config.kernel_driver['name']
-        dep_base_srcfiles = [ os.path.basename(filepath) for filepath, srclist in Config.used_srcfiles.iteritems() ]
+        dep_base_srcfiles = [ os.path.basename(filepath) for filepath, srclist in Config.used_srcfiles.items() ]
         dep_bases = dep_base_srcfiles + [ driver_base ]
 
         # all object files
@@ -200,7 +201,7 @@ class Extractor(KGTool):
         depends[driver_base] = ' '.join(all_objs_srcfiles + [self.obj(KGUTIL), self.obj(TPROF) ])
 
         # dependency for other files
-        for filepath, (kfile, sfile, mods_used, units_used) in Config.used_srcfiles.iteritems():
+        for filepath, (kfile, sfile, mods_used, units_used) in Config.used_srcfiles.items():
             dep = [ self.obj(KGUTIL), self.obj(TPROF) ]
             for mod in mods_used:
                 if mod.reader.id!=filepath and \
@@ -229,9 +230,9 @@ class Extractor(KGTool):
             if base not in dep_bases: continue
 
             comp = None
-            if kfile.has_key('compiler'):
+            if 'compiler' in kfile:
                 comp = kfile['compiler']
-            elif Config.include['compiler'].has_key('compiler'):
+            elif 'compiler' in Config.include['compiler']:
                 comp = Config.include['compiler']['compiler']
 
             if comp:
@@ -242,10 +243,10 @@ class Extractor(KGTool):
                     compilers[comp] = [ base, driver_base]
 
             opts = ''
-            if Config.include['compiler'].has_key('compiler_options'):
+            if 'compiler_options' in Config.include['compiler']:
                 opts = opts + ' ' + Config.include['compiler']['compiler_options']
 
-            if kfile.has_key('compiler_options') and kfile['compiler_options']:
+            if 'compiler_options' in kfile and kfile['compiler_options']:
                 opts = opts + ' ' + kfile['compiler_options']
 
             if Config.model['types']['code']['enabled']:
@@ -282,8 +283,8 @@ class Extractor(KGTool):
         # link flags and objects
         link_flags = ' '.join(Config.kernel_option['linker']['add'])
         objects = ''
-        if Config.include.has_key('import'):
-            for path, import_type in Config.include['import'].iteritems():
+        if 'import' in Config.include:
+            for path, import_type in Config.include['import'].items():
                 if import_type == 'library' or import_type == 'shared_library':
                     inc = '-L'+path
                     pos1 = import_type.find('(')
@@ -491,14 +492,14 @@ class Extractor(KGTool):
 
             self.write(f, '')
 
-            if Config.cmd_run['cmds']>0:
+            if len(Config.cmd_run['cmds'])>0:
                 self.write(f, 'run: build')
                 self.write(f, '%scd %s; %s'%(prerun_run_str, cwd, Config.cmd_run['cmds']), t=True)
             else:
                 self.write(f, 'echo "No information is provided to run. Please specify run commands using \'state-run\' command line option"; exit -1', t=True)
             self.write(f, '')
 
-            if Config.cmd_build['cmds']>0:
+            if len(Config.cmd_build['cmds'])>0:
                 self.write(f, 'build: %s'%Config.state_switch['type'])
                 self.write(f, '%scd %s; %s'%(prerun_build_str, cwd, Config.cmd_build['cmds']), t=True)
                 for org_file in org_files:
@@ -539,7 +540,7 @@ class Extractor(KGTool):
                 self.write(f, 'if [ ! -f %(g)s.kgen_org ]; then cp -f %(f)s %(g)s.kgen_org; fi'%{'f':org_file, 'g':os.path.basename(org_file)}, t=True)
             self.write(f, '')
 
-            if Config.cmd_clean['cmds']>0:
+            if len(Config.cmd_clean['cmds'])>0:
                 self.write(f, 'clean:')
                 self.write(f, '%s'%(Config.cmd_clean['cmds']), t=True)
             self.write(f, '')
@@ -547,15 +548,15 @@ class Extractor(KGTool):
     def generate_kgen_utils(self):
 
         with open('%s/%s/%s'%(Config.path['outdir'], Config.path['kernel'], KGUTIL), 'wb') as f:
-            f.write('MODULE kgen_utils_mod')
-            f.write(kgen_utils_file_head)
-            f.write('\n')
-            f.write('CONTAINS')
-            f.write('\n')
-            f.write(kgen_utils_array_sumcheck)
-            f.write(kgen_utils_file_tostr)
-            f.write(kgen_utils_file_checksubr)
-            f.write(kgen_get_newunit)
-            f.write(kgen_error_stop)
-            f.write(kgen_rankthread)
-            f.write('END MODULE kgen_utils_mod\n')
+            f.write(six.b('MODULE kgen_utils_mod'))
+            f.write(six.b(kgen_utils_file_head))
+            f.write(six.b('\n'))
+            f.write(six.b('CONTAINS'))
+            f.write(six.b('\n'))
+            f.write(six.b(kgen_utils_array_sumcheck))
+            f.write(six.b(kgen_utils_file_tostr))
+            f.write(six.b(kgen_utils_file_checksubr))
+            f.write(six.b(kgen_get_newunit))
+            f.write(six.b(kgen_error_stop))
+            f.write(six.b(kgen_rankthread))
+            f.write(six.b('END MODULE kgen_utils_mod\n'))

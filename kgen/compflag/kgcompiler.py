@@ -217,7 +217,7 @@ class CompilerFactory(object):
     def createCompiler(compid):
         for subc in CompilerFactory.get_subclasses(GenericCompiler):
             if subc.compnames and compid in subc.compnames:
-                if not CompilerFactory.factories.has_key(subc.compid):
+                if subc.compid not in CompilerFactory.factories:
                     CompilerFactory.factories[subc.compid] = subc()
                 return CompilerFactory.factories[subc.compid]
 

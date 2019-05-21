@@ -16,11 +16,13 @@ import re
 import sys
 import copy
 import logging
+import six
 from collections import OrderedDict
-from readfortran import Line, Comment
+from parser.readfortran import Line, Comment
 #from numpy.distutils.misc_util import yellow_text, red_text # KGEN deletion
-from utils import split_comma, specs_split_comma, is_int_literal_constant
-from utils import classes
+from parser.utils import split_comma, specs_split_comma, is_int_literal_constant
+from parser.utils import classes
+
 
 #logger = logging.getlogger('fparser') # KGEN deletion
 
@@ -28,7 +30,7 @@ from utils import classes
 logger = logging.getLogger('kgen')
 
 from kgutils import KGName, ProgramException, traverse
-from kgextra import Intrinsic_Procedures
+from parser.kgextra import Intrinsic_Procedures
 from kgconfig import Config
 
 class KGen_Resolver(object):
@@ -45,7 +47,7 @@ class KGen_Resolver(object):
 
         if not hasattr(self, 'geninfo'):
             self.geninfo = OrderedDict()
-        if not self.geninfo.has_key(request.gentype):
+        if request.gentype not in self.geninfo:
             self.geninfo[request.gentype] = []
         if (uname, request) not in self.geninfo[request.gentype]:
             self.geninfo[request.gentype].append((uname, request))
@@ -98,10 +100,10 @@ class AttributeHolder(object):
 
     def __getattr__(self, name):
         if name not in self._attributes:
-            raise AttributeError,'%s instance has no attribute %r, '\
+            raise AttributeError('%s instance has no attribute %r, '\
                   'expected attributes: %s' \
                   % (self.__class__.__name__,name,
-                     ','.join(self._attributes.keys()))
+                     ','.join(self._attributes.keys())))
         value = self._attributes[name]
         if callable(value):
             value = value()
@@ -113,12 +115,12 @@ class AttributeHolder(object):
             self.__dict__[name] = value
             return
         if name in self._readonly:
-            raise AttributeError,'%s instance attribute %r is readonly' \
-                  % (self.__class__.__name__, name)
+            raise AttributeError('%s instance attribute %r is readonly' \
+                  % (self.__class__.__name__, name))
         if name not in self._attributes:
-            raise AttributeError,'%s instance has no attribute %r, '\
+            raise AttributeError('%s instance has no attribute %r, '\
                   'expected attributes: %s' \
-                  % (self.__class__.__name__,name,','.join(self._attributes.keys()))
+                  % (self.__class__.__name__,name,','.join(self._attributes.keys())))
         self._attributes[name] = value
 
     def isempty(self):
@@ -157,7 +159,7 @@ def get_base_classes(cls):
         bases += get_base_classes(c)
     return bases + cls.__bases__ + (cls,)
 
-class Variable(object):
+class Variable(six.with_metaclass(classes, object)):
     """
     Variable instance has attributes:
       name
@@ -351,7 +353,7 @@ class Variable(object):
     def is_intent_aux(self): return  self.intent and 'AUX' in self.intent
 
     def is_private(self):
-        from block_statements import BeginSource
+        from parser.block_statements import BeginSource
         if 'PUBLIC' in self.attributes: return False
         if 'PRIVATE' in self.attributes: return True
         # start of KGEN
@@ -386,26 +388,26 @@ class Variable(object):
             lattr = attr.lower()
             uattr = attr.upper()
             if lattr.startswith('dimension'):
-                assert self.dimension is None, `self.dimension,attr`
+                assert self.dimension is None, repr(self.dimension,attr)
                 l = attr[9:].lstrip()
-                assert l[0]+l[-1]=='()',`l`
+                assert l[0]+l[-1]=='()',repr(l)
                 self.set_dimension(split_comma(l[1:-1].strip(), self.parent.item))
                 continue
             if lattr.startswith('intent'):
                 l = attr[6:].lstrip()
-                assert l[0]+l[-1]=='()',`l`
+                assert l[0]+l[-1]=='()',repr(l)
                 self.set_intent(specs_split_comma(l[1:-1].strip(),
                                                   self.parent.item, upper=True))
                 continue
             if lattr.startswith('bind'):
                 l = attr[4:].lstrip()
-                assert l[0]+l[-1]=='()',`l`
+                assert l[0]+l[-1]=='()',repr(l)
                 self.bind = specs_split_comma(l[1:-1].strip(), self.parent.item,
                                               upper = True)
                 continue
             if lattr.startswith('check'):
                 l = attr[5:].lstrip()
-                assert l[0]+l[-1]=='()',`l`
+                assert l[0]+l[-1]=='()',repr(l)
                 self.check.extend(split_comma(l[1:-1].strip(), self.parent.item))
                 continue
             if uattr not in attributes:
@@ -508,11 +510,11 @@ class Variable(object):
     def info(self, message):
         return self.parent.info(message)
 
-class ProgramBlock(object):
+class ProgramBlock(six.with_metaclass(classes, object)):
 
     __metaclass__ = classes
 
-class Statement(object):
+class Statement(six.with_metaclass(classes, object)):
     """
     Statement instance has attributes:
       parent  - Parent BeginStatement or FortranParser instance
@@ -720,7 +722,7 @@ class Statement(object):
 #            return self.item.apply_map(self.tofortran().lstrip())
 
     def ancestors(self, include_beginsource=False):
-        from block_statements import BeginSource, HasUseStmt, Type
+        from parser.block_statements import BeginSource, HasUseStmt, Type
 
         anc = []
 
@@ -737,8 +739,8 @@ class Statement(object):
         return anc
  
     def parse_f2003(self):
-        from block_statements import BeginSource, SubProgramStatement
-        from statements import Continue
+        from parser.block_statements import BeginSource, SubProgramStatement
+        from parser.statements import Continue
 
         if not hasattr(self, 'f2003'):
             if hasattr(self, 'f2003_class'):
@@ -794,11 +796,10 @@ class Statement(object):
                 raise ProgramException('Class %s does not have f2003_class attribute.' % self.__class__)
 
     def set_parent(self, node, bag, depth):
-        import Fortran2003
+        import parser.Fortran2003 as Fortran2003
 
         if hasattr(node, 'item') and node.item and isinstance(node.item, Fortran2003.Base):
             node.item.parent = node
-
         if node and hasattr(node, 'items') and node.items:
             for item in node.items:
                 if isinstance(item, list) or isinstance(item, tuple):
@@ -812,7 +813,7 @@ class Statement(object):
                     self.set_parent(item, bag, depth+1)
 
     def expr_by_name(self, name, node=None):
-        import Fortran2003
+        import parser.Fortran2003 as Fortran2003
 
         if not name:
             raise ProgramException("Callsite name is not found. Please check if callsite is specified correctly.")
@@ -853,8 +854,8 @@ class Statement(object):
         return expr
 
     def can_resolve(self, request):
-        from typedecl_statements import TypeDeclarationStatement
-        from block_statements import SubProgramStatement
+        from parser.typedecl_statements import TypeDeclarationStatement
+        from parser.block_statements import SubProgramStatement
 
         if request is None: return False
 
@@ -886,7 +887,7 @@ class Statement(object):
         # Statement
         if not hasattr(self, 'geninfo'):
             self.geninfo = OrderedDict()
-        if not self.geninfo.has_key(request.gentype):
+        if request.gentype not in self.geninfo:
             self.geninfo[request.gentype] = []
         if (uname, request) not in self.geninfo[request.gentype]:
             self.geninfo[request.gentype].append((uname, request))
@@ -895,19 +896,19 @@ class Statement(object):
         if isinstance(self, BeginStatement) and isinstance(self.content[-1], EndStatement):
             if not hasattr(self.content[-1], 'geninfo'):
                 self.content[-1].geninfo = OrderedDict()
-            if not self.content[-1].geninfo.has_key(request.gentype):
+            if request.gentype not in self.content[-1].geninfo:
                 self.content[-1].geninfo[request.gentype] = []
 
         # Ancestors
         for anc in self.ancestors(include_beginsource=True):
             if not hasattr(anc, 'geninfo'):
                 anc.geninfo = OrderedDict()
-            if not anc.geninfo.has_key(request.gentype):
+            if request.gentype not in anc.geninfo:
                 anc.geninfo[request.gentype] = []
             if isinstance(anc, BeginStatement) and isinstance(anc.content[-1], EndStatement):
                 if not hasattr(anc.content[-1], 'geninfo'):
                     anc.content[-1].geninfo = OrderedDict()
-                if not anc.content[-1].geninfo.has_key(request.gentype):
+                if request.gentype not in anc.content[-1].geninfo:
                     anc.content[-1].geninfo[request.gentype] = []
 
 
@@ -928,7 +929,7 @@ class Statement(object):
         if isinstance(uname, str): strname = uname
         elif isinstance(uname, KGName): strname = uname.firstpartname()
 
-        for kgname, res in self.unknowns.iteritems():
+        for kgname, res in self.unknowns.items():
             if res is None:
                 return None
             if kgname.firstpartname()==strname:
@@ -936,12 +937,12 @@ class Statement(object):
         return None
 
     def resolve(self, request):
-        from kgparse import ResState
-        from block_statements import BeginSource
-        from typedecl_statements import TypeDeclarationStatement
-        from kgsearch import f2003_search_unknowns
-        from api import walk
-        from block_statements import SubProgramStatement
+        from parser.kgparse import ResState
+        from parser.block_statements import BeginSource
+        from parser.typedecl_statements import TypeDeclarationStatement
+        from parser.kgsearch import f2003_search_unknowns
+        from parser.api import walk
+        from parser.block_statements import SubProgramStatement
 
         if request is None: return
         logger.debug('%s is being resolved'%request.uname.firstpartname())
@@ -965,7 +966,7 @@ class Statement(object):
                 if not hasattr(typedecl_stmt, 'unknowns'):
                     f2003_search_unknowns(typedecl_stmt, typedecl_stmt.f2003)
                 if hasattr(typedecl_stmt, 'unknowns'):
-                    for unk, req in typedecl_stmt.unknowns.iteritems():
+                    for unk, req in typedecl_stmt.unknowns.items():
                         if req.state != ResState.RESOLVED:
                             typedecl_stmt.resolve(req) 
             elif isinstance(self, SubProgramStatement):
@@ -991,7 +992,7 @@ class Statement(object):
         if request.state != ResState.RESOLVED:
             if self is request.originator:
                 # check if program units can resolve the request
-                for filepath, units in Config.program_units.iteritems():
+                for filepath, units in Config.program_units.items():
                     for unit in units:
                         if any( isinstance(unit, resolver) for resolver in request.resolvers) and \
                             hasattr(unit, 'name') and request.uname.firstpartname()==unit.name:
@@ -1006,7 +1007,7 @@ class Statement(object):
                                     if not hasattr(_stmt, 'unknowns'):
                                         f2003_search_unknowns(_stmt, _stmt.f2003)
                                     if hasattr(_stmt, 'unknowns'):
-                                        for unk, req in _stmt.unknowns.iteritems():
+                                        for unk, req in _stmt.unknowns.items():
                                             if req.state != ResState.RESOLVED:
                                                 _stmt.resolve(req) 
 
@@ -1107,15 +1108,15 @@ class BeginStatement(Statement):
         else: return True
 
     def resolve(self, request):
-        from kgparse import ResState
-        from kgsearch import f2003_search_unknowns
+        from parser.kgparse import ResState
+        from parser.kgsearch import f2003_search_unknowns
         from kgutils import pack_exnamepath
-        from block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine, Interface, Associate
-        from typedecl_statements import TypeDeclarationStatement
-        from statements import External, Use, GenericBinding, SpecificBinding, Call
-        from api import walk
-        from block_statements import SubProgramStatement
-        import Fortran2003
+        from parser.block_statements import HasUseStmt, Type, TypeDecl, Function, Subroutine, Interface, Associate
+        from parser.typedecl_statements import TypeDeclarationStatement
+        from parser.statements import External, Use, GenericBinding, SpecificBinding, Call
+        from parser.api import walk
+        from parser.block_statements import SubProgramStatement
+        import parser.Fortran2003 as Fortran2003
 
         if request is None: return
 
@@ -1156,7 +1157,7 @@ class BeginStatement(Statement):
                             if not hasattr(_stmt, 'unknowns'):
                                 f2003_search_unknowns(_stmt, _stmt.f2003)
                             if hasattr(_stmt, 'unknowns'):
-                                for unk, req in _stmt.unknowns.iteritems():
+                                for unk, req in _stmt.unknowns.items():
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
 
@@ -1179,7 +1180,7 @@ class BeginStatement(Statement):
                             if not hasattr(_stmt, 'unknowns'):
                                 f2003_search_unknowns(_stmt, _stmt.f2003)
                             if hasattr(_stmt, 'unknowns'):
-                                for unk, req in _stmt.unknowns.iteritems():
+                                for unk, req in _stmt.unknowns.items():
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
 
@@ -1210,7 +1211,7 @@ class BeginStatement(Statement):
                                     if not hasattr(_stmt, 'unknowns'):
                                         f2003_search_unknowns(_stmt, _stmt.f2003)
                                     if hasattr(_stmt, 'unknowns'):
-                                        for unk, req in _stmt.unknowns.iteritems():
+                                        for unk, req in _stmt.unknowns.items():
                                             if req.state != ResState.RESOLVED:
                                                 _stmt.resolve(req) 
 
@@ -1230,7 +1231,7 @@ class BeginStatement(Statement):
                         if not hasattr(_stmt, 'unknowns'):
                             f2003_search_unknowns(_stmt, _stmt.f2003)
                         if hasattr(_stmt, 'unknowns'):
-                            for unk, req in _stmt.unknowns.iteritems():
+                            for unk, req in _stmt.unknowns.items():
                                 if req.state != ResState.RESOLVED:
                                     _stmt.resolve(req) 
 
@@ -1255,7 +1256,7 @@ class BeginStatement(Statement):
                     if not hasattr(typedecl_stmt, 'unknowns'):
                         f2003_search_unknowns(typedecl_stmt, typedecl_stmt.f2003)
                     if hasattr(typedecl_stmt, 'unknowns'):
-                        for unk, req in typedecl_stmt.unknowns.iteritems():
+                        for unk, req in typedecl_stmt.unknowns.items():
                             if req.state != ResState.RESOLVED:
                                 typedecl_stmt.resolve(req) 
 
@@ -1275,7 +1276,7 @@ class BeginStatement(Statement):
                                 if not hasattr(_stmt, 'unknowns'):
                                     f2003_search_unknowns(_stmt, _stmt.f2003)
                                 if hasattr(_stmt, 'unknowns'):
-                                    for unk, req in _stmt.unknowns.iteritems():
+                                    for unk, req in _stmt.unknowns.items():
                                         if req.state != ResState.RESOLVED:
                                             _stmt.resolve(req) 
 
@@ -1295,7 +1296,7 @@ class BeginStatement(Statement):
                                 if not hasattr(_stmt, 'unknowns'):
                                     f2003_search_unknowns(_stmt, _stmt.f2003)
                                 if hasattr(_stmt, 'unknowns'):
-                                    for unk, req in _stmt.unknowns.iteritems():
+                                    for unk, req in _stmt.unknowns.items():
                                         if req.state != ResState.RESOLVED:
                                             _stmt.resolve(req) 
 
@@ -1316,7 +1317,7 @@ class BeginStatement(Statement):
                     if not hasattr(common_stmt, 'unknowns'):
                         f2003_search_unknowns(common_stmt, common_stmt.f2003)
                     if hasattr(common_stmt, 'unknowns'):
-                        for unk, req in common_stmt.unknowns.iteritems():
+                        for unk, req in common_stmt.unknowns.items():
                             if req.state != ResState.RESOLVED:
                                 common_stmt.resolve(req) 
 
@@ -1338,7 +1339,7 @@ class BeginStatement(Statement):
                     uname = request.uname.firstpartname()
 
                     # first, try with use stmts having only keyword
-                    for mod_name, use_stmts in self.use_stmts.iteritems():
+                    for mod_name, use_stmts in self.use_stmts.items():
                         for use_stmt in use_stmts:
                             if use_stmt.isonly:
                                 if uname in use_stmt.norenames and self.check_access(request):
@@ -1371,7 +1372,7 @@ class BeginStatement(Statement):
                     # and then, try with use stmts not having only keyword
                     # but still has renames or norenames
                     if request.state != ResState.RESOLVED:
-                        for mod_name, use_stmts in self.use_stmts.iteritems():
+                        for mod_name, use_stmts in self.use_stmts.items():
                             for use_stmt in use_stmts:
                                 if not use_stmt.isonly:
                                     if uname in use_stmt.norenames and self.check_access(request):
@@ -1402,7 +1403,7 @@ class BeginStatement(Statement):
 
 #                    # and then, try with use stmts that has an analyzed-module
 #                    if request.state != ResState.RESOLVED:
-#                        for mod_name, use_stmts in self.use_stmts.iteritems():
+#                        for mod_name, use_stmts in self.use_stmts.items():
 #                            for use_stmt in use_stmts:
 #                                if use_stmt.module:
 #                                    if uname in use_stmt.module.a.module_provides:
@@ -1430,7 +1431,7 @@ class BeginStatement(Statement):
                     # and then, try with use stmts not having only keyword
                     # and not has renames or norenames
                     if request.state != ResState.RESOLVED:
-                        for mod_name, use_stmts in self.use_stmts.iteritems():
+                        for mod_name, use_stmts in self.use_stmts.items():
                             for use_stmt in use_stmts:
                                 if not use_stmt.isonly:
                                     if len(use_stmt.norenames)==0 and len(use_stmt.renames)==0 and self.check_access(request):
@@ -1462,7 +1463,7 @@ class BeginStatement(Statement):
                             if not hasattr(_stmt, 'unknowns'):
                                 f2003_search_unknowns(_stmt, _stmt.f2003)
                             if hasattr(_stmt, 'unknowns'):
-                                for unk, req in _stmt.unknowns.iteritems():
+                                for unk, req in _stmt.unknowns.items():
                                     if req.state != ResState.RESOLVED:
                                         _stmt.resolve(req) 
             elif request.state != ResState.RESOLVED and isinstance(request.originator, GenericBinding):
@@ -1481,7 +1482,7 @@ class BeginStatement(Statement):
                                 if not hasattr(_stmt, 'unknowns'):
                                     f2003_search_unknowns(_stmt, _stmt.f2003)
                                 if hasattr(_stmt, 'unknowns'):
-                                    for unk, req in _stmt.unknowns.iteritems():
+                                    for unk, req in _stmt.unknowns.items():
                                         if req.state != ResState.RESOLVED:
                                             _stmt.resolve(req) 
 
@@ -1510,7 +1511,7 @@ class BeginStatement(Statement):
                     if hasattr(assoc_stmt, 'unknowns'):
                         if not hasattr(assoc_stmt, 'assoc_map'):
                             assoc_stmt.assoc_map = {}
-                        for unk, req in assoc_stmt.unknowns.iteritems():
+                        for unk, req in assoc_stmt.unknowns.items():
 
                             if unk in assoc_stmt.assoc_map:
                                 if request.uname not in assoc_stmt.assoc_map[unk]:
@@ -1571,7 +1572,6 @@ class BeginStatement(Statement):
         """
         Fills blocks content until the end of block statement.
         """
-
         mode = self.reader.mode
         class_list = self.get_classes()
         self.classes = [cls for cls in class_list if mode in cls.modes]
@@ -1587,7 +1587,7 @@ class BeginStatement(Statement):
                 # TODO: FIX ME, Comment content is a string
                 self.content.append(classes.Comment(self, item))
             else:
-                raise NotImplementedError(`item`)
+                raise NotImplementedError(repr(item))
             item = self.get_item()
 
         if not end_flag:
@@ -1600,6 +1600,7 @@ class BeginStatement(Statement):
 
         Return True to stop adding items to given block.
         """
+        from parser.block_statements import BeginStatement
         line = item.get_line()
 
         # First check for the end of block

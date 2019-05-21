@@ -158,7 +158,7 @@ class ElapsedTime(KGModelingTool):
                 os.makedirs('%s/__data__/__resource__/%s'%(model_realpath, Config.model['types']['etime']['id']))
 
                 # generate wrapper nodes
-                for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.iteritems():
+                for filepath, (srcobj, mods_used, units_used) in Config.srcfiles.items():
 
                     if os.path.realpath(filepath) == os.path.realpath(Config.callsite['filepath']):
                         sfile = gensobj(None, srcobj.tree, KERNEL_ID_0)
@@ -414,7 +414,7 @@ class ElapsedTime(KGModelingTool):
                     idx += 1
 
                     if idx % 100000 == 0:
-                        print 'Processed %d items: %s'%(idx, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
+                        print('Processed %d items: %s'%(idx, datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")))
             except Exception as e:
                 raise Exception('Please check the format of elapsedtime file: %s'%str(e))
 
@@ -439,16 +439,16 @@ class ElapsedTime(KGModelingTool):
                     range_begin *= 1.E6
 
                 if range_end is None:
-                    print 'From bin # %d [ %f (%s) ~ ] %f %% of %d'%(binnum, \
-                        range_begin, bunit, countdist[binnum] * 100, totalcount)
+                    print('From bin # %d [ %f (%s) ~ ] %f %% of %d'%(binnum, \
+                        range_begin, bunit, countdist[binnum] * 100, totalcount))
                 else:
                     eunit = 'sec'
                     if range_end < 1.E-6:
                         eunit = 'usec'
                         range_end *= 1.E6
 
-                    print 'From bin # %d [ %f (%s) ~ %f (%s) ] %f %% of %d'%(binnum, \
-                        range_begin, bunit, range_end, eunit, countdist[binnum] * 100, totalcount)
+                    print('From bin # %d [ %f (%s) ~ %f (%s) ] %f %% of %d'%(binnum, \
+                        range_begin, bunit, range_end, eunit, countdist[binnum] * 100, totalcount))
 
                 for invokenum in sorted(etimebin.keys()):
                     if len(bin_triples) >= datacollect[binnum]: break
@@ -461,12 +461,12 @@ class ElapsedTime(KGModelingTool):
                         random.shuffle(binranks)
                         for threadnum in binranks:
                             bin_triples.append( (ranknum, threadnum, invokenum) )
-                            print '        invocation triple: %s:%s:%s'%(ranknum, threadnum, invokenum)
+                            print('        invocation triple: %s:%s:%s'%(ranknum, threadnum, invokenum))
                 triples.extend(bin_triples)
 
-            print 'Number of bins: %d'%nbins
-            print 'Minimun elapsed time: %f'%etimemin
-            print 'Maximum elapsed time: %f'%etimemax
+            print('Number of bins: %d'%nbins)
+            print('Minimun elapsed time: %f'%etimemin)
+            print('Maximum elapsed time: %f'%etimemax)
             #print 'Selected invocation triples:'
             #print ','.join([ ':'.join([ str(n) for n in t ]) for t in triples])
 
@@ -485,7 +485,7 @@ class ElapsedTime(KGModelingTool):
 
         etime_realpath = os.path.realpath('%s/%s'%(Config.path['outdir'], Config.path['etime']))
 
-        org_files = [ filepath for filepath, (sfile, mods_used, units_used) in Config.used_srcfiles.iteritems() if sfile.used4etime ]
+        org_files = [ filepath for filepath, (sfile, mods_used, units_used) in Config.used_srcfiles.items() if sfile.used4etime ]
         if not Config.topblock['stmt'].reader.id in org_files:
             org_files.append(Config.topblock['filepath'])
 

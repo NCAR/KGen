@@ -2,7 +2,7 @@
  
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
-from verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils, is_remove_state, \
+from extractor.plugins.verification.verify_utils import get_dtype_verifyname, get_typedecl_verifyname, kernel_verify_contains, kernel_verify_kgenutils, is_remove_state, \
     is_zero_array
 
 class Verify_Type(Kgen_Plugin):
@@ -32,7 +32,7 @@ class Verify_Type(Kgen_Plugin):
     def has_dtype_res_path(self, node):
         if node.kgen_stmt and hasattr(node.kgen_stmt, 'geninfo'):
             if not node.kgen_stmt.isonly: return False
-            for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
+            for gentype, reqlist in node.kgen_stmt.geninfo.items():
                 if any(len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type) and \
                     'abstract' not in req.res_stmts[0].specs for uname, req in reqlist):
                     return True
@@ -41,7 +41,7 @@ class Verify_Type(Kgen_Plugin):
     def add_verifynames_in_use_public(self, node):
         parent = node.kgen_parent
 
-        for gentype, reqlist in node.kgen_stmt.geninfo.iteritems():
+        for gentype, reqlist in node.kgen_stmt.geninfo.items():
             for uname, req in reqlist:
                 if len(req.res_stmts)>0 and isinstance(req.res_stmts[0], block_statements.Type):
                     subrname = get_dtype_verifyname(req.res_stmts[0])
@@ -234,7 +234,7 @@ class Verify_Type(Kgen_Plugin):
                             ename_indexes = [ '%s_%s'%(idx,entity_name) for idx in indexes ]
 
                             callname = None
-                            for uname, req in stmt.unknowns.iteritems():
+                            for uname, req in stmt.unknowns.items():
                                 if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                     callname = get_dtype_verifyname(req.res_stmts[0])
                                     break
@@ -447,7 +447,7 @@ class Verify_Type(Kgen_Plugin):
                         if stmt.is_derived():
 
                             callname = None
-                            for uname, req in stmt.unknowns.iteritems():
+                            for uname, req in stmt.unknowns.items():
                                 if uname.firstpartname()==stmt.name and len(req.res_stmts)>0:
                                     callname = get_dtype_verifyname(req.res_stmts[0])
                                     break

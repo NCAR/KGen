@@ -4,12 +4,12 @@ from collections import OrderedDict
 from parser import statements, block_statements, typedecl_statements
 from kgplugin import Kgen_Plugin
 
-from gencore_utils import get_topname, get_typedecl_writename, get_dtype_writename, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
+from extractor.plugins.gencore.gencore_utils import get_topname, get_typedecl_writename, get_dtype_writename, get_module_in_writename, STATE_PBLOCK_WRITE_IN_EXTERNS, \
     STATE_PBLOCK_USE_PART, kernel_gencore_contains, state_gencore_contains, get_typedecl_readname, get_dtype_readname, get_module_in_readname, \
     KERNEL_PBLOCK_USE_PART, DRIVER_READ_IN_EXTERNS, process_spec_stmts, get_module_out_writename, get_module_out_readname, \
     KERNEL_PBLOCK_READ_OUT_EXTERNS, STATE_PBLOCK_WRITE_OUT_EXTERNS, gen_write_istrue, gen_read_istrue, is_excluded, \
     is_remove_state, is_zero_array, DRIVER_USE_PART, check_class_derived
-from gencore_subr import create_write_subr, create_read_subr
+from extractor.plugins.gencore.gencore_subr import create_write_subr, create_read_subr
 
 class Gen_Typedecl_In_Module(Kgen_Plugin):
     def __init__(self):
@@ -458,7 +458,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                             self.kernel_created_subrs.append(subrname)
                     else:
                         subrname = None
-                        for uname, req in stmt.unknowns.iteritems():
+                        for uname, req in stmt.unknowns.items():
                             if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                             #if uname.firstpartname()==stmt.name:
                                 if len(req.res_stmts)>0:
@@ -466,7 +466,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                                     subrname = get_dtype_readname(res)
                                     break
                         if subrname is None:
-                            print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            print('WARNING: Can not find Type resolver for %s'%stmt.name)
                             namedpart_append_comment(self.kernel_externs_subrs[node.kgen_parent][0], EXEC_PART, \
                                 'ERROR: "%s" is not resolved. Call statements to read "%s" is not created here.'%\
                                 (stmt.name, stmt.name))
@@ -535,7 +535,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                             self.state_created_subrs.append(subrname)
                     else:
                         subrname = None
-                        for uname, req in stmt.unknowns.iteritems():
+                        for uname, req in stmt.unknowns.items():
                             if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                             #if uname.firstpartname()==stmt.name:
                                 if len(req.res_stmts)>0:
@@ -543,7 +543,7 @@ class Gen_Typedecl_In_Module(Kgen_Plugin):
                                     subrname = get_dtype_writename(res)
                                     break
                         if subrname is None:
-                            print 'WARNING: Can not find Type resolver for %s'%stmt.name
+                            print( 'WARNING: Can not find Type resolver for %s'%stmt.name)
                             namedpart_append_comment(self.state_externs_subrs[node.kgen_parent][0], EXEC_PART, \
                                 'ERROR: "%s" is not resolved. Call statements to write "%s" is not created here.'%\
                                 (stmt.name, stmt.name))

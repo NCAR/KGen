@@ -50,7 +50,7 @@ class Gen_Coverage_File(Kgen_Plugin):
     def show_coverage(self, node):
 
         try:
-            part_append_comment(node, DECL_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
+            part_append_comment(node, DECL_PART, "#ifdef KGEN_COVERAGE", style="cpp")
             maxlines = max([len(l) for l in self.lines.values()])
             attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d, 0:%d)'%(len(self.files)-1, maxlines-1) ], 'entity_decls': ['kgen_visits']}
             part_append_genknode(node, DECL_PART, typedecl_statements.Integer, attrs=attrs)
@@ -58,11 +58,11 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'items': [ ( 'coverage', ('kgen_visits', ) ) ]}
             part_append_genknode(node, DECL_PART, statements.Common, attrs=attrs)
 
-            part_append_comment(node, DECL_PART, "#ENDIF", style="cpp")
+            part_append_comment(node, DECL_PART, "#endif", style="cpp")
 
             part_append_comment(node, DECL_PART, '')
 
-            part_append_comment(node, EXEC_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
+            part_append_comment(node, EXEC_PART, "#ifdef KGEN_COVERAGE", style="cpp")
 
 
             attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
@@ -86,7 +86,7 @@ class Gen_Coverage_File(Kgen_Plugin):
 
                 for lid in sorted(self.inv_lines[fid]):
                     lnum = self.inv_lines[fid][lid]
-                    attrs = {'specs': ['*', '"(A,I,A)"'], 'items': ['"  Kernel visited "', \
+                    attrs = {'specs': ['*', '"(A,I0,A)"'], 'items': ['"  Kernel visited "', \
                         'kgen_visits(%s,%s)'%(fid, lid), '" times at line_id=%s (near original line=%s)"'%(lid, lnum)]}
                         #'kgen_visits(%s,%s)'%(fid, lid), '" times near the line # of %s (line id=%s)"'%(lnum, lid)]}
                     part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
@@ -94,7 +94,7 @@ class Gen_Coverage_File(Kgen_Plugin):
             attrs = {'items': ['"****************************************************************************"'], 'specs': [ '*', '"(A)"' ]}
             part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
 
-            part_append_comment(node, EXEC_PART, "#ENDIF", style="cpp")
+            part_append_comment(node, EXEC_PART, "#endif", style="cpp")
         except:
             attrs = {'items': ['"ERROR: Coverage information is disabled due to an internal error."'], 'specs': [ '*', '"(A)"' ]}
             part_append_genknode(node, EXEC_PART, statements.Write, attrs=attrs)
@@ -138,13 +138,13 @@ class Gen_Coverage_File(Kgen_Plugin):
         pstmt = node.kgen_stmt.ancestors()[-1]
         pnode = pstmt.genkpair
         if not hasattr(pnode, '__kgen__coverage__common_stmt__'):
-            part_append_comment(node, DECL_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
+            part_append_comment(node, DECL_PART, "#ifdef KGEN_COVERAGE", style="cpp")
             maxlines = max([len(l) for l in self.lines.values()])
             attrs = {'type_spec': 'INTEGER', 'attrspec': [ 'DIMENSION(0:%d, 0:%d)'%(len(self.files)-1, maxlines-1) ], 'entity_decls': ['kgen_visits']}
             part_append_genknode(pnode, DECL_PART, typedecl_statements.Integer, attrs=attrs)
             attrs = {'items': [ ( 'coverage', ('kgen_visits', ) ) ]}
             part_append_genknode(pnode, DECL_PART, statements.Common, attrs=attrs)
-            part_append_comment(node, DECL_PART, "#ENDIF", style="cpp")
+            part_append_comment(node, DECL_PART, "#endif", style="cpp")
             pnode.__kgen__coverage__common_stmt__ = True
 
     ##################################
@@ -176,10 +176,10 @@ class Gen_Coverage_File(Kgen_Plugin):
         if fid is not False and lid is not False and not self.ispure(node) and \
             hasattr(node.kgen_stmt, 'unknowns'):
             self.add_commonstmt(node)
-            part_insert_comment(node, EXEC_PART, 0, "#IFDEF KGEN_COVERAGE", style="cpp")
+            part_insert_comment(node, EXEC_PART, 0, "#ifdef KGEN_COVERAGE", style="cpp")
             attrs = {'variable': 'kgen_visits(%s, %d)'%(fid, lid), 'sign': '=', 'expr': 'kgen_visits(%s, %d) + 1'%(fid, lid)}
             part_insert_genknode(node, EXEC_PART, statements.Assignment, index=1, attrs=attrs)
-            part_insert_comment(node, EXEC_PART, 2, "#ENDIF", style="cpp")
+            part_insert_comment(node, EXEC_PART, 2, "#endif", style="cpp")
 
     def add_stmt(self, node):
         fid, lid = self.lineid(node)
@@ -187,10 +187,10 @@ class Gen_Coverage_File(Kgen_Plugin):
             hasattr(node.kgen_stmt, 'unknowns'):
             self.add_commonstmt(node)
             idx, name, part = get_part_index(node)
-            part_insert_comment(node.kgen_parent, EXEC_PART, idx+1, "#IFDEF KGEN_COVERAGE", style="cpp")
+            part_insert_comment(node.kgen_parent, EXEC_PART, idx+1, "#ifdef KGEN_COVERAGE", style="cpp")
             attrs = {'variable': 'kgen_visits(%s, %d)'%(fid, lid), 'sign': '=', 'expr': 'kgen_visits(%s, %d) + 1'%(fid, lid)}
             part_insert_genknode(node.kgen_parent, EXEC_PART, statements.Assignment, index=(idx+2), attrs=attrs)
-            part_insert_comment(node.kgen_parent, EXEC_PART, idx+3, "#ENDIF", style="cpp")
+            part_insert_comment(node.kgen_parent, EXEC_PART, idx+3, "#endif", style="cpp")
 
     def addstmt_ifthen(self, node):
         self.add_stmt_block(node)
@@ -213,7 +213,7 @@ class Gen_Coverage_File(Kgen_Plugin):
         maxlines = max([len(l) for l in self.lines.values()])
 
         part_append_comment(node.kgen_parent, UNIT_PART, '')
-        part_append_comment(node.kgen_parent, UNIT_PART, "#IFDEF KGEN_COVERAGE", style="cpp")
+        part_append_comment(node.kgen_parent, UNIT_PART, "#ifdef KGEN_COVERAGE", style="cpp")
 
         attrs = {'name': 'kgen_coverage_data'}
         cblock = part_append_genknode(node.kgen_parent, UNIT_PART, block_statements.BlockData, attrs=attrs)
@@ -224,5 +224,5 @@ class Gen_Coverage_File(Kgen_Plugin):
         attrs = {'items': [ ( 'coverage', ('kgen_visits',) ) ]}
         part_append_genknode(cblock, DECL_PART, statements.Common, attrs=attrs)
 
-        part_append_comment(node.kgen_parent, UNIT_PART, "#ENDIF", style="cpp")
+        part_append_comment(node.kgen_parent, UNIT_PART, "#endif", style="cpp")
 

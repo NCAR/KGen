@@ -3,17 +3,16 @@
 
 from kgconfig import Config
 from kgutils import KGName, ProgramException, UserException, traverse
-from kgparse import KGGenType, SrcFile, ResState
-from Fortran2003 import Name, Call_Stmt, Function_Reference, Part_Ref, Interface_Stmt, Actual_Arg_Spec_List, \
+from parser.kgparse import KGGenType, SrcFile, ResState
+from parser.Fortran2003 import Name, Call_Stmt, Function_Reference, Part_Ref, Interface_Stmt, Actual_Arg_Spec_List, \
     Section_Subscript_List, Actual_Arg_Spec, Structure_Constructor_2
 from collections import OrderedDict
-from typedecl_statements import TypeDeclarationStatement
-from block_statements import SubProgramStatement, Associate
+from parser.typedecl_statements import TypeDeclarationStatement
+from parser.block_statements import SubProgramStatement, Associate
 
 def update_state_info(parent):
 
     def get_nodes(node, bag, depth):
-        from Fortran2003 import Name
         if isinstance(node, Name) and node.string==bag['name'] and not node.parent in bag:
             anc = [node]
             while hasattr(node, 'parent'):
@@ -59,7 +58,7 @@ def update_state_info(parent):
                                     callobj = None
                                     subpobj = None
                                     if callname:
-                                        for org_uname, org_req in org.unknowns.iteritems():
+                                        for org_uname, org_req in org.unknowns.items():
                                             if org_uname.firstpartname()==callname:
                                                 if isinstance(org_req.res_stmts[0], SubProgramStatement):
                                                     callobj = anc
@@ -124,9 +123,9 @@ def analyze():
     analyze_callsite()
 
 def analyze_callsite():
-    from block_statements import EndStatement, Subroutine, Function, Interface
-    from statements import SpecificBinding
-    from kgsearch import f2003_search_unknowns
+    from parser.block_statements import EndStatement, Subroutine, Function, Interface
+    from parser.statements import SpecificBinding
+    from parser.kgsearch import f2003_search_unknowns
 
     # read source file that contains callsite stmt
     cs_file = SrcFile(Config.callsite['filepath'])
@@ -168,7 +167,7 @@ def analyze_callsite():
     for cs_stmt in Config.callsite['stmts']:
         #resolve cs_stmt
         f2003_search_unknowns(cs_stmt, cs_stmt.f2003)
-        for uname, req in cs_stmt.unknowns.iteritems():
+        for uname, req in cs_stmt.unknowns.items():
             cs_stmt.resolve(req)
             if not req.res_stmts:
                 raise ProgramException('Resolution fail.')
@@ -178,7 +177,7 @@ def analyze_callsite():
     update_state_info(Config.parentblock['stmt'])
 
     # update state info of modules
-    for modname, moddict in Config.modules.iteritems():
+    for modname, moddict in Config.modules.items():
         modstmt = moddict['stmt']
         if modstmt != Config.topblock['stmt']:
             update_state_info(moddict['stmt'])

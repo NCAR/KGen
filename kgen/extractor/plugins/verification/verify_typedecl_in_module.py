@@ -4,9 +4,9 @@ from parser import statements, block_statements, typedecl_statements
 from collections import OrderedDict
 from kgplugin import Kgen_Plugin
 
-from verify_utils import get_module_verifyname, kernel_verify_contains, VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_EXTERNS, \
+from extractor.plugins.verification.verify_utils import get_module_verifyname, kernel_verify_contains, VERIFY_PBLOCK_USE_PART, VERIFY_PBLOCK_EXTERNS, \
     get_typedecl_verifyname, get_dtype_verifyname, is_remove_state, is_zero_array, check_class_derived
-from verify_subr import create_verify_subr
+from extractor.plugins.verification.verify_subr import create_verify_subr
 
 class Verify_Typedecl_In_Module(Kgen_Plugin):
     def __init__(self):
@@ -119,7 +119,7 @@ class Verify_Typedecl_In_Module(Kgen_Plugin):
                         create_verify_subr(subrname, entity_name, node.kgen_parent, var, stmt)
                     else:
                         subrname = None
-                        for uname, req in stmt.unknowns.iteritems():
+                        for uname, req in stmt.unknowns.items():
                             if ( is_class_derived and uname.firstpartname()==stmt.selector[1]) or uname.firstpartname()==stmt.name:
                             #if uname.firstpartname()==stmt.name:
                                 if len(req.res_stmts)>0:

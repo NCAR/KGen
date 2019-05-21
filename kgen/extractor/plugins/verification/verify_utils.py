@@ -117,13 +117,13 @@ def process_spec_stmts(stmt):
 
 def is_excluded(ename, stmt):
     if hasattr(stmt, 'exclude_names'):
-        for name, actions in stmt.exclude_names.iteritems():
+        for name, actions in stmt.exclude_names.items():
             if ename==name: return True
     return False
 
 def is_remove_state(ename, stmt):
     if hasattr(stmt, 'exclude_names'):
-        for name, actions in stmt.exclude_names.iteritems():
+        for name, actions in stmt.exclude_names.items():
             if ename==name and 'remove_state' in actions:
                 return True
     return False
@@ -131,7 +131,7 @@ def is_remove_state(ename, stmt):
 def is_param_zero(length, stmt):
 
     if hasattr(stmt, 'unknowns'):
-        for uname, req in stmt.unknowns.iteritems():
+        for uname, req in stmt.unknowns.items():
             if uname.firstpartname()==length and len(req.res_stmts)>0:
                 res_stmt = req.res_stmts[0]
                 if isinstance(res_stmt, typedecl_statements.Integer) and 'parameter' in res_stmt.attrspec:
