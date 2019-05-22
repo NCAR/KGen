@@ -12,6 +12,7 @@ import time
 import random
 import collections
 import multiprocessing
+import six
 from collections import OrderedDict
 
 from kgtool import KGModelingTool
@@ -224,9 +225,9 @@ class ElapsedTime(KGModelingTool):
                             slines = kgutils.remove_multiblanklines(slines)
                             etime_files.append(filename)
                             with open('%s/%s'%(etime_realpath, filename), 'wb') as fd:
-                                fd.write(slines)
+                                fd.write(six.b(slines))
                             with open('%s/%s.kgen'%(etime_realpath, filename), 'wb') as ft:
-                                ft.write('\n'.join(sfile.kgen_stmt.prep))
+                                ft.write(six.b('\n'.join(sfile.kgen_stmt.prep)))
 
                 self.gen_makefile()
 
@@ -453,11 +454,11 @@ class ElapsedTime(KGModelingTool):
                 for invokenum in sorted(etimebin.keys()):
                     if len(bin_triples) >= datacollect[binnum]: break
                     # select datacollect[binum] under this data tree, rank/thread/invoke
-                    bininvokes = etimebin[invokenum].keys()
+                    bininvokes = list(etimebin[invokenum].keys())
                     random.shuffle(bininvokes)
                     for ranknum in bininvokes:
                         if len(bin_triples) >= datacollect[binnum]: break
-                        binranks = etimebin[invokenum][ranknum].keys()
+                        binranks = list(etimebin[invokenum][ranknum].keys())
                         random.shuffle(binranks)
                         for threadnum in binranks:
                             bin_triples.append( (ranknum, threadnum, invokenum) )
@@ -479,7 +480,7 @@ class ElapsedTime(KGModelingTool):
         tab = ''
         if n: nl = '\n'
         if t: tab = '\t'
-        f.write(tab + line + nl)
+        f.write(six.b(tab + line + nl))
 
     def gen_makefile(self):
 
@@ -508,14 +509,14 @@ class ElapsedTime(KGModelingTool):
 
             self.write(f, '')
 
-            if Config.cmd_run['cmds']>0:
+            if len(Config.cmd_run['cmds'])>0:
                 self.write(f, 'run: build')
                 self.write(f, '%scd %s; %s'%(prerun_run_str, cwd, Config.cmd_run['cmds']), t=True)
             else:
                 self.write(f, 'echo "No information is provided to run. Please specify run commands using \'state-run\' command line option"; exit -1', t=True)
             self.write(f, '')
 
-            if Config.cmd_build['cmds']>0:
+            if len(Config.cmd_build['cmds'])>0:
                 self.write(f, 'build: %s'%Config.state_switch['type'])
                 self.write(f, '%scd %s; %s'%(prerun_build_str, cwd, Config.cmd_build['cmds']), t=True)
                 for org_file in org_files:
@@ -556,7 +557,7 @@ class ElapsedTime(KGModelingTool):
                 self.write(f, 'if [ ! -f %(g)s.kgen_org ]; then cp -f %(f)s %(g)s.kgen_org; fi'%{'f':org_file, 'g':os.path.basename(org_file)}, t=True)
             self.write(f, '')
 
-            if Config.cmd_clean['cmds']>0:
+            if len(Config.cmd_clean['cmds'])>0:
                 self.write(f, 'clean:')
                 self.write(f, Config.cmd_clean['cmds'], t=True)
             self.write(f, '')

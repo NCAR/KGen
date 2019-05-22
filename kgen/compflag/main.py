@@ -28,7 +28,6 @@ class CompFlag(kgtool.KGTool):
         includepath = '%s/%s'%(Config.path['outdir'], Config.includefile)
 
         if not os.path.exists(stracepath) or 'all' in Config.rebuild or 'strace' in Config.rebuild:
-
             # clean app.
             if Config.cmd_clean['cmds']:
                 kgutils.run_shcmd(Config.cmd_clean['cmds'])
@@ -78,7 +77,6 @@ class CompFlag(kgtool.KGTool):
         return None
 
     def _geninclude(self, stracepath, includepath):
-
         kgutils.logger.info('Creating KGen include file: %s'%includepath)
 
         cfg = configparser.RawConfigParser()
