@@ -394,7 +394,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
             attrs = {'items': ['kgen_arr_%s_L%d'%(var.name, lineno)]}
             part_append_genknode(ifalloc, EXEC_PART, statements.Deallocate, attrs=attrs)
 
-        l = [ 'rank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_evalinvoke_L%d'%lineno]
+        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_evalinvoke_L%d'%lineno]
         attrs = {'specs': ['kgen_read_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
         part_append_genknode(ifeval, EXEC_PART, statements.Write, attrs=attrs)
 
@@ -497,7 +497,7 @@ class Gen_Write_In_Module(Kgen_Plugin):
         attrs = {'variable': 'kgen_readsubp_maininvoke_L%d'%lineno, 'sign': '=', 'expr': '0'}
         part_append_genknode(ifwarmup, EXEC_PART, statements.Assignment, attrs=attrs)
 
-        l = [ 'rank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_warmupinvoke_L%d'%lineno]
+        l = [ 'kgen_mpirank', '"."', 'kgen_openmptid', '"."', 'kgen_kernelinvoke', '"."', 'kgen_readsubp_warmupinvoke_L%d'%lineno]
         attrs = {'specs': ['kgen_read_filepath_L%d'%lineno, 'FMT="(A,I0,A,I0,A,I0,A,I0)"' ], 'items': [ '"%s.L%d."'%(filename, lineno) ] + l}
         part_append_genknode(ifwarmup, EXEC_PART, statements.Write, attrs=attrs)
 
