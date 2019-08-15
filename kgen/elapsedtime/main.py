@@ -268,10 +268,8 @@ class ElapsedTime(KGModelingTool):
                     except:
                         pass
 
-                #import pdb; pdb.set_trace()
-
-                nprocs = min( len(mpipaths), multiprocessing.cpu_count()*1)
-                #nprocs = 1
+                #nprocs = min( len(mpipaths), multiprocessing.cpu_count()*1)
+                nprocs = 1
 
                 if nprocs == 0:
                     kgutils.logger.warn('No elapsedtime data files are found.')

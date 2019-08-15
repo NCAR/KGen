@@ -168,7 +168,8 @@ type check_t
     integer :: rank
 end type check_t
 
-public kgen_dp, check_t, kgen_init_verify, kgen_init_check, kgen_tolerance, kgen_minvalue, kgen_verboselevel, kgen_print_check, kgen_perturb_real
+public kgen_dp, check_t, kgen_init_verify, kgen_init_check, kgen_tolerance
+public kgen_minvalue, kgen_verboselevel, kgen_print_check, kgen_perturb_real
 public CHECK_NOT_CHECKED, CHECK_IDENTICAL, CHECK_IN_TOL, CHECK_OUT_TOL
 public kgen_get_newunit, kgen_error_stop
 """

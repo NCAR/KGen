@@ -53,7 +53,7 @@ class CompFlag(kgtool.KGTool):
                 if retcode != 0 and os.path.exists(stracepath):
                     os.remove(stracepath)
                     kgutils.logger.error('%s\n%s'%(err, out))
-            except:
+            except Exception as err:
                 if os.path.exists(stracepath):
                     os.remove(stracepath)
                 kgutils.logger.error('%s\n%s'%(err, out))

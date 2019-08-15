@@ -63,7 +63,7 @@ class KExtSysCHCesmIntelTest(KExtSysCHCesmTest):
             out, err, retcode = run_shcmd('grep mg2 env_build.xml', cwd=casedir)
             if retcode!=0:
                 # NOTE: pcols=16 is a default setting for cesm2
-                #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=192"'
+                xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=192"'
                 #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=96"'
                 #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=32"'
                 #xmlchange = './xmlchange --append CAM_CONFIG_OPTS="-microphys mg2 -clubb_sgs -pcols=16"'
@@ -72,7 +72,8 @@ class KExtSysCHCesmIntelTest(KExtSysCHCesmTest):
                     self.set_status(result, myname, self.FAILED, errmsg='Modification of env_build.xml is failed: %s, %s'%(err, out))
                     return result
 
-            batch_flags = "-W block=true -N KINTCESM.run -r n -j oe -V -S /bin/bash -l select=16:ncpus=36:mpiprocs=36:ompthreads=1 -l walltime=01:15:00 -A NTDD0004 -q premium"
+            #batch_flags = "-W block=true -N KINTCESM.run -r n -j oe -V -S /bin/bash -l select=16:ncpus=36:mpiprocs=36:ompthreads=1 -l walltime=01:15:00 -A NTDD0004 -q premium"
+            batch_flags = "-W block=true -N KINTCESM.run -r n -j oe -V -S /bin/bash -l select=4:ncpus=36:mpiprocs=36:ompthreads=1 -l walltime=03:00:00 -A NTDD0004 -q premium"
             out, err, retcode = run_shcmd('./xmlchange BATCH_COMMAND_FLAGS="%s"'%batch_flags, cwd=casedir)
 
             # cesm.setup

@@ -528,7 +528,7 @@ class Config(object):
                 if os.path.exists(self._attrs['mpi']['header']):
                     mpifpath = self._attrs['mpi']['header']
                 else:
-                    raise UserException('Can not find %s'%self._attrs['.mpi']['header'])
+                    raise UserException('Can not find %s'%self._attrs['mpi']['header'])
             else:
                 for p in self._attrs['include']['path']:
                     fp = os.path.join(p, self._attrs['mpi']['header'])

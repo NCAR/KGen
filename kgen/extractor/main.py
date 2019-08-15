@@ -344,22 +344,22 @@ class Extractor(KGTool):
 
             if (Config.prerun['kernel_build'] or Config.prerun['build'] or
                 Config.prerun['kernel_run'] or Config.prerun['run']):
-                self.write(f, '# Uncomment below if you like to replicate the kernel extraction environment.')
+                self.write(f, '# Comment-out below if your system environment is different from one that this kernel is extracted from.')
                 self.write(f, '# NOTE: the environment is valid only if you are using this kernel on the'
                               ' same computing system that the kernel was extracted from.')
             if Config.prerun['kernel_build']:
-                self.write(f, '#PRERUN_BUILD := %s; '%Config.prerun['kernel_build'])
+                self.write(f, 'PRERUN_BUILD := %s; '%Config.prerun['kernel_build'])
                 prerun_build_str = '${PRERUN_BUILD}'
             elif Config.prerun['build']:
-                self.write(f, '#PRERUN_BUILD := %s; '%Config.prerun['build'])
+                self.write(f, 'PRERUN_BUILD := %s; '%Config.prerun['build'])
                 prerun_build_str = '${PRERUN_BUILD}'
 
             prerun_run_str = ''
             if Config.prerun['kernel_run']:
-                self.write(f, '#PRERUN_RUN := %s; '%Config.prerun['kernel_run'])
+                self.write(f, 'PRERUN_RUN := %s; '%Config.prerun['kernel_run'])
                 prerun_run_str = '${PRERUN_RUN}'
             elif Config.prerun['run']:
-                self.write(f, '#PRERUN_RUN := %s; '%Config.prerun['run'])
+                self.write(f, 'PRERUN_RUN := %s; '%Config.prerun['run'])
                 prerun_run_str = '${PRERUN_RUN}'
 
             self.write(f, '')
