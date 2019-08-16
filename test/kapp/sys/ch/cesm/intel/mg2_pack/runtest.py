@@ -58,7 +58,7 @@ class Test(KAppSysCHCesmIntelTest):
                 shutil.copyfile(src, os.path.join(dst, f))
  
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            __cmd_clean='"cd %s; ./case.clean_build all"'%casedir, \
+            __cmd_clean='"cd %s; ./case.build --clean-all"'%casedir, \
             __cmd_build='"cd %s; ./case.build"'%casedir, \
             __cmd_run='"cd %s; ./case.submit"'%casedir, \
             __timing='repeat=1', \

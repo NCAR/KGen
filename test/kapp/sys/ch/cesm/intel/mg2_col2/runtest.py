@@ -23,7 +23,7 @@ class Test(KAppSysCHCesmIntelTest):
         namepath = 'micro_mg_cam:micro_mg_cam_tend:micro_mg_get_cols2_0'
 
         passed, out, err = self.extract_kernel(srcfile, namepath, \
-            __cmd_clean='"cd %s; ./case.clean_build all"'%casedir, \
+            __cmd_clean='"cd %s; ./case.build --clean-all"'%casedir, \
             __cmd_build='"cd %s; ./case.build"'%casedir, \
             __cmd_run='"cd %s; ./case.submit"'%casedir, \
             __timing='repeat=1', \
