@@ -778,8 +778,11 @@ class Statement(object):
 #                        line = line[m.end():].lstrip()
                     self.f2003 = self.f2003_class(line)
                 elif hasattr(self.item, 'comment'):
-                    #self.f2003 = self.f2003_class(self.item.comment)
-                    self.f2003 = self.f2003_class()
+                    #self.f2003 = self.f2003_class() # KGEN deletion
+
+                    # KGEN addition
+                    self.f2003 = self.f2003_class(self.item)
+
                 elif self.__class__ in [ BeginSource ]:
                     self.f2003 = self.f2003_class()
                 else:

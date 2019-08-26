@@ -249,6 +249,17 @@ def defer_items(stmt, node, gentype=None):
 ################################### SEARCH ####################################
 ###############################################################################
 
+def search_tuple(stmt, node, gentype=None):
+    """ Identifying a name in tuple node"""
+
+    for item in node:
+        get_name_or_defer(stmt, item, res_value)
+
+def search_list(stmt, node, gentype=None):
+    """ Identifying a name in list node"""
+
+    search_tuple(stmt, node, gentype=gentype)
+
 def search_Type_Declaration_Stmt(stmt, node, gentype=None):  
     """ Identifying a name in Type_Declaration_Stmt node"""
 
